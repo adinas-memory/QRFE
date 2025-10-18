@@ -29,13 +29,13 @@ export const routes: Routes = [
         data: { title: 'Restaurant Setup' }
       },
       {
-        path: 'payment',
+        path: 'payment-success',
         loadComponent: () =>
           import('./payment-success/payment-success.component').then(m => m.PaymentSuccessComponent),
         data: { title: 'Payment-Success' }
       },
             {
-        path: 'payment',
+        path: 'payment-failure',
         loadComponent: () =>
           import('./payment-failure/payment-failure.component').then(m => m.PaymentFailureComponent),
         data: { title: 'Payment-Failure' }
