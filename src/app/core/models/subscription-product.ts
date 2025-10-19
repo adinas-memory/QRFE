@@ -1,5 +1,5 @@
 export interface SubscriptionProduct {
-      restaurantType: string;
+  restaurantType: string;
   description: string;
   features: string;
   priceAmount: number;

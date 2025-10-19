@@ -14,6 +14,7 @@ import { IconSetService } from '@coreui/icons-angular';
 import { routes } from './app.routes';
 import { CoreModule } from './core/core.module';
 import { AuthService } from './core/auth/auth.service';
+import { provideHttpClient } from '@angular/common/http';
 
 export function initAuth(authService: AuthService) {
   return () => authService.restoreSession().toPromise();
@@ -39,6 +40,7 @@ export const appConfig: ApplicationConfig = {
       withViewTransitions(),
       withHashLocation()
     ),    
+    provideHttpClient(),
     importProvidersFrom(CoreModule),
     importProvidersFrom(SidebarModule, DropdownModule),
     IconSetService,

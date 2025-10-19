@@ -8,7 +8,7 @@ export class SubscriptionService {
   constructor(private http: HttpClient) {}
 
   getSubscriptionProducts(): Observable<SubscriptionProduct[]> {
-    return this.http.get<SubscriptionProduct[]>('/api/subscriptions', {
+    return this.http.get<SubscriptionProduct[]>('http://127.0.0.1:7051/api/stripe/subscription', {
       withCredentials: true
     });
   }

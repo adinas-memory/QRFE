@@ -1,11 +1,16 @@
+
 <c-row>
-  <c-col [sm]="6" *ngFor="let card of cards">
+  @for (card of cards; track card.restaurantType) {
+  <c-col [sm]="4" [md]="12" [lg]="6">
     <c-card class="mb-4">
       <c-card-body>
-        <h5 cCardTitle>{{ card.title }}</h5>
-        <p cCardText>{{ card.text }}</p>
-        <button cButton [color]="card.buttonColor">{{ card.buttonText }}</button>
+        <h5 cCardTitle>{{ card.features }}</h5>
+        <p cCardText>{{ card.description }}</p>
+        <button cButton color="primary">
+          {{ card.priceAmount }} {{ card.priceCurrency }} / {{ card.subscriptionInterval }}
+        </button>
       </c-card-body>
     </c-card>
   </c-col>
+}
 </c-row>

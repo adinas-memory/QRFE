@@ -35,11 +35,11 @@ type CardColor = {
 @Component({
   selector: 'app-landing',
   standalone: true,
-  imports: [RowComponent, ColComponent, CardComponent, CardHeaderComponent, CardBodyComponent, NgTemplateOutlet, CardTitleDirective, CardTextDirective, ButtonDirective, CardSubtitleDirective, CardLinkDirective, RouterLink, ListGroupDirective, ListGroupItemDirective, CardFooterComponent, BorderDirective, CardGroupComponent, GutterDirective, CardImgDirective, TabsComponent, TabsListComponent, TabDirective, TabsContentComponent, TabPanelComponent, RouterLink, NgTemplateOutlet],
+  imports: [RowComponent, ColComponent, CardComponent, CardHeaderComponent, CardBodyComponent, NgTemplateOutlet, CardTitleDirective, CardTextDirective, ButtonDirective, CardSubtitleDirective, CardLinkDirective, ListGroupDirective, ListGroupItemDirective, CardFooterComponent, BorderDirective, CardGroupComponent, GutterDirective, CardImgDirective, TabsComponent, TabsListComponent, TabDirective, TabsContentComponent, TabPanelComponent],
   templateUrl: './landing.component.html'  
 })
 export class LandingComponent implements OnInit {
-  cards: SubscriptionProduct[] = [];
+  public cards: SubscriptionProduct[] = [];
 
   constructor(private subscriptionService: SubscriptionService) {}
 
