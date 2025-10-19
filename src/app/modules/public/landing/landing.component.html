@@ -1,7 +1,24 @@
-
+<c-header>
+  <c-container fluid>
+    <c-header-brand [routerLink]>Brand</c-header-brand>
+    <c-header-nav class="ms-auto">
+      <c-nav-item>
+        <a cNavLink routerLink="/login">Login</a>
+      </c-nav-item>
+      <c-nav-item>
+        <a cNavLink routerLink="/register">Register</a>
+      </c-nav-item>
+    </c-header-nav>
+  </c-container>
+  <c-header-divider />
+  <c-container fluid>
+    <c-header-text>Additional text</c-header-text>
+  </c-container>
+</c-header>
+<c-container>
 <c-row>
   @for (card of cards; track card.restaurantType) {
-  <c-col [sm]="4" [md]="12" [lg]="6">
+  <c-col [xs]="12" [sm]="4" [md]="12" [lg]="4">
     <c-card class="mb-4">
       <c-card-body>
         <h5 cCardTitle>{{ card.features }}</h5>
@@ -14,3 +31,4 @@
   </c-col>
 }
 </c-row>
+</c-container>

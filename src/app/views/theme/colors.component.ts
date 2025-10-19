@@ -2,11 +2,22 @@ import { AfterViewInit, Component, computed, DOCUMENT, forwardRef, inject, input
 import { NgClass } from '@angular/common';
 
 import { getStyle, rgbToHex } from '@coreui/utils';
-import { CardBodyComponent, CardComponent, CardHeaderComponent, ColComponent, RowComponent } from '@coreui/angular';
+import {
+  NavComponent,
+  NavItemComponent,
+  NavLinkDirective,
+  CardBodyComponent,
+  CardComponent,
+  CardHeaderComponent,
+  ColComponent,
+  RowComponent } from '@coreui/angular';
 
 @Component({
   templateUrl: 'colors.component.html',
-  imports: [CardComponent, CardHeaderComponent, CardBodyComponent, RowComponent, forwardRef(() => ThemeColorComponent)]
+  imports: [
+  NavComponent,
+  NavItemComponent,
+  NavLinkDirective,CardComponent, CardHeaderComponent, CardBodyComponent, RowComponent, forwardRef(() => ThemeColorComponent)]
 })
 export class ColorsComponent implements OnInit, AfterViewInit {
   private document = inject<Document>(DOCUMENT);
