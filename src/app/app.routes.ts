@@ -9,7 +9,7 @@ export const routes: Routes = [
   // Staff area
   { path: 'staff/:restaurantId', loadChildren: () => import('./modules/staff/staff.routes').then(m => m.routes),
     canActivate: [AuthGuard, RoleGuard],
-     data: { roles: ['staff'] } 
+     data: { roles: ['staff', 'manager', 'gadmin'] } 
   },
 
   // // Manager area

@@ -25,7 +25,7 @@ import {
   TabsContentComponent,
   TabsListComponent
 } from '@coreui/angular';
-import { DocsComponentsComponent, DocsExampleComponent } from '@docs-components/public-api';
+// import { DocsComponentsComponent, DocsExampleComponent } from '@docs-components/public-api';
 
 type CardColor = {
   color: string
@@ -39,7 +39,7 @@ type CardColor = {
 })
 export class CardsComponent {
 
-  colors: CardColor[] = [
+ colors: CardColor[] = [
     { color: 'primary', textColor: 'primary' },
     { color: 'secondary', textColor: 'secondary' },
     { color: 'success', textColor: 'success' },
@@ -52,6 +52,6 @@ export class CardsComponent {
 
   imgContext = { $implicit: 'top', bottom: 'bottom' };
 
-  tabs = ['Active', 'List', 'Disabled'];
+  tabs = ['Active', 'List', 'Disabled']; 
 
 }

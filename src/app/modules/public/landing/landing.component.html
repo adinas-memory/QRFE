@@ -1,1 +1,11 @@
-<p>landing works!</p>
+<c-row>
+  <c-col [sm]="6" *ngFor="let card of cards">
+    <c-card class="mb-4">
+      <c-card-body>
+        <h5 cCardTitle>{{ card.title }}</h5>
+        <p cCardText>{{ card.text }}</p>
+        <button cButton [color]="card.buttonColor">{{ card.buttonText }}</button>
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>
