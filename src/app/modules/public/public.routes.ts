@@ -1,4 +1,6 @@
 import { Routes } from '@angular/router';
+import { AuthGuard } from '../../core/auth/auth.guard';
+import { RoleGuard } from '../../core/auth/role.guard';
 
 export const routes: Routes = [
   {
@@ -26,7 +28,8 @@ export const routes: Routes = [
         path: 'restaurant-setup',
         loadComponent: () =>
           import('./restaurant-setup/restaurant-setup.component').then(m => m.RestaurantSetupComponent),
-        data: { title: 'Restaurant Setup' }
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: ['default'], title: 'Restaurant Setup',  }
       },
       {
         path: 'payment-success',

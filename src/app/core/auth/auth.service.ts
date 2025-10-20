@@ -1,18 +1,19 @@
-// core/auth/auth.service.ts
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, catchError, map, of, tap } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
+import { UserContextModel } from '../models/userContextModel';
+import { RegisterUserRequestModel } from '../models/registerUserRequestModel';
+import { environment } from '../../../environments/environment';
+import { LoginUserRequestModel } from '../models/loginUserRequestModel';
 
-export interface UserContext {
-  id: string;
-  roles: string[];
-  restaurantIds: string[];
-}
+
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private userSubject = new BehaviorSubject<UserContext | null>(null);
-  user$: Observable<UserContext | null> = this.userSubject.asObservable();
+  private userSubject = new BehaviorSubject<UserContextModel | null>(null);
+  user$: Observable<UserContextModel | null> = this.userSubject.asObservable();
+    // use environment variable
+  private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 
@@ -23,16 +24,30 @@ export class AuthService {
   }
 
   getUserRoles(): string[] {
-    return this.userSubject.value?.roles ?? [];
+      const roles = this.userSubject.value?.roles;
+      if (!roles) return [];
+      return Array.isArray(roles) ? roles : [roles];
   }
 
-  getUserRestaurantIds(): string[] {
-    return this.userSubject.value?.restaurantIds ?? [];
+  getUserRestaurantId(): string | string[] | null {
+    return this.userSubject.value?.restaurantId ?? null;
+  }
+
+  loginUser(payload: LoginUserRequestModel): Observable<any> {
+    return this.http.post(`${this.apiUrl}/api/user/login`, payload, {
+    headers: { 'Content-Type': 'application/json' }, withCredentials: true
+    });
+  }
+
+  registerUser(payload: RegisterUserRequestModel): Observable<any> {
+    return this.http.post(`${this.apiUrl}/api/user/register`, payload, {
+    headers: { 'Content-Type': 'application/json' }
+    });
   }
 
   // --- Session management ---
 
-  setUser(user: UserContext): void {
+  setUser(user: UserContextModel): void {
     this.userSubject.next(user);
     localStorage.setItem('AuthToken', JSON.stringify(user));
   }
@@ -42,11 +57,11 @@ export class AuthService {
     localStorage.removeItem('AuthToken');
   }
 
-restoreSession(): Observable<UserContext | null> {
+restoreSession(): Observable<UserContextModel | null> {
   const raw = localStorage.getItem('AuthToken');
   if (raw) {
     try {
-      const user = JSON.parse(raw) as UserContext;
+      const user = JSON.parse(raw) as UserContextModel;
       this.userSubject.next(user);
       return of(user);
     } catch {
@@ -62,7 +77,7 @@ restoreSession(): Observable<UserContext | null> {
 
   // --- Refresh from backend ---
   refreshUserContext() {
-    return this.http.post<UserContext>('/api/user/refresh-token', {}, { withCredentials: true }).pipe(
+    return this.http.post<UserContextModel>(`${this.apiUrl}/api/user/refresh-token`, {}, { withCredentials: true }).pipe(
       tap(user => {
         this.setUser(user);
       }),

@@ -1,40 +1,25 @@
+import { UserContextModel } from './../../../core/models/userContextModel';
 import { Component, OnInit } from '@angular/core';
 import { RouterLink, Router } from '@angular/router';
-import { NgTemplateOutlet } from '@angular/common';
-import { AuthService, UserContext } from '../../../core/auth/auth.service';
+import { AuthService } from '../../../core/auth/auth.service';
 import {
   ContainerComponent,
   HeaderComponent,
-  HeaderDividerComponent,  
+  HeaderDividerComponent,
   NavItemComponent,
   HeaderNavComponent,
   HeaderTextComponent,
   NavLinkDirective,
-  BorderDirective,
   ButtonDirective,
   CardBodyComponent,
   CardComponent,
-  CardFooterComponent,
-  CardGroupComponent,
-  CardHeaderComponent,
-  CardImgDirective,
-  CardLinkDirective,
-  CardSubtitleDirective,
   CardTextDirective,
   CardTitleDirective,
   ColComponent,
-  GutterDirective,
-  ListGroupDirective,
-  ListGroupItemDirective,
   RowComponent,
-  TabDirective,
-  TabPanelComponent,
-  TabsComponent,
-  TabsContentComponent,
-  TabsListComponent
  } from '@coreui/angular';
 import { SubscriptionService } from '../../../core/services/subscription.service';
-import { SubscriptionProduct } from '../../../core/models/subscription-product';
+import { SubscriptionProductModel } from '../../../core/models/subscription-product';
 import { Subscription } from 'rxjs';
 
 type CardColor = {
@@ -48,29 +33,24 @@ type CardColor = {
     HeaderComponent,
     HeaderDividerComponent,
     HeaderTextComponent,
-    HeaderNavComponent,    
+    HeaderNavComponent,
     NavItemComponent,
     NavLinkDirective,
-    RouterLink, 
-    RowComponent, 
-    ColComponent, 
-    CardComponent, 
-    CardHeaderComponent, 
-    CardBodyComponent, 
-    NgTemplateOutlet, 
-    CardTitleDirective, 
-    CardTextDirective, 
-    ButtonDirective, 
-    CardSubtitleDirective, 
-    CardLinkDirective, 
-    ListGroupDirective, 
-    ListGroupItemDirective, CardFooterComponent, BorderDirective, CardGroupComponent, GutterDirective, CardImgDirective, TabsComponent, TabsListComponent, TabDirective, TabsContentComponent, TabPanelComponent],
+    RouterLink,
+    RowComponent,
+    ColComponent,
+    CardComponent,
+    CardBodyComponent,
+    CardTitleDirective,
+    CardTextDirective,
+    ButtonDirective,
+    ],
   templateUrl: './landing.component.html'
 })
 export class LandingComponent implements OnInit {
-  public cards: SubscriptionProduct[] = [];
+  public cards: SubscriptionProductModel[] = [];
   private userSubscription: Subscription | any;
-  private user : UserContext | any;
+  private user : UserContextModel | any;
 
   constructor(
     private authService: AuthService,
@@ -78,38 +58,38 @@ export class LandingComponent implements OnInit {
     private router: Router) {}
 
 
-handleCardClick(card: SubscriptionProduct): void {
+handleCardClick(card: SubscriptionProductModel): void {
   if (!this.user || this.user.role === 'default') {
-    this.router.navigate(['/register']); // or ['/login']
+    this.router.navigate(['/login']);
   } else {
-    // Proceed with subscription logic
-    console.log('User can subscribe to:', card.restaurantType);
+    this.router.navigate(['/subscribe']);
   }
 }
 
 
 
-  ngOnInit(): void {
-    this.userSubscription = this.authService.user$.subscribe(
+ngOnInit(): void {
+  this.subscriptionService.loadProducts();
+  this.subscriptionService.getProducts().subscribe({
+    next: products => this.cards = products
+  });
 
-      (userData) => {
-        this.user = userData;
-        console.log('User data received:', this.user);
-      },
-      (error) => {
-        console.error('Error fetching user data:', error);
-      }
+  // this.userSubscription = this.authService.user$.subscribe(userData => {
+  //   this.user = userData;
 
-    );
-    this.subscriptionService.getSubscriptionProducts().subscribe({
-      next: products => {
-        this.cards = products;
-      },
-      error: err => {
-        console.error('Failed to load subscriptions', err);
-      }
-    });
-  }
+  //   // THIS ON THE LOGIN PAGE AFTER SUCCESSFUL LOGIN
+  //   const pending = this.subscriptionService.getPendingPlan();
+  //   if (this.user && pending) {
+  //     this.subscriptionService.subscribeToPlan(pending).subscribe({
+  //       next: () => {
+  //         console.log('Subscribed successfully');
+  //         this.subscriptionService.clearPendingPlan();
+  //       },
+  //       error: err => console.error('Subscription failed', err)
+  //     });
+  //   }
+  // });
+}
 
   ngOnDestroy() {
     if (this.userSubscription) {

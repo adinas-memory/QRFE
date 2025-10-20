@@ -1,1 +1,47 @@
-<p>restaurant-setup works!</p>
+
+<c-container fluid>
+  <h2>Restaurant Setup</h2>
+
+<form [formGroup]="restaurantSetupForm" (ngSubmit)="onSubmit()" cForm class="row g-3">
+  <c-col [md]="6">
+    <label cLabel for="restaurantName">Restaurant Name</label>
+    <input cFormControl id="restaurantName" />
+  </c-col>
+  <c-col [md]="6">
+    <label cLabel for="registrationNumber">Registration Number</label>
+    <input cFormControl id="registrationNumber" />
+  </c-col>
+    <c-col [md]="6">
+    <label cLabel for="city">City</label>
+    <input cFormControl id="city" />
+  </c-col>
+    <c-col [md]="4">
+    <label cLabel for="state">State</label>
+    <select cSelect id="state">
+      <option>Choose...</option>
+      <option>...</option>
+    </select>
+  </c-col>
+    <c-col [md]="2">
+    <label cLabel for="inputZip">Zip</label>
+    <input cFormControl id="inputZip" />
+  </c-col>
+  <c-col [xs]="12">
+    <label cLabel for="inputAddress">Restaurant Address</label>
+    <input cFormControl id="inputAddress" placeholder="1234 Main St" />
+  </c-col>
+    <c-col [xs]="12">
+    <c-form-check>
+      <input cFormCheckInput id="gridCheck" name="gridCheck" type="checkbox" />
+      <label cFormCheckLabel for="gridCheck">Billing address is the same with Restaurant Address</label>
+    </c-form-check>
+  </c-col>
+  <c-col [xs]="12">
+    <label cLabel for="billing_address">Billing Address</label>
+    <input cFormControl id="billing_address" placeholder="Apartment, studio, or floor" />
+  </c-col>
+  <c-col [xs]="12">
+    <button cButton type="submit">To Payment</button>
+  </c-col>
+</form>
+</c-container>

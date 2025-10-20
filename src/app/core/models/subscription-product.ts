@@ -1,4 +1,6 @@
-export interface SubscriptionProduct {
+export interface SubscriptionProductModel {
+  productPriceId: string;
+  priceId: string;
   restaurantType: string;
   description: string;
   features: string;
