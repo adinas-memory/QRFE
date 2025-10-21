@@ -16,7 +16,6 @@ export class LoggingInterceptor implements HttpInterceptor {
       tap({
         next: event => {
           const elapsed = Date.now() - started;
-        //   console.log(`[HTTP] ${req.method} ${req.urlWithParams} - ${elapsed}ms`);
         },
         error: error => {
           const elapsed = Date.now() - started;

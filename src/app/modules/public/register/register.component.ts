@@ -18,6 +18,7 @@ import {
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { SubscriptionService } from '../../../core/services/subscription.service';
+import { UserContextModel } from 'src/app/core/models/userContextModel';
 
 @Component({
   selector: 'app-register',
@@ -59,7 +60,8 @@ export class RegisterComponent {
       const formValue = this.registerForm.value;
 
       this.authService.registerUser(formValue).subscribe({
-        next: () => {
+        next: (response: UserContextModel) => {
+          this.authService.setUser(response);
           const pending = this.subscriptionService.getPendingPlan();
           if (pending) {
             this.router.navigate(['/restaurant-setup']);

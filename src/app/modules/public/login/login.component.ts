@@ -18,6 +18,7 @@ import {
 } from '@coreui/angular';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { SubscriptionService } from '../../../core/services/subscription.service';
+import { UserContextModel } from 'src/app/core/models/userContextModel';
 
 @Component({
   selector: 'app-login',
@@ -49,12 +50,13 @@ export class LoginComponent {
       const formValue = this.loginForm.value;
 
       this.authService.loginUser(formValue).subscribe({
-        next: () => {
+        next: (response: UserContextModel) => {
+          this.authService.setUser(response)
           const returnUrl = this.route.snapshot.queryParams['returnUrl'];
           const pending = this.subscriptionService.getPendingPlan();
 
           if (pending) {
-            this.router.navigate(['restaurant-setup']);
+            this.router.navigate(['/restaurant-setup']);
           } else if (returnUrl) {
             this.router.navigateByUrl(returnUrl);
           } else {

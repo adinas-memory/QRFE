@@ -8,33 +8,30 @@ export const RoleGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
 
   const requiredRoles = route.data?.['roles'] as string[] | undefined;
-  const userRoles = authService.getUserRoles() ?? []; // e.g. ['staff']
+  const userRole = authService.getUserRole(); // single string or null
   const restaurantId = route.params?.['restaurantId'];
 
   // 1. Role check
   if (requiredRoles?.length) {
-    const hasRole = requiredRoles.some(r => userRoles.includes(r));
-    if (!hasRole) {
-      return router.createUrlTree(['/404']); // unauthorized
+    if (!userRole || !requiredRoles.includes(userRole)) {
+      return router.createUrlTree(['/register']); // unauthorized
     }
   }
 
   // 2. Tenant check
-  const tenantAwareRoles = ['default','staff', 'auditor']; // roles that require tenant scoping
+  const tenantAwareRoles = ['staff', 'auditor']; // roles that require tenant scoping
   const tenantBypassRoles = ['manager', 'gadmin']; // roles that skip tenant check
 
-  const requiresTenantCheck = !!restaurantId && userRoles.some(role => tenantAwareRoles.includes(role));
-  const shouldBypassTenantCheck = userRoles.some(role => tenantBypassRoles.includes(role));
+  const requiresTenantCheck = !!restaurantId && userRole && tenantAwareRoles.includes(userRole);
+  const shouldBypassTenantCheck = userRole && tenantBypassRoles.includes(userRole);
 
   if (requiresTenantCheck && !shouldBypassTenantCheck) {
-  const userRestaurantId = authService.getUserRestaurantId();
-  if (!userRestaurantId || userRestaurantId !== restaurantId) {
+    const userRestaurantId = authService.getUserRestaurantId();
+    if (!userRestaurantId || userRestaurantId !== restaurantId) {
       return router.createUrlTree(['/404']); // tenant mismatch
     }
-
-
   }
 
   return true;
-
 };
+

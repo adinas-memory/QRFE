@@ -12,10 +12,10 @@ import { LoginUserRequestModel } from '../models/loginUserRequestModel';
 export class AuthService {
   private userSubject = new BehaviorSubject<UserContextModel | null>(null);
   user$: Observable<UserContextModel | null> = this.userSubject.asObservable();
-    // use environment variable
+  // use environment variable
   private apiUrl = environment.apiUrl;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   // --- Public API ---
 
@@ -23,10 +23,8 @@ export class AuthService {
     return this.userSubject.value !== null;
   }
 
-  getUserRoles(): string[] {
-      const roles = this.userSubject.value?.role;
-      if (!roles) return [];
-      return Array.isArray(roles) ? roles : [roles];
+  getUserRole(): string | null {
+    return this.userSubject.value?.role ?? null;
   }
 
   getUserRestaurantId(): string | string[] | null {
@@ -35,13 +33,13 @@ export class AuthService {
 
   loginUser(payload: LoginUserRequestModel): Observable<any> {
     return this.http.post(`${this.apiUrl}/api/user/login`, payload, {
-    headers: { 'Content-Type': 'application/json' }, withCredentials: true
+      headers: { 'Content-Type': 'application/json' }, withCredentials: true
     });
   }
 
   registerUser(payload: RegisterUserRequestModel): Observable<any> {
     return this.http.post(`${this.apiUrl}/api/user/register`, payload, {
-    headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' }
     });
   }
 
@@ -49,30 +47,30 @@ export class AuthService {
 
   setUser(user: UserContextModel): void {
     this.userSubject.next(user);
-    localStorage.setItem('AuthToken', JSON.stringify(user));
+    localStorage.setItem('UserCtx', JSON.stringify(user));
   }
 
   clearUser(): void {
     this.userSubject.next(null);
-    localStorage.removeItem('AuthToken');
+    localStorage.removeItem('UserCtx');
   }
 
-restoreSession(): Observable<UserContextModel | null> {
-  const raw = localStorage.getItem('AuthToken');
-  if (raw) {
-    try {
-      const user = JSON.parse(raw) as UserContextModel;
-      this.userSubject.next(user);
-      return of(user);
-    } catch {
-      this.userSubject.next(null);
-      return of(null);
+  restoreSession(): Observable<UserContextModel | null> {
+    const raw = localStorage.getItem('UserCtx');
+    if (raw) {
+      try {
+        const user = JSON.parse(raw) as UserContextModel;
+        this.userSubject.next(user);
+        return of(user);
+      } catch {
+        this.userSubject.next(null);
+        return of(null);
+      }
     }
-  }
 
-  this.userSubject.next(null);
-  return of(null);
-}
+    this.userSubject.next(null);
+    return of(null);
+  }
   // --- Refresh from backend ---
   refreshUserContext() {
     return this.http.post<UserContextModel>(`${this.apiUrl}/api/user/refresh-token`, {}, { withCredentials: true }).pipe(

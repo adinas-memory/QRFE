@@ -3,7 +3,6 @@ import { AuthGuard } from './core/auth/auth.guard';
 import { RoleGuard } from './core/auth/role.guard';
 
 export const routes: Routes = [
-  // Public funnel (standalone routes)
   {
     path: '',
     loadChildren: () =>

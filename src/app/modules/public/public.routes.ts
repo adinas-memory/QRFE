@@ -27,11 +27,12 @@ export const routes: Routes = [
       },
       {
         path: 'restaurant-setup',
+        canActivate: [AuthGuard, RoleGuard],
         loadComponent: () =>
           import('./restaurant-setup/restaurant-setup.component').then(
             m => m.RestaurantSetupComponent
           ),
-        data: { title: 'Restaurant Setup' }
+        data: { title: 'Restaurant Setup', roles: ['default'] }
       },
       {
         path: 'payment-success',
