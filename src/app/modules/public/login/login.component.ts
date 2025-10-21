@@ -54,11 +54,11 @@ export class LoginComponent {
           const pending = this.subscriptionService.getPendingPlan();
 
           if (pending) {
-            this.router.navigate(['/restaurant-setup']);
+            this.router.navigate(['restaurant-setup']);
           } else if (returnUrl) {
             this.router.navigateByUrl(returnUrl);
           } else {
-            this.router.navigate(['/landing']);
+            this.router.navigate(['/']);
           }
         }
       });

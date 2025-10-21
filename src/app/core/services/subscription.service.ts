@@ -55,7 +55,7 @@ export class SubscriptionService {
   }
 
     subscribeToPlan(payload: SubscriptionPayloadModel): Observable<any> {
-    return this.http.post(`${this.apiUrl}/subscribe`,
+    return this.http.post(`${this.apiUrl}/api/stripe/subscription`,
        payload, {withCredentials: true });
   }
 

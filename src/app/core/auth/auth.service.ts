@@ -24,7 +24,7 @@ export class AuthService {
   }
 
   getUserRoles(): string[] {
-      const roles = this.userSubject.value?.roles;
+      const roles = this.userSubject.value?.role;
       if (!roles) return [];
       return Array.isArray(roles) ? roles : [roles];
   }
@@ -73,8 +73,6 @@ restoreSession(): Observable<UserContextModel | null> {
   this.userSubject.next(null);
   return of(null);
 }
-
-
   // --- Refresh from backend ---
   refreshUserContext() {
     return this.http.post<UserContextModel>(`${this.apiUrl}/api/user/refresh-token`, {}, { withCredentials: true }).pipe(

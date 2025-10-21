@@ -59,7 +59,14 @@ export class LandingComponent implements OnInit {
 
 
 handleCardClick(card: SubscriptionProductModel): void {
+  this.subscriptionService.setPendingPlan({
+    priceId: card.priceId,
+    restaurantType: card.restaurantType
+  });
+
+
   if (!this.user || this.user.role === 'default') {
+    console.log('Setting pending plan to:', card);
     this.router.navigate(['/login']);
   } else {
     this.router.navigate(['/subscribe']);

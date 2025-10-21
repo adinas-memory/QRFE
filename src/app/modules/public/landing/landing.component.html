@@ -20,7 +20,7 @@
       <c-card-body>
         <h5 cCardTitle>{{ card.features }}</h5>
         <p cCardText>{{ card.description }}</p>
-        <button cButton color="primary">
+        <button cButton color="primary" (click)="handleCardClick(card)">
           {{ card.priceAmount }} {{ card.priceCurrency }} / {{ card.subscriptionInterval }}
         </button>
       </c-card-body>

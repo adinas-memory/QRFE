@@ -3,23 +3,36 @@ import { AuthGuard } from './core/auth/auth.guard';
 import { RoleGuard } from './core/auth/role.guard';
 
 export const routes: Routes = [
-  // Public funnel
-  { path: '', loadChildren: () => import('./modules/public/public.routes').then(m => m.routes) },
-
-  // Staff area
-  { path: 'staff/:restaurantId', loadChildren: () => import('./modules/staff/staff.routes').then(m => m.routes),
-    canActivate: [AuthGuard, RoleGuard],
-     data: { roles: ['staff', 'manager', 'gadmin'] } 
+  // Public funnel (standalone routes)
+  {
+    path: '',
+    loadChildren: () =>
+      import('./modules/public/public.routes').then(m => m.routes)
   },
 
-  // // Manager area
+  // Staff area
+  {
+    path: 'staff/:restaurantId',
+    loadChildren: () =>
+      import('./modules/staff/staff.routes').then(m => m.routes),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['staff', 'manager', 'gadmin'] }
+  },
+
+    // // Manager area
   // { path: 'manager', loadChildren: () => import('./modules/manager/manager.routes').then(m => m.routes), canActivate: [AuthGuard, RoleGuard], data: { roles: ['manager'] } },
 
   // // Global admin area
   // { path: 'admin', loadChildren: () => import('./modules/admin/admin.routes').then(m => m.routes), canActivate: [AuthGuard, RoleGuard], data: { roles: ['admin'] } },
 
   // Fallbacks
-  { path: '404', loadComponent: () => import('./views/pages/page404/page404.component').then(m => m.Page404Component) },
+  {
+    path: '404',
+    loadComponent: () =>
+      import('./views/pages/page404/page404.component').then(
+        m => m.Page404Component
+      )
+  },
   { path: '**', redirectTo: '404' }
 ];
 
@@ -38,7 +51,7 @@ export const routes: Routes = [
 //     }
 //   },
 //   {
-//     path: '',  
+//     path: '',
 //     loadComponent: () =>
 //     import('./shared/components/layout').then(m => m.DefaultLayoutComponent),
 //     data: {

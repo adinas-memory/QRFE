@@ -2,6 +2,7 @@ import { APP_INITIALIZER, ApplicationConfig, importProvidersFrom, provideAppInit
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import {
   provideRouter,
+  withDebugTracing,
   withEnabledBlockingInitialNavigation,
   withHashLocation,
   withInMemoryScrolling,
@@ -29,6 +30,7 @@ export const appConfig: ApplicationConfig = {
       multi: true
     },
     provideRouter(routes,
+      // withDebugTracing(),
       withRouterConfig({
         onSameUrlNavigation: 'reload'
       }),
@@ -37,9 +39,8 @@ export const appConfig: ApplicationConfig = {
         anchorScrolling: 'enabled'
       }),
       withEnabledBlockingInitialNavigation(),
-      withViewTransitions(),
-      withHashLocation()
-    ),    
+      withViewTransitions()
+    ),
     provideHttpClient(),
     importProvidersFrom(CoreModule),
     importProvidersFrom(SidebarModule, DropdownModule),

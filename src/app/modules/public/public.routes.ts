@@ -8,6 +8,7 @@ export const routes: Routes = [
     children: [
       {
         path: '',
+        pathMatch: 'full',
         loadComponent: () =>
           import('./landing/landing.component').then(m => m.LandingComponent),
         data: { title: 'Welcome' }
@@ -18,7 +19,7 @@ export const routes: Routes = [
           import('./register/register.component').then(m => m.RegisterComponent),
         data: { title: 'Register' }
       },
-    {
+      {
         path: 'login',
         loadComponent: () =>
           import('./login/login.component').then(m => m.LoginComponent),
@@ -27,21 +28,26 @@ export const routes: Routes = [
       {
         path: 'restaurant-setup',
         loadComponent: () =>
-          import('./restaurant-setup/restaurant-setup.component').then(m => m.RestaurantSetupComponent),
-        canActivate: [AuthGuard, RoleGuard],
-        data: { roles: ['default'], title: 'Restaurant Setup',  }
+          import('./restaurant-setup/restaurant-setup.component').then(
+            m => m.RestaurantSetupComponent
+          ),
+        data: { title: 'Restaurant Setup' }
       },
       {
         path: 'payment-success',
         loadComponent: () =>
-          import('./payment-success/payment-success.component').then(m => m.PaymentSuccessComponent),
-        data: { title: 'Payment-Success' }
+          import('./payment-success/payment-success.component').then(
+            m => m.PaymentSuccessComponent
+          ),
+        data: { title: 'Payment Success' }
       },
-            {
+      {
         path: 'payment-failure',
         loadComponent: () =>
-          import('./payment-failure/payment-failure.component').then(m => m.PaymentFailureComponent),
-        data: { title: 'Payment-Failure' }
+          import('./payment-failure/payment-failure.component').then(
+            m => m.PaymentFailureComponent
+          ),
+        data: { title: 'Payment Failure' }
       },
       {
         path: 'menu/:restaurantId',
