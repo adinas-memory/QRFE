@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { AuthService } from 'src/app/core/auth/auth.service';
+import { AuthService } from '../../../core/auth/auth.service';
 
 @Component({
   selector: 'app-payment-success',
@@ -15,6 +15,6 @@ export class PaymentSuccessComponent implements OnInit {
 
   ngOnInit(): void {
     this.authService.clearUser();
-    setTimeout(() => this.router.navigate(['/login']), 5000); // 2s delay
+    setTimeout(() => this.router.navigate(['/login']), 3700); // delay
   }
 }

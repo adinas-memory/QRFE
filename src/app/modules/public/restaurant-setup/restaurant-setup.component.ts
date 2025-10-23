@@ -12,10 +12,11 @@ import {
   FormLabelDirective,
   FormSelectDirective
 } from '@coreui/angular';
-import { RestaurantSetupFormModel } from '../../../core/models/restaurantSetupFormModel';
 import { SubscriptionService } from '../../../core/services/subscription.service';
 import { Router } from '@angular/router';
-import { SubscriptionPayloadModel } from 'src/app/core/models/subscriptionPayloadModel';
+import { SubscriptionPayloadModel } from '../../../core/models/subscriptionPayloadModel';
+import { AuthService } from '../../../core/auth/auth.service';
+import { UserContextModel } from '../../../core/models/userContextModel';
 
 @Component({
   selector: 'app-restaurant-setup',
@@ -46,10 +47,14 @@ export class RestaurantSetupComponent implements OnInit {
     registrationNumber: FormControl<string>;
     checkAddress: FormControl<boolean>;
     billingAddress: FormControl<string>;
-  }>
+  }>;
+
+  private user: UserContextModel | null = null;
+  private role: string | null = null;
 
   constructor(private fb: FormBuilder,
     private router: Router,
+    private authService: AuthService,
     private subscriptionService: SubscriptionService
   ) {
     this.restaurantSetupForm = this.fb.group({
@@ -62,11 +67,23 @@ export class RestaurantSetupComponent implements OnInit {
       checkAddress: this.fb.control(false, { nonNullable: true }),
       billingAddress: this.fb.control('', { nonNullable: true })
     });
+
+    this.user = {} as UserContextModel;
   }
 
   onSubmit() {
     const pending = this.subscriptionService.getPendingPlan();
     if (!pending) return;
+
+    if (!this.user) {
+      this.router.navigate(['/login']);
+    }
+    else if (this.user && this.role === 'default') {
+      console.log('Navigating to restaurant setup for user:', this.user);
+      this.router.navigate(['/restaurant-setup']);
+    } else {
+      this.router.navigate(['/404']);
+    }
 
     const formValue = this.restaurantSetupForm.getRawValue(); // includes disabled fields
 
@@ -99,6 +116,15 @@ export class RestaurantSetupComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.authService.user$.subscribe((user: UserContextModel | null) => {
+      this.user = user;
+      console.warn('User authenticated in LandingComponent:', this.user);
+    }, (error: unknown) => {
+      console.error('Error fetching user data in LandingComponent:', error);
+    });
+
+    this.role = this.authService.getUserRole();
+
     this.restaurantSetupForm.get('checkAddress')?.valueChanges.subscribe(checked => {
       if (checked) {
         const address = this.restaurantSetupForm.get('address')!.value as string;

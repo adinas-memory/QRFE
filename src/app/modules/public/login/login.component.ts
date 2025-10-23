@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { NgStyle } from '@angular/common';
 import { IconDirective } from '@coreui/icons-angular';
@@ -18,7 +18,7 @@ import {
 } from '@coreui/angular';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { SubscriptionService } from '../../../core/services/subscription.service';
-import { UserContextModel } from 'src/app/core/models/userContextModel';
+import { UserContextModel } from '../../../core/models/userContextModel';
 
 @Component({
   selector: 'app-login',
@@ -29,7 +29,7 @@ import { UserContextModel } from 'src/app/core/models/userContextModel';
     InputGroupComponent, InputGroupTextDirective, IconDirective,
     FormControlDirective, ButtonDirective, NgStyle, ReactiveFormsModule]
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit, OnDestroy{
 
   loginForm: FormGroup;
 
@@ -66,6 +66,14 @@ export class LoginComponent {
       });
 
     }
+  }
+
+  ngOnInit(): void {
+
+  }
+
+  ngOnDestroy(): void {
+    // Clean up subscriptions or resources if needed
   }
 
 }

@@ -9,6 +9,7 @@ import {
 } from '@angular/common/http';
 import { Observable, throwError, catchError, switchMap, finalize, of } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
+import { Router } from '@angular/router';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
@@ -16,7 +17,9 @@ export class AuthInterceptor implements HttpInterceptor {
   private retryCount = 0;
   private readonly maxRetries = 1;
 
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService,
+    private router: Router
+  ) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     const authReq = req.clone({ withCredentials: true });
@@ -42,6 +45,7 @@ export class AuthInterceptor implements HttpInterceptor {
             catchError(refreshError => {
               console.error('[AuthInterceptor] Refresh failed — logging out', refreshError);
               this.authService.clearUser();
+              this.router.navigate(['/login']);
               return throwError(() => refreshError);
             }),
             finalize(() => {

@@ -65,6 +65,7 @@ export class LandingComponent implements OnInit {
       this.router.navigate(['/login']);
     }
     else if (this.user && this.role === 'default') {
+      console.log('Navigating to restaurant setup for user:', this.user);
       this.router.navigate(['/restaurant-setup']);
     } else {
       this.router.navigate(['/404']);

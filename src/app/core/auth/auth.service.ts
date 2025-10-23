@@ -1,6 +1,7 @@
+import { Router } from '@angular/router';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, catchError, map, of, tap } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { BehaviorSubject, Observable, catchError, map, of, tap, throwError } from 'rxjs';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { UserContextModel } from '../models/userContextModel';
 import { RegisterUserRequestModel } from '../models/registerUserRequestModel';
 import { environment } from '../../../environments/environment';
@@ -15,9 +16,17 @@ export class AuthService {
   // use environment variable
   private apiUrl = environment.apiUrl;
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient,
+    private router: Router) { }
 
   // --- Public API ---
+
+  // auth.service.ts
+
+  getUserContext(): Observable<UserContextModel | null> {
+    return this.user$;
+  }
+
 
   isAuthenticated(): boolean {
     return this.userSubject.value !== null;
@@ -39,12 +48,11 @@ export class AuthService {
 
   registerUser(payload: RegisterUserRequestModel): Observable<any> {
     return this.http.post(`${this.apiUrl}/api/user/register`, payload, {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' }, withCredentials: true
     });
   }
 
   // --- Session management ---
-
   setUser(user: UserContextModel): void {
     this.userSubject.next(user);
     localStorage.setItem('UserCtx', JSON.stringify(user));
@@ -72,6 +80,33 @@ export class AuthService {
     return of(null);
   }
   // --- Refresh from backend ---
+
+  pingSession(): Observable<UserContextModel | null> {
+    return this.http.get<UserContextModel>(`${this.apiUrl}/api/user/ping`, {withCredentials: true}).pipe(
+      tap(user => {
+        // 200 OK: Set the user context
+        this.setUser(user);
+      }),
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 401) {
+          return this.refreshUserContext().pipe(
+                    tap(user => {
+                        if (user) {
+                             console.log('Refresh credetials OK.');
+                        } else {
+                            console.warn('Refresh credentials failed. redirect @Login.');
+                        }
+                    })
+                );
+        } else {
+          console.error('Unexpected Error:', error);
+          return throwError(() => error);
+        }
+      })
+    );
+  }
+
+
   refreshUserContext() {
     return this.http.post<UserContextModel>(`${this.apiUrl}/api/user/refresh-token`, {}, { withCredentials: true }).pipe(
       tap(user => {
@@ -80,8 +115,12 @@ export class AuthService {
       catchError(err => {
         console.error('Refresh failed', err);
         this.clearUser();
+        this.router.navigate(['/login']);
         return of(null);
       })
     );
   }
+
+
+
 }

@@ -10,9 +10,9 @@ import { iconSubset } from './icons/icon-subset';
 import { AuthService } from './core/auth/auth.service';
 
 @Component({
-    selector: 'app-root',
-    template: '<router-outlet />',
-    imports: [RouterOutlet]
+  selector: 'app-root',
+  template: '<router-outlet />',
+  imports: [RouterOutlet]
 })
 export class AppComponent implements OnInit {
   title = 'CoreUI Angular Admin Template';
@@ -38,8 +38,8 @@ export class AppComponent implements OnInit {
   ngOnInit(): void {
 
     this.#router.events.pipe(
-        takeUntilDestroyed(this.#destroyRef)
-      ).subscribe((evt) => {
+      takeUntilDestroyed(this.#destroyRef)
+    ).subscribe((evt) => {
       if (!(evt instanceof NavigationEnd)) {
         return;
       }
@@ -57,7 +57,14 @@ export class AppComponent implements OnInit {
       )
       .subscribe();
 
-      this.#authService.restoreSession().subscribe();
+    this.#authService.pingSession().subscribe(user => {
+      if (user) {
+        console.log('Session active. User:', user);
+      } else {
+        console.log('Session has expired. The user has been redirecter to the login page.');
+      }
+    });
+
 
   }
 }
