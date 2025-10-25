@@ -27,7 +27,6 @@ export class AuthService {
     return this.user$;
   }
 
-
   isAuthenticated(): boolean {
     return this.userSubject.value !== null;
   }

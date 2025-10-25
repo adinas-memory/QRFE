@@ -1,21 +1,39 @@
 import { Routes } from '@angular/router';
 
+// staff.routes.ts
+// staff.routes.ts
 export const routes: Routes = [
   {
     path: '',
+    loadComponent: () =>
+      import('../../shared/components/layout').then(m => m.DefaultLayoutComponent),
+    data: { title: 'Staff Area' },
     children: [
+      {
+        path: '',
+        redirectTo: 'dashboard',
+        pathMatch: 'full'
+      },
+      {
+        path: 'dashboard',
+        loadChildren: () =>
+          import('../../views/dashboard/routes').then(m => m.routes),
+        data: { title: 'Dashboard' }
+      },
       {
         path: 'orders',
         loadComponent: () =>
           import('./orders/orders.component').then(m => m.OrdersComponent),
         data: { title: 'Orders' }
       },
-            {
+      {
         path: 'tables',
         loadComponent: () =>
           import('./tables/tables.component').then(m => m.TablesComponent),
         data: { title: 'Tables' }
-      },
+      }
     ]
   }
 ];
+
+

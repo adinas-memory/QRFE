@@ -57,14 +57,6 @@ export class AppComponent implements OnInit {
       )
       .subscribe();
 
-    this.#authService.pingSession().subscribe(user => {
-      if (user) {
-        console.log('Session active. User:', user);
-      } else {
-        console.log('Session has expired. The user has been redirecter to the login page.');
-      }
-    });
-
 
   }
 }

@@ -49,6 +49,7 @@ export class LandingComponent implements OnInit {
   private user: UserContextModel | any;
   private role: string | null = null;
 
+
   constructor(
     private authService: AuthService,
     private subscriptionService: SubscriptionService,
@@ -56,15 +57,16 @@ export class LandingComponent implements OnInit {
 
 
   handleCardClick(card: SubscriptionProductModel): void {
+    // set pending plan and redirect to login
     this.subscriptionService.setPendingPlan({
       priceId: card.priceId,
       restaurantType: card.restaurantType
     });
-
     if (!this.user) {
       this.router.navigate(['/login']);
     }
     else if (this.user && this.role === 'default') {
+      // implement ping()
       console.log('Navigating to restaurant setup for user:', this.user);
       this.router.navigate(['/restaurant-setup']);
     } else {

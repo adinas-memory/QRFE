@@ -11,28 +11,13 @@ export const routes: Routes = [
 
   // Staff area
   {
-    path: 'staff/:restaurantId',
+    path: 'staff',
     loadChildren: () =>
       import('./modules/staff/staff.routes').then(m => m.routes),
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['staff', 'manager', 'gadmin'] }
   },
 
-    // // Manager area
-  // { path: 'manager', loadChildren: () => import('./modules/manager/manager.routes').then(m => m.routes), canActivate: [AuthGuard, RoleGuard], data: { roles: ['manager'] } },
-
-  // // Global admin area
-  // { path: 'admin', loadChildren: () => import('./modules/admin/admin.routes').then(m => m.routes), canActivate: [AuthGuard, RoleGuard], data: { roles: ['admin'] } },
-
-  // Fallbacks
-  {
-    path: '404',
-    loadComponent: () =>
-      import('./views/pages/page404/page404.component').then(
-        m => m.Page404Component
-      )
-  },
-  { path: '**', redirectTo: '404' }
 ];
 
 

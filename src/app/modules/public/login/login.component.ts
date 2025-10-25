@@ -29,7 +29,7 @@ import { UserContextModel } from '../../../core/models/userContextModel';
     InputGroupComponent, InputGroupTextDirective, IconDirective,
     FormControlDirective, ButtonDirective, NgStyle, ReactiveFormsModule]
 })
-export class LoginComponent implements OnInit, OnDestroy{
+export class LoginComponent implements OnInit, OnDestroy {
 
   loginForm: FormGroup;
 
@@ -49,19 +49,29 @@ export class LoginComponent implements OnInit, OnDestroy{
     if (this.loginForm.valid) {
       const formValue = this.loginForm.value;
 
+
       this.authService.loginUser(formValue).subscribe({
         next: (response: UserContextModel) => {
           this.authService.setUser(response)
           const returnUrl = this.route.snapshot.queryParams['returnUrl'];
           const pending = this.subscriptionService.getPendingPlan();
+          const userRole = response.role
 
-          if (pending) {
+          if (pending && userRole === 'default') {
             this.router.navigate(['/restaurant-setup']);
           } else if (returnUrl) {
             this.router.navigateByUrl(returnUrl);
-          } else {
-            this.router.navigate(['/']);
+          } else if (userRole === 'default') {
+            this.router.navigate(['/customer-area'])
+          } else if (!pending && userRole === 'staff') {
+            this.router.navigate(['/staff']);
+          } else if (!pending && (userRole === 'manager')) {
+            this.router.navigate(['/admin']);
           }
+
+        },
+        error: (error) => {
+          console.error('Login failed:', error);
         }
       });
 
@@ -69,11 +79,15 @@ export class LoginComponent implements OnInit, OnDestroy{
   }
 
   ngOnInit(): void {
-
+    // this.authService.getUserContext().subscribe(user => {
+    //   if (!user) {
+    //     this.router.navigate(['/register']);
+    //   }
+    // });
   }
 
   ngOnDestroy(): void {
-    // Clean up subscriptions or resources if needed
+    // lean up subscriptions or resources if needed
   }
 
 }

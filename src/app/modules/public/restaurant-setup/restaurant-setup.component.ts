@@ -73,6 +73,7 @@ export class RestaurantSetupComponent implements OnInit {
 
   onSubmit() {
     const pending = this.subscriptionService.getPendingPlan();
+    console.log('Pending plan retrieved:', pending);
     if (!pending) return;
 
     if (!this.user) {
@@ -80,39 +81,33 @@ export class RestaurantSetupComponent implements OnInit {
     }
     else if (this.user && this.role === 'default') {
       console.log('Navigating to restaurant setup for user:', this.user);
-      this.router.navigate(['/restaurant-setup']);
+      const formValue = this.restaurantSetupForm.getRawValue(); // includes disabled fields
+
+      const payload: SubscriptionPayloadModel = {
+        priceId: pending.priceId,
+        restaurantType: pending.restaurantType,
+        restaurantName: formValue.restaurantName,
+        address: formValue.address,
+        city: formValue.city,
+        country: formValue.country,
+        zip: formValue.zip,
+        registrationNumber: formValue?.registrationNumber ?? '',
+        sameAddressForBilling: formValue?.checkAddress,
+        billingAddress: formValue?.checkAddress ? formValue.address : formValue.billingAddress
+      };
+
+      this.subscriptionService.subscribeToPlan(payload).subscribe({
+        next: (response: { checkoutUrl: string }) => {
+          this.subscriptionService.clearPendingPlan();
+          // Redirect the browser to Stripe Checkout
+          window.location.href = response.checkoutUrl;
+        },
+        error: err => console.error('Subscription failed', err)
+
+      });
     } else {
       this.router.navigate(['/404']);
     }
-
-    const formValue = this.restaurantSetupForm.getRawValue(); // includes disabled fields
-
-    const payload: SubscriptionPayloadModel = {
-      priceId: pending.priceId,
-      restaurantType: pending.restaurantType,
-      restaurantName: formValue.restaurantName,
-      address: formValue.address,
-      city: formValue.city,
-      country: formValue.country,
-      zip: formValue.zip,
-      registrationNumber: formValue?.registrationNumber ?? '',
-      sameAddressForBilling: formValue?.checkAddress,
-      billingAddress: formValue?.checkAddress ? formValue.address : formValue.billingAddress
-    };
-
-    this.subscriptionService.subscribeToPlan(payload).subscribe({
-      next: (response: { checkoutUrl: string }) => {
-        this.subscriptionService.clearPendingPlan();
-
-        // Redirect the browser to Stripe Checkout
-        window.location.href = response.checkoutUrl;
-      },
-      error: err => console.error('Subscription failed', err)
-      // next: () => {
-      //   this.subscriptionService.clearPendingPlan();
-      //   this.router.navigate(['/dashboard']);
-      // }
-    });
   }
 
   ngOnInit(): void {
