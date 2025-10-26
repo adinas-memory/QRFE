@@ -57,16 +57,18 @@ export class LoginComponent implements OnInit, OnDestroy {
           const pending = this.subscriptionService.getPendingPlan();
           const userRole = response.role
 
-          if (pending && userRole === 'default') {
-            this.router.navigate(['/restaurant-setup']);
+          if (userRole === 'default') {
+            this.router.navigate(['/']);
+          } else if (userRole === 'default' && pending) {
+            this.router.navigate(['/restaurant-setup'])
           } else if (returnUrl) {
             this.router.navigateByUrl(returnUrl);
-          } else if (userRole === 'default') {
-            this.router.navigate(['/customer-area'])
           } else if (!pending && userRole === 'staff') {
             this.router.navigate(['/staff']);
           } else if (!pending && (userRole === 'manager')) {
-            this.router.navigate(['/admin']);
+            this.router.navigate(['/manager']);
+          } else if (!pending && (userRole === 'gadmin')) {
+            this.router.navigate(['/gadmin']);
           }
 
         },

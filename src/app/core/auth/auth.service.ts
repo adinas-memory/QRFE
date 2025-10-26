@@ -22,6 +22,9 @@ export class AuthService {
   // --- Public API ---
 
   // auth.service.ts
+  getUserSnapshot(): UserContextModel | null {
+    return this.userSubject?.value ?? null;
+  }
 
   getUserContext(): Observable<UserContextModel | null> {
     return this.user$;
@@ -81,7 +84,7 @@ export class AuthService {
   // --- Refresh from backend ---
 
   pingSession(): Observable<UserContextModel | null> {
-    return this.http.get<UserContextModel>(`${this.apiUrl}/api/user/ping`, {withCredentials: true}).pipe(
+    return this.http.get<UserContextModel>(`${this.apiUrl}/api/user/ping`, { withCredentials: true }).pipe(
       tap(user => {
         // 200 OK: Set the user context
         this.setUser(user);
@@ -89,14 +92,14 @@ export class AuthService {
       catchError((error: HttpErrorResponse) => {
         if (error.status === 401) {
           return this.refreshUserContext().pipe(
-                    tap(user => {
-                        if (user) {
-                             console.log('Refresh credetials OK.');
-                        } else {
-                            console.warn('Refresh credentials failed. redirect @Login.');
-                        }
-                    })
-                );
+            tap(user => {
+              if (user) {
+                console.log('Refresh credetials OK.');
+              } else {
+                console.warn('Refresh credentials failed. redirect @Login.');
+              }
+            })
+          );
         } else {
           console.error('Unexpected Error:', error);
           return throwError(() => error);

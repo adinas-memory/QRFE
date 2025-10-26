@@ -7,7 +7,11 @@ import { FooterComponent } from '@coreui/angular';
   styleUrls: ['./default-footer.component.scss']
 })
 export class DefaultFooterComponent extends FooterComponent {
+  year = new Date();
+
   constructor() {
     super();
   }
+
+
 }
