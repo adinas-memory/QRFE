@@ -24,7 +24,7 @@ export function initAuth(authService: AuthService) {
 export const appConfig: ApplicationConfig = {
   providers: [
     {
-      provide: provideAppInitializer,
+      provide: APP_INITIALIZER,
       useFactory: initAuth,
       deps: [AuthService],
       multi: true

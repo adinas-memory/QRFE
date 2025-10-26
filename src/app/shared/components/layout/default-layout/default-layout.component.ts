@@ -1,9 +1,11 @@
 import { Component } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { NgScrollbar } from 'ngx-scrollbar';
-
+import { IconSetService } from '@coreui/icons-angular';
 import { IconDirective } from '@coreui/icons-angular';
+import { cilRestaurant, cilDrinkAlcohol, cilQrCode } from '@coreui/icons';
 import {
+  INavData,
   ContainerComponent,
   ShadowOnScrollDirective,
   SidebarBrandComponent,
@@ -50,33 +52,72 @@ function isOverflown(element: HTMLElement) {
   ]
 })
 export class DefaultLayoutComponent {
-  // public navItems = [...navItems];
-  public navItems = [{}];
-  private user: UserContextModel | null = null;
+  public navItems: INavData[] = [];
 
 
-    constructor(private auth: AuthService) {
+  constructor(private auth: AuthService, public iconSet: IconSetService) {
     const role = this.auth.getUserSnapshot()?.role ?? 'default';
     this.navItems = this.getNavItemsForRole(role);
+    // iconSet.icons = { cilRestaurant, cilDrinkAlcohol, cilQrCode};
   }
 
-    getNavItemsForRole(role: string) {
+  getNavItemsForRole(role: string): INavData[] {
     switch (role) {
       case 'staff':
         return [
-          { name: 'Dashboard', url: '/staff/dashboard', icon: 'cil-speedometer' },
-          { name: 'Orders', url: '/staff/orders', icon: 'cil-list' },
-          { name: 'Tables', url: '/staff/tables', icon: 'cil-grid' }
+          {
+            name: 'Dashboard',
+            url: '/staff/dashboard',
+            iconComponent: { name: 'cil-speedometer' }
+          },
+          {
+            name: 'Orders',
+            url: '/staff/orders',
+            iconComponent: { name: 'cil-list' }
+          },
+          {
+            name: 'Tables',
+            url: '/staff/tables',
+            iconComponent: { name: 'cil-grid' }
+          }
         ];
       case 'manager':
         return [
-          { name: 'Dashboard', url: '/manager/dashboard', icon: 'cil-speedometer' },
-          { name: 'Orders', url: '/manager/manage-orders', icon: 'cil-restaurant' },
-          { name: 'Tables', url: '/manager/manage-tables', icon: 'cil-restaurant' },
-          { name: 'Menu', url: '/manager/manage-menu', icon: 'cil-restaurant' },
-          { name: 'Bars', url: '/manager/manage-bars', icon: 'cil-restaurant' },
-          { name: 'Staff', url: '/manager/manage-staff', icon: 'cil-restaurant' },
-          { name: 'QR Codes', url: '/manager/manage-qrs', icon: 'cil-restaurant' }
+          {
+            name: 'Dashboard',
+            url: '/manager/dashboard',
+            iconComponent: { name: 'cil-speedometer' }
+          },
+          {
+            name: 'Orders',
+            url: '/manager/manage-orders',
+            iconComponent: { name: 'cil-list' }
+          },
+          {
+            name: 'Tables',
+            url: '/manager/manage-tables',
+            iconComponent: { name: 'cil-grid' }
+          },
+          {
+            name: 'Menu',
+            url: '/manager/manage-menu',
+            iconComponent: { name: 'cil-restaurant' }
+          },
+          {
+            name: 'Bars',
+            url: '/manager/manage-bars',
+            iconComponent: { name: 'cil-drink-alcohol' }
+          },
+          {
+            name: 'Staff',
+            url: '/manager/manage-staff',
+            iconComponent: { name: 'cil-people' }
+          },
+          {
+            name: 'QR Codes',
+            url: '/manager/manage-qrs',
+            iconComponent: { name: 'cil-qr-code' }
+          }
         ];
       case 'gadmin':
         return [
@@ -88,6 +129,4 @@ export class DefaultLayoutComponent {
         return [];
     }
   }
-
-
 }
