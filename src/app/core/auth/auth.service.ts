@@ -70,9 +70,11 @@ export class AuthService {
     if (raw) {
       try {
         const user = JSON.parse(raw) as UserContextModel;
+        console.log('[AuthService] Restoring user:', user);
         this.userSubject.next(user);
         return of(user);
       } catch {
+        console.warn('[AuthService] Failed to parse UserCtx');
         this.userSubject.next(null);
         return of(null);
       }

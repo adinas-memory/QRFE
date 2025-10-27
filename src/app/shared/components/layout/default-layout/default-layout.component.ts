@@ -3,7 +3,7 @@ import { RouterLink, RouterOutlet } from '@angular/router';
 import { NgScrollbar } from 'ngx-scrollbar';
 import { IconSetService } from '@coreui/icons-angular';
 import { IconDirective } from '@coreui/icons-angular';
-import { cilRestaurant, cilDrinkAlcohol, cilQrCode } from '@coreui/icons';
+
 import {
   INavData,
   ContainerComponent,
@@ -58,7 +58,6 @@ export class DefaultLayoutComponent {
   constructor(private auth: AuthService, public iconSet: IconSetService) {
     const role = this.auth.getUserSnapshot()?.role ?? 'default';
     this.navItems = this.getNavItemsForRole(role);
-    // iconSet.icons = { cilRestaurant, cilDrinkAlcohol, cilQrCode};
   }
 
   getNavItemsForRole(role: string): INavData[] {

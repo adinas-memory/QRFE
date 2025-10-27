@@ -94,13 +94,19 @@ import {
   cilUser,
   cilUserFemale,
   cilUserFollow,
-  cilUserUnfollow
+  cilUserUnfollow,
+  cilRestaurant,
+  cilDrinkAlcohol,
+  cilQrCode
 } from '@coreui/icons';
 
 import { signet } from './signet';
 import { logo } from './logo';
 
 export const iconSubset = {
+  cilQrCode,
+  cilDrinkAlcohol,
+  cilRestaurant,
   cibCcAmex,
   cibCcApplePay,
   cibCcMastercard,
@@ -202,6 +208,9 @@ export const iconSubset = {
 };
 
 export enum IconSubset {
+  cilQrCode = 'cilQrCode',
+  cilDrinkAlcohol = 'cilDrinkAlcohol',
+  cilRestaurant = 'cilRestaurant',
   cibCcAmex = 'cibCcAmex',
   cibCcApplePay = 'cibCcApplePay',
   cibCcMastercard = 'cibCcMastercard',

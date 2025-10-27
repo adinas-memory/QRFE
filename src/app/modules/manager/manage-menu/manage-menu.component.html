@@ -1,1 +1,101 @@
-<p>manage-menu works!</p>
+<c-tabs [activeItemKey]="1">
+  <c-tabs-list variant="pills">
+    <button cTab [itemKey]="0">List Menu</button>
+    <button cTab [itemKey]="1">Modify Menu</button>
+  </c-tabs-list>
+  <c-tabs-content>
+    <c-tab-panel class="p-3" [itemKey]="0">
+      <table cTable>
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Name</th>
+            <th scope="col">Category</th>
+            <th scope="col">Price</th>
+            <!-- <th scope="col">Available</th> -->
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of menuItems; let i = index">
+            <th scope="row">{{ i + 1 }}</th>
+            <td>{{ item.name }}</td>
+            <td>{{ item.category }}</td>
+            <td>{{ item.price }}</td>
+            <!-- <td>{{ item.isAvailable ? 'Yes' : 'No' }}</td> -->
+            <td>
+              <button (click)="onEdit(item)">Edit</button>
+              <button (click)="onDelete(item)">Delete</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </c-tab-panel>
+  </c-tabs-content>
+  <c-tabs-content>
+    <c-tab-panel class="p-3" [itemKey]="1">
+      <form
+        [formGroup]="menuItemsForm"
+        (ngSubmit)="onSubmit()"
+        cForm
+        class="flex-wrap"
+      >
+        <div class="mb-3">
+          <label cLabel for="menuItemCategory">Category</label>
+          <select formControlName="menuItemCategory" cFormControl id="menuItemCategory">
+            <option value="" disabled>Select a category</option>
+            <option *ngFor="let cat of categories" [value]="cat">
+              {{ cat }}
+            </option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label cLabel for="menuItemName">Menu Item Name</label>
+          <input
+            formControlName="menuItemName"
+            cFormControl
+            id="menuItemName"
+            placeholder="Gulasch"
+            type="text"
+          />
+        </div>
+        <div class="mb-3">
+          <label cLabel for="menuItemPriceAmount">Price</label>
+          <input
+            formControlName="menuItemPriceAmount"
+            cFormControl
+            id="menuItemPriceAmount"
+            placeholder="9.99"
+            type="number"
+          />
+        </div>
+        <div class="mb-3">
+          <label cLabel for="menuItemDescription">Description</label>
+          <input
+            formControlName="menuItemDescription"
+            cFormControl
+            id="menuItemDescription"
+            placeholder="Delicious beef goulash with potatoes & rosemary, served with fresh bread."
+            type="text"
+          />
+        </div>
+        <div class="mb-3">
+          <label cLabel for="">Upload Dish Image</label>
+          <input
+            cFormControl
+            id="menuItemIcon"
+            placeholder="Choose an icon file"
+            type="file"
+            (change)="onFileSelected($event)"
+          />
+        </div>
+        <button type="submit" class="btn btn-primary">
+          {{ selectedItem ? "Update Item" : "Add Item" }}
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="resetForm()">
+          Reset
+        </button>
+      </form>
+    </c-tab-panel>
+  </c-tabs-content>
+</c-tabs>

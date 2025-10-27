@@ -57,7 +57,6 @@ export class AppComponent implements OnInit {
       )
       .subscribe();
 
-      this.#authService.restoreSession().subscribe();
       this.#authService.pingSession().subscribe();
 
 
