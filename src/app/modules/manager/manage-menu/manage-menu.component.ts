@@ -1,7 +1,10 @@
+import { MenuItemCategory } from './../../../core/models/menu/menuItem';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import {
   Tabs2Module, TableDirective, FormControlDirective,
-  FormLabelDirective,
+  FormLabelDirective, AccordionButtonDirective,
+  AccordionComponent, AccordionItemComponent,
+  TemplateIdDirective
 } from '@coreui/angular';
 import { } from '@coreui/angular';
 import { MenuItemServiceService } from '../../../core/services/menu-item-service.service';
@@ -17,8 +20,9 @@ import { UserContextModel } from '../../../core/models/userContextModel';
   imports: [Tabs2Module, TableDirective, FormControlDirective,
     FormLabelDirective,
     NgFor, ReactiveFormsModule,
-    // InputGroupComponent,
-    // InputGroupTextDirective
+    AccordionButtonDirective,
+    AccordionComponent, AccordionItemComponent,
+    TemplateIdDirective
   ],
   standalone: true,
   templateUrl: './manage-menu.component.html'
@@ -48,12 +52,27 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
     });
   }
 
+  get groupedMenuItems(): { [category: string]: MenuItem[] } {
+    return this.menuItems.reduce((acc, item) => {
+      const cat = item.category;
+      if (!acc[cat]) {
+        acc[cat] = [];
+      }
+      acc[cat].push(item);
+      return acc;
+    }, {} as { [category: string]: MenuItem[] });
+  }
+
+
   loadMenuItems(): void {
     this.menuItemService.getAll(this.restaurantId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: response => {
-          this.menuItems = response.menu?.menuItems ?? [];
+          this.menuItems = (response.menu?.menuItems ?? []).map(item => ({
+            ...item,
+            category: item.category   // map backend field
+          }));
         },
         error: err => console.error('[ManageMenuComponent] Error loading menu items', err)
       });
@@ -72,7 +91,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
   loadCategories(): void {
     this.menuItemService.getCategories(this.restaurantId)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(cats => this.categories = cats);
+      .subscribe(cats => { this.categories = cats ?? []; console.log('[ManageMenuComponent] categories response:', cats); });
   }
 
   onEdit(item: MenuItem): void {
@@ -81,8 +100,8 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
   }
 
   onDelete(item: MenuItem): void {
-    if (confirm(`Delete "${item.name}"?`)) {
-      this.menuItemService.delete(this.restaurantId, item.id)
+    if (confirm(`Delete "${item.menuItemName}"?`)) {
+      this.menuItemService.delete(this.restaurantId, item.menuItemId)
         .pipe(takeUntil(this.destroy$))
         .subscribe(() => this.loadMenuItems());
     }
@@ -101,9 +120,9 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
     }
 
     if (this.selectedItem) {
-      console.log('Updating item:', this.selectedItem.id);
+      console.log('Updating item:', this.selectedItem.menuItemId);
       // update existing item
-      this.menuItemService.update(this.restaurantId, this.selectedItem.id, formData)
+      this.menuItemService.update(this.restaurantId, this.selectedItem.menuItemId, formData)
         .pipe(takeUntil(this.destroy$))
         .subscribe(() => {
           this.resetForm();

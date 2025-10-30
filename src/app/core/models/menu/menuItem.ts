@@ -1,10 +1,11 @@
 export interface MenuItem {
-  id: string;
-  name: string;
-  description?: string;
-  price: number;
+  menuItemId: string;
+  menuItemName: string;
+  menuItemDescription?: string;
+  menuItemPriceAmount: number;
   category: MenuItemCategory;
-  imageUrl?: string;
+  menuItemPriceCurrency?: string;
+  menuItemIconUrl?: string;
 }
 
 export interface MenuResponse {
