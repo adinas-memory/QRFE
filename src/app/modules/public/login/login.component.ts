@@ -17,7 +17,7 @@ import {
   RowComponent
 } from '@coreui/angular';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { SubscriptionService } from '../../../core/services/subscription.service';
+import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
 import { UserContextModel } from '../../../core/models/userContextModel';
 
 @Component({

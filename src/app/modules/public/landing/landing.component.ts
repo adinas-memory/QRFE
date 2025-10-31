@@ -18,7 +18,7 @@ import {
   ColComponent,
   RowComponent,
 } from '@coreui/angular';
-import { SubscriptionService } from '../../../core/services/subscription.service';
+import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
 import { SubscriptionProductModel } from '../../../core/models/subscription-product';
 import { Subscription } from 'rxjs';
 

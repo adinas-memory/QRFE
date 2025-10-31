@@ -12,7 +12,7 @@ import {
   FormLabelDirective,
   FormSelectDirective
 } from '@coreui/angular';
-import { SubscriptionService } from '../../../core/services/subscription.service';
+import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
 import { Router } from '@angular/router';
 import { SubscriptionPayloadModel } from '../../../core/models/subscriptionPayloadModel';
 import { AuthService } from '../../../core/auth/auth.service';

@@ -1,28 +1,41 @@
-import { MenuItemCategory } from './../../../core/models/menu/menuItem';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { delay } from 'rxjs/operators';
+import { Component, OnDestroy, OnInit, viewChild, ViewChild } from '@angular/core';
 import {
-  Tabs2Module, TableDirective, FormControlDirective,
+  Tabs2Module, FormControlDirective,
   FormLabelDirective, AccordionButtonDirective,
   AccordionComponent, AccordionItemComponent,
-  TemplateIdDirective
+  TemplateIdDirective,
+
+  ToastComponent,
+  ToastBodyComponent,
+  ToasterComponent,
+  ToastHeaderComponent,
+  ToastCloseDirective,
+  ProgressComponent,
+  ToasterPlacement,
+  FormSelectDirective
 } from '@coreui/angular';
 import { } from '@coreui/angular';
-import { MenuItemServiceService } from '../../../core/services/menu-item-service.service';
+import { MenuItemServiceService } from '../../../core/services/menu-item-service/menu-item-service.service';
 import { filter, Subject, take, takeUntil } from 'rxjs';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MenuItem } from '../../../core/models/menu/menuItem';
 import { AuthService } from '../../../core/auth/auth.service';
-import { NgFor } from '@angular/common';
+import { NgFor, CurrencyPipe, DatePipe } from '@angular/common';
 import { UserContextModel } from '../../../core/models/userContextModel';
+import { ToastBaseComponent } from '../../../shared/components/toast-base/toast-base.component';
+;
+
 
 @Component({
   selector: 'app-manage-menu',
-  imports: [Tabs2Module, TableDirective, FormControlDirective,
+  imports: [Tabs2Module, FormControlDirective,
     FormLabelDirective,
     NgFor, ReactiveFormsModule,
     AccordionButtonDirective,
     AccordionComponent, AccordionItemComponent,
-    TemplateIdDirective
+    TemplateIdDirective, CurrencyPipe,
+    ToasterComponent, FormSelectDirective
   ],
   standalone: true,
   templateUrl: './manage-menu.component.html'
@@ -37,10 +50,13 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
   selectedItem: MenuItem | null = null;
   menuItemsForm: FormGroup;
   selectedFile: File | null = null;
+  placement = ToasterPlacement.TopEnd;
 
+
+  readonly toaster = viewChild(ToasterComponent);
 
   constructor(private menuItemService: MenuItemServiceService,
-    private fb: FormBuilder, private authService: AuthService
+    private fb: FormBuilder, private authService: AuthService,
   ) {
     this.menuItemsForm = this.fb.group({
       menuItemName: ['', Validators.required],
@@ -62,7 +78,6 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
       return acc;
     }, {} as { [category: string]: MenuItem[] });
   }
-
 
   loadMenuItems(): void {
     this.menuItemService.getAll(this.restaurantId)
@@ -91,7 +106,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
   loadCategories(): void {
     this.menuItemService.getCategories(this.restaurantId)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(cats => { this.categories = cats ?? []; console.log('[ManageMenuComponent] categories response:', cats); });
+      .subscribe(cats => { this.categories = cats ?? []; });
   }
 
   onEdit(item: MenuItem): void {
@@ -125,18 +140,39 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
       this.menuItemService.update(this.restaurantId, this.selectedItem.menuItemId, formData)
         .pipe(takeUntil(this.destroy$))
         .subscribe(() => {
+          this.addToast('Menu Item Created:', this.menuItemsForm.get('menuItemName')?.value
+            ?? '', 3000, 'success');
           this.resetForm();
           this.loadMenuItems();
+        }, error => {
+          this.addToast('Error:', error.Message, 5000, 'danger');
         });
     } else {
       // create new item
       this.menuItemService.create(this.restaurantId, formData)
         .pipe(takeUntil(this.destroy$))
         .subscribe(() => {
+          this.addToast('Menu Item Created:', this.menuItemsForm.get('menuItemName')?.value
+            ?? '', 3000, 'success')
           this.resetForm();
           this.loadMenuItems();
+
+        }, error => {
+          this.addToast('Error:', error.Message, 5000, 'danger');
         });
     }
+  }
+
+  addToast(title: string, message: string, delay: number, color: string) {
+    const options = {
+      title: title,
+      delay: delay,
+      message: message,
+      placement: this.placement,
+      color: color,
+      autohide: true
+    };
+    const componentRef = this.toaster()?.addToast(ToastBaseComponent, { ...options });
   }
 
   ngOnInit(): void {

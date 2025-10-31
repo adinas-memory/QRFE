@@ -1,7 +1,7 @@
-<c-tabs [activeItemKey]="1">
+<c-tabs [activeItemKey]="0">
   <c-tabs-list variant="pills">
-    <button cTab [itemKey]="0">List Menu</button>
-    <button cTab [itemKey]="1">Modify Menu</button>
+    <button cTab [itemKey]="0">List & Edit the Menu</button>
+    <button cTab [itemKey]="1">Add Menu Item</button>
   </c-tabs-list>
   <c-tabs-content>
     <c-tab-panel class="p-3" [itemKey]="0">
@@ -31,7 +31,7 @@
                 >
                   <div>
                     <strong>{{ item.menuItemName }}</strong>
-                    <!-- <span class="text-muted">
+                    <span class="text-muted">
                       ({{
                         item.menuItemPriceAmount
                           | currency
@@ -39,7 +39,7 @@
                             : "symbol"
                             : "1.2-2"
                       }})
-                    </span> -->
+                    </span>
                     <div>{{ item.menuItemDescription }}</div>
                   </div>
                   <div class="d-flex align-items-center">
@@ -85,6 +85,7 @@
             formControlName="menuItemCategory"
             cFormControl
             id="menuItemCategory"
+            cSelect
           >
             <option value="" disabled>Select a category</option>
             <option *ngFor="let cat of categories" [value]="cat">
@@ -141,4 +142,5 @@
       </form>
     </c-tab-panel>
   </c-tabs-content>
+  <c-toaster class="p-3" position="fixed" [placement]="placement" />
 </c-tabs>

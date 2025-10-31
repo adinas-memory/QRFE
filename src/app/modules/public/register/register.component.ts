@@ -17,7 +17,7 @@ import {
 } from '@coreui/angular';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
-import { SubscriptionService } from '../../../core/services/subscription.service';
+import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
 import { UserContextModel } from '../../../core/models/userContextModel';
 import { PendingPlanModel } from '../../../core/models/pendingPlanModel';
 
