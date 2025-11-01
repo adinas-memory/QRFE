@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { NgScrollbar } from 'ngx-scrollbar';
 import { IconSetService } from '@coreui/icons-angular';
@@ -14,13 +14,14 @@ import {
   SidebarHeaderComponent,
   SidebarNavComponent,
   SidebarToggleDirective,
-  SidebarTogglerDirective
+  SidebarTogglerDirective,
 } from '@coreui/angular';
 
 import { DefaultFooterComponent, DefaultHeaderComponent } from './';
 import { navItems } from './_nav';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { UserContextModel } from '../../../../core/models/userContextModel';
+import { TitleCasePipe } from '@angular/common';
 
 function isOverflown(element: HTMLElement) {
   return (
@@ -48,16 +49,23 @@ function isOverflown(element: HTMLElement) {
     NgScrollbar,
     RouterOutlet,
     RouterLink,
-    ShadowOnScrollDirective
+    ShadowOnScrollDirective,
+    TitleCasePipe
   ]
 })
-export class DefaultLayoutComponent {
+export class DefaultLayoutComponent implements OnInit {
   public navItems: INavData[] = [];
+  restaurantName: string | null = null;
 
 
   constructor(private auth: AuthService, public iconSet: IconSetService) {
+
+  }
+
+  ngOnInit(): void {
     const role = this.auth.getUserSnapshot()?.role ?? 'default';
     this.navItems = this.getNavItemsForRole(role);
+    this.restaurantName = this.auth.getRestaurantCtx()
   }
 
   getNavItemsForRole(role: string): INavData[] {

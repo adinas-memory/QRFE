@@ -52,7 +52,8 @@ export class LoginComponent implements OnInit, OnDestroy {
 
       this.authService.loginUser(formValue).subscribe({
         next: (response: UserContextModel) => {
-          this.authService.setUser(response)
+          this.authService.setUser(response);
+          this.authService.setRestaurantCtx();
           const returnUrl = this.route.snapshot.queryParams['returnUrl'];
           const pending = this.subscriptionService.getPendingPlan();
           const userRole = response.role
@@ -73,6 +74,7 @@ export class LoginComponent implements OnInit, OnDestroy {
 
         },
         error: (error) => {
+          this.router.navigate(['/login']);
           console.error('Login failed:', error);
         }
       });
@@ -81,11 +83,9 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // this.authService.getUserContext().subscribe(user => {
-    //   if (!user) {
-    //     this.router.navigate(['/register']);
-    //   }
-    // });
+    this.authService.clearRestaurantCtx();
+    this.authService.clearUser();
+
   }
 
   ngOnDestroy(): void {

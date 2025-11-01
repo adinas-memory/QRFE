@@ -1,19 +1,18 @@
-import { delay } from 'rxjs/operators';
 import { Component, OnDestroy, OnInit, viewChild, ViewChild } from '@angular/core';
 import {
   Tabs2Module, FormControlDirective,
   FormLabelDirective, AccordionButtonDirective,
   AccordionComponent, AccordionItemComponent,
-  TemplateIdDirective,
-
-  ToastComponent,
-  ToastBodyComponent,
-  ToasterComponent,
-  ToastHeaderComponent,
-  ToastCloseDirective,
-  ProgressComponent,
+  ToasterComponent, TemplateIdDirective,
   ToasterPlacement,
-  FormSelectDirective
+  FormSelectDirective,
+  ButtonDirective,
+  ButtonCloseDirective,
+  ModalBodyComponent,
+  ModalFooterComponent,
+  ModalHeaderComponent,
+  ModalTitleDirective,
+  ModalComponent
 } from '@coreui/angular';
 import { } from '@coreui/angular';
 import { MenuItemServiceService } from '../../../core/services/menu-item-service/menu-item-service.service';
@@ -35,7 +34,14 @@ import { ToastBaseComponent } from '../../../shared/components/toast-base/toast-
     AccordionButtonDirective,
     AccordionComponent, AccordionItemComponent,
     TemplateIdDirective, CurrencyPipe,
-    ToasterComponent, FormSelectDirective
+    ToasterComponent, FormSelectDirective,
+    ButtonDirective,
+    ModalComponent,
+    ModalHeaderComponent,
+    ModalTitleDirective,
+    ButtonCloseDirective,
+    ModalBodyComponent,
+    ModalFooterComponent
   ],
   standalone: true,
   templateUrl: './manage-menu.component.html'
@@ -51,7 +57,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
   menuItemsForm: FormGroup;
   selectedFile: File | null = null;
   placement = ToasterPlacement.TopEnd;
-
+  editModalVisible = false;
 
   readonly toaster = viewChild(ToasterComponent);
 
@@ -112,6 +118,12 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
   onEdit(item: MenuItem): void {
     this.selectedItem = item;
     this.menuItemsForm.patchValue(item);
+    this.editModalVisible = true;
+  }
+
+  closeEditModal() {
+    this.editModalVisible = false;
+    this.selectedItem = null;
   }
 
   onDelete(item: MenuItem): void {
@@ -160,6 +172,16 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
         }, error => {
           this.addToast('Error:', error.Message, 5000, 'danger');
         });
+    }
+  }
+
+  onUpdate() {
+    if (this.menuItemsForm.valid && this.selectedItem) {
+      const updated = { ...this.selectedItem, ...this.menuItemsForm.value };
+      // call your service to persist changes
+      console.log('Updated item:', updated);
+
+      this.closeEditModal();
     }
   }
 

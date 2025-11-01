@@ -60,6 +60,18 @@ export class AuthService {
     localStorage.setItem('UserCtx', JSON.stringify(user));
   }
 
+  setRestaurantCtx(): void {
+    localStorage.setItem('RestaurantCtx', this.userSubject.value?.restaurantName ?? '');
+  }
+
+  clearRestaurantCtx(): void {
+    localStorage.removeItem('RestaurantCtx');
+  }
+
+  getRestaurantCtx(): string | null {
+    return localStorage.getItem('RestaurantCtx');
+  }
+
   clearUser(): void {
     this.userSubject.next(null);
     localStorage.removeItem('UserCtx');
