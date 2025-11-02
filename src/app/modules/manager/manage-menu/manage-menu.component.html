@@ -44,7 +44,7 @@
                   </div>
                   <div class="d-flex align-items-center">
                     <img
-                      [src]="item.menuItemIconUrl"
+                      [src]="item.menuItemIconUrl + '?v=' + forceRefreshAfterUpdate"
                       [alt]="item.category + ', ' + item.menuItemName"
                       width="50"
                       height="50"
@@ -174,11 +174,10 @@
         <label cLabel for="menuItemIcon">Upload Dish Image</label>
         <input cFormControl id="menuItemIcon" type="file" (change)="onFileSelected($event)" />
       </div>
-
     </form>
   </c-modal-body>
   <c-modal-footer>
-    <button type="submit" cButton cButton color="secondary">Update Item</button>
+    <button type="submit" cButton cButton color="secondary" (click)="onSubmit()">Update Item</button>
       <button type="button" cButton (click)="closeEditModal()" color="primary">Cancel</button>
   </c-modal-footer>
 </c-modal>

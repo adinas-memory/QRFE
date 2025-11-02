@@ -25,7 +25,6 @@ import { UserContextModel } from '../../../core/models/userContextModel';
 import { ToastBaseComponent } from '../../../shared/components/toast-base/toast-base.component';
 ;
 
-
 @Component({
   selector: 'app-manage-menu',
   imports: [Tabs2Module, FormControlDirective,
@@ -58,6 +57,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
   selectedFile: File | null = null;
   placement = ToasterPlacement.TopEnd;
   editModalVisible = false;
+  forceRefreshAfterUpdate = Date.now();
 
   readonly toaster = viewChild(ToasterComponent);
 
@@ -117,7 +117,14 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
 
   onEdit(item: MenuItem): void {
     this.selectedItem = item;
-    this.menuItemsForm.patchValue(item);
+    // this.menuItemsForm.patchValue(item);
+    this.menuItemsForm.patchValue({
+      menuItemName: item.menuItemName,
+      menuItemDescription: item.menuItemDescription,
+      menuItemPriceAmount: item.menuItemPriceAmount,
+      menuItemCategory: item.category, // map correctly
+      menuItemIcon: null // don’t prefill file input
+    });
     this.editModalVisible = true;
   }
 
@@ -134,54 +141,112 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
     }
   }
 
-  onSubmit(): void {
-    const formData = new FormData();
-    // append all form fields
-    formData.append('menuItemName', this.menuItemsForm.value.menuItemName);
-    formData.append('menuItemDescription', this.menuItemsForm.value.menuItemDescription);
-    formData.append('menuItemPriceAmount', this.menuItemsForm.value.menuItemPriceAmount);
-    formData.append('menuItemCategory', this.menuItemsForm.value.menuItemCategory);
-    // if a file was selected, append it
-    if (this.selectedFile) {
-      formData.append('menuItemIcon', this.selectedFile);
-    }
+onSubmit(): void {
+  const formData = new FormData();
+  formData.append('menuItemName', this.menuItemsForm.value.menuItemName);
+  formData.append('menuItemDescription', this.menuItemsForm.value.menuItemDescription);
+  formData.append('menuItemPriceAmount', this.menuItemsForm.value.menuItemPriceAmount);
+  formData.append('menuItemCategory', this.menuItemsForm.value.menuItemCategory.toString());
 
-    if (this.selectedItem) {
-      console.log('Updating item:', this.selectedItem.menuItemId);
-      // update existing item
-      this.menuItemService.update(this.restaurantId, this.selectedItem.menuItemId, formData)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe(() => {
-          this.addToast('Menu Item Created:', this.menuItemsForm.get('menuItemName')?.value
-            ?? '', 3000, 'success');
-          this.resetForm();
-          this.loadMenuItems();
-        }, error => {
-          this.addToast('Error:', error.Message, 5000, 'danger');
-        });
-    } else {
-      // create new item
-      this.menuItemService.create(this.restaurantId, formData)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe(() => {
-          this.addToast('Menu Item Created:', this.menuItemsForm.get('menuItemName')?.value
-            ?? '', 3000, 'success')
-          this.resetForm();
-          this.loadMenuItems();
-
-        }, error => {
-          this.addToast('Error:', error.Message, 5000, 'danger');
-        });
-    }
+  if (this.selectedFile) {
+    formData.append('menuItemIcon', this.selectedFile);
   }
+
+  if (this.selectedItem) {
+    this.menuItemService.update(this.restaurantId, this.selectedItem.menuItemId, formData)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.addToast('Menu Item Updated:', 'Success', 3000, 'success');
+        this.resetForm();
+        this.loadMenuItems();
+        this.closeEditModal();
+      }, error => {
+        this.addToast('Error:', error.Message, 5000, 'danger');
+      });
+  } else {
+    this.menuItemService.create(this.restaurantId, formData)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.addToast('Menu Item Created:', this.menuItemsForm.get('menuItemName')?.value ?? '', 3000, 'success');
+        this.resetForm();
+        this.loadMenuItems();
+      }, error => {
+        this.addToast('Error:', error.Message, 5000, 'danger');
+      });
+  }
+}
+
+
+  // onSubmit(): void {
+  //   const formData = new FormData();
+  //   // append all form fields
+  //   formData.append('menuItemName', this.menuItemsForm.value.menuItemName);
+  //   formData.append('menuItemDescription', this.menuItemsForm.value.menuItemDescription);
+  //   formData.append('menuItemPriceAmount', this.menuItemsForm.value.menuItemPriceAmount);
+  //   formData.append('menuItemCategory', this.menuItemsForm.value.menuItemCategory);
+  //   // if a file was selected, append it
+  //   if (this.selectedFile) {
+  //     formData.append('menuItemIcon', this.selectedFile);
+  //   }
+
+  //   if (this.selectedItem) {
+  //     console.log('Updating item:', this.selectedItem.menuItemId);
+  //     // update existing item
+  //     this.menuItemService.update(this.restaurantId, this.selectedItem.menuItemId, formData)
+  //       .pipe(takeUntil(this.destroy$))
+  //       .subscribe(() => {
+  //         this.addToast('Menu Item Created:', this.menuItemsForm.get('menuItemName')?.value
+  //           ?? '', 3000, 'success');
+  //         this.resetForm();
+  //         this.loadMenuItems();
+  //         this.closeEditModal();
+  //       }, error => {
+  //         this.addToast('Error:', error.Message, 5000, 'danger');
+  //       });
+  //   } else {
+  //     // create new item
+  //     this.menuItemService.create(this.restaurantId, formData)
+  //       .pipe(takeUntil(this.destroy$))
+  //       .subscribe(() => {
+  //         this.addToast('Menu Item Created:', this.menuItemsForm.get('menuItemName')?.value
+  //           ?? '', 3000, 'success')
+  //         this.resetForm();
+  //         this.loadMenuItems();
+
+  //       }, error => {
+  //         this.addToast('Error:', error.Message, 5000, 'danger');
+  //       });
+  //   }
+  // }
+
+  // private updateMenuItem(formData: FormData) {
+  //   this.menuItemService.update(this.restaurantId, this.selectedItem?.menuItemId ?? '', formData)
+  //     .pipe(takeUntil(this.destroy$))
+  //     .subscribe(() => {
+  //       this.addToast('Menu Item Updated:', 'Success', 3000, 'success');
+  //       this.resetForm();
+  //       this.loadMenuItems();
+  //       this.closeEditModal();
+  //     }, error => {
+  //       this.addToast('Error:', error.Message, 5000, 'danger');
+  //     });
+  // }
 
   onUpdate() {
     if (this.menuItemsForm.valid && this.selectedItem) {
-      const updated = { ...this.selectedItem, ...this.menuItemsForm.value };
-      // call your service to persist changes
-      console.log('Updated item:', updated);
-
-      this.closeEditModal();
+      const updated = { ...this.selectedItem, ...this.menuItemsForm.value, menuItemPriceCurrency: this.selectedItem.menuItemPriceCurrency };
+      this.menuItemService.update(this.restaurantId, this.selectedItem.menuItemId, updated)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(() => {
+          this.addToast('Menu Item Updated:', 'Success', 3000, 'success');
+          this.closeEditModal();
+          this.loadMenuItems();
+        },
+          error => {
+            this.closeEditModal();
+            this.loadMenuItems();
+            this.addToast('Error:', error.Message, 5000, 'danger');
+          });
     }
   }
 
