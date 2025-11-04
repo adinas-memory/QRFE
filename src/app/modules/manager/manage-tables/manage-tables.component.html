@@ -1,1 +1,80 @@
-<p>manage-tables works!</p>
+<c-tabs [activeItemKey]="0">
+  <c-tabs-list variant="pills">
+    <button cTab [itemKey]="0">List & Edit Tables</button>
+    <button cTab [itemKey]="1">Add Table(s)</button>
+  </c-tabs-list>
+
+  <!-- List Tables -->
+  <c-tabs-content>
+    <c-tab-panel class="p-3" [itemKey]="0">
+      <ul class="list-group">
+        <li
+          *ngFor="let table of tables"
+          class="list-group-item d-flex justify-content-between align-items-center"
+        >
+          <div>
+            <strong>{{ table.tableName }}</strong>
+          </div>
+          <div>
+            <button class="btn btn-sm btn-outline-primary me-1" (click)="onEdit(table)">Edit</button>
+            <button class="btn btn-sm btn-outline-danger" (click)="onDelete(table)">Delete</button>
+          </div>
+        </li>
+      </ul>
+      <div *ngIf="!tables?.length" class="text-muted mt-3">
+        No tables yet. Add some in the “Add Table(s)” tab.
+      </div>
+    </c-tab-panel>
+  </c-tabs-content>
+
+  <!-- Add Table(s) -->
+  <c-tabs-content>
+    <c-tab-panel class="p-3" [itemKey]="1">
+      <form [formGroup]="addTablesForm" (ngSubmit)="onAddTables()" cForm>
+        <div class="mb-3">
+          <label cLabel for="numberOfTables">Number of tables</label>
+          <input
+            formControlName="numberOfTables"
+            cFormControl
+            id="numberOfTables"
+            type="number"
+            min="1"
+            placeholder="50"
+          />
+          <div class="form-text">Backend will auto-create names like T-1, T-2, …</div>
+        </div>
+        <button type="submit" class="btn btn-primary" [disabled]="addTablesForm.invalid">Add Table(s)</button>
+        <button type="button" class="btn btn-secondary" (click)="addTablesForm.reset({ numberOfTables: 1 })">Reset</button>
+      </form>
+    </c-tab-panel>
+  </c-tabs-content>
+
+  <c-toaster class="p-3" position="fixed" [placement]="placement" />
+</c-tabs>
+
+<!-- Edit Modal -->
+<c-modal [(visible)]="editModalVisible" alignment="center" size="lg">
+  <c-modal-header>
+    <h5 cModalTitle>Edit Table Name</h5>
+    <button type="button" class="btn-close" (click)="closeEditModal()"></button>
+  </c-modal-header>
+
+  <c-modal-body>
+    <form [formGroup]="tablesForm" (ngSubmit)="onSubmit()" cForm>
+      <div class="mb-3">
+        <label cLabel for="tableName">Table name</label>
+        <input
+          formControlName="tableName"
+          cFormControl
+          id="tableName"
+          type="text"
+          placeholder="VIP-1"
+        />
+      </div>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button type="button" class="btn btn-secondary" (click)="closeEditModal()">Cancel</button>
+    <button type="button" class="btn btn-primary" (click)="onSubmit()" [disabled]="tablesForm.invalid">Save Changes</button>
+  </c-modal-footer>
+</c-modal>
