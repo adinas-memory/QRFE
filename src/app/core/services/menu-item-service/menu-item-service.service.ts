@@ -13,11 +13,11 @@ export class MenuItemServiceService {
   constructor(private http: HttpClient) { }
 
   getAll(restaurantId: string): Observable<MenuResponse> {
-    return this.http.get<MenuResponse>(`${this.apiUrl}/api/restaurants/${restaurantId}/customer/menu`);
+    return this.http.get<MenuResponse>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/menu`, {withCredentials: true});
   }
 
-  getCategories(restaurantId: string): Observable<string[]> {
-    return this.http.get<string[]>(`${this.apiUrl}/api/restaurants/${restaurantId}/admin/menu-item-categories`, {withCredentials: true});
+  getCategories(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.apiUrl}/api/menu-item-categories`);
   }
 
   create(restaurantId: string, formData: FormData): Observable<MenuItem> {

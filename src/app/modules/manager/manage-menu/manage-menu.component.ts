@@ -110,7 +110,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
   }
 
   loadCategories(): void {
-    this.menuItemService.getCategories(this.restaurantId)
+    this.menuItemService.getCategories()
       .pipe(takeUntil(this.destroy$))
       .subscribe(cats => { this.categories = cats ?? []; });
   }

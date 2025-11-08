@@ -1,1 +1,80 @@
-<p>menu works!</p>
+<c-tabs [activeItemKey]="0">
+  <c-tabs-list variant="tabs" class="d-flex flex-row overflow-auto">
+    <button
+      *ngFor="let cat of nonEmptyCategories; let i = index"
+      cTab
+      [itemKey]="i"
+    >
+      {{ cat }}
+    </button>
+  </c-tabs-list>
+
+  <c-tabs-content>
+    <c-tab-panel
+      *ngFor="let cat of nonEmptyCategories; let i = index"
+      class="p-3"
+      [itemKey]="i"
+    >
+      <!-- Accordion per category -->
+      <c-accordion [flush]="true">
+        <c-accordion-item
+          #accordionItem="cAccordionItem"
+          [visible]="true"
+          [hidden]="!groupedMenuItems[cat]?.length"
+        >
+          <ng-template cTemplateId="accordionHeaderTemplate">
+            <button
+              (click)="accordionItem.toggleItem()"
+              [collapsed]="!accordionItem.visible"
+              cAccordionButton
+            >
+              {{ cat }} Items
+            </button>
+          </ng-template>
+
+          <ng-template cTemplateId="accordionBodyTemplate">
+            <div class="accordion-body">
+              <ul class="list-group">
+                <li
+                  *ngFor="let item of groupedMenuItems[cat]"
+                  class="list-group-item d-flex justify-content-between align-items-center"
+                >
+                  <div>
+                    <strong>{{ item.menuItemName }}</strong>
+                    <span class="text-muted">
+                      ({{
+                        item.menuItemPriceAmount
+                          | currency
+                            : item.menuItemPriceCurrency
+                            : "symbol"
+                            : "1.2-2"
+                      }})
+                    </span>
+                    <div>{{ item.menuItemDescription }}</div>
+                  </div>
+                  <div class="d-flex align-items-center">
+                    <img
+                      [src]="
+                        item.menuItemIconUrl + '?v=' + forceRefreshAfterUpdate
+                      "
+                      [alt]="item.menuItemName"
+                      width="50"
+                      height="50"
+                      (click)="openImageModal(item)"
+                      style="cursor: pointer"
+                    />
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </ng-template>
+        </c-accordion-item>
+      </c-accordion>
+    </c-tab-panel>
+  </c-tabs-content>
+</c-tabs>
+<c-modal [(visible)]="imageModalVisible" alignment="center" size="lg">
+  <c-modal-body>
+    <img [src]="selectedImageUrl" [alt]="selectedImageName" class="img-fluid" />
+  </c-modal-body>
+</c-modal>

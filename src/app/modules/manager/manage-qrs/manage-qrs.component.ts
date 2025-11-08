@@ -5,13 +5,14 @@ import { Component } from '@angular/core';
 import { QRCodeComponent } from 'angularx-qrcode';
 import { NgFor } from '@angular/common';
 import { ContainerComponent, ButtonDirective, CardBodyComponent, RowComponent, ColComponent,
-   CardComponent, CardImgDirective, CardTextDirective, CardTitleDirective } from '@coreui/angular';
+   CardComponent, CardImgDirective, CardTextDirective, CardTitleDirective, Tabs2Module,
+   TabContentComponent} from '@coreui/angular';
 
 @Component({
   selector: 'app-manage-qrs',
   imports: [NgFor, QRCodeComponent, ContainerComponent, CardComponent,
      CardImgDirective, CardBodyComponent, CardTitleDirective, CardTextDirective,
-      ButtonDirective, RowComponent, ColComponent],
+      ButtonDirective, RowComponent, ColComponent, Tabs2Module, TabContentComponent, ],
   standalone: true,
   templateUrl: './manage-qrs.component.html'
 })
@@ -44,6 +45,7 @@ export class ManageQrsComponent {
         console.log('Full response from backend:', response);
         if ('qRsUrl' in response && Array.isArray(response.qRsUrl)) {
           this.qrCodes = response.qRsUrl;
+          console.log('Loaded QR Codes:', this.qrCodes);
         } else {
           console.warn('qRsUrl not found in response');
         }
