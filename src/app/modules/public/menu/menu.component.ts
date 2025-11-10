@@ -1,10 +1,11 @@
 import { CurrencyPipe, JsonPipe, NgFor } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { AccordionButtonDirective, AccordionComponent, AccordionItemComponent, ButtonDirective, ModalBodyComponent, ModalComponent, TabDirective, TabPanelComponent, Tabs2Module, TabsListComponent, TemplateIdDirective } from '@coreui/angular';
 import { Subject, takeUntil } from 'rxjs';
 import { MenuItem } from '../../../core/models/menu/menuItem';
 import { MenuItemServiceService } from '../../../core/services/menu-item-service/menu-item-service.service';
+import { MenuService } from '../../../core/services/menu-public/menu.service';
 
 @Component({
   selector: 'app-menu',
@@ -18,7 +19,8 @@ import { MenuItemServiceService } from '../../../core/services/menu-item-service
     AccordionItemComponent,],
   standalone: true,
   templateUrl: './menu.component.html',
-  styleUrls: ['./menu.component.scss']
+  styleUrls: ['./menu.component.scss'],
+
 })
 export class MenuComponent implements OnInit {
 
@@ -32,7 +34,7 @@ export class MenuComponent implements OnInit {
   selectedImageUrl = '';
   selectedImageName = '';
 
-  constructor(private menuItemService: MenuItemServiceService,
+  constructor(private menuItemService: MenuService,
     private route: ActivatedRoute) { }
 
 
@@ -57,7 +59,7 @@ export class MenuComponent implements OnInit {
 
 
   loadMenuItems(): void {
-    this.menuItemService.getAll(this.restaurantId)
+    this.menuItemService.getAll(this.restaurantId, this.tableId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: response => {

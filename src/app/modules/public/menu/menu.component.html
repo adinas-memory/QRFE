@@ -1,5 +1,5 @@
 <c-tabs [activeItemKey]="0">
-  <c-tabs-list variant="tabs" class="d-flex flex-row overflow-auto">
+  <c-tabs-list variant="tabs" class="c-tabs-custom d-flex flex-row flex-nowrap overflow-x-auto overflow-y-hidden">
     <button
       *ngFor="let cat of nonEmptyCategories; let i = index"
       cTab

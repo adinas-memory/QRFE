@@ -51,7 +51,7 @@ export const routes: Routes = [
         data: { title: 'Payment Failure' }
       },
       {
-        path: 'menu/:restaurantId/tables/:tableId',
+        path: 'public/menu/:restaurantId/tables/:tableId',
         loadComponent: () =>
           import('./menu/menu.component').then(m => m.MenuComponent),
         data: { title: 'Restaurant Menu' }

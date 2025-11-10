@@ -97,30 +97,30 @@ export class AuthService {
   }
   // --- Refresh from backend ---
 
-  pingSession(): Observable<UserContextModel | null> {
+  pingSession(isPublic: boolean = false): Observable<UserContextModel | null> {
     return this.http.get<UserContextModel>(`${this.apiUrl}/api/user/ping`, { withCredentials: true }).pipe(
       tap(user => {
-        // 200 OK: Set the user context
         this.setUser(user);
       }),
       catchError((error: HttpErrorResponse) => {
-        if (error.status === 401) {
+        if (error.status === 401 && !isPublic) {
           return this.refreshUserContext().pipe(
             tap(user => {
               if (user) {
-                console.log('Refresh credetials OK.');
+                console.log('Refresh credentials OK.');
               } else {
-                console.warn('Refresh credentials failed. redirect @Login.');
+                console.warn('Refresh credentials failed. Redirect @Login.');
               }
             })
           );
         } else {
-          console.error('Unexpected Error:', error);
-          return throwError(() => error);
+          console.warn('Ping failed, but route is public or error is not 401.');
+          return of(null);
         }
       })
     );
   }
+
 
   refreshUserContext() {
     return this.http.post<UserContextModel>(`${this.apiUrl}/api/user/refresh-token`, {}, { withCredentials: true }).pipe(

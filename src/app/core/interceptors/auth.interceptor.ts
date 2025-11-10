@@ -16,14 +16,16 @@ export class AuthInterceptor implements HttpInterceptor {
   private isRefreshing = false;
   private refreshInProgress$?: Observable<any>;
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(private authService: AuthService, private router: Router) { }
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    const authReq = req.clone({ withCredentials: true });
+    const isPublicRoute = req.url.includes('/public/');
 
-    return next.handle(authReq).pipe(
+    const request = req.clone({ withCredentials: true });
+
+    return next.handle(request).pipe(
       catchError((error: HttpErrorResponse) => {
-        if (error.status === 401) {
+        if (error.status === 401 && !isPublicRoute) {
           if (!this.isRefreshing) {
             this.isRefreshing = true;
             this.refreshInProgress$ = this.authService.refreshUserContext().pipe(
@@ -39,9 +41,8 @@ export class AuthInterceptor implements HttpInterceptor {
             );
           }
 
-          // Wait for refresh to complete, then retry original request
           return (this.refreshInProgress$ ?? of(null)).pipe(
-            switchMap(() => next.handle(authReq))
+            switchMap(() => next.handle(request))
           );
         }
 
@@ -49,5 +50,6 @@ export class AuthInterceptor implements HttpInterceptor {
       })
     );
   }
+
 }
 

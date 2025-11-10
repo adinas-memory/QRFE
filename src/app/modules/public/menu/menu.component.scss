@@ -1,7 +1,3 @@
-.c-tabs-list {
-  overflow-x: auto;
-  white-space: nowrap;
-}
-.c-tabs-list button {
-  flex: 0 0 auto;
+:host ::ng-deep .c-tabs-custom {
+height: 6rem !important;
 }
