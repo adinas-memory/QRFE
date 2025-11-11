@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment';
 import { Observable } from 'rxjs';
-import { MenuItem, MenuResponse } from '../../models/menu/menuItem';
-import { HttpClient } from '@angular/common/http';
+import { MenuItem, MenuResponse, WaiterCallResponse } from '../../models/menu/menuItem';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root'
@@ -17,6 +17,12 @@ export class MenuService {
     return this.http.get<MenuResponse>(`${this.apiUrl}/public/${restaurantId}/menu/${tableId}`, { withCredentials: true });
   }
 
-
+  callWaiter(restaurantId: string, tableId: string): Observable<WaiterCallResponse> {
+      const headers = new HttpHeaders({
+    'Content-Type': 'application/json',
+    'X-Call-Waiter-Cookie': ''
+  });
+    return this.http.post<WaiterCallResponse>(`${this.apiUrl}/public/${restaurantId}/tables/${tableId}/call-waiter`, {}, { withCredentials: true });
+  }
 
 }

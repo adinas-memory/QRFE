@@ -18,6 +18,14 @@ export interface MenuResponse {
   restaurantName?: string;
 }
 
+export interface WaiterCallResponse {
+  restaurantId: string;
+  tableId: string;
+  counterCalls: number;
+  message: string;
+}
+
+
 export enum MenuItemCategory {
   Appetizer = 'Appetizer',
   Starter = 'Starter',

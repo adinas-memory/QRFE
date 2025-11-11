@@ -1,10 +1,10 @@
 import { CurrencyPipe, JsonPipe, NgFor } from '@angular/common';
-import { Component, Input, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { AccordionButtonDirective, AccordionComponent, AccordionItemComponent, ButtonDirective, ModalBodyComponent, ModalComponent, TabDirective, TabPanelComponent, Tabs2Module, TabsListComponent, TemplateIdDirective } from '@coreui/angular';
+import { AccordionButtonDirective, AccordionComponent, AccordionItemComponent, BadgeComponent, ButtonDirective, ModalBodyComponent, ModalComponent, TabDirective, TabPanelComponent, Tabs2Module, TabsListComponent, TemplateIdDirective } from '@coreui/angular';
 import { Subject, takeUntil } from 'rxjs';
 import { MenuItem, MenuResponse } from '../../../core/models/menu/menuItem';
-import { MenuItemServiceService } from '../../../core/services/menu-item-service/menu-item-service.service';
+
 import { MenuService } from '../../../core/services/menu-public/menu.service';
 
 @Component({
@@ -23,7 +23,6 @@ import { MenuService } from '../../../core/services/menu-public/menu.service';
 
 })
 export class MenuComponent implements OnInit {
-  @Input() menuResponse!: MenuResponse;
   menuItems: MenuItem[] = [];
   categories: string[] = [];
   forceRefreshAfterUpdate = Date.now();
@@ -33,6 +32,7 @@ export class MenuComponent implements OnInit {
   imageModalVisible = false;
   selectedImageUrl = '';
   selectedImageName = '';
+
 
   constructor(private menuItemService: MenuService,
     private route: ActivatedRoute) { }
