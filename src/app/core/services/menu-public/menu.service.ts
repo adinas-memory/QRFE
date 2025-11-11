@@ -17,8 +17,6 @@ export class MenuService {
     return this.http.get<MenuResponse>(`${this.apiUrl}/public/${restaurantId}/menu/${tableId}`, { withCredentials: true });
   }
 
-  getCategories(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.apiUrl}/api/menu-item-categories`);
-  }
+
 
 }

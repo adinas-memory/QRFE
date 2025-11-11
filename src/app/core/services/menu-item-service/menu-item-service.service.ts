@@ -16,10 +16,6 @@ export class MenuItemServiceService {
     return this.http.get<MenuResponse>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/menu`, {withCredentials: true});
   }
 
-  getCategories(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.apiUrl}/api/menu-item-categories`);
-  }
-
   create(restaurantId: string, formData: FormData): Observable<MenuItem> {
     return this.http.post<MenuItem>(`${this.apiUrl}/api/restaurants/${restaurantId}/admin/menu`, formData, {withCredentials: true});
   }

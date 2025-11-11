@@ -1,0 +1,10 @@
+    <c-navbar colorScheme="dark" color="secondary" placement="fixed-top">
+      <c-container fluid>
+        <a cNavbarBrand>{{ restaurantName }}</a>
+        <button cButton color="light" variant="outline" (click)="callWaiter()">Call Waiter</button>
+      </c-container>
+    </c-navbar>
+
+    <div class="content" style="margin-top: 70px;">
+      <router-outlet></router-outlet>
+    </div>

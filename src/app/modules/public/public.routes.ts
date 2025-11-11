@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { AuthGuard } from '../../core/auth/auth.guard';
 import { RoleGuard } from '../../core/auth/role.guard';
+import { MenuResolver } from '../../core/services/menu-public/menu-resolver.service';
 
 export const routes: Routes = [
   {
@@ -53,8 +54,18 @@ export const routes: Routes = [
       {
         path: 'public/menu/:restaurantId/tables/:tableId',
         loadComponent: () =>
-          import('./menu/menu.component').then(m => m.MenuComponent),
-        data: { title: 'Restaurant Menu' }
+          import('./public-layout/public-layout.component').then(m => m.PublicLayoutComponent),
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import('./menu/menu.component').then(m => m.MenuComponent),
+            resolve: {
+              menuData: MenuResolver
+            },
+            data: { title: 'Restaurant Menu' }
+          }
+        ]
       }
     ]
   }

@@ -14,6 +14,8 @@ export interface MenuResponse {
     menuItems: MenuItem[];
   };
   waiterCallCount: number;
+  categories: string[];
+  restaurantName?: string;
 }
 
 export enum MenuItemCategory {

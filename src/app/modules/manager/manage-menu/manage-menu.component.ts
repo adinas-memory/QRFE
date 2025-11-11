@@ -90,12 +90,15 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: response => {
-          this.menuItems = (response.menu?.menuItems ?? []).map(item => ({
-            ...item,
-            category: item.category   // map backend field
-          }));
+          console.log('[MenuComponent] Raw response from backend:', response);
+
+          this.menuItems = response.menu?.menuItems ?? [];
+          this.categories = response.categories ?? [];
+
+          console.log('[MenuComponent] Mapped menuItems:', this.menuItems);
+          console.log('[MenuComponent] Categories:', this.categories);
         },
-        error: err => console.error('[ManageMenuComponent] Error loading menu items', err)
+        error: err => console.error('[MenuComponent] Error loading menu items', err)
       });
   }
 
@@ -107,12 +110,6 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
       const previewUrl = URL.createObjectURL(this.selectedFile);
       this.menuItemsForm.patchValue({ menuItemIcon: this.selectedFile });
     }
-  }
-
-  loadCategories(): void {
-    this.menuItemService.getCategories()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(cats => { this.categories = cats ?? []; });
   }
 
   onEdit(item: MenuItem): void {
@@ -216,7 +213,6 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
       .subscribe(user => {
         this.restaurantId = user?.restaurantId ?? '';
         this.loadMenuItems();
-        this.loadCategories();
       });
   }
 

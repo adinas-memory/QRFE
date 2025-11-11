@@ -1,9 +1,9 @@
 import { CurrencyPipe, JsonPipe, NgFor } from '@angular/common';
-import { Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, Input, OnInit, ViewEncapsulation } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { AccordionButtonDirective, AccordionComponent, AccordionItemComponent, ButtonDirective, ModalBodyComponent, ModalComponent, TabDirective, TabPanelComponent, Tabs2Module, TabsListComponent, TemplateIdDirective } from '@coreui/angular';
 import { Subject, takeUntil } from 'rxjs';
-import { MenuItem } from '../../../core/models/menu/menuItem';
+import { MenuItem, MenuResponse } from '../../../core/models/menu/menuItem';
 import { MenuItemServiceService } from '../../../core/services/menu-item-service/menu-item-service.service';
 import { MenuService } from '../../../core/services/menu-public/menu.service';
 
@@ -23,7 +23,7 @@ import { MenuService } from '../../../core/services/menu-public/menu.service';
 
 })
 export class MenuComponent implements OnInit {
-
+  @Input() menuResponse!: MenuResponse;
   menuItems: MenuItem[] = [];
   categories: string[] = [];
   forceRefreshAfterUpdate = Date.now();
@@ -63,43 +63,18 @@ export class MenuComponent implements OnInit {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: response => {
-          // log the raw response from backend
-          console.log('[MenuComponent] Raw response from backend:', response);
-
-          this.menuItems = (response.menu?.menuItems ?? []).map(item => ({
-            ...item,
-            category: item.category
-          }));
-
-          // log the mapped menuItems array
-          console.log('[MenuComponent] Mapped menuItems:', this.menuItems);
+          this.menuItems = response.menu?.menuItems ?? [];
+          this.categories = response.categories ?? [];
         },
         error: err => console.error('[MenuComponent] Error loading menu items', err)
       });
   }
 
-
-  loadCategories(): void {
-    this.menuItemService.getCategories()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(cats => {
-        this.categories = cats ?? [];
-        console.log('[MenuComponent] Categories:', this.categories);
-      });
-  }
-
-
   ngOnInit(): void {
-    this.route.paramMap
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(params => {
-        this.restaurantId = params.get('restaurantId') ?? '';
-        this.tableId = params.get('tableId') ?? '';
-
-        this.loadCategories();
-        this.loadMenuItems();
-
-      });
+    const response = this.route.snapshot.data['menuData'] as MenuResponse;
+    this.menuItems = response.menu?.menuItems ?? [];
+    this.categories = response.categories ?? [];
+    console.log('MenuComponent items:', this.menuItems);
   }
 
   ngOnDestroy(): void {
