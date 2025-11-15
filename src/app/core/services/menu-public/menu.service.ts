@@ -14,7 +14,7 @@ export class MenuService {
 
   private apiUrl = environment.apiUrl;
   getAll(restaurantId: string, tableId: string): Observable<MenuResponse> {
-    return this.http.get<MenuResponse>(`${this.apiUrl}/public/${restaurantId}/menu/${tableId}`, { withCredentials: true });
+    return this.http.get<MenuResponse>(`${this.apiUrl}/api/public/${restaurantId}/menu/${tableId}`, { withCredentials: true });
   }
 
   callWaiter(restaurantId: string, tableId: string): Observable<WaiterCallResponse> {
@@ -22,7 +22,7 @@ export class MenuService {
     'Content-Type': 'application/json',
     'X-Call-Waiter-Cookie': ''
   });
-    return this.http.post<WaiterCallResponse>(`${this.apiUrl}/public/${restaurantId}/tables/${tableId}/call-waiter`, {}, { withCredentials: true });
+    return this.http.post<WaiterCallResponse>(`${this.apiUrl}/api/public/${restaurantId}/tables/${tableId}/call-waiter`, {}, { withCredentials: true });
   }
 
 }

@@ -12,22 +12,22 @@ export const routes: Routes = [
         pathMatch: 'full',
         loadComponent: () =>
           import('./landing/landing.component').then(m => m.LandingComponent),
-        data: { title: 'Welcome' }
+        data: { title: 'Welcome', public: true }
       },
       {
         path: 'register',
         loadComponent: () =>
           import('./register/register.component').then(m => m.RegisterComponent),
-        data: { title: 'Register' }
+        data: { title: 'Register', public: true }
       },
       {
         path: 'login',
         loadComponent: () =>
           import('./login/login.component').then(m => m.LoginComponent),
-        data: { title: 'Login' }
+        data: { title: 'Login', public: true }
       },
       {
-        path: 'restaurant-setup',
+        path: 'public/restaurant-setup',
         canActivate: [AuthGuard, RoleGuard],
         loadComponent: () =>
           import('./restaurant-setup/restaurant-setup.component').then(
@@ -36,20 +36,20 @@ export const routes: Routes = [
         data: { title: 'Restaurant Setup', roles: ['default'] }
       },
       {
-        path: 'payment-success',
+        path: 'public/payment-success',
         loadComponent: () =>
           import('./payment-success/payment-success.component').then(
             m => m.PaymentSuccessComponent
           ),
-        data: { title: 'Payment Success' }
+        data: { title: 'Payment Success', public: true }
       },
       {
-        path: 'payment-failure',
+        path: 'public/payment-failure',
         loadComponent: () =>
           import('./payment-failure/payment-failure.component').then(
             m => m.PaymentFailureComponent
           ),
-        data: { title: 'Payment Failure' }
+        data: { title: 'Payment Failure', public: true }
       },
       {
         path: 'public/menu/:restaurantId/tables/:tableId',
@@ -63,7 +63,7 @@ export const routes: Routes = [
             resolve: {
               menuData: MenuResolver
             },
-            data: { title: 'Restaurant Menu' }
+            data: { title: 'Restaurant Menu', public: true }
           }
         ]
       }

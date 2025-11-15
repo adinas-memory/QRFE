@@ -45,7 +45,6 @@ export class ManageQrsComponent {
         console.log('Full response from backend:', response);
         if ('qRsUrl' in response && Array.isArray(response.qRsUrl)) {
           this.qrCodes = response.qRsUrl;
-          console.log('Loaded QR Codes:', this.qrCodes);
         } else {
           console.warn('qRsUrl not found in response');
         }

@@ -1,7 +1,7 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Title } from '@angular/platform-browser';
-import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { ActivatedRoute, ActivatedRouteSnapshot, NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { delay, filter, map, take, tap } from 'rxjs/operators';
 
 import { ColorModeService } from '@coreui/angular';
@@ -36,16 +36,24 @@ export class AppComponent implements OnInit {
     this.#colorModeService.eventName.set('ColorSchemeChange');
   }
 
+  getDeepestChild(route: ActivatedRouteSnapshot): ActivatedRouteSnapshot {
+    let current = route;
+    while (current.firstChild) {
+      current = current.firstChild;
+    }
+    return current;
+  }
+
   ngOnInit(): void {
     this.#router.events.pipe(
       filter(evt => evt instanceof NavigationEnd),
       take(1)
     ).subscribe((evt: NavigationEnd) => {
-      const currentUrl = evt.urlAfterRedirects;
-      const isPublic = currentUrl.includes('/public/');
+      const deepest = this.getDeepestChild(this.#router.routerState.root.snapshot);
+      const isPublic = deepest?.data?.['public'] === true;
+      console.log("isPublic route:", isPublic);
 
       if (!isPublic) {
-        // doar pentru rute private
         this.#authService.restoreSession().subscribe(user => {
           this.#authService.pingSession(false).subscribe();
         });
@@ -54,6 +62,4 @@ export class AppComponent implements OnInit {
       }
     });
   }
-
-
 }

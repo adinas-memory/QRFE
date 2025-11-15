@@ -31,7 +31,7 @@ export class QrCodesService {
       params = params.set('version', version.toString());
     }
 
-    return this.http.post<QrCodeResponse>(`${this.apiUrl}/${restaurantId}`,{}, {
+    return this.http.post<QrCodeResponse>(`${this.apiUrl}/api/qr/${restaurantId}`,{}, {
       params,
       withCredentials: true
     });

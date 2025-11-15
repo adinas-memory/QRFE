@@ -63,7 +63,7 @@ export class RegisterComponent implements OnInit {
           this.authService.setUser(response);
 
           if (this.pendingSubscriptionPlan) {
-            this.router.navigate(['/restaurant-setup']);
+            this.router.navigate(['public/restaurant-setup']);
           } else {
             this.router.navigate(['/']);
           }

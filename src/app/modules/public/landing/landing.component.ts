@@ -68,7 +68,7 @@ export class LandingComponent implements OnInit {
     else if (this.user && this.role === 'default') {
       // implement ping()
       console.log('Navigating to restaurant setup for user:', this.user);
-      this.router.navigate(['/restaurant-setup']);
+      this.router.navigate(['public/restaurant-setup']);
     } else {
       this.router.navigate(['/404']);
     }
@@ -100,7 +100,5 @@ export class LandingComponent implements OnInit {
     if (this.userSubscription) {
       this.userSubscription.unsubscribe();
     }
-
-    // this.subscriptionService.clearPendingPlan();
   }
 }
