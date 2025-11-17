@@ -61,7 +61,7 @@ export class LoginComponent implements OnInit, OnDestroy {
           if (userRole === 'default') {
             this.router.navigate(['/']);
           } else if (userRole === 'default' && pending) {
-            this.router.navigate(['/restaurant-setup'])
+            this.router.navigate(['public/restaurant-setup'])
           } else if (returnUrl) {
             this.router.navigateByUrl(returnUrl);
           } else if (!pending && userRole === 'staff') {

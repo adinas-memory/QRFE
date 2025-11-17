@@ -13,7 +13,8 @@ import {
   FormDirective,
   InputGroupComponent,
   InputGroupTextDirective,
-  RowComponent
+  RowComponent,
+  ToasterComponent
 } from '@coreui/angular';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -25,7 +26,7 @@ import { PendingPlanModel } from '../../../core/models/pendingPlanModel';
   selector: 'app-register',
   templateUrl: './register.component.html',
   standalone: true,
-  imports: [ContainerComponent, ReactiveFormsModule,
+  imports: [ContainerComponent, ReactiveFormsModule, ToasterComponent,
     RowComponent, ColComponent, CardComponent, CardBodyComponent,
     FormDirective, InputGroupComponent, InputGroupTextDirective,
     IconDirective, FormControlDirective, ButtonDirective]
@@ -71,7 +72,7 @@ export class RegisterComponent implements OnInit {
         },
         error: (error) => {
           console.error('Registration failed', error);
-          this.subscriptionService.clearPendingPlan();
+          this.router.navigate(['register']);
         }
       });
     }
