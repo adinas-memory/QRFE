@@ -14,6 +14,18 @@
     </button>
   </c-container>
 </c-navbar>
+<c-footer>
+  <div>
+    <a href={{frontendPubicUrl}} target="_blank">CoreUI</a>
+    <span> {{year}} - &copy; Universal Restaurant System</span>
+  </div>
+  <div class="ms-auto">
+    <span>Powered by </span>
+    <a href={{frontendPubicUrl}} target="_blank">
+      <span>Powered by {{poweredBy}}</span>
+    </a>
+  </div>
+</c-footer>
 
 <div class="content" style="margin-top: 70px">
   <router-outlet></router-outlet>

@@ -1,11 +1,15 @@
 <div class="print-all">
-  <button cButton color="primary" (click)="printQrCards()">
+  <button cButton color="primary" (click)="printQrCards()" class="ms-2" i18n>
     Print
   </button>
+  <button cButton color="warning" (click)="renewQrCodes()" class="ms-2" i18n>
+    Renew QR Codes
+  </button>
 </div>
-<c-container fluid>
+
+<c-container fluid class="mt-3">
   <c-row class="g-4">
-    <c-col *ngFor="let qr of qrCodes" xs="12" sm="6" md="4" lg="4" xl="2">
+    <c-col *ngFor="let qr of qrCodes" xs="12" sm="6" md="4" lg="4" xl="4">
       <c-card class="qr-card" [attr.data-table]="qr.tableLabel">
         <c-card-body>
           <h5 cCardTitle>{{ qr.tableLabel }}</h5>
@@ -14,7 +18,7 @@
             [width]="200"
             [errorCorrectionLevel]="'M'"
           ></qrcode>
-          <p cCardText>
+          <p cCardText i18n>
             Scan this code to access the menu for table {{ qr.tableLabel }}.
           </p>
         </c-card-body>
@@ -22,3 +26,4 @@
     </c-col>
   </c-row>
 </c-container>
+

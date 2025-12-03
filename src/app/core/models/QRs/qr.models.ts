@@ -11,3 +11,10 @@ export interface QrCodeResponse {
   generatedOn: string; // ISO string
   qRsUrl: QrCodeUrl[];
 }
+
+export interface RenewQrCodesResponse {
+  restaurantId: string;
+  keyVersion: number;
+  validFrom: string; // ISO string
+  validTo: string;   // ISO string
+}

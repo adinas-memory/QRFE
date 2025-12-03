@@ -1,13 +1,15 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterOutlet } from '@angular/router';
-import { BadgeComponent, ButtonDirective, ContainerComponent, NavbarBrandDirective, NavbarComponent } from '@coreui/angular';
+import { BadgeComponent, ButtonDirective, ContainerComponent, FooterComponent, NavbarBrandDirective, NavbarComponent } from '@coreui/angular';
 import { MenuService } from '../../../core/services/menu-public/menu.service';
 import { MenuResponse, WaiterCallResponse } from '../../../core/models/menu/menuItem';
 import { NgIf } from '@angular/common';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-public-layout',
-  imports: [RouterOutlet, NgIf, BadgeComponent, ButtonDirective, ContainerComponent, NavbarBrandDirective, NavbarComponent],
+  imports: [RouterOutlet, NgIf, BadgeComponent, FooterComponent,
+     ButtonDirective, ContainerComponent, NavbarBrandDirective, NavbarComponent],
   standalone: true,
   templateUrl: './public-layout.component.html',
   styleUrl: './public-layout.component.scss'
@@ -18,6 +20,9 @@ export class PublicLayoutComponent implements OnInit {
   restaurantId = '';
   tableId = '';
   waiterCounterCall = 3;
+  year = new Date().getFullYear();
+  poweredBy = environment.poweredBy;
+  frontendPubicUrl = environment.apiUrl;
 
   constructor(private route: ActivatedRoute, private menuService: MenuService) { }
 

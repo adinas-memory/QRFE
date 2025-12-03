@@ -3,7 +3,7 @@ import { environment } from '../../../../environments/environment';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { HttpParams } from '@angular/common/http';
-import { QrCodeResponse } from '../../models/QRs/qr.models';
+import { QrCodeResponse, RenewQrCodesResponse } from '../../models/QRs/qr.models';
 
 @Injectable({
   providedIn: 'root'
@@ -37,6 +37,11 @@ export class QrCodesService {
     });
   }
 
+  renewQrCodes(restaurantId: string): Observable<RenewQrCodesResponse> {
+    return this.http.put<RenewQrCodesResponse>(`${this.apiUrl}/api/qr/${restaurantId}`, {}, {
+      withCredentials: true
+    });
+  }
   /**
  * Calls the backend to validate a QR code and follow its redirect.
  * @param qrUrl The full QR code URL to validate

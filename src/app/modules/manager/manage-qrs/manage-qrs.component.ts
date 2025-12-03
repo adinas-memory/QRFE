@@ -1,18 +1,20 @@
-import { QrCodeUrl } from '../../../core/models/QRs/qr.models';
+import { QrCodeUrl, RenewQrCodesResponse } from '../../../core/models/QRs/qr.models';
 import { AuthService } from './../../../core/auth/auth.service';
 import { QrCodesService } from './../../../core/services/qr-service/qr-codes.service';
 import { Component } from '@angular/core';
 import { QRCodeComponent } from 'angularx-qrcode';
 import { NgFor } from '@angular/common';
-import { ContainerComponent, ButtonDirective, CardBodyComponent, RowComponent, ColComponent,
-   CardComponent, CardImgDirective, CardTextDirective, CardTitleDirective, Tabs2Module,
-   TabContentComponent} from '@coreui/angular';
+import {
+  ContainerComponent, ButtonDirective, CardBodyComponent, RowComponent, ColComponent,
+  CardComponent, CardImgDirective, CardTextDirective, CardTitleDirective, Tabs2Module,
+  TabContentComponent
+} from '@coreui/angular';
 
 @Component({
   selector: 'app-manage-qrs',
   imports: [NgFor, QRCodeComponent, ContainerComponent, CardComponent,
-     CardImgDirective, CardBodyComponent, CardTitleDirective, CardTextDirective,
-      ButtonDirective, RowComponent, ColComponent, Tabs2Module, TabContentComponent, ],
+    CardImgDirective, CardBodyComponent, CardTitleDirective, CardTextDirective,
+    ButtonDirective, RowComponent, ColComponent, Tabs2Module, TabContentComponent,],
   standalone: true,
   templateUrl: './manage-qrs.component.html'
 })
@@ -42,7 +44,6 @@ export class ManageQrsComponent {
   loadQrCodes(): void {
     this.qrService.getQrCodes(this.restaurantId).subscribe({
       next: (response: any) => {
-        console.log('Full response from backend:', response);
         if ('qRsUrl' in response && Array.isArray(response.qRsUrl)) {
           this.qrCodes = response.qRsUrl;
         } else {
@@ -54,6 +55,25 @@ export class ManageQrsComponent {
       }
     });
   }
+
+  renewQrCodes(): void {
+    const confirmed = window.confirm('Sei sicuro di voler rinnovare i codici QR?');
+
+    if (!confirmed) {
+      return; // utilizatorul a anulat
+    }
+
+    this.qrService.renewQrCodes(this.restaurantId).subscribe({
+      next: (response: any) => {
+        this.loadQrCodes();
+      },
+      error: (error) => {
+        console.error('Error renewing QR Codes:', error);
+      }
+    });
+  }
+
+
 
   printQrCards(): void {
     window.print();
