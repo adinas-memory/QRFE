@@ -31,4 +31,8 @@ export class TablesService {
   delete(restaurantId: string, tableId: string): Observable<TableDTO[]> {
     return this.http.delete<TableDTO[]>(`${this.apiUrl}/api/restaurants/${restaurantId}/admin/tables/${tableId}`, { withCredentials: true });
   }
+
+  snoozeWaiterCall(restaurantId: string, tableId: string): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/${tableId}/call-waiter`, {}, { withCredentials: true });
+  }
 }

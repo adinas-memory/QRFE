@@ -1,1 +1,127 @@
-<p>manage-orders works!</p>
+<c-tabs [activeItemKey]="0">
+  <c-tabs-list variant="pills">
+    <button cTab [itemKey]="0" class="ms-3">All</button>
+    <button cTab [itemKey]="1" class="ms-2">Open</button>
+    <button cTab [itemKey]="2" class="ms-2">Closed</button>
+  </c-tabs-list>
+
+  <!-- List Tables -->
+  <c-tabs-content>
+    <c-tab-panel class="p-3" [itemKey]="0">
+      <c-row>
+        <c-col lg="6" xs="12" *ngFor="let table of tables">
+          <c-card-group class="mb-4">
+            <c-card
+              class="mb-3"
+              [ngStyle]="{ 'max-width.px': 540 }"
+              [color]="table.isTableOpen ? 'success' : 'danger'"
+            >
+              <c-row class="g-0">
+                <c-card-body cCol [md]="8">
+                  <h5 cCardTitle>{{ table.tableName }}</h5>
+                  <c-card-header>
+                    <h4>
+                      Total:
+                      {{
+                        table.order?.subTotal?.amount
+                          | currency : table.order?.subTotal?.currency
+                      }}
+                    </h4>
+                    @if(waiterCalls[table.tableId] > 0){
+                    <button type="button" class="btn btn-primary float-end" (click)="snoozeWaiterCall(table.tableId)">
+                      Snooze waiter call
+                    </button>
+                    }
+                  </c-card-header>
+                  <p cCardText>
+                    @if(waiterCalls[table.tableId] > 0) {
+                    <svg
+                      [cIcon]="icons.cilBellExclamation"
+                      size="xl"
+                      title="List Icon"
+                    ></svg>
+                    }
+                  </p>
+                </c-card-body>
+                <footer>
+                  <button type="button" class="btn btn-primary float-end" (click)="newOrder(table.tableId)">
+                    Open Order
+                  </button>
+                </footer>
+              </c-row>
+            </c-card>
+          </c-card-group>
+        </c-col>
+      </c-row>
+    </c-tab-panel>
+    <c-tab-panel class="p-3" [itemKey]="1">
+      <c-row>
+        <c-col lg="6" xs="12" *ngFor="let table of openTables">
+          <c-card
+            class="mb-3"
+            [ngStyle]="{ 'max-width.px': 540 }"
+            [color]="'success'"
+          >
+            <c-row class="g-0">
+              <c-card-body cCol [md]="8">
+                <h5 cCardTitle>{{ table.tableName }}</h5>
+                <p cCardText>
+                  Total:
+                  {{
+                    table.order?.subTotal?.amount
+                      | currency : table.order?.subTotal?.currency
+                  }}
+                </p>
+                <p cCardText>
+                  @if(waiterCalls[table.tableId] > 0) {
+                  <svg
+                    [cIcon]="icons.cilBellExclamation"
+                    size="xl"
+                    title="List Icon"
+                  ></svg>
+                  }
+                </p>
+                <footer>
+                  <button type="button" class="btn btn-primary float-end">
+                    Open Order
+                  </button>
+                </footer>
+              </c-card-body>
+            </c-row>
+          </c-card>
+        </c-col>
+      </c-row>
+    </c-tab-panel>
+
+    <c-tab-panel class="p-3" [itemKey]="2">
+      <c-row>
+        <c-col lg="6" xs="12" *ngFor="let table of closedTables">
+          <c-card
+            class="mb-3"
+            [ngStyle]="{ 'max-width.px': 540 }"
+            [color]="'danger'"
+          >
+            <c-row class="g-0">
+              <c-card-body cCol [md]="8">
+                <h5 cCardTitle>{{ table.tableName }}</h5>
+                <p cCardText>
+                  Total:
+                  {{
+                    table.order?.subTotal?.amount
+                      | currency : table.order?.subTotal?.currency
+                  }}
+                </p>
+                <p cCardText></p>
+                <footer>
+                  <button type="button" class="btn btn-primary float-end">
+                    Open Table
+                  </button>
+                </footer>
+              </c-card-body>
+            </c-row>
+          </c-card>
+        </c-col>
+      </c-row>
+    </c-tab-panel>
+  </c-tabs-content>
+</c-tabs>
