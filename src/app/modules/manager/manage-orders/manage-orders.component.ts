@@ -8,11 +8,10 @@ import { TableDTO } from '../../../core/models/restaurantTablesModel';
 import { filter, Subject, take, takeUntil } from 'rxjs';
 import { NgFor, NgIf, NgStyle, CurrencyPipe, JsonPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { mockTables } from '../manage-orders/mock.tables';
 import { cilBellExclamation } from '@coreui/icons';
-import { MenuService } from '../../../core/services/menu-public/menu.service';
 import { UserContextModel } from '../../../core/models/userContextModel';
-import { WaiterCallEvent } from '../../../core/models/callWaiter/callWaiter';
+import { SnoozeWaiterCallEvent, WaiterCallEvent } from '../../../core/models/callWaiter/callWaiter';
+import { MenuService } from '../../../core/services/menu-public/menu.service';
 
 
 @Component({
@@ -39,29 +38,20 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   icons = { cilBellExclamation };
   private destroy$ = new Subject<void>();
   private restaurantId = '';
-  private waiterSubscription: any;
+  private waiterCallSubscription: any;
+  private snoozeWaiterCallSubscription: any;
 
   tables: TableDTO[] = [];
   openTables: TableDTO[] = [];
   closedTables: TableDTO[] = [];
   subTotal: number = 0;
   waiterCalls: Record<string, number> = {};
+  waiterSnoozed: Record<string, boolean> = {};
 
 
   constructor(private tablesService: TablesService,
     private authService: AuthService, private menuService: MenuService
   ) { }
-
-  snoozeWaiterCall(tableId: string): void {
-    this.tablesService.snoozeWaiterCall(this.restaurantId, tableId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => {
-          // Reset the waiter call count for the table
-        },
-        error: err => console.error('[ManageTablesComponent] Error snoozing waiter call', err)
-      });
-  }
 
   loadTables(): void {
     this.tablesService.getAll(this.restaurantId)
@@ -69,10 +59,21 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       .subscribe({
         next: response => {
           this.tables = response,
-          this.openTables = response.filter(t => t.isTableOpen);
+            this.openTables = response.filter(t => t.isTableOpen);
           this.closedTables = response.filter(t => !t.isTableOpen);
         },
         error: err => console.error('[ManageTablesComponent] Error loading tables', err)
+      });
+  }
+
+  snoozeWaiterCall(tableId: string): void {
+    this.menuService.callWaiter(this.restaurantId, tableId)
+      .pipe(take(1))
+      .subscribe({
+        next: () => {
+
+        },
+        error: (err: unknown) => console.error('Error snoozing waiter call', err)
       });
   }
 
@@ -89,27 +90,36 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.loadTables();
       });
 
-    this.waiterSubscription = this.menuService.listenForWaiterCall(this.restaurantId)
+    this.waiterCallSubscription = this.tablesService.listenForWaiterCall(this.restaurantId)
       .subscribe({
         next: (response: WaiterCallEvent) => {
           const tableId = response.Data.TableId;
-
           // dacă nu există, îl inițializăm la 0
           if (!this.waiterCalls[tableId]) {
             this.waiterCalls[tableId] = 0;
           }
-
           // incrementăm chemările reale
           this.waiterCalls[tableId]++;
+          this.waiterSnoozed[tableId] = false;
+        },
+        error: (err: unknown) => console.error('SSE error:', err)
+      });
 
-          console.log("Waiter calls for table:", tableId, this.waiterCalls[tableId]);
+    this.snoozeWaiterCallSubscription = this.tablesService.listenSnoozeWaiterCall(this.restaurantId)
+      .subscribe({
+        next: (response: SnoozeWaiterCallEvent) => {
+          const tableId = response.Data.TableId;
+          this.waiterSnoozed[tableId] = true;
         },
         error: (err: unknown) => console.error('SSE error:', err)
       });
   }
 
   ngOnDestroy(): void {
-    this.waiterSubscription.unsubscribe();
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.waiterCallSubscription?.unsubscribe();
+    this.snoozeWaiterCallSubscription?.unsubscribe();
   }
 
 }

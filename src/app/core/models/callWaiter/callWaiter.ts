@@ -10,3 +10,15 @@ export interface WaiterCallEvent {
   Data: WaiterCallData;   // obiect cu detalii despre apel
   EventType: "WaiterCall"; // tipul evenimentului (literal type)
 }
+
+
+interface SnoozeWaiterCallData {
+  TableId: string;        // UUID al mesei
+  Timestamp: string;    // ISO 8601 timestamp până la care apelul este amânat
+}
+
+export interface SnoozeWaiterCallEvent {
+  RestaurantId: string;
+  Data: SnoozeWaiterCallData;
+  EventType: "SnoozeWaiterCall";
+}

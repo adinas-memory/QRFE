@@ -17,24 +17,29 @@
               [color]="table.isTableOpen ? 'success' : 'danger'"
             >
               <c-row class="g-0">
+                <c-card-header>
+                  <h4>
+                    Total:
+                    {{
+                      table.order?.subTotal?.amount
+                        | currency : table.order?.subTotal?.currency
+                    }}
+                  </h4>
+                  @if(waiterCalls[table.tableId] > 0 &&
+                  !waiterSnoozed[table.tableId]) {
+                  <button
+                    class="btn btn-primary float-end"
+                    (click)="snoozeWaiterCall(table.tableId)"
+                  >
+                    Snooze waiter call
+                  </button>
+                  }
+                </c-card-header>
                 <c-card-body cCol [md]="8">
                   <h5 cCardTitle>{{ table.tableName }}</h5>
-                  <c-card-header>
-                    <h4>
-                      Total:
-                      {{
-                        table.order?.subTotal?.amount
-                          | currency : table.order?.subTotal?.currency
-                      }}
-                    </h4>
-                    @if(waiterCalls[table.tableId] > 0){
-                    <button type="button" class="btn btn-primary float-end" (click)="snoozeWaiterCall(table.tableId)">
-                      Snooze waiter call
-                    </button>
-                    }
-                  </c-card-header>
                   <p cCardText>
-                    @if(waiterCalls[table.tableId] > 0) {
+                    @if(waiterCalls[table.tableId] > 0 &&
+                    waiterSnoozed[table.tableId]) {
                     <svg
                       [cIcon]="icons.cilBellExclamation"
                       size="xl"
@@ -44,7 +49,10 @@
                   </p>
                 </c-card-body>
                 <footer>
-                  <button type="button" class="btn btn-primary float-end" (click)="newOrder(table.tableId)">
+                  <button
+                    type="button"
+                    class="btn btn-primary float-end"
+                  >
                     Open Order
                   </button>
                 </footer>
@@ -63,6 +71,24 @@
             [color]="'success'"
           >
             <c-row class="g-0">
+              <c-card-header>
+                <h4>
+                  Total:
+                  {{
+                    table.order?.subTotal?.amount
+                      | currency : table.order?.subTotal?.currency
+                  }}
+                </h4>
+                @if(waiterCalls[table.tableId] > 0 &&
+                !waiterSnoozed[table.tableId]) {
+                <button
+                  class="btn btn-primary float-end"
+                  (click)="snoozeWaiterCall(table.tableId)"
+                >
+                  Snooze waiter call
+                </button>
+                }
+              </c-card-header>
               <c-card-body cCol [md]="8">
                 <h5 cCardTitle>{{ table.tableName }}</h5>
                 <p cCardText>
@@ -73,7 +99,8 @@
                   }}
                 </p>
                 <p cCardText>
-                  @if(waiterCalls[table.tableId] > 0) {
+                  @if(waiterCalls[table.tableId] > 0 &&
+                  waiterSnoozed[table.tableId]) {
                   <svg
                     [cIcon]="icons.cilBellExclamation"
                     size="xl"
