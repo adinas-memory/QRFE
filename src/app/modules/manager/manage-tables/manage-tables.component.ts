@@ -77,8 +77,6 @@ export class ManageTablesComponent implements OnInit, OnDestroy {
       });
   }
 
-
-
   loadTables(): void {
     this.tablesService.getAll(this.restaurantId)
       .pipe(takeUntil(this.destroy$))
@@ -121,8 +119,6 @@ export class ManageTablesComponent implements OnInit, OnDestroy {
         this.closeEditModal();
       });
   }
-
-
 
   addToast(title: string, message: string, delay: number, color: string) {
     const options = { title, message, delay, placement: this.placement, color, autohide: true };

@@ -87,3 +87,7 @@ export interface TableDTO extends BaseTableDTO {
   order?: OrderDTO;
   isWaiterCalled: boolean;
 }
+
+
+
+

@@ -25,34 +25,28 @@
                         | currency : table.order?.subTotal?.currency
                     }}
                   </h4>
-                  @if(waiterCalls[table.tableId] > 0 &&
-                  !waiterSnoozed[table.tableId]) {
-                  <button
-                    class="btn btn-primary float-end"
-                    (click)="snoozeWaiterCall(table.tableId)"
-                  >
-                    Snooze waiter call
-                  </button>
-                  }
                 </c-card-header>
                 <c-card-body cCol [md]="8">
                   <h5 cCardTitle>{{ table.tableName }}</h5>
                   <p cCardText>
-                    @if(waiterCalls[table.tableId] > 0 &&
-                    waiterSnoozed[table.tableId]) {
-                    <svg
-                      [cIcon]="icons.cilBellExclamation"
-                      size="xl"
-                      title="List Icon"
-                    ></svg>
-                    }
+                    {{table.tableId}}
+                    {{waiterState[table.tableId]}}
+                  @if (waiterState[table.tableId] === 'active') {
+                  <svg [cIcon]="icons.cilBellExclamation" size="xl"></svg>
+                  <button
+                    cButton
+                    color="warning"
+                    variant="ghost"
+                    size="sm"
+                    (click)="snoozeWaiterCall(table.tableId)"
+                  >
+                    Snooze
+                  </button>
+                  }
                   </p>
                 </c-card-body>
                 <footer>
-                  <button
-                    type="button"
-                    class="btn btn-primary float-end"
-                  >
+                  <button type="button" class="btn btn-primary float-end">
                     Open Order
                   </button>
                 </footer>
@@ -79,15 +73,6 @@
                       | currency : table.order?.subTotal?.currency
                   }}
                 </h4>
-                @if(waiterCalls[table.tableId] > 0 &&
-                !waiterSnoozed[table.tableId]) {
-                <button
-                  class="btn btn-primary float-end"
-                  (click)="snoozeWaiterCall(table.tableId)"
-                >
-                  Snooze waiter call
-                </button>
-                }
               </c-card-header>
               <c-card-body cCol [md]="8">
                 <h5 cCardTitle>{{ table.tableName }}</h5>
@@ -99,13 +84,17 @@
                   }}
                 </p>
                 <p cCardText>
-                  @if(waiterCalls[table.tableId] > 0 &&
-                  waiterSnoozed[table.tableId]) {
-                  <svg
-                    [cIcon]="icons.cilBellExclamation"
-                    size="xl"
-                    title="List Icon"
-                  ></svg>
+                  @if (waiterState[table.tableId] === 'active') {
+                  <svg [cIcon]="icons.cilBellExclamation" size="xl"></svg>
+                  <button
+                    cButton
+                    color="warning"
+                    variant="ghost"
+                    size="sm"
+                    (click)="snoozeWaiterCall(table.tableId)"
+                  >
+                    Snooze
+                  </button>
                   }
                 </p>
                 <footer>

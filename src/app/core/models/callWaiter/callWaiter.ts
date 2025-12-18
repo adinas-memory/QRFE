@@ -22,3 +22,9 @@ export interface SnoozeWaiterCallEvent {
   Data: SnoozeWaiterCallData;
   EventType: "SnoozeWaiterCall";
 }
+
+export enum WaiterCallState {
+  Idle = 'idle',        // nicio chemare
+  Active = 'active',    // există chemare
+  Snoozed = 'snoozed'   // chemare snoozată
+}

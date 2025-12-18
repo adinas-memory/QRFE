@@ -61,6 +61,10 @@ export class TablesService {
     });
   }
 
+  snoozeWaiterCall(restaurantId: string, tableId: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/${tableId}/call-waiter`, {}, { withCredentials: true });
+  }
+
   listenSnoozeWaiterCall(restaurantId: string): Observable<any> {
     return new Observable(observer => {
       const controller = new AbortController();
@@ -74,6 +78,7 @@ export class TablesService {
           if (msg.event === 'WaiterCallSnoozed') {
             this.ngZone.run(() => {
               observer.next(JSON.parse(msg.data));
+              console.log('Snooze event received:', JSON.parse(msg.data));
             });
           }
         },

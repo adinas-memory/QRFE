@@ -33,7 +33,7 @@ export const routes: Routes = [
           import('./restaurant-setup/restaurant-setup.component').then(
             m => m.RestaurantSetupComponent
           ),
-        data: { title: 'Restaurant Setup', roles: ['default'] }
+        data: { title: 'Restaurant Setup', roles: ['default'], public: false }
       },
       {
         path: 'public/payment-success',

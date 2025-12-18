@@ -1,5 +1,5 @@
 import { UserContextModel } from './../../../core/models/userContextModel';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { RouterLink, Router } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import {
@@ -17,16 +17,20 @@ import {
   CardTitleDirective,
   ColComponent,
   RowComponent,
+  BorderDirective,
+  CardFooterComponent,
+  CardHeaderComponent,
 } from '@coreui/angular';
 import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
-import { SubscriptionProductModel } from '../../../core/models/subscription-product';
-import { Subscription } from 'rxjs';
+import { ProductLimitModel, RestaurantType, SubscriptionProductModel } from '../../../core/models/subscription-product';
+import { combineLatest, forkJoin, Subject, Subscription, takeUntil } from 'rxjs';
+import { CurrencyPipe, JsonPipe } from '@angular/common';
 
 @Component({
   selector: 'app-landing',
   standalone: true,
   imports: [ContainerComponent,
-    HeaderComponent,
+    HeaderComponent, CurrencyPipe, JsonPipe,
     HeaderDividerComponent,
     HeaderTextComponent,
     HeaderNavComponent,
@@ -35,25 +39,30 @@ import { Subscription } from 'rxjs';
     RouterLink,
     RowComponent,
     ColComponent,
-    CardComponent,
-    CardBodyComponent,
-    CardTitleDirective,
+    CardComponent, BorderDirective,
+    CardBodyComponent, CardHeaderComponent,
+    CardTitleDirective, CardFooterComponent,
     CardTextDirective,
     ButtonDirective,
   ],
   templateUrl: './landing.component.html'
 })
-export class LandingComponent implements OnInit {
+export class LandingComponent implements OnInit, OnDestroy {
   public cards: SubscriptionProductModel[] = [];
   private userSubscription: Subscription | any;
   private user: UserContextModel | any;
   private role: string | null = null;
+  productLimits: ProductLimitModel[] | null = null;
+  private destroy$ = new Subject<void>();
+  cardBorderColor: string = 'light';
 
 
   constructor(
     private authService: AuthService,
     private subscriptionService: SubscriptionService,
-    private router: Router) { }
+    private router: Router) {
+
+  }
 
 
   handleCardClick(card: SubscriptionProductModel): void {
@@ -65,40 +74,44 @@ export class LandingComponent implements OnInit {
     if (!this.user) {
       this.router.navigate(['/login']);
     }
-    else if (this.user && this.role === 'default') {
+    else if (this.role === 'default') {
       // implement ping()
-      console.log('Navigating to restaurant setup for user:', this.user);
       this.router.navigate(['public/restaurant-setup']);
     } else {
       this.router.navigate(['/404']);
     }
   }
 
+  getLimit(type: string) {
+    return this.productLimits?.find(l => l.type === type);
+  }
+
 
 
   ngOnInit(): void {
-    this.subscriptionService.clearPendingPlan();
-    this.subscriptionService.loadProducts();
-    this.subscriptionService.getProducts().subscribe({
-      next: products => this.cards = products
-    });
+    combineLatest([
+      this.subscriptionService.getProducts(),
+      this.subscriptionService.getProductsLimits()
+    ])
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(([products, limits]) => {
+        this.cards = products;
+        this.productLimits = limits;
+      });
 
-    this.authService.user$.subscribe(user => {
-      this.user = user;
-      console.warn('User authenticated in LandingComponent:', this.user);
-    }, error => {
-      console.error('Error fetching user data in LandingComponent:', error);
-    });
 
+    this.authService.user$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(user => this.user = user);
 
 
     this.role = this.authService.getUserRole();
-    console.warn('User role in LandingComponent:', this.role);
   }
 
+
+
   ngOnDestroy() {
-    if (this.userSubscription) {
-      this.userSubscription.unsubscribe();
-    }
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

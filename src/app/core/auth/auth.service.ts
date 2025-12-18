@@ -121,7 +121,6 @@ export class AuthService {
     );
   }
 
-
   refreshUserContext() {
     return this.http.post<UserContextModel>(`${this.apiUrl}/api/user/refresh-token`, {}, { withCredentials: true }).pipe(
       tap(user => {

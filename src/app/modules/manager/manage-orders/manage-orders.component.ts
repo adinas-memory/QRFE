@@ -1,7 +1,7 @@
 import { ButtonsComponent } from './../../../views/buttons/buttons/buttons.component';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { IconDirective } from '@coreui/icons-angular';
-import { BadgeComponent, CardBodyComponent, CardComponent, CardFooterComponent, CardGroupComponent, CardHeaderComponent, CardImgDirective, CardTextDirective, CardTitleDirective, ColComponent, ColDirective, DropdownComponent, DropdownItemDirective, DropdownMenuDirective, DropdownToggleDirective, RowComponent, Tabs2Module, TemplateIdDirective, WidgetStatAComponent, WidgetStatFComponent } from '@coreui/angular';
+import { BadgeComponent, ButtonDirective, CardBodyComponent, CardComponent, CardFooterComponent, CardGroupComponent, CardHeaderComponent, CardImgDirective, CardTextDirective, CardTitleDirective, ColComponent, ColDirective, DropdownComponent, DropdownItemDirective, DropdownMenuDirective, DropdownToggleDirective, RowComponent, Tabs2Module, TemplateIdDirective, WidgetStatAComponent, WidgetStatFComponent } from '@coreui/angular';
 import { TablesService } from '../../../core/services/tables-service/tables.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
@@ -10,7 +10,7 @@ import { NgFor, NgIf, NgStyle, CurrencyPipe, JsonPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { cilBellExclamation } from '@coreui/icons';
 import { UserContextModel } from '../../../core/models/userContextModel';
-import { SnoozeWaiterCallEvent, WaiterCallEvent } from '../../../core/models/callWaiter/callWaiter';
+import { SnoozeWaiterCallEvent, WaiterCallEvent, WaiterCallState } from '../../../core/models/callWaiter/callWaiter';
 import { MenuService } from '../../../core/services/menu-public/menu.service';
 
 
@@ -21,7 +21,7 @@ import { MenuService } from '../../../core/services/menu-public/menu.service';
       ColComponent, NgFor, NgIf,
       CardBodyComponent, CurrencyPipe, JsonPipe,
       CardComponent, CardGroupComponent, CardHeaderComponent,
-      CardFooterComponent, ButtonsComponent,
+      CardFooterComponent, ButtonsComponent, ButtonDirective,
       CardImgDirective, BadgeComponent,
       CardTextDirective,
       CardTitleDirective,
@@ -40,13 +40,13 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   private restaurantId = '';
   private waiterCallSubscription: any;
   private snoozeWaiterCallSubscription: any;
+  waiterState: Record<string, WaiterCallState> = {};
+
 
   tables: TableDTO[] = [];
   openTables: TableDTO[] = [];
   closedTables: TableDTO[] = [];
   subTotal: number = 0;
-  waiterCalls: Record<string, number> = {};
-  waiterSnoozed: Record<string, boolean> = {};
 
 
   constructor(private tablesService: TablesService,
@@ -67,11 +67,12 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   snoozeWaiterCall(tableId: string): void {
-    this.menuService.callWaiter(this.restaurantId, tableId)
+    this.tablesService.snoozeWaiterCall(this.restaurantId, tableId)
       .pipe(take(1))
       .subscribe({
         next: () => {
-
+          console.log('snoozeWaiterCall:', tableId);
+          console.log('snoozeWaiterCall:', this.restaurantId);
         },
         error: (err: unknown) => console.error('Error snoozing waiter call', err)
       });
@@ -88,30 +89,24 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       .subscribe(user => {
         this.restaurantId = user.restaurantId ?? '';
         this.loadTables();
-      });
 
-    this.waiterCallSubscription = this.tablesService.listenForWaiterCall(this.restaurantId)
-      .subscribe({
-        next: (response: WaiterCallEvent) => {
-          const tableId = response.Data.TableId;
-          // dacă nu există, îl inițializăm la 0
-          if (!this.waiterCalls[tableId]) {
-            this.waiterCalls[tableId] = 0;
-          }
-          // incrementăm chemările reale
-          this.waiterCalls[tableId]++;
-          this.waiterSnoozed[tableId] = false;
-        },
-        error: (err: unknown) => console.error('SSE error:', err)
-      });
+        this.waiterCallSubscription = this.tablesService.listenForWaiterCall(this.restaurantId)
+          .subscribe({
+            next: (response: WaiterCallEvent) => {
+              const tableId = response.Data.TableId;
+              this.waiterState = { ...this.waiterState, [tableId]: WaiterCallState.Active };
+            },
+            error: (err: unknown) => console.error('SSE error:', err)
+          });
 
-    this.snoozeWaiterCallSubscription = this.tablesService.listenSnoozeWaiterCall(this.restaurantId)
-      .subscribe({
-        next: (response: SnoozeWaiterCallEvent) => {
-          const tableId = response.Data.TableId;
-          this.waiterSnoozed[tableId] = true;
-        },
-        error: (err: unknown) => console.error('SSE error:', err)
+        this.snoozeWaiterCallSubscription = this.tablesService.listenSnoozeWaiterCall(this.restaurantId)
+          .subscribe({
+            next: (response: SnoozeWaiterCallEvent) => {
+              const tableId = response.Data.TableId;
+              this.waiterState = { ...this.waiterState, [tableId]: WaiterCallState.Snoozed };
+            },
+            error: (err: unknown) => console.error('SSE error:', err)
+          });
       });
   }
 

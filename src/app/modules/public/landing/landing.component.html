@@ -1,29 +1,43 @@
 <c-header>
   <c-container fluid>
-    <c-header-brand [routerLink]><h1><i>Universal Restaurant System</i></h1></c-header-brand>
+    <c-header-brand [routerLink]
+      ><h1><i>U.R.S.</i></h1></c-header-brand
+    >
     <c-header-nav class="ms-auto">
-      <button cButton color="light" routerLink="/login" variant="outline">My Account</button>
+      <button cButton color="light" routerLink="/login" variant="outline">
+        My Account
+      </button>
     </c-header-nav>
   </c-container>
   <c-header-divider />
   <c-container fluid>
-    <c-header-text>Additional text</c-header-text>
+    <c-header-text>Universal Restaurant System</c-header-text>
   </c-container>
 </c-header>
-<c-container>
-<c-row>
-  @for (card of cards; track card.restaurantType) {
-  <c-col [xs]="12" [sm]="4" [md]="12" [lg]="4">
-    <c-card class="mb-4">
-      <c-card-body>
-        <h5 cCardTitle>{{ card.features }}</h5>
-        <p cCardText>{{ card.description }}</p>
-        <button cButton color="primary" (click)="handleCardClick(card)">
-          {{ card.priceAmount }} {{ card.priceCurrency }} / {{ card.subscriptionInterval }}
-        </button>
-      </c-card-body>
-    </c-card>
-  </c-col>
-}
-</c-row>
+<c-container class="my-5">
+  <c-row>
+    @for (card of cards; track card.restaurantType) {
+    <c-col [xs]="12" [sm]="4" [md]="12" [lg]="4">
+      <c-card class="mb-4" [cBorder]="cardBorderColor">
+        <c-card-header
+          >{{ card.restaurantType }} restaurant business</c-card-header
+        >
+        <c-card-body>
+          <h5 cCardTitle>
+            {{ card.priceAmount | currency : card.priceCurrency }} / month
+          </h5>@let limit = getLimit(card.restaurantType);
+          <ul>
+            <li>Max tables: {{ limit?.maxTables }}</li>
+            <li>Max bars: {{ limit?.maxBars }}</li>
+            <li>Max bar seats: {{ limit?.maxBarSeats }}</li>
+          </ul>
+          <p cCardText>{{ card.description }}</p>
+          <button cButton color="primary" (click)="handleCardClick(card)">
+            Subscribe
+          </button>
+        </c-card-body>
+      </c-card>
+    </c-col>
+    }
+  </c-row>
 </c-container>
