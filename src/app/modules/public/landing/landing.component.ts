@@ -1,5 +1,5 @@
 import { UserContextModel } from './../../../core/models/userContextModel';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, OnInit } from '@angular/core';
 import { RouterLink, Router } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import {
@@ -45,9 +45,10 @@ import { CurrencyPipe, JsonPipe } from '@angular/common';
     CardTextDirective,
     ButtonDirective,
   ],
+  styleUrls: ['./landing.component.scss'],
   templateUrl: './landing.component.html'
 })
-export class LandingComponent implements OnInit, OnDestroy {
+export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
   public cards: SubscriptionProductModel[] = [];
   private userSubscription: Subscription | any;
   private user: UserContextModel | any;
@@ -55,6 +56,7 @@ export class LandingComponent implements OnInit, OnDestroy {
   productLimits: ProductLimitModel[] | null = null;
   private destroy$ = new Subject<void>();
   cardBorderColor: string = 'light';
+  cardBackgroundColor: string = '#2b81d6ff';
 
 
   constructor(
@@ -66,20 +68,12 @@ export class LandingComponent implements OnInit, OnDestroy {
 
 
   handleCardClick(card: SubscriptionProductModel): void {
-    // set pending plan and redirect to login
     this.subscriptionService.setPendingPlan({
       priceId: card.priceId,
       restaurantType: card.restaurantType
     });
-    if (!this.user) {
-      this.router.navigate(['/login']);
-    }
-    else if (this.role === 'default') {
-      // implement ping()
-      this.router.navigate(['public/restaurant-setup']);
-    } else {
-      this.router.navigate(['/404']);
-    }
+
+    this.router.navigate(['/login']);
   }
 
   getLimit(type: string) {
@@ -98,14 +92,10 @@ export class LandingComponent implements OnInit, OnDestroy {
         this.cards = products;
         this.productLimits = limits;
       });
+  }
 
-
-    this.authService.user$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(user => this.user = user);
-
-
-    this.role = this.authService.getUserRole();
+  ngAfterViewInit(): void {
+    this.authService.logout();
   }
 
 

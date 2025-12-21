@@ -1,0 +1,43 @@
+:host {
+  /* Card styling */
+  c-card {
+    background: linear-gradient(145deg, #e8fff5, #c8ffe4);
+    color: #d100a8;
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  c-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.12);
+  }
+
+  /* Button styling */
+  button[cButton] {
+    background: linear-gradient(135deg, #f30fc6, #ff4fd6);
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 12px rgba(243, 15, 198, 0.35);
+  }
+
+  /* Hover: invert + glow + border animation */
+  button[cButton]:hover {
+    background: white;
+    color: #f30fc6;
+    border: 2px solid #f30fc6;
+    box-shadow: 0 6px 18px rgba(243, 15, 198, 0.45);
+    transform: translateY(-2px);
+  }
+
+  /* Active click effect */
+  button[cButton]:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(243, 15, 198, 0.25);
+  }
+}

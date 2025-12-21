@@ -135,4 +135,21 @@ export class AuthService {
     );
   }
 
+  logout(): void {
+    this.http.post(`${this.apiUrl}/api/user/logout`, {}, { withCredentials: true })
+      .subscribe(_ => {
+        this.clearUser();
+        this.clearRestaurantCtx();
+      });
+  }
+
+
+  deleteCookie(name: string, path: string = '/', domain?: string): void {
+    let cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}`;
+    if (domain) {
+      cookie += `;domain=${domain}`;
+    }
+    document.cookie = cookie;
+  }
+
 }

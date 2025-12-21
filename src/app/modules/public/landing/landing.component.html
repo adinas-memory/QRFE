@@ -15,27 +15,30 @@
   </c-container>
 </c-header>
 <c-container class="my-5">
-  <c-row>
+  <c-row class="align-items-stretch">
     @for (card of cards; track card.restaurantType) {
     <c-col [xs]="12" [sm]="4" [md]="12" [lg]="4">
-      <c-card class="mb-4" [cBorder]="cardBorderColor">
+      <c-card class="mb-4 h-100" [cBorder]="cardBorderColor" [color]="cardBackgroundColor">
         <c-card-header
           >{{ card.restaurantType }} restaurant business</c-card-header
         >
-        <c-card-body>
+        <c-card-body class="bg-gradient">
           <h5 cCardTitle>
             {{ card.priceAmount | currency : card.priceCurrency }} / month
-          </h5>@let limit = getLimit(card.restaurantType);
+          </h5>
+          @let limit = getLimit(card.restaurantType);
           <ul>
             <li>Max tables: {{ limit?.maxTables }}</li>
             <li>Max bars: {{ limit?.maxBars }}</li>
             <li>Max bar seats: {{ limit?.maxBarSeats }}</li>
           </ul>
           <p cCardText>{{ card.description }}</p>
-          <button cButton color="primary" (click)="handleCardClick(card)">
+        </c-card-body>
+        <c-card-footer class="text-medium-emphasis text-center">
+          <button cButton color="info" shape="rounded-0" class="shadow" variant="outline" (click)="handleCardClick(card)">
             Subscribe
           </button>
-        </c-card-body>
+        </c-card-footer>
       </c-card>
     </c-col>
     }

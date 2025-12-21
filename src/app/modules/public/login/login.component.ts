@@ -64,11 +64,11 @@ export class LoginComponent implements OnInit, OnDestroy {
             this.router.navigate(['public/restaurant-setup'])
           } else if (returnUrl) {
             this.router.navigateByUrl(returnUrl);
-          } else if (!pending && userRole === 'staff') {
+          } else if (userRole === 'staff') {
             this.router.navigate(['/staff']);
-          } else if (!pending && (userRole === 'manager')) {
+          } else if (userRole === 'manager') {
             this.router.navigate(['/manager']);
-          } else if (!pending && (userRole === 'gadmin')) {
+          } else if (userRole === 'gadmin') {
             this.router.navigate(['/gadmin']);
           }
 

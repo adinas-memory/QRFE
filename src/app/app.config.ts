@@ -30,7 +30,7 @@ export const appConfig: ApplicationConfig = {
       multi: true
     },
     provideRouter(routes,
-      // withDebugTracing(),
+      withDebugTracing(),
       withRouterConfig({
         onSameUrlNavigation: 'reload'
       }),
