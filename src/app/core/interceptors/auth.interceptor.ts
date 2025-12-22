@@ -1,55 +1,30 @@
-// core/interceptors/auth.interceptor.ts
-import { Injectable } from '@angular/core';
-import {
-  HttpInterceptor,
-  HttpRequest,
-  HttpHandler,
-  HttpEvent,
-  HttpErrorResponse
-} from '@angular/common/http';
-import { Observable, throwError, catchError, switchMap, finalize, of } from 'rxjs';
+import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { inject } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
 import { Router } from '@angular/router';
+import { catchError, switchMap, finalize, of, throwError } from 'rxjs';
 
-@Injectable()
-export class AuthInterceptor implements HttpInterceptor {
-  private isRefreshing = false;
-  private refreshInProgress$?: Observable<any>;
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
 
-  constructor(private authService: AuthService, private router: Router) { }
+  const isPublic = req.url.includes('/public/');
+  const request = req.clone({ withCredentials: true });
 
-  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    const isPublicRoute = req.url.includes('/public/');
+  return next(request).pipe(
+    catchError((error: HttpErrorResponse) => {
+      if (error.status === 401 && !isPublic) {
+        return auth.refreshUserContext().pipe(
+          switchMap(() => next(request)),
+          catchError(err => {
+            auth.clearUser();
+            router.navigate(['/login']);
+            return throwError(() => err);
+          })
+        );
+      }
 
-    const request = req.clone({ withCredentials: true });
-
-    return next.handle(request).pipe(
-      catchError((error: HttpErrorResponse) => {
-        if (error.status === 401 && !isPublicRoute) {
-          if (!this.isRefreshing) {
-            this.isRefreshing = true;
-            this.refreshInProgress$ = this.authService.refreshUserContext().pipe(
-              finalize(() => {
-                this.isRefreshing = false;
-                this.refreshInProgress$ = undefined;
-              }),
-              catchError(err => {
-                this.authService.clearUser();
-                this.router.navigate(['/login']);
-                return throwError(() => err);
-              })
-            );
-          }
-
-          return (this.refreshInProgress$ ?? of(null)).pipe(
-            switchMap(() => next.handle(request))
-          );
-        }
-
-        return throwError(() => error);
-      })
-    );
-  }
-
-}
-
+      return throwError(() => error);
+    })
+  );
+};

@@ -7,12 +7,13 @@ import { ColorModeService } from '@coreui/angular';
 import { IconSetService, } from '@coreui/icons-angular';
 import { iconSubset } from './icons/icon-subset';
 import { AuthService } from './core/auth/auth.service';
+import {SpinnerComponent} from "./shared/components/spinner/spinner.component";
 
 
 @Component({
   selector: 'app-root',
-  template: `<router-outlet></router-outlet>`,
-  imports: [RouterOutlet]
+  template: `<app-spinner></app-spinner><router-outlet></router-outlet>`,
+  imports: [RouterOutlet, SpinnerComponent],
 })
 export class AppComponent implements OnInit {
   title = 'CoreUI Angular Admin Template';
@@ -54,7 +55,7 @@ export class AppComponent implements OnInit {
     ).subscribe((evt: NavigationEnd) => {
       const deepest = this.getDeepestChild(this.#router.routerState.root.snapshot);
       const isPublic = deepest?.data?.['public'] === true;
-      console.log("isPublic route:", isPublic);
+      // console.log("isPublic route:", isPublic);
 
       if (!isPublic) {
         this.#authService.restoreSession().subscribe(user => {

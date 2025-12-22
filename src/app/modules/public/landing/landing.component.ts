@@ -95,7 +95,8 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    this.authService.logout();
+    this.authService.clearRestaurantCtx();
+    this.authService.clearUser();
   }
 
 

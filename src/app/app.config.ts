@@ -1,10 +1,8 @@
-import { APP_INITIALIZER, ApplicationConfig, importProvidersFrom, provideAppInitializer } from '@angular/core';
+import { APP_INITIALIZER, ApplicationConfig, importProvidersFrom, inject, provideAppInitializer } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import {
   provideRouter,
-  withDebugTracing,
   withEnabledBlockingInitialNavigation,
-  withHashLocation,
   withInMemoryScrolling,
   withRouterConfig,
   withViewTransitions
@@ -13,9 +11,11 @@ import {
 import { DropdownModule, SidebarModule } from '@coreui/angular';
 import { IconSetService } from '@coreui/icons-angular';
 import { routes } from './app.routes';
-import { CoreModule } from './core/core.module';
 import { AuthService } from './core/auth/auth.service';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { loadingInterceptor } from './core/interceptors/loading.interceptor';
+import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { loggingInterceptor } from './core/interceptors/logging.interceptor';
 
 export function initAuth(authService: AuthService) {
   return () => authService.restoreSession().toPromise();
@@ -30,7 +30,7 @@ export const appConfig: ApplicationConfig = {
       multi: true
     },
     provideRouter(routes,
-      withDebugTracing(),
+      // withDebugTracing(),
       withRouterConfig({
         onSameUrlNavigation: 'reload'
       }),
@@ -41,8 +41,13 @@ export const appConfig: ApplicationConfig = {
       withEnabledBlockingInitialNavigation(),
       withViewTransitions()
     ),
-    provideHttpClient(),
-    importProvidersFrom(CoreModule),
+    provideHttpClient(
+      withInterceptors([
+        loadingInterceptor,
+        authInterceptor,
+        loggingInterceptor
+      ])
+    ),
     importProvidersFrom(SidebarModule, DropdownModule),
     IconSetService,
     provideAnimationsAsync()
