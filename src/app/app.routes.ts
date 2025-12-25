@@ -12,8 +12,8 @@ export const routes: Routes = [
     path: 'staff',
     loadChildren: () =>
       import('./modules/staff/staff.routes').then(m => m.routes),
-    canActivate: [AuthGuard, RoleGuard],
-    data: { roles: ['staff', 'manager', 'gadmin'] }
+    // canActivate: [AuthGuard, RoleGuard],
+    // data: { roles: ['staff', 'manager', 'gadmin'] }
   },
   {
     path: 'manager',

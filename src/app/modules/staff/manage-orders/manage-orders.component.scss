@@ -1,0 +1,49 @@
+:host ::ng-deep .c-tabs-custom {
+    height: 6rem !important;
+}
+
+:host ::ng-deep .offcanvas-body {
+  height: calc(100vh - 56px - 80px); /* header + cart */
+  overflow-y: auto;
+}
+
+.product-tile {
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.product-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.product-tile:active {
+    transform: scale(0.97);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.offcanvas-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.offcanvas-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-bottom: 160px; /* spațiu pentru cart */
+}
+
+.cart {
+  position: sticky;
+  bottom: 0;
+  color: #ddd;
+  background: rgb(0, 0, 0);
+  border-top: 1px solid #ddd;
+  padding: 12px;
+  z-index: 10;
+}
+
+.cart-scroll {
+  max-height: 25vh;
+  overflow-y: auto;
+}

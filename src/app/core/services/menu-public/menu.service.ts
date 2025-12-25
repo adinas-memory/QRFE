@@ -1,9 +1,9 @@
-import { Injectable, NgZone } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment';
 import { Observable } from 'rxjs';
-import { MenuItem, MenuResponse, WaiterCallResponse } from '../../models/menu/menuItem';
+import { MenuResponse, WaiterCallResponse } from '../../models/menu/menuItem';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { fetchEventSource } from '@microsoft/fetch-event-source';
+
 
 
 @Injectable({
@@ -11,10 +11,10 @@ import { fetchEventSource } from '@microsoft/fetch-event-source';
 })
 
 export class MenuService {
+  private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) { }
-
-  private apiUrl = environment.apiUrl;
+  
   getAll(restaurantId: string, tableId: string): Observable<MenuResponse> {
     return this.http.get<MenuResponse>(`${this.apiUrl}/api/public/${restaurantId}/menu/${tableId}`, { withCredentials: true });
   }

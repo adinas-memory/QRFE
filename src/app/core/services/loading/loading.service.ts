@@ -10,16 +10,14 @@ export class LoadingService {
 
   show() {
     this.counter++;
-    this._loading.next(true);
-    this.loading$.subscribe(v => console.log("SPINNER STATE =", v));
+    this._loading.next(true);    
   }
 
   hide() {
     this.counter--;
     if (this.counter <= 0) {
       this.counter = 0;
-      this._loading.next(false);
-      this.loading$.subscribe(v => console.log("SPINNER STATE =", v));
+      this._loading.next(false);      
     }
   }
 }

@@ -22,7 +22,7 @@ export const routes: Routes = [
       {
         path: 'manage-orders',
         loadComponent: () =>
-          import('./manage-orders/manage-orders.component').then(m => m.ManageOrdersComponent),
+          import('../staff/manage-orders/manage-orders.component').then(m => m.ManageOrdersComponent),
         data: { title: 'Orders' }
       },
       {

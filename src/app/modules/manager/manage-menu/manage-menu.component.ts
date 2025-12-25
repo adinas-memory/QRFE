@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, viewChild, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, viewChild } from '@angular/core';
 import {
   Tabs2Module, FormControlDirective,
   FormLabelDirective, AccordionButtonDirective,
@@ -20,7 +20,7 @@ import { filter, Subject, take, takeUntil } from 'rxjs';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MenuItem } from '../../../core/models/menu/menuItem';
 import { AuthService } from '../../../core/auth/auth.service';
-import { NgFor, CurrencyPipe, DatePipe } from '@angular/common';
+import { NgFor, CurrencyPipe } from '@angular/common';
 import { UserContextModel } from '../../../core/models/userContextModel';
 import { ToastBaseComponent } from '../../../shared/components/toast-base/toast-base.component';
 ;
@@ -68,8 +68,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
       menuItemName: ['', Validators.required],
       menuItemDescription: ['', Validators.required],
       menuItemPriceAmount: [0, [Validators.required, Validators.min(0.01)]],
-      menuItemCategory: ['', Validators.required],
-      // isAvailable: [true],
+      menuItemCategory: ['', Validators.required],      
       menuItemIcon: [null, Validators.required]
     });
   }
@@ -90,13 +89,8 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: response => {
-          console.log('[MenuComponent] Raw response from backend:', response);
-
           this.menuItems = response.menu?.menuItems ?? [];
           this.categories = response.categories ?? [];
-
-          console.log('[MenuComponent] Mapped menuItems:', this.menuItems);
-          console.log('[MenuComponent] Categories:', this.categories);
         },
         error: err => console.error('[MenuComponent] Error loading menu items', err)
       });

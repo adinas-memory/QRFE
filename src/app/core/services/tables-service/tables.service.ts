@@ -37,7 +37,7 @@ export class TablesService {
   listenForWaiterCall(restaurantId: string): Observable<any> {
     return new Observable(observer => {
       // Replace with your server endpoint that emits SSE
-      const eventSource = new EventSource(`/sse/public/restaurant/${restaurantId}`);
+      const eventSource = new EventSource(`${this.apiUrl}/sse/public/restaurant/${restaurantId}`);
 
       // Listen specifically for the "waiterCall" event
       eventSource.addEventListener('WaiterCall', (event: any) => {
@@ -69,7 +69,8 @@ export class TablesService {
     return new Observable(observer => {
       const controller = new AbortController();
 
-      fetchEventSource(`/sse/internal/restaurant/${restaurantId}`, {
+      fetchEventSource(`${this.apiUrl}/sse/internal/restaurant/${restaurantId}`, {
+      // fetchEventSource(`/sse/internal/restaurant/${restaurantId}`, {
         method: 'GET',
         credentials: 'include',
         signal: controller.signal,

@@ -12,8 +12,7 @@ export const loadingInterceptor: HttpInterceptorFn = (req, next) => {
     }
 
     return next(req).pipe(
-        finalize(() => {
-            console.log('FINALIZE for', req.url);
+        finalize(() => {            
             loading.hide();
         })
     );
