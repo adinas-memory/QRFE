@@ -1,9 +1,9 @@
 import { ButtonsComponent } from '../../../views/buttons/buttons/buttons.component';
 import { FormsModule } from '@angular/forms';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import Fuse from 'fuse.js';
 import { IconDirective } from '@coreui/icons-angular';
-import { BadgeComponent, ButtonCloseDirective, ButtonDirective, CardBodyComponent, CardComponent, CardFooterComponent, CardGroupComponent, CardHeaderComponent, CardImgDirective, CardTextDirective, CardTitleDirective, ColComponent, ColDirective, DropdownComponent, DropdownItemDirective, DropdownMenuDirective, DropdownToggleDirective, ModalBodyComponent, ModalComponent, ModalFooterComponent, ModalHeaderComponent, ModalTitleDirective, NavbarComponent, NavbarNavComponent, NavbarTogglerDirective, NavComponent, NavItemComponent, NavLinkDirective, OffcanvasBodyComponent, OffcanvasComponent, OffcanvasHeaderComponent, OffcanvasTitleDirective, OffcanvasToggleDirective, RowComponent, Tabs2Module, TemplateIdDirective, WidgetStatAComponent, WidgetStatFComponent } from '@coreui/angular';
+import { BadgeComponent, ButtonCloseDirective, ButtonDirective, CardBodyComponent, CardComponent, CardFooterComponent, CardGroupComponent, CardHeaderComponent, CardImgDirective, CardTextDirective, CardTitleDirective, ColComponent, ColDirective, DropdownComponent, DropdownItemDirective, DropdownMenuDirective, DropdownToggleDirective, ModalBodyComponent, ModalComponent, ModalFooterComponent, ModalHeaderComponent, ModalTitleDirective, NavbarComponent, NavbarNavComponent, NavbarTogglerDirective, NavComponent, NavItemComponent, NavLinkDirective, OffcanvasBodyComponent, OffcanvasComponent, OffcanvasHeaderComponent, OffcanvasTitleDirective, OffcanvasToggleDirective, RowComponent, TableDirective, Tabs2Module, TemplateIdDirective, WidgetStatAComponent, WidgetStatFComponent } from '@coreui/angular';
 import { TablesService } from '../../../core/services/tables-service/tables.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
@@ -23,7 +23,7 @@ type TableCart = { [tableId: string]: CartItem[] };
   selector: 'app-manage-orders',
   imports:
     [RowComponent, Tabs2Module, FormsModule,
-      ColComponent, NgFor, NgIf,
+      ColComponent, NgFor, NgIf, TableDirective,
       CardBodyComponent, CurrencyPipe, JsonPipe,
       CardComponent, CardGroupComponent, CardHeaderComponent,
       CardFooterComponent, ButtonsComponent, ButtonDirective,
@@ -63,7 +63,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   closedTables: TableDTO[] = [];
   subTotal: number = 0;
   searchTerm: string = '';
-  private search$ = new Subject<string>();
+  search$ = new Subject<string>();
   filteredResults: MenuItem[] = [];
   private fuse!: Fuse<MenuItem>;
 
@@ -73,6 +73,19 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   constructor(private tablesService: TablesService, private menuItemService: MenuItemServiceService,
     private authService: AuthService, private ordersService: OrdersService
   ) { }
+
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscPressed(event: Event) {
+    const keyboardEvent = event as KeyboardEvent;
+
+    if (this.searchTerm) {
+      this.searchTerm = '';
+      this.filteredResults = [];
+      const input = document.querySelector('#searchInput') as HTMLInputElement;
+      input?.focus();
+
+    }
+  }
 
   get filteredMenuItems(): MenuItem[] {
     const term = this.searchTerm.trim().toLowerCase();
@@ -108,7 +121,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     );
   }
 
-  addItem(item: MenuItem) {
+  addCartItem(item: MenuItem) {
     if (!this.tableCarts[this.currentTableId]) {
       this.tableCarts[this.currentTableId] = [];
     }
@@ -121,6 +134,37 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     } else {
       cart.push({ item, qty: 1 });
     }
+
+    this.saveCart();
+  }
+
+  removeCartItem(item: MenuItem) {
+    const cart = this.tableCarts[this.currentTableId];
+    if (!cart) return;
+
+    const existing = cart.find(x => x.item.menuItemId === item.menuItemId);
+    if (!existing) return;
+
+    if (existing.qty > 1) {
+      existing.qty--;
+    } else {
+      this.tableCarts[this.currentTableId] = cart.filter(
+        x => x.item.menuItemId !== item.menuItemId
+      );
+    }
+
+    this.saveCart();
+  }
+
+  removeItemCompletely(item: MenuItem) {
+    const cart = this.tableCarts[this.currentTableId];
+    if (!cart) return;
+
+    this.tableCarts[this.currentTableId] = cart.filter(
+      x => x.item.menuItemId !== item.menuItemId
+    );
+
+    this.saveCart();
   }
 
   openTable(table: TableDTO) {
@@ -154,6 +198,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       });
   }
 
+  saveCart() {
+    localStorage.setItem('tableCarts', JSON.stringify(this.tableCarts));
+  }
 
   loadTables(): void {
     this.tablesService.getAll(this.restaurantId)
@@ -178,15 +225,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         error: (err: unknown) => console.error('Error snoozing waiter call', err)
       });
   }
-
-  openCanvas(name: string | undefined) {
-    if (!name) return;
-    this.tableName = name;
-    console.log('Opening canvas for:', this.tableName);
-
-    this.canvasVisible = true;
-  }
-
 
   ngOnInit(): void {
     this.authService.getUserContext()
@@ -231,6 +269,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         const results = this.fuse.search(term);
         this.filteredResults = results.map(r => r.item);
       });
+
+    const saved = localStorage.getItem('tableCarts');
+    if (saved) {
+      this.tableCarts = JSON.parse(saved);
+    }
 
   }
 

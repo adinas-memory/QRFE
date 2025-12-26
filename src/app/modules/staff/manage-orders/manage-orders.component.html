@@ -119,12 +119,14 @@
   </c-tabs-content>
 </c-tabs>
 <!-- OFFCANVAS -->
-<c-offcanvas class="offcanvas" placement="end" [visible]="canvasVisible" (visibleChange)="canvasVisible = $event">
+<c-offcanvas backdrop="static" class="offcanvas" placement="end" [visible]="canvasVisible"
+  (visibleChange)="canvasVisible = $event">
   <div class="offcanvas-wrapper">
     <c-offcanvas-header>
       <h5 cOffcanvasTitle>{{ tableName }}</h5>
       <div class="px-3 pt-2">
-        <input type="text" class="form-control" placeholder="Search product..." [(ngModel)]="searchTerm">
+        <input id="searchInput" type="text" class="form-control" placeholder="Search product..."
+          [(ngModel)]="searchTerm" (ngModelChange)="search$.next($event)">
       </div>
       <button cButtonClose class="text-reset ms-auto" (click)="canvasVisible = false"></button>
     </c-offcanvas-header>
@@ -133,8 +135,8 @@
       <ng-container *ngIf="searchTerm; else tabsView">
         <div class="row g-3 mt-3 px-3">
           <div class="col-6 col-md-4 col-lg-3" *ngFor="let item of filteredMenuItems">
-            <div class="product-tile p-2 border rounded text-center shadow-sm" (click)="addItem(item)"
-              style="cursor: pointer; user-select: none;">
+            <div class="product-tile p-2 border rounded text-center shadow-sm" (click)="addCartItem(item)"
+               style="cursor: pointer; user-select: none;">
               <img [src]="item.menuItemIconUrl + '?v=' + forceRefreshAfterUpdate" class="img-fluid mb-2 rounded"
                 style="max-height: 90px; object-fit: contain;" />
               <div class="fw-bold">{{ item.menuItemName }}</div>
@@ -148,17 +150,19 @@
       <!-- END IF SEARCH RETURN RESULT -->
       <ng-template #tabsView>
         <c-tabs [activeItemKey]="0">
-          <c-tabs-list variant="pills" class="d-flex flex-row flex-nowrap overflow-x-auto">
-            <button *ngFor="let cat of nonEmptyCategories; let i = index" cTab [itemKey]="i">
-              {{ cat }}
-            </button>
-          </c-tabs-list>
+          <div class="categories-sticky">
+            <c-tabs-list variant="tabs" class="d-flex flex-row flex-nowrap overflow-x-auto">
+              <button *ngFor="let cat of nonEmptyCategories; let i = index" cTab [itemKey]="i">
+                {{ cat }}
+              </button>
+            </c-tabs-list>
+          </div>
           <c-tabs-content>
             <!-- GRID PRODUSE -->
             <c-tab-panel *ngFor="let cat of nonEmptyCategories; let i = index" [itemKey]="i" class="p-3">
               <div class="row g-3 mt-3">
                 <div class="col-6 col-md-4 col-lg-3" *ngFor="let item of groupedMenuItems[cat]">
-                  <div class="product-tile p-2 border rounded text-center shadow-sm" (click)="addItem(item)"
+                  <div class="product-tile p-2 border rounded text-center shadow-sm" (click)="addCartItem(item)"
                     style="cursor: pointer; user-select: none;">
                     <img [src]="item.menuItemIconUrl + '?v=' + forceRefreshAfterUpdate" class="img-fluid mb-2 rounded"
                       style="max-height: 90px; object-fit: contain;" />
@@ -178,10 +182,29 @@
     <!-- CART -->
     <div class="cart">
       <div class="cart-scroll">
-        <div *ngFor="let sel of selectedItems" class="d-flex justify-content-between">
-          <span>{{ sel.item.menuItemName }} × {{ sel.qty }}</span>
-          <span>{{ sel.item.menuItemPriceAmount * sel.qty | currency }}</span>
-        </div>
+        <table bordered cTable hover small class="mb-0">
+          <tbody>
+            <tr *ngFor="let sel of selectedItems">
+              <td class="w-50">
+                {{ sel.item.menuItemName }}
+              </td>
+              <td class="text-start">
+                × {{ sel.qty }}
+              </td>
+              <td class="text-end">
+                {{ sel.item.menuItemPriceAmount * sel.qty | currency }}
+              </td>
+              <td class="text-end">
+                <button class="btn btn-sm btn-outline-secondary me-1" (click)="removeCartItem(sel.item)">
+                  -
+                </button>
+                <button class="btn btn-sm btn-outline-danger" (click)="removeItemCompletely(sel.item)">
+                  ×
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <hr>
@@ -194,8 +217,3 @@
   </div>
 </c-offcanvas>
 <!-- END OFFCANVAS -->
-
-<!-- <input type="text"
-           class="form-control mb-3"
-           placeholder="Caută produs..."
-           [(ngModel)]="searchTerm"> -->

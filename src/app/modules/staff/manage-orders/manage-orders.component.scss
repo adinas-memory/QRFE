@@ -27,6 +27,16 @@
   height: 100%;
 }
 
+.categories-sticky {
+  position: sticky;
+  top: -18px; /* header + search */
+  background: #212631;
+  z-index: 8;
+  padding: 5px 0;
+}
+
+
+
 .offcanvas-body {
   flex: 1 1 auto;
   overflow-y: auto;
