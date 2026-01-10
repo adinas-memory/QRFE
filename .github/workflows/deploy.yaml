@@ -28,7 +28,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: frontend-package
-        path: dist/browser/*
+        path: dist/**
 
   deploy:
     runs-on: ubuntu-latest
