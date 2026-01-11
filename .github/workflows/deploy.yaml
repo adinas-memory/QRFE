@@ -60,7 +60,7 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SERVER_SSH_KEY }}
         source: "artifact/browser/*"   # <-- FIXED
-        target: "/home/adi/releases/frontend-${{ github.run_number }}/"
+        target: "/home/adi/releases/frontend-${{ github.run_number }}"
 
     - name: Update symlink for frontend
       uses: appleboy/ssh-action@v0.1.10
