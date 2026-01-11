@@ -28,7 +28,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: frontend-package
-        path: dist/browser   # <-- IMPORTANT
+        path: dist/**   # <-- IMPORTANT
 
   deploy:
     runs-on: ubuntu-latest
@@ -59,7 +59,7 @@ jobs:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SERVER_SSH_KEY }}
-        source: "artifact/browser/**"   # <-- FIXED
+        source: "artifact/**"   # <-- FIXED
         target: "/home/adi/releases/frontend-${{ github.run_number }}/"
 
     - name: Update symlink for frontend
