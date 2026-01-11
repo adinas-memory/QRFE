@@ -39,7 +39,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: frontend-package
-        path: ./artifact     # <-- IMPORTANT
+        path: .    # <-- IMPORTANT
 
     - name: Inspect workspace
       run: ls -R .
@@ -59,7 +59,7 @@ jobs:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SERVER_SSH_KEY }}
-        source: "artifact/browser/*"   # <-- FIXED
+        source: "browser/*"   # <-- FIXED
         target: "/home/adi/releases/frontend-${{ github.run_number }}"
 
     - name: Update symlink for frontend
