@@ -39,7 +39,10 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: frontend-package
-        path: .
+        path: ./artifact
+
+    - name: Inspect workspace
+      run: ls -R 
 
     - name: Create release folder on server
       uses: appleboy/ssh-action@v0.1.10
