@@ -67,4 +67,32 @@ jobs:
         source: "frontend.tar.gz"
         target: "/home/adi/releases/frontend-${{ github.run_number }}"
 
-    - name
+    - name: Extract tarball on server
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          cd /home/adi/releases/frontend-${{ github.run_number }}
+          tar -xzf frontend.tar.gz
+          rm frontend.tar.gz
+
+    - name: Update symlink for frontend
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          sudo rm -rf /var/www/qrfe
+          sudo ln -sfn /home/adi/releases/frontend-${{ github.run_number }} /var/www/qrfe
+
+    - name: Restart nginx
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          sudo systemctl reload nginx
