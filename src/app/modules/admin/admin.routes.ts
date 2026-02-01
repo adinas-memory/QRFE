@@ -19,9 +19,9 @@ export const adminRoutes: Routes = [
         data: { title: 'Dashboard' }
       },
       {
-        path: 'create-sucscription-products',
+        path: 'manage-subscription-products',
         loadComponent: () =>
-          import('./create-subscription-products/create-subscription-products.component').then(m => m.CreateSubscriptionProductsComponent),
+          import('./manage-subscription-products/manage-subscription-products.component').then(m => m.ManageSubscriptionProductsComponent),
         data: { title: 'Create Subscription Products' }
       },
     ]

@@ -128,9 +128,17 @@ export class DefaultLayoutComponent implements OnInit {
         ];
       case 'gadmin':
         return [
-          { name: 'Dashboard', url: '/gadmin/dashboard', icon: 'cil-speedometer' },
-          { name: 'Users', url: '/gadmin/users', icon: 'cil-people' },
-          { name: 'Settings', url: '/gadmin/settings', icon: 'cil-settings' }
+          { 
+            name: 'Dashboard',
+            url: '/gadmin/dashboard',
+            icon: 'cil-speedometer' 
+          },
+          { 
+            name: 'Users', 
+            url: '/gadmin/manage-subscription-products', 
+            icon: 'cil3d' 
+          },
+          // { name: 'Settings', url: '/gadmin/settings', icon: 'cil-settings' }
         ];
       default:
         return [];
