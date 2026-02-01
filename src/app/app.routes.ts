@@ -25,7 +25,7 @@ export const routes: Routes = [
   {
     path: 'gadmin',
     loadChildren: () =>
-      import('./modules/admin/admin.routes').then(m => m.routes),
+      import('./modules/admin/admin.routes').then(m => m.adminRoutes),
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['gadmin'] }
   }
