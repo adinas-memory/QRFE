@@ -2,6 +2,7 @@ import { APP_INITIALIZER, ApplicationConfig, importProvidersFrom, inject, provid
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import {
   provideRouter,
+  withDebugTracing,
   withEnabledBlockingInitialNavigation,
   withInMemoryScrolling,
   withRouterConfig,
@@ -30,7 +31,7 @@ export const appConfig: ApplicationConfig = {
       multi: true
     },
     provideRouter(routes,
-      // withDebugTracing(),
+      withDebugTracing(),
       withRouterConfig({
         onSameUrlNavigation: 'reload'
       }),
