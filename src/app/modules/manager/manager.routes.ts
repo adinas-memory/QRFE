@@ -16,7 +16,7 @@ export const routes: Routes = [
       {
         path: 'dashboard',
         loadComponent: () =>
-          import('./dashboard/dashboard.component').then(m => m.DashboardComponent),
+          import('../../shared/components/dashboard/dashboard.component').then(m => m.DashboardComponent),
         data: { title: 'Dashboard' }
       },
       {
