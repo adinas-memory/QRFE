@@ -131,12 +131,12 @@ export class DefaultLayoutComponent implements OnInit {
           { 
             name: 'Dashboard',
             url: '/gadmin/dashboard',
-            icon: 'cil-speedometer' 
+            iconComponent: { name: 'cil-speedometer' }            
           },
           { 
-            name: 'Users', 
+            name: 'Manage Subscription Products', 
             url: '/gadmin/manage-subscription-products', 
-            icon: 'cil3d' 
+            iconComponent: { name: 'cil3d' } 
           },
           // { name: 'Settings', url: '/gadmin/settings', icon: 'cil-settings' }
         ];

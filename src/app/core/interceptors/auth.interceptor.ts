@@ -9,10 +9,19 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
 
   const isPublic = req.url.includes('/public/');
+  const isRefresh = req.url.includes('/refresh-token');
+  const isLogin = req.url.includes('/login');
+
   const request = req.clone({ withCredentials: true });
 
   return next(request).pipe(
     catchError((error: HttpErrorResponse) => {
+
+      // NU încercăm refresh pe refresh-token sau login
+      if (isRefresh || isLogin) {
+        return throwError(() => error);
+      }
+
       if (error.status === 401 && !isPublic) {
         return auth.refreshUserContext().pipe(
           switchMap(() => next(request)),
