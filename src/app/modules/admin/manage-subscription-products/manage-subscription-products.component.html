@@ -1,1 +1,103 @@
-<p>create-subscription-products works!</p>
+<c-tabs [activeItemKey]="0">
+  <c-tabs-list variant="pills">
+    <button cTab [itemKey]="0" class="ms-2">List Products</button>
+    <button cTab [itemKey]="1" class="ms-2">Add Product</button>
+  </c-tabs-list>
+
+  <!-- Products List -->
+  <c-tabs-content>
+    <c-tab-panel class="p-3" [itemKey]="0">
+      <ul class="list-group">
+        <li *ngFor="let p of products" class="list-group-item d-flex justify-content-between">
+          <div>
+            <strong>{{ p.restaurantType }}</strong>
+            <div class="text-muted small">{{ p.description }}</div>
+          </div>
+          <!-- <button class="btn btn-sm btn-outline-primary" (click)="onEdit(p)">Edit</button> -->
+        </li>
+      </ul>
+    </c-tab-panel>
+  </c-tabs-content>
+
+  <!-- Add Product -->
+  <c-tabs-content>
+    <c-tab-panel class="p-3" [itemKey]="1">
+      <form [formGroup]="addForm" (ngSubmit)="onAdd()" cForm>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label cLabel>Restaurant Type</label>
+            <input cFormControl formControlName="restaurantType" />
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label cLabel>Payment Method</label>
+            <input cFormControl formControlName="paymentMethodId" />
+          </div>
+
+          <div class="col-md-12 mb-3">
+            <label cLabel>Description</label>
+            <textarea cFormControl formControlName="description"></textarea>
+          </div>
+
+          <div class="col-md-12 mb-3">
+            <label cLabel>Features</label>
+            <textarea cFormControl formControlName="features"></textarea>
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <label cLabel>Price</label>
+            <input type="number" cFormControl formControlName="priceAmount" />
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <label cLabel>Currency</label>
+            <input cFormControl formControlName="priceCurrency" />
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <label cLabel>Interval</label>
+            <input cFormControl formControlName="subscriptionInterval" />
+          </div>
+
+          <div class="col-md-12 mb-3">
+            <label cLabel>Usage Type</label>
+            <input cFormControl formControlName="usageType" />
+          </div>
+        </div>
+
+        <button class="btn btn-primary" type="submit" [disabled]="addForm.invalid">Create</button>
+      </form>
+    </c-tab-panel>
+  </c-tabs-content>
+
+  <c-toaster class="p-3" position="fixed" [placement]="placement" />
+</c-tabs>
+
+<!-- Edit Modal -->
+<c-modal [(visible)]="editModalVisible" alignment="center" size="lg">
+  <c-modal-header>
+    <h5 cModalTitle>Edit Product</h5>
+    <button type="button" class="btn-close" (click)="editModalVisible = false"></button>
+  </c-modal-header>
+
+  <c-modal-body>
+    <form [formGroup]="editForm" cForm>
+      <label cLabel>Restaurant Type</label>
+      <input cFormControl formControlName="restaurantType" />
+
+      <label cLabel>Description</label>
+      <textarea cFormControl formControlName="description"></textarea>
+
+      <label cLabel>Features</label>
+      <textarea cFormControl formControlName="features"></textarea>
+
+      <label cLabel>Price</label>
+      <input type="number" cFormControl formControlName="priceAmount" />
+    </form>
+  </c-modal-body>
+
+  <c-modal-footer>
+    <button class="btn btn-secondary" (click)="editModalVisible = false">Cancel</button>
+    <button class="btn btn-primary" (click)="onSaveEdit()" [disabled]="editForm.invalid">Save</button>
+  </c-modal-footer>
+</c-modal>

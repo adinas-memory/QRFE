@@ -4,6 +4,7 @@ import { BehaviorSubject, Observable, shareReplay } from 'rxjs';
 import { ProductLimitModel, SubscriptionProductModel } from '../../models/subscription-product';
 import { PendingPlanModel } from '../../models/pendingPlanModel';
 import { SubscriptionPayloadModel } from '../../models/subscriptionPayloadModel';
+import { CreateSubscriptionProductModel } from '../../models/subscription-product';
 import { environment } from '../../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
@@ -30,6 +31,10 @@ export class SubscriptionService {
   getProducts(): Observable<SubscriptionProductModel[]> {
     return this.http.get<SubscriptionProductModel[]>(`${this.apiUrl}/api/stripe/subscription`)
       .pipe(shareReplay(1));
+  }
+
+  createProduct(payload: any): Observable<CreateSubscriptionProductModel> {
+    return this.http.post<CreateSubscriptionProductModel>(`${this.apiUrl}/api/restaurants/create-subscription-product`, payload, { withCredentials: true });
   }
 
   /** Store a pending plan (when user not logged in yet) */

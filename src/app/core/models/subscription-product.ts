@@ -9,6 +9,18 @@ export interface SubscriptionProductModel {
   subscriptionInterval: string;
 }
 
+export interface CreateSubscriptionProductModel {
+  restaurantType: string;
+  description: string;
+  features: string;
+  paymentMethodId: string;
+  priceAmount: number;
+  priceCurrency: string;
+  subscriptionInterval: string;
+  usageType: string;
+}
+
+
 export enum RestaurantType {
   Small = 'small',
   Medium = 'medium',
