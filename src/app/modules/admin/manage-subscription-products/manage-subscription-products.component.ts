@@ -1,16 +1,20 @@
 import { Component, OnInit, OnDestroy, viewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { NgFor, NgIf } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import {
   Tabs2Module, ModalComponent, ModalBodyComponent, ModalHeaderComponent,
   ModalFooterComponent, ModalTitleDirective, ButtonDirective, ButtonCloseDirective,
-  FormControlDirective, FormLabelDirective, ToasterComponent, TemplateIdDirective
+  FormControlDirective, FormLabelDirective, ToasterComponent, TemplateIdDirective,
+  DropdownComponent, DropdownItemDirective, DropdownMenuDirective, DropdownToggleDirective
 } from '@coreui/angular';
 import { Subject, takeUntil } from 'rxjs';
 import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
 import { CreateSubscriptionProductModel } from '../../../core/models/subscription-product';
 import { ToastBaseComponent } from '../../../shared/components/toast-base/toast-base.component';
 import { SubscriptionProductModel } from '../../../core/models/subscription-product';
+import { MiscellaneousService } from 'src/app/core/services/misc/miscellaneous.service';
+import { VenueSizeConfigList } from 'src/app/core/models/venueSizeConfigModel';
 
 
 @Component({
@@ -18,9 +22,10 @@ import { SubscriptionProductModel } from '../../../core/models/subscription-prod
   standalone: true,
   imports: [
     NgFor, NgIf, ReactiveFormsModule,
-    Tabs2Module, ModalComponent, ModalBodyComponent, ModalHeaderComponent,
+    Tabs2Module, ModalComponent, ModalBodyComponent, ModalHeaderComponent, RouterLink,
     ModalFooterComponent, ModalTitleDirective, ButtonDirective, ButtonCloseDirective,
-    FormControlDirective, FormLabelDirective, ToasterComponent, TemplateIdDirective
+    FormControlDirective, FormLabelDirective, ToasterComponent, TemplateIdDirective,
+    DropdownComponent, DropdownItemDirective, DropdownMenuDirective, DropdownToggleDirective
   ],
   templateUrl: './manage-subscription-products.component.html'
 })
@@ -30,6 +35,9 @@ export class ManageSubscriptionProductsComponent implements OnInit, OnDestroy {
 
   products: SubscriptionProductModel[] = [];
   selectedProduct: CreateSubscriptionProductModel | null = null;
+  restaurantTypes: VenueSizeConfigList = [];
+  currencies: string[] = [];
+
 
   addForm: FormGroup;
   editForm: FormGroup;
@@ -40,13 +48,13 @@ export class ManageSubscriptionProductsComponent implements OnInit, OnDestroy {
 
   constructor(
     private fb: FormBuilder,
-    private subscriptionService: SubscriptionService
+    private subscriptionService: SubscriptionService,
+    private miscService: MiscellaneousService
   ) {
     this.addForm = this.fb.group({
       restaurantType: ['', Validators.required],
       description: ['', Validators.required],
       features: ['', Validators.required],
-      paymentMethodId: ['', Validators.required],
       priceAmount: [0, [Validators.required, Validators.min(1)]],
       priceCurrency: ['RON', Validators.required],
       subscriptionInterval: ['month', Validators.required],
@@ -57,17 +65,33 @@ export class ManageSubscriptionProductsComponent implements OnInit, OnDestroy {
       restaurantType: ['', Validators.required],
       description: ['', Validators.required],
       features: ['', Validators.required],
-      paymentMethodId: ['', Validators.required],
       priceAmount: [0, [Validators.required, Validators.min(1)]],
       priceCurrency: ['', Validators.required],
       subscriptionInterval: ['month', Validators.required],
       usageType: ['licensed', Validators.required]
     });
   }
-
   ngOnInit(): void {
     this.loadProducts();
+    this.loadDropdownData();
   }
+
+  loadDropdownData(): void {
+    this.miscService.getRestaurantLimits()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: limits => this.restaurantTypes = limits,
+        error: err => console.error('Failed to load restaurant limits', err)
+      });
+
+    this.miscService.getCurrencies()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: currencies => this.currencies = currencies,
+        error: err => console.error('Failed to load currencies', err)
+      });
+  }
+
 
   loadProducts(): void {
     this.subscriptionService.getProducts()

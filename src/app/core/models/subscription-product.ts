@@ -12,8 +12,7 @@ export interface SubscriptionProductModel {
 export interface CreateSubscriptionProductModel {
   restaurantType: string;
   description: string;
-  features: string;
-  paymentMethodId: string;
+  features: string;  
   priceAmount: number;
   priceCurrency: string;
   subscriptionInterval: string;

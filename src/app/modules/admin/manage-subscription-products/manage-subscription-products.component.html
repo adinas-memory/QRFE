@@ -24,14 +24,40 @@
     <c-tab-panel class="p-3" [itemKey]="1">
       <form [formGroup]="addForm" (ngSubmit)="onAdd()" cForm>
         <div class="row">
-          <div class="col-md-6 mb-3">
+          <div class="col-md-4 mb-3">
             <label cLabel>Restaurant Type</label>
-            <input cFormControl formControlName="restaurantType" />
+
+            <c-dropdown>
+              <button cButton cDropdownToggle color="secondary" class="w-100 text-start">
+                {{ addForm.value.restaurantType || 'Select restaurant type...' }}
+              </button>
+
+              <ul cDropdownMenu class="w-100">
+                <li *ngFor="let r of restaurantTypes">
+                  <button type="button" cDropdownItem (click)="addForm.get('restaurantType')?.setValue(r.type)">
+                    {{ r.type }} ({{ r.maxTables }} tables, {{ r.maxBars }} bars)
+                  </button>
+                </li>
+              </ul>
+            </c-dropdown>
           </div>
 
-          <div class="col-md-6 mb-3">
-            <label cLabel>Payment Method</label>
-            <input cFormControl formControlName="paymentMethodId" />
+          <div class="col-md-4 mb-3">
+            <label cLabel>Currency</label>
+
+            <c-dropdown>
+              <button cButton cDropdownToggle color="secondary" class="w-100 text-start">
+                {{ addForm.value.priceCurrency }}
+              </button>
+
+              <ul cDropdownMenu class="w-100">
+                <li *ngFor="let c of currencies">
+                  <button type="button" cDropdownItem (click)="addForm.get('priceCurrency')?.setValue(c)">
+                    {{ c }}
+                  </button>
+                </li>
+              </ul>
+            </c-dropdown>
           </div>
 
           <div class="col-md-12 mb-3">
@@ -47,11 +73,6 @@
           <div class="col-md-4 mb-3">
             <label cLabel>Price</label>
             <input type="number" cFormControl formControlName="priceAmount" />
-          </div>
-
-          <div class="col-md-4 mb-3">
-            <label cLabel>Currency</label>
-            <input cFormControl formControlName="priceCurrency" />
           </div>
 
           <div class="col-md-4 mb-3">
