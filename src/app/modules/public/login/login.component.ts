@@ -51,7 +51,7 @@ export class LoginComponent implements OnInit, OnDestroy {
 
 
       this.authService.loginUser(formValue).subscribe({
-        next: (response: UserContextModel) => {
+        next: (response: UserContextModel) => {          
           this.authService.setUser(response);
           this.authService.setRestaurantCtx();
           const returnUrl = this.route.snapshot.queryParams['returnUrl'];

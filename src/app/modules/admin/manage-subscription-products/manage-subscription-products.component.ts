@@ -13,8 +13,8 @@ import { SubscriptionService } from '../../../core/services/subscription-service
 import { CreateSubscriptionProductModel } from '../../../core/models/subscription-product';
 import { ToastBaseComponent } from '../../../shared/components/toast-base/toast-base.component';
 import { SubscriptionProductModel } from '../../../core/models/subscription-product';
-import { MiscellaneousService } from 'src/app/core/services/misc/miscellaneous.service';
-import { VenueSizeConfigList } from 'src/app/core/models/venueSizeConfigModel';
+import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
+import { VenueSizeConfigList } from '../../../core/models/venueSizeConfigModel';
 
 
 @Component({

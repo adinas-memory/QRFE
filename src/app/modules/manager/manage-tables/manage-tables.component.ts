@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, viewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, viewChild, ChangeDetectorRef } from '@angular/core';
 import {
   Tabs2Module, FormControlDirective, FormLabelDirective,
   AccordionButtonDirective, AccordionComponent, AccordionItemComponent,
@@ -9,12 +9,13 @@ import {
 } from '@coreui/angular';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { NgFor, NgIf } from '@angular/common';
-import { Subject, filter, take, takeUntil } from 'rxjs';
+import { Subject, filter, switchMap, take, takeUntil, tap } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import { UserContextModel } from '../../../core/models/userContextModel';
 import { TablesService } from '../../../core/services/tables-service/tables.service';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
 import { ToastBaseComponent } from '../../../shared/components/toast-base/toast-base.component';
+import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
 
 @Component({
   selector: 'app-manage-tables',
@@ -40,13 +41,21 @@ export class ManageTablesComponent implements OnInit, OnDestroy {
   addTablesForm: FormGroup;
   placement = ToasterPlacement.TopEnd;
   editModalVisible = false;
+  restaurantLimits: any | null = null;
+  restaurantType: string | null = null;
+  activeTab = '0';
+  numberToAdd: number = 0;
+  existing: number = 0;
+  maxAllowed: number = 0;
+  remaining: number = 0;
 
-  readonly toaster = viewChild(ToasterComponent);
+  readonly toaster = viewChild.required(ToasterComponent);
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private tablesService: TablesService
+    private tablesService: TablesService,
+    private miscService: MiscellaneousService,
   ) {
     this.addTablesForm = this.fb.group({
       numberOfTables: [1, [Validators.required, Validators.min(1)]],
@@ -59,9 +68,27 @@ export class ManageTablesComponent implements OnInit, OnDestroy {
   }
 
   onAddTables(): void {
-    if (this.addTablesForm.invalid) return;
+    if (this.addTablesForm.invalid || !this.restaurantLimits) return;
 
-    const payload = { numberOfTables: this.addTablesForm.value.numberOfTables };
+    this.numberToAdd = this.addTablesForm.value.numberOfTables;
+    this.existing = this.tables.length;
+    this.maxAllowed = this.restaurantLimits.maxTables;
+
+    if (this.existing + this.numberToAdd > this.maxAllowed) {
+      this.remaining = this.maxAllowed - this.existing;
+
+      this.addToast(
+        'Limit exceeded',
+        `You already reached the maximum number of tables (${this.maxAllowed}).`,
+        4000,
+        'danger'
+      );
+      this.activeTab = '0';
+      console.log('this.activeTab:', this.activeTab);
+      return;
+    }
+
+    const payload = { numberOfTables: this.numberToAdd };
 
     this.tablesService.create(this.restaurantId, payload)
       .pipe(takeUntil(this.destroy$))
@@ -69,7 +96,7 @@ export class ManageTablesComponent implements OnInit, OnDestroy {
         next: () => {
           this.addToast('Tables Created:', `${payload.numberOfTables}`, 3000, 'success');
           this.addTablesForm.reset({ numberOfTables: 1 });
-          this.loadTables();
+          setTimeout(() => { this.loadTables(); }, 150);
         },
         error: (err) => {
           this.addToast('Error:', err?.Message ?? 'Failed to create tables', 5000, 'danger');
@@ -77,11 +104,13 @@ export class ManageTablesComponent implements OnInit, OnDestroy {
       });
   }
 
+
   loadTables(): void {
+    console.log("restaurantId:", this.restaurantId);
     this.tablesService.getAll(this.restaurantId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: response => this.tables = response,
+        next: response => { this.tables = [...response]; },
         error: err => console.error('[ManageTablesComponent] Error loading tables', err)
       });
   }
@@ -90,6 +119,7 @@ export class ManageTablesComponent implements OnInit, OnDestroy {
     this.selectedTable = table;
     this.tablesForm.patchValue(table);
     this.editModalVisible = true;
+    this.activeTab = '0';
   }
 
   closeEditModal(): void {
@@ -101,7 +131,10 @@ export class ManageTablesComponent implements OnInit, OnDestroy {
     if (confirm(`Delete table #${table.tableName}`)) {
       this.tablesService.delete(this.restaurantId, table.tableId)
         .pipe(takeUntil(this.destroy$))
-        .subscribe(() => this.loadTables());
+        .subscribe(() => {
+          this.loadTables();
+          this.activeTab = '0';
+        });
     }
   }
 
@@ -117,7 +150,10 @@ export class ManageTablesComponent implements OnInit, OnDestroy {
         this.resetForm();
         this.loadTables();
         this.closeEditModal();
+        this.activeTab = '0';
+        console.log('this.activeTab:', this.activeTab);
       });
+
   }
 
   addToast(title: string, message: string, delay: number, color: string) {
@@ -130,16 +166,28 @@ export class ManageTablesComponent implements OnInit, OnDestroy {
     this.tablesForm.reset({ capacity: 1, status: 'Available' });
   }
 
+  get remainingTables(): number {
+    if (!this.restaurantLimits)
+      return 0;
+    return this.restaurantLimits.maxTables - this.tables.length;
+  }
+
   ngOnInit(): void {
+    this.restaurantType = this.authService.getRestaurantCtx()?.type ?? null;
+
     this.authService.getUserContext()
       .pipe(
         takeUntil(this.destroy$),
         filter((user): user is UserContextModel => !!user && !!user.restaurantId),
-        take(1)
+        take(1),
+        tap(user => this.restaurantId = user.restaurantId ?? ''),
+        switchMap(() => this.miscService.getRestaurantLimits()),
+        tap(limits => this.restaurantLimits = limits.find(x => x.type === this.restaurantType) ?? null),
+        switchMap(() => this.tablesService.getAll(this.restaurantId))
       )
-      .subscribe(user => {
-        this.restaurantId = user.restaurantId ?? '';
-        this.loadTables();
+      .subscribe(tables => {
+        this.tables = [...tables];
+        this.activeTab = '0';
       });
   }
 

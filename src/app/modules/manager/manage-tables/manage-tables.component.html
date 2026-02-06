@@ -1,8 +1,11 @@
-<c-tabs [activeItemKey]="0">
+<c-tabs [activeItemKey]="activeTab">
   <c-tabs-list variant="pills">
     <button cTab [itemKey]="0" class="ms-2">Edit Tables</button>
-    <button cTab [itemKey]="1" class="ms-2">Add Table(s)</button>
+    <button cTab [itemKey]="1" class="ms-2" [disabled]="addTablesForm.invalid || remainingTables <= 0">Add Table(s)</button>
   </c-tabs-list>
+<div class="alert alert-info mt-2" *ngIf="remainingTables">
+  You can add <strong>{{ remainingTables }}</strong> tables.
+</div>
 
   <!-- List Tables -->
   <c-tabs-content>

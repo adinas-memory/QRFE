@@ -55,7 +55,7 @@ function isOverflown(element: HTMLElement) {
 })
 export class DefaultLayoutComponent implements OnInit {
   public navItems: INavData[] = [];
-  restaurantName: string | null = null;
+  restaurantName: string | any| null = null;
 
 
   constructor(private auth: AuthService, public iconSet: IconSetService) {
@@ -65,7 +65,7 @@ export class DefaultLayoutComponent implements OnInit {
   ngOnInit(): void {
     const role = this.auth.getUserSnapshot()?.role ?? 'default';
     this.navItems = this.getNavItemsForRole(role);
-    this.restaurantName = this.auth.getRestaurantCtx()
+    this.restaurantName = this.auth.getRestaurantCtx()?.name ?? null; 
   }
 
   getNavItemsForRole(role: string): INavData[] {

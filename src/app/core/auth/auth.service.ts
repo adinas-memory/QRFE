@@ -61,16 +61,29 @@ export class AuthService {
   }
 
   setRestaurantCtx(): void {
-    localStorage.setItem('RestaurantCtx', this.userSubject.value?.restaurantName ?? '');
+    const ctx = {
+      name: this.userSubject.value?.restaurantName ?? '',
+      type: this.userSubject.value?.restaurantType ?? ''
+    };
+
+    localStorage.setItem('RestaurantCtx', JSON.stringify(ctx));
   }
 
   clearRestaurantCtx(): void {
     localStorage.removeItem('RestaurantCtx');
   }
 
-  getRestaurantCtx(): string | null {
-    return localStorage.getItem('RestaurantCtx');
+  getRestaurantCtx() {
+    const raw = localStorage.getItem('RestaurantCtx');
+    if (!raw) return null;
+
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
   }
+
 
   clearUser(): void {
     this.userSubject.next(null);
