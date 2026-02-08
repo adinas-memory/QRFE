@@ -87,6 +87,19 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     }
   }
 
+  get cartSubTotal(): number {
+    const cart = this.tableCarts[this.currentTableId] ?? [];
+    return cart.reduce((sum, sel) =>
+      sum + sel.item.menuItemPriceAmount * sel.qty, 0
+    );
+  }
+
+  get cartCurrency(): string | undefined {
+    const cart = this.tableCarts[this.currentTableId] ?? [];
+    return cart.length > 0 ? cart[0].item.menuItemPriceCurrency : undefined;
+  }
+
+
   get filteredMenuItems(): MenuItem[] {
     const term = this.searchTerm.trim().toLowerCase();
     if (!term) return [];

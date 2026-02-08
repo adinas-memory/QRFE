@@ -192,7 +192,7 @@
                 × {{ sel.qty }}
               </td>
               <td class="text-end">
-                {{ sel.item.menuItemPriceAmount * sel.qty | currency }}
+                {{ sel.item.menuItemPriceAmount * sel.qty | currency: sel.item.menuItemPriceCurrency }}
               </td>
               <td class="text-end">
                 <button class="btn btn-sm btn-outline-secondary me-1" (click)="removeCartItem(sel.item)">
@@ -210,7 +210,8 @@
       <hr>
 
       <button class="btn btn-primary w-100">
-        Confirm Order – {{ subTotal | currency }}
+        Confirm Order – {{ cartSubTotal | currency: cartCurrency }}
+
       </button>
     </div>
     <!-- END CART -->
