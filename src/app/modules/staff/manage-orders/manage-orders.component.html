@@ -136,7 +136,7 @@
         <div class="row g-3 mt-3 px-3">
           <div class="col-6 col-md-4 col-lg-3" *ngFor="let item of filteredMenuItems">
             <div class="product-tile p-2 border rounded text-center shadow-sm" (click)="addCartItem(item)"
-               style="cursor: pointer; user-select: none;">
+              style="cursor: pointer; user-select: none;">
               <img [src]="item.menuItemIconUrl + '?v=' + forceRefreshAfterUpdate" class="img-fluid mb-2 rounded"
                 style="max-height: 90px; object-fit: contain;" />
               <div class="fw-bold">{{ item.menuItemName }}</div>
@@ -146,6 +146,7 @@
             </div>
           </div>
         </div>
+
       </ng-container>
       <!-- END IF SEARCH RETURN RESULT -->
       <ng-template #tabsView>
@@ -178,6 +179,27 @@
           </c-tabs-content>
         </c-tabs>
       </ng-template>
+      <c-dropdown class="mt-4 w-100">
+        <button cButton cDropdownToggle color="secondary outline" size="sm">
+          Move cart to another table
+        </button>
+
+        <ul cDropdownMenu class="w-100">
+          <li *ngFor="let t of availableTablesForMove">
+            <button cDropdownItem (click)="selectedTargetTableId = t.tableId; moveCartToSelectedTable()">
+              {{ t.tableName }}
+            </button>
+          </li>
+
+          <li *ngIf="availableTablesForMove.length === 0">
+            <span class="dropdown-item text-muted">No free tables available</span>
+          </li>
+        </ul>
+      </c-dropdown>
+
+
+
+
     </c-offcanvas-body>
     <!-- CART -->
     <div class="cart">
@@ -211,7 +233,6 @@
 
       <button class="btn btn-primary w-100">
         Confirm Order – {{ cartSubTotal | currency: cartCurrency }}
-
       </button>
     </div>
     <!-- END CART -->

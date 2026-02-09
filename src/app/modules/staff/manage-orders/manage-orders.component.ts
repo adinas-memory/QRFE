@@ -16,9 +16,9 @@ import { SnoozeWaiterCallEvent, WaiterCallEvent, WaiterCallState } from '../../.
 import { MenuItem } from '../../../core/models/menu/menuItem';
 import { MenuItemServiceService } from '../../../core/services/menu-item-service/menu-item-service.service';
 import { OrdersService } from '../../../core/services/order-service/orders.service';
+import { OrderItemDTO, CartItem, TableCart } from '../../../core/models/orderingModel';
+import { OrderSyncService } from '../../../core/services/order-service/order-sync.service';
 
-type CartItem = { item: MenuItem; qty: number };
-type TableCart = { [tableId: string]: CartItem[] };
 @Component({
   selector: 'app-manage-orders',
   imports:
@@ -32,8 +32,8 @@ type TableCart = { [tableId: string]: CartItem[] };
       ColDirective, NgStyle, IconDirective, RouterLink,
       OffcanvasBodyComponent, OffcanvasComponent, OffcanvasHeaderComponent,
       OffcanvasTitleDirective, OffcanvasToggleDirective,
-      NavComponent,
-      NavItemComponent,
+      NavComponent, DropdownComponent, DropdownItemDirective,
+      DropdownMenuDirective, DropdownToggleDirective, NavItemComponent,
       NavLinkDirective
     ],
   styleUrls: ['./manage-orders.component.scss'],
@@ -66,12 +66,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   search$ = new Subject<string>();
   filteredResults: MenuItem[] = [];
   private fuse!: Fuse<MenuItem>;
-
-
-
+  selectedTargetTableId: string | null = null;
 
   constructor(private tablesService: TablesService, private menuItemService: MenuItemServiceService,
-    private authService: AuthService, private ordersService: OrdersService
+    private authService: AuthService, private ordersService: OrdersService, private orderSyncService: OrderSyncService
   ) { }
 
   @HostListener('document:keydown.escape', ['$event'])
@@ -87,6 +85,44 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     }
   }
 
+  get availableTablesForMove(): TableDTO[] {
+  return this.tables.filter(t =>
+    t.tableId !== this.currentTableId &&
+    t.isTableOpen &&
+    !t.order
+  );
+}
+
+
+  // confirmOrder() {
+  //   this.ordersService.listOpenOrderForTable(this.restaurantId, this.currentTableId)
+  //     .pipe(take(1))
+  //     .subscribe(order => {
+
+  //       const orderItems = order.items ?? [];
+  //       const cartItems = this.selectedItems;
+
+  //       const diff = this.orderSyncService.calculateOrderDiff(cartItems, orderItems);
+
+  //       this.orderSyncService.syncOrderWithBackend(
+  //         this.restaurantId,
+  //         this.currentTableId,
+  //         order.orderId,
+  //         diff
+  //       ).subscribe(() => {
+  //         // reload order from backend
+  //         this.ordersService.listOpenOrderForTable(this.restaurantId, this.currentTableId)
+  //           .pipe(take(1))
+  //           .subscribe(updatedOrder => {
+  //             this.tableCarts[this.currentTableId] =
+  //               this.orderSyncService.syncCartWithOrder(updatedOrder.item, this.menuItems);
+
+  //             this.saveCart();
+  //           });
+  //       });
+  //     });
+  // }
+
   get cartSubTotal(): number {
     const cart = this.tableCarts[this.currentTableId] ?? [];
     return cart.reduce((sum, sel) =>
@@ -98,7 +134,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     const cart = this.tableCarts[this.currentTableId] ?? [];
     return cart.length > 0 ? cart[0].item.menuItemPriceCurrency : undefined;
   }
-
 
   get filteredMenuItems(): MenuItem[] {
     const term = this.searchTerm.trim().toLowerCase();
@@ -165,7 +200,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         x => x.item.menuItemId !== item.menuItemId
       );
     }
-
     this.saveCart();
   }
 
@@ -288,6 +322,50 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.tableCarts = JSON.parse(saved);
     }
 
+  }
+
+  // moveCartToTable(targetTable: TableDTO) {
+  //   const sourceId = this.currentTableId;
+  //   const targetId = targetTable.tableId;
+
+  //   if (!this.tableCarts[sourceId]) return;
+
+  //   this.tableCarts[targetId] = this.tableCarts[sourceId];
+  //   delete this.tableCarts[sourceId];
+
+  //   this.saveCart();
+
+  //   this.currentTableId = targetId;
+  //   this.tableName = targetTable.tableName ?? '';
+  // }
+  // canMoveCartTo(table: TableDTO): boolean {
+  //   return !table.isTableOpen && !table.order;
+  // }
+  // get availableTablesForMove(): TableDTO[] {
+  //   return this.tables.filter(t =>
+  //     t.tableId !== this.currentTableId &&   // exclude masa curentă
+  //     !t.isTableOpen &&                      // masa trebuie să fie liberă
+  //     !t.order                                // masa nu trebuie să aibă order activ
+  //   );
+  // }
+  moveCartToSelectedTable() {
+    if (!this.selectedTargetTableId) return;
+
+    const sourceId = this.currentTableId;
+    const targetId = this.selectedTargetTableId;
+
+    if (!this.tableCarts[sourceId]) return;
+
+    this.tableCarts[targetId] = this.tableCarts[sourceId];
+    delete this.tableCarts[sourceId];
+
+    this.saveCart();
+
+    const targetTable = this.tables.find(t => t.tableId === targetId);
+    this.currentTableId = targetId;
+    this.tableName = targetTable?.tableName ?? '';
+
+    this.selectedTargetTableId = null;
   }
 
   ngOnDestroy(): void {
