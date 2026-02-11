@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import { MenuItem } from '../../models/menu/menuItem';
 import { CartItem } from '../../models/orderingModel';
-import { OrderItemDTO } from '../../models/restaurantTablesModel';
+import { OrderItemDTO } from '../../models/orderingModel';
 import { OrdersService } from './orders.service';
 
 @Injectable({
@@ -20,7 +20,7 @@ export class OrderSyncService {
       if (!menuItem) return null;
       return {
         item: menuItem,
-        qty: orderItem.quantity
+        quantity: orderItem.quantity
       };
     }).filter(x => x !== null) as CartItem[];
   }
@@ -46,12 +46,12 @@ export class OrderSyncService {
       if (!existing) {
         adds.push({
           menuItemId: cartItem.item.menuItemId,
-          quantity: cartItem.qty
+          quantity: cartItem.quantity
         });
-      } else if (existing.quantity !== cartItem.qty) {
+      } else if (existing.quantity !== cartItem.quantity) {
         updates.push({
           orderItemId: existing.orderItemId!,
-          quantity: cartItem.qty
+          quantity: cartItem.quantity
         });
       }
     }
@@ -68,43 +68,47 @@ export class OrderSyncService {
   }
 
 
-  syncOrderWithBackend(
-    restaurantId: string,
-    tableId: string,
-    orderId: string,
-    diff: {
-      adds: { menuItemId: string; qty: number }[],
-      updates: { orderItemId: string; quantity: number }[],
-      deletes: string[]
-    }
-  ) {
-    const calls = [];
+  // syncOrderWithBackend(
+  //   restaurantId: string,
+  //   tableId: string,
+  //   orderId: string,
+  //   diff: {
+  //     adds: { menuItemId: string; quantity: number }[],
+  //     updates: { orderItemId: string; quantity: number }[],
+  //     deletes: string[]
+  //   },
+  //   orderItems: OrderItemDTO[]
+  // ) {
+  //   const calls = [];
 
-    // ADD
-    for (const add of diff.adds) {
-      calls.push(
-        this.ordersService.addOrderItem(restaurantId, tableId, orderId, add)
-      );
-    }
+  //   // ADD
+  //   for (const add of diff.adds) {
+  //     calls.push(
+  //       this.ordersService.addOrderItem(restaurantId, tableId, orderId, add)
+  //     );
+  //   }
 
-    // UPDATE
-    for (const upd of diff.updates) {
-      calls.push(
-        this.ordersService.addOrderItem(restaurantId, tableId, orderId, {
-          menuItemId: upd.orderItemId, // WRONG → trebuie menuItemId
-          qty: upd.quantity
-        })
-      );
-    }
+  //   // UPDATE
+  //   for (const upd of diff.updates) {
+  //   const orderItem = orderItems.find(o => o?.orderItemId === upd.orderItemId); 
+  //   if (!orderItem) continue;
 
-    // DELETE
-    for (const del of diff.deletes) {
-      calls.push(
-        this.ordersService.removeOrderItem(restaurantId, tableId, orderId, del)
-      );
-    }
+  //     calls.push(
+  //       this.ordersService.addOrderItem(restaurantId, tableId, orderId, {
+  //         menuItemId: orderItem.menuItemId,
+  //         quantity: upd.quantity
+  //       })
+  //     );
+  //   }
 
-    return forkJoin(calls);
-  }
+  //   // DELETE
+  //   for (const del of diff.deletes) {
+  //     calls.push(
+  //       this.ordersService.removeOrderItem(restaurantId, tableId, orderId, del)
+  //     );
+  //   }
+
+  //   return forkJoin(calls);
+  // }
 
 }

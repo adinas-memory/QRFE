@@ -7,7 +7,7 @@ import { BadgeComponent, ButtonCloseDirective, ButtonDirective, CardBodyComponen
 import { TablesService } from '../../../core/services/tables-service/tables.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
-import { filter, Subject, take, takeUntil, debounceTime } from 'rxjs';
+import { filter, Subject, take, takeUntil, debounceTime, forkJoin } from 'rxjs';
 import { NgFor, NgIf, NgStyle, CurrencyPipe, JsonPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { cilBellExclamation } from '@coreui/icons';
@@ -16,7 +16,7 @@ import { SnoozeWaiterCallEvent, WaiterCallEvent, WaiterCallState } from '../../.
 import { MenuItem } from '../../../core/models/menu/menuItem';
 import { MenuItemServiceService } from '../../../core/services/menu-item-service/menu-item-service.service';
 import { OrdersService } from '../../../core/services/order-service/orders.service';
-import { OrderItemDTO, CartItem, TableCart } from '../../../core/models/orderingModel';
+import { OrderItemDTO, CartItem, TableCart, OrderDTO } from '../../../core/models/orderingModel';
 import { OrderSyncService } from '../../../core/services/order-service/order-sync.service';
 
 @Component({
@@ -58,6 +58,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   selectedCategory: string | null = null;
   tableCarts: TableCart = {};
   currentTableId!: string;
+  seatId: string | null = null;
   tables: TableDTO[] = [];
   openTables: TableDTO[] = [];
   closedTables: TableDTO[] = [];
@@ -69,7 +70,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   selectedTargetTableId: string | null = null;
 
   constructor(private tablesService: TablesService, private menuItemService: MenuItemServiceService,
-    private authService: AuthService, private ordersService: OrdersService, private orderSyncService: OrderSyncService
+    private authService: AuthService, private ordersService: OrdersService, 
   ) { }
 
   @HostListener('document:keydown.escape', ['$event'])
@@ -86,47 +87,84 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   get availableTablesForMove(): TableDTO[] {
-  return this.tables.filter(t =>
-    t.tableId !== this.currentTableId &&
-    t.isTableOpen &&
-    !t.order
-  );
-}
+    return this.tables.filter(t =>
+      t.tableId !== this.currentTableId &&
+      t.isTableOpen &&
+      !t.order
+    );
+  }
 
 
-  // confirmOrder() {
-  //   this.ordersService.listOpenOrderForTable(this.restaurantId, this.currentTableId)
-  //     .pipe(take(1))
-  //     .subscribe(order => {
+  openOrder() {
+    this.ordersService.listOpenOrderForTable(this.restaurantId, this.currentTableId)
+      .pipe(take(1))
+      .subscribe(order => {
 
-  //       const orderItems = order.items ?? [];
-  //       const cartItems = this.selectedItems;
+        if (!order) {
+          this.createNewOrder();
+          return;
+        }
 
-  //       const diff = this.orderSyncService.calculateOrderDiff(cartItems, orderItems);
+        // this.updateExistingOrder(order);
+      });
+  }
 
-  //       this.orderSyncService.syncOrderWithBackend(
-  //         this.restaurantId,
-  //         this.currentTableId,
-  //         order.orderId,
-  //         diff
-  //       ).subscribe(() => {
-  //         // reload order from backend
-  //         this.ordersService.listOpenOrderForTable(this.restaurantId, this.currentTableId)
-  //           .pipe(take(1))
-  //           .subscribe(updatedOrder => {
-  //             this.tableCarts[this.currentTableId] =
-  //               this.orderSyncService.syncCartWithOrder(updatedOrder.item, this.menuItems);
+  private createNewOrder() {
+    this.ordersService.newOrder(
+      this.restaurantId,
+      this.currentTableId,
+      this.seatId ?? undefined      
+    )
+      .pipe(take(1))
+      .subscribe(() => this.reloadOrder());
+  }
 
-  //             this.saveCart();
-  //           });
-  //       });
-  //     });
-  // }
+  private updateExistingOrder(order: OrderDTO) {
+    const updatedItems = this.selectedItems.map(ci => ({
+      menuItemId: ci.item.menuItemId,
+      quantity: ci.quantity
+    }));
+
+    this.ordersService.updateOrderItem(
+      this.restaurantId,
+      this.currentTableId,
+      order.orderId,
+      {
+        orderItems: updatedItems,
+        seatId: null
+      }
+    )
+      .pipe(take(1))
+      .subscribe(() => this.reloadOrder());
+  }
+
+
+  private reloadOrder() {
+    this.ordersService.listOpenOrderForTable(this.restaurantId, this.currentTableId)
+      .pipe(take(1))
+      .subscribe(order => {
+
+        if (!order || !order.orderItems) return;
+
+        this.tableCarts[this.currentTableId] = order.orderItems
+          .filter(o => o != null)
+          .map(o => ({
+            item: this.menuItems.find(m => m.menuItemId === o.menuItemId)!,
+            quantity: o.quantity ?? 0,
+            orderItemId: o.orderItemId ?? undefined
+          }));
+
+        this.saveCart();
+      });
+  }
+
+
+
 
   get cartSubTotal(): number {
     const cart = this.tableCarts[this.currentTableId] ?? [];
     return cart.reduce((sum, sel) =>
-      sum + sel.item.menuItemPriceAmount * sel.qty, 0
+      sum + sel.item.menuItemPriceAmount * sel.quantity, 0
     );
   }
 
@@ -178,9 +216,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     const existing = cart.find(x => x.item.menuItemId === item.menuItemId);
 
     if (existing) {
-      existing.qty++;
+      existing.quantity++;
     } else {
-      cart.push({ item, qty: 1 });
+      cart.push({ item, quantity: 1 });
     }
 
     this.saveCart();
@@ -193,8 +231,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     const existing = cart.find(x => x.item.menuItemId === item.menuItemId);
     if (!existing) return;
 
-    if (existing.qty > 1) {
-      existing.qty--;
+    if (existing.quantity > 1) {
+      existing.quantity--;
     } else {
       this.tableCarts[this.currentTableId] = cart.filter(
         x => x.item.menuItemId !== item.menuItemId
@@ -223,11 +261,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.tableCarts[this.currentTableId] = [];
     }
     this.canvasVisible = true;
-    // below code on submit order
-    // this.ordersService.newOrder(this.restaurantId, table.tableId)
-    // .subscribe(x => console.log('New order created', x));
+    this.openOrder();
   }
-
 
   loadMenuItems(): void {
     this.menuItemService.getAll(this.restaurantId)
@@ -323,31 +358,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     }
 
   }
-
-  // moveCartToTable(targetTable: TableDTO) {
-  //   const sourceId = this.currentTableId;
-  //   const targetId = targetTable.tableId;
-
-  //   if (!this.tableCarts[sourceId]) return;
-
-  //   this.tableCarts[targetId] = this.tableCarts[sourceId];
-  //   delete this.tableCarts[sourceId];
-
-  //   this.saveCart();
-
-  //   this.currentTableId = targetId;
-  //   this.tableName = targetTable.tableName ?? '';
-  // }
-  // canMoveCartTo(table: TableDTO): boolean {
-  //   return !table.isTableOpen && !table.order;
-  // }
-  // get availableTablesForMove(): TableDTO[] {
-  //   return this.tables.filter(t =>
-  //     t.tableId !== this.currentTableId &&   // exclude masa curentă
-  //     !t.isTableOpen &&                      // masa trebuie să fie liberă
-  //     !t.order                                // masa nu trebuie să aibă order activ
-  //   );
-  // }
   moveCartToSelectedTable() {
     if (!this.selectedTargetTableId) return;
 

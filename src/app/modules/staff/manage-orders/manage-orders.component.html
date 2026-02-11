@@ -38,7 +38,7 @@
                 <footer>
                   <button cButton cOffcanvasToggle="OffcanvasStart" class="btn btn-primary float-end"
                     (click)="openTable(table)">
-                    Open Order
+                    Open Table
                   </button>
                 </footer>
               </c-row>
@@ -106,8 +106,9 @@
                 </p>
                 <p cCardText></p>
                 <footer>
-                  <button cButton cOffcanvasToggle="OffcanvasStart" class="btn btn-primary float-end">
-                    Open Table
+                  <button cButton cOffcanvasToggle="OffcanvasStart" class="btn btn-primary float-end"
+                    (click)="openOrder()">
+                    Open Order
                   </button>
                 </footer>
               </c-card-body>
@@ -124,6 +125,23 @@
   <div class="offcanvas-wrapper">
     <c-offcanvas-header>
       <h5 cOffcanvasTitle>{{ tableName }}</h5>
+      <!-- @if (true) {
+      <c-dropdown class="mt-4 w-100">
+        <button cButton cDropdownToggle color="secondary outline" size="sm">
+          Move cart to table
+        </button>
+        <ul cDropdownMenu class="w-100">
+          <li *ngFor="let t of availableTablesForMove">
+            <button cDropdownItem (click)="selectedTargetTableId = t.tableId; moveCartToSelectedTable()">
+              {{ t.tableName }}
+            </button>
+          </li>
+          <li *ngIf="availableTablesForMove.length === 0">
+            <span class="dropdown-item text-muted">No free tables available</span>
+          </li>
+        </ul>
+      </c-dropdown>
+      } -->
       <div class="px-3 pt-2">
         <input id="searchInput" type="text" class="form-control" placeholder="Search product..."
           [(ngModel)]="searchTerm" (ngModelChange)="search$.next($event)">
@@ -179,27 +197,6 @@
           </c-tabs-content>
         </c-tabs>
       </ng-template>
-      <c-dropdown class="mt-4 w-100">
-        <button cButton cDropdownToggle color="secondary outline" size="sm">
-          Move cart to another table
-        </button>
-
-        <ul cDropdownMenu class="w-100">
-          <li *ngFor="let t of availableTablesForMove">
-            <button cDropdownItem (click)="selectedTargetTableId = t.tableId; moveCartToSelectedTable()">
-              {{ t.tableName }}
-            </button>
-          </li>
-
-          <li *ngIf="availableTablesForMove.length === 0">
-            <span class="dropdown-item text-muted">No free tables available</span>
-          </li>
-        </ul>
-      </c-dropdown>
-
-
-
-
     </c-offcanvas-body>
     <!-- CART -->
     <div class="cart">
@@ -211,10 +208,10 @@
                 {{ sel.item.menuItemName }}
               </td>
               <td class="text-start">
-                × {{ sel.qty }}
+                × {{ sel.quantity }}
               </td>
               <td class="text-end">
-                {{ sel.item.menuItemPriceAmount * sel.qty | currency: sel.item.menuItemPriceCurrency }}
+                {{ sel.item.menuItemPriceAmount * sel.quantity | currency: sel.item.menuItemPriceCurrency }}
               </td>
               <td class="text-end">
                 <button class="btn btn-sm btn-outline-secondary me-1" (click)="removeCartItem(sel.item)">
@@ -231,7 +228,7 @@
 
       <hr>
 
-      <button class="btn btn-primary w-100">
+      <button class="btn btn-primary w-100"  [disabled]="selectedItems.length === 0">
         Confirm Order – {{ cartSubTotal | currency: cartCurrency }}
       </button>
     </div>
