@@ -68,9 +68,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   filteredResults: MenuItem[] = [];
   private fuse!: Fuse<MenuItem>;
   selectedTargetTableId: string | null = null;
+  orderIsConfirmed = false;
+  currentOrderId: string | null = null;
 
   constructor(private tablesService: TablesService, private menuItemService: MenuItemServiceService,
-    private authService: AuthService, private ordersService: OrdersService, 
+    private authService: AuthService, private ordersService: OrdersService,
   ) { }
 
   @HostListener('document:keydown.escape', ['$event'])
@@ -86,26 +88,17 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     }
   }
 
-  get availableTablesForMove(): TableDTO[] {
-    return this.tables.filter(t =>
-      t.tableId !== this.currentTableId &&
-      t.isTableOpen &&
-      !t.order
-    );
-  }
+
 
 
   openOrder() {
     this.ordersService.listOpenOrderForTable(this.restaurantId, this.currentTableId)
       .pipe(take(1))
       .subscribe(order => {
-
         if (!order) {
           this.createNewOrder();
           return;
         }
-
-        // this.updateExistingOrder(order);
       });
   }
 
@@ -113,7 +106,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.ordersService.newOrder(
       this.restaurantId,
       this.currentTableId,
-      this.seatId ?? undefined      
+      this.seatId ?? undefined
     )
       .pipe(take(1))
       .subscribe(() => this.reloadOrder());
@@ -133,8 +126,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         orderItems: updatedItems,
         seatId: null
       }
-    )
-      .pipe(take(1))
+    ).pipe(take(1))
       .subscribe(() => this.reloadOrder());
   }
 
@@ -143,8 +135,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.ordersService.listOpenOrderForTable(this.restaurantId, this.currentTableId)
       .pipe(take(1))
       .subscribe(order => {
-
         if (!order || !order.orderItems) return;
+
+        this.currentOrderId = order.orderId;
 
         this.tableCarts[this.currentTableId] = order.orderItems
           .filter(o => o != null)
@@ -155,24 +148,27 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           }));
 
         this.saveCart();
+        this.orderIsConfirmed = order.orderItems.length > 0;
       });
   }
 
 
 
-
-  get cartSubTotal(): number {
-    const cart = this.tableCarts[this.currentTableId] ?? [];
-    return cart.reduce((sum, sel) =>
-      sum + sel.item.menuItemPriceAmount * sel.quantity, 0
-    );
+  confirmOrder() {
+    this.ordersService
+      .listOpenOrderForTable(this.restaurantId, this.currentTableId)
+      .pipe(take(1))
+      .subscribe(order => {
+        if (!order) {
+          this.createNewOrder();
+        } else {
+          this.updateExistingOrder(order);
+        }
+        this.orderIsConfirmed = true;
+      });
   }
 
-  get cartCurrency(): string | undefined {
-    const cart = this.tableCarts[this.currentTableId] ?? [];
-    return cart.length > 0 ? cart[0].item.menuItemPriceCurrency : undefined;
-  }
-
+  //#region Getters 
   get filteredMenuItems(): MenuItem[] {
     const term = this.searchTerm.trim().toLowerCase();
     if (!term) return [];
@@ -207,50 +203,123 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     );
   }
 
-  addCartItem(item: MenuItem) {
-    if (!this.tableCarts[this.currentTableId]) {
-      this.tableCarts[this.currentTableId] = [];
-    }
-
-    const cart = this.tableCarts[this.currentTableId];
-    const existing = cart.find(x => x.item.menuItemId === item.menuItemId);
-
-    if (existing) {
-      existing.quantity++;
-    } else {
-      cart.push({ item, quantity: 1 });
-    }
-
-    this.saveCart();
+  get availableTablesForMove(): TableDTO[] {
+    return this.tables.filter(t =>
+      t.tableId !== this.currentTableId &&
+      t.isTableOpen &&
+      !t.order
+    );
   }
 
-  removeCartItem(item: MenuItem) {
-    const cart = this.tableCarts[this.currentTableId];
-    if (!cart) return;
+  get cartSubTotal(): number {
+    const cart = this.tableCarts[this.currentTableId] ?? [];
+    return cart.reduce((sum, sel) =>
+      sum + sel.item.menuItemPriceAmount * sel.quantity, 0
+    );
+  }
 
-    const existing = cart.find(x => x.item.menuItemId === item.menuItemId);
+  get cartCurrency(): string | undefined {
+    const cart = this.tableCarts[this.currentTableId] ?? [];
+    return cart.length > 0 ? cart[0].item.menuItemPriceCurrency : undefined;
+  }
+  //#endregion
+
+  addCartItem(item: MenuItem) {
+    if (!this.orderIsConfirmed) {
+      // DRAFT MODE
+      const cart = this.tableCarts[this.currentTableId];
+      const existing = cart.find(x => x.item.menuItemId === item.menuItemId);
+
+      if (existing) existing.quantity++;
+      else cart.push({ item, quantity: 1 });
+
+      this.saveCart();
+      return;
+    }
+
+    // LIVE MODE
+    const existing = this.selectedItems.find(x => x.item.menuItemId === item.menuItemId);
+
+    if (!existing) {
+      // POST nou
+      this.ordersService.addOrderItem(
+        this.restaurantId,
+        this.currentTableId,
+        item.menuItemId,
+        1
+      ).subscribe(() => this.reloadOrder());
+    } else {
+      // PUT increment
+      this.ordersService.updateOrderItemQuantity(
+        this.restaurantId,
+        this.currentTableId,
+        this.currentOrderId!,
+        existing.orderItemId!,
+        existing.quantity + 1
+      ).subscribe(() => this.reloadOrder());
+    }
+  }
+
+
+  decrementItem(sel: CartItem) {
+    const cart = this.tableCarts[this.currentTableId];
+    const existing = cart.find(x => x.item.menuItemId === sel.item.menuItemId);
     if (!existing) return;
 
-    if (existing.quantity > 1) {
-      existing.quantity--;
-    } else {
-      this.tableCarts[this.currentTableId] = cart.filter(
-        x => x.item.menuItemId !== item.menuItemId
-      );
+    if (!this.orderIsConfirmed) {
+      // DRAFT MODE
+      if (existing.quantity > 1) {
+        existing.quantity--;
+      } else {
+        this.tableCarts[this.currentTableId] =
+          cart.filter(x => x.item.menuItemId !== sel.item.menuItemId);
+      }
+      this.saveCart();
+      return;
     }
-    this.saveCart();
+
+    // LIVE MODE
+    if (existing.quantity > 1) {
+      this.ordersService.updateOrderItemQuantity(
+        this.restaurantId,
+        this.currentTableId,
+        this.currentOrderId!,
+        existing.orderItemId!,
+        existing.quantity - 1
+      ).subscribe(() => this.reloadOrder());
+    } else {
+      this.ordersService.deleteOrderItem(
+        this.restaurantId,
+        this.currentTableId,
+        this.currentOrderId!,
+        existing.orderItemId!
+      ).subscribe(() => this.reloadOrder());
+    }
   }
 
-  removeItemCompletely(item: MenuItem) {
+  removeItem(sel: CartItem) {
     const cart = this.tableCarts[this.currentTableId];
-    if (!cart) return;
+    const existing = cart.find(x => x.item.menuItemId === sel.item.menuItemId);
+    if (!existing) return;
 
-    this.tableCarts[this.currentTableId] = cart.filter(
-      x => x.item.menuItemId !== item.menuItemId
-    );
+    if (!this.orderIsConfirmed) {
+      // DRAFT MODE
+      this.tableCarts[this.currentTableId] =
+        cart.filter(x => x.item.menuItemId !== sel.item.menuItemId);
 
-    this.saveCart();
+      this.saveCart();
+      return;
+    }
+
+    // LIVE MODE
+    this.ordersService.deleteOrderItem(
+      this.restaurantId,
+      this.currentTableId,
+      this.currentOrderId!,
+      existing.orderItemId!
+    ).subscribe(() => this.reloadOrder());
   }
+
 
   openTable(table: TableDTO) {
     this.currentTableId = table.tableId;
@@ -261,6 +330,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.tableCarts[this.currentTableId] = [];
     }
     this.canvasVisible = true;
+    // this.orderIsConfirmed = true;
     this.openOrder();
   }
 

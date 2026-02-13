@@ -106,8 +106,7 @@
                 </p>
                 <p cCardText></p>
                 <footer>
-                  <button cButton cOffcanvasToggle="OffcanvasStart" class="btn btn-primary float-end"
-                    (click)="openOrder()">
+                  <button cButton cOffcanvasToggle="OffcanvasStart" class="btn btn-primary float-end">
                     Open Order
                   </button>
                 </footer>
@@ -214,10 +213,10 @@
                 {{ sel.item.menuItemPriceAmount * sel.quantity | currency: sel.item.menuItemPriceCurrency }}
               </td>
               <td class="text-end">
-                <button class="btn btn-sm btn-outline-secondary me-1" (click)="removeCartItem(sel.item)">
+                <button class="btn btn-sm btn-outline-secondary me-1"  (click)="decrementItem(sel)">
                   -
                 </button>
-                <button class="btn btn-sm btn-outline-danger" (click)="removeItemCompletely(sel.item)">
+                <button class="btn btn-sm btn-outline-danger" (click)="removeItem(sel)">
                   ×
                 </button>
               </td>
@@ -228,7 +227,8 @@
 
       <hr>
 
-      <button class="btn btn-primary w-100"  [disabled]="selectedItems.length === 0">
+      <button class="btn btn-primary w-100" *ngIf="!orderIsConfirmed" (click)="confirmOrder()"
+        [disabled]="selectedItems.length === 0">
         Confirm Order – {{ cartSubTotal | currency: cartCurrency }}
       </button>
     </div>

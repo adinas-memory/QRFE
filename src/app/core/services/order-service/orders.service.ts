@@ -30,11 +30,12 @@ export class OrdersService {
     return this.http.get<OrderDTO>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/${tableId}/orders`, { withCredentials: true });
   }
 
+  //confirm order
   updateOrderItem(restaurantId: string, tableId: string, orderId: string, body: { orderItems: { menuItemId: string; quantity: number }[], seatId: string | null }): Observable<OrderDTO> {
     return this.http.put<OrderDTO>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${orderId}`, body, { withCredentials: true });
   }
 
-  removeOrderItem(restaurantId: string, tableId: string, orderId: string, orderItemId: string): Observable<OrderDTO> {
+  deleteOrderItem(restaurantId: string, tableId: string, orderId: string, orderItemId: string): Observable<OrderDTO> {
     return this.http.delete<OrderDTO>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${orderId}/${orderItemId}`, { withCredentials: true });
   }
 
@@ -48,5 +49,14 @@ export class OrdersService {
 
   listOrdersTimeFrame(restaurantId: string, tableId: string, from: string, to: string) {
     return this.http.get(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/filter-by-date}`, { withCredentials: true });
+  }
+
+  // new methods
+  addOrderItem(restaurantId: string, tableId: string,  menuItemId: string, quantity: number): Observable<OrderDTO> {
+    return this.http.post<OrderDTO>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/${tableId}/orders/items`, { menuItemId, quantity }, { withCredentials: true });
+  }
+
+  updateOrderItemQuantity(restaurantId: string, tableId: string, currentOrderId: string, orderItemId: string, quantity: number): Observable<OrderDTO>   {
+    return this.http.put<OrderDTO>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${currentOrderId}/items/${orderItemId}`, { quantity }, { withCredentials: true });
   }
 }
