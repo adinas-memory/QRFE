@@ -46,6 +46,21 @@ export interface CartItem {
 }
 
 export interface TableCart {
-    [tableId: string]: CartItem[];
+  [tableId: string]: CartItem[];
 }
 
+export interface AddOrderItemResponse {
+  orderId: string;
+  orderItemId: string;
+  menuItemId: string;
+  quantity: number;
+  action: string; 
+}
+
+export interface UpdateOrderItemQuantityResponse {
+  orderId: string;
+  orderItemId: string;  
+  menuItemId: string;
+  quantity: number;
+  action: string; 
+}

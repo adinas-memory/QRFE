@@ -245,6 +245,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.ordersService.addOrderItem(
         this.restaurantId,
         this.currentTableId,
+        this.currentOrderId!,
         item.menuItemId,
         1
       ).subscribe(() => this.reloadOrder());

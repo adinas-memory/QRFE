@@ -1,9 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment';
-
 import { Observable } from 'rxjs';
-import { CartItem, OrderDTO } from '../../models/orderingModel';
+import { AddOrderItemResponse, CartItem, OrderDTO, UpdateOrderItemQuantityResponse } from '../../models/orderingModel';
 
 
 @Injectable({
@@ -52,11 +51,13 @@ export class OrdersService {
   }
 
   // new methods
-  addOrderItem(restaurantId: string, tableId: string,  menuItemId: string, quantity: number): Observable<OrderDTO> {
-    return this.http.post<OrderDTO>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/${tableId}/orders/items`, { menuItemId, quantity }, { withCredentials: true });
+  addOrderItem(restaurantId: string, tableId: string,  currentOrderId: string, menuItemId: string, quantity: number): Observable<AddOrderItemResponse> {
+    console.log('Adding order item:', { restaurantId, tableId, currentOrderId, menuItemId, quantity });
+    return this.http.post<AddOrderItemResponse>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${currentOrderId}/items`, { menuItemId, quantity }, { withCredentials: true });
   }
 
-  updateOrderItemQuantity(restaurantId: string, tableId: string, currentOrderId: string, orderItemId: string, quantity: number): Observable<OrderDTO>   {
-    return this.http.put<OrderDTO>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${currentOrderId}/items/${orderItemId}`, { quantity }, { withCredentials: true });
+  updateOrderItemQuantity(restaurantId: string, tableId: string, currentOrderId: string, orderItemId: string, quantity: number): Observable<UpdateOrderItemQuantityResponse>   {
+    console.log('Updating order item quantity:', { restaurantId, tableId, currentOrderId, orderItemId, quantity });
+    return this.http.put<UpdateOrderItemQuantityResponse>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${currentOrderId}/items/${orderItemId}`, { quantity }, { withCredentials: true });
   }
 }
