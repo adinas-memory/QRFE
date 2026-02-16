@@ -59,8 +59,7 @@ export interface AddOrderItemResponse {
 
 export interface UpdateOrderItemQuantityResponse {
   orderId: string;
-  orderItemId: string;  
-  menuItemId: string;
+  orderItemId: string;    
   quantity: number;
   action: string; 
 }
