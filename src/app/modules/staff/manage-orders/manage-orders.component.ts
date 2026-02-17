@@ -70,6 +70,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   selectedTargetTableId: string | null = null;
   orderIsConfirmed = false;
   currentOrderId: string | null = null;
+  private quantityBuffer: Record<string, number> = {};
+  private quantityUpdate$ = new Subject<CartItem>();
+
 
   constructor(private tablesService: TablesService, private menuItemService: MenuItemServiceService,
     private authService: AuthService, private ordersService: OrdersService,
@@ -237,11 +240,20 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // LIVE MODE
+    // LIVE MODE → optimistic UI + batching
     const existing = this.selectedItems.find(x => x.item.menuItemId === item.menuItemId);
 
     if (!existing) {
-      // POST nou
+      // UI optimistic: adaugăm itemul local
+      this.tableCarts[this.currentTableId].push({
+        item,
+        quantity: 1,
+        orderItemId: undefined
+      });
+
+      this.saveCart();
+
+      // trimitem POST imediat (nu se poate batch-ui)
       this.ordersService.addOrderItem(
         this.restaurantId,
         this.currentTableId,
@@ -249,26 +261,27 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         item.menuItemId,
         1
       ).subscribe(() => this.reloadOrder());
-    } else {
-      // PUT increment
-      this.ordersService.updateOrderItemQuantity(
-        this.restaurantId,
-        this.currentTableId,
-        this.currentOrderId!,
-        existing.orderItemId!,
-        existing.quantity + 1
-      ).subscribe(() => this.reloadOrder());
+
+      return;
     }
+
+    // UI optimistic: creștem quantity local
+    existing.quantity++;
+    this.saveCart();
+
+    // batching
+    this.queueQuantityUpdate(existing);
   }
 
 
-  decrementItem(sel: CartItem) {
-    const cart = this.tableCarts[this.currentTableId];
-    const existing = cart.find(x => x.item.menuItemId === sel.item.menuItemId);
-    if (!existing) return;
 
+  decrementItem(sel: CartItem) {
     if (!this.orderIsConfirmed) {
       // DRAFT MODE
+      const cart = this.tableCarts[this.currentTableId];
+      const existing = cart.find(x => x.item.menuItemId === sel.item.menuItemId);
+      if (!existing) return;
+
       if (existing.quantity > 1) {
         existing.quantity--;
       } else {
@@ -279,16 +292,21 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // LIVE MODE
+    // LIVE MODE → optimistic UI
+    const existing = this.selectedItems.find(x => x.item.menuItemId === sel.item.menuItemId);
+    if (!existing) return;
+
     if (existing.quantity > 1) {
-      this.ordersService.updateOrderItemQuantity(
-        this.restaurantId,
-        this.currentTableId,
-        this.currentOrderId!,
-        existing.orderItemId!,
-        existing.quantity - 1
-      ).subscribe(() => this.reloadOrder());
+      existing.quantity--;
+      this.saveCart();
+      this.queueQuantityUpdate(existing);
     } else {
+      // UI optimistic: scoatem itemul
+      this.tableCarts[this.currentTableId] =
+        this.tableCarts[this.currentTableId].filter(x => x.item.menuItemId !== sel.item.menuItemId);
+      this.saveCart();
+
+      // DELETE imediat (nu se poate batch-ui)
       this.ordersService.deleteOrderItem(
         this.restaurantId,
         this.currentTableId,
@@ -321,6 +339,26 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     ).subscribe(() => this.reloadOrder());
   }
 
+  private queueQuantityUpdate(item: CartItem) {
+    this.quantityBuffer[item.orderItemId!] = item.quantity;
+    this.quantityUpdate$.next(item);
+  }
+
+
+  private flushQuantityUpdate(item: CartItem) {
+    const finalQuantity = this.quantityBuffer[item.orderItemId!];
+    if (finalQuantity == null) return;
+
+    delete this.quantityBuffer[item.orderItemId!];
+
+    this.ordersService.updateOrderItemQuantity(
+      this.restaurantId,
+      this.currentTableId,
+      this.currentOrderId!,
+      item.orderItemId!,
+      finalQuantity
+    ).subscribe(() => this.reloadOrder());
+  }
 
   openTable(table: TableDTO) {
     this.currentTableId = table.tableId;
@@ -428,7 +466,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.tableCarts = JSON.parse(saved);
     }
 
+    this.quantityUpdate$
+      .pipe(debounceTime(500))
+      .subscribe(item => this.flushQuantityUpdate(item));
   }
+
   moveCartToSelectedTable() {
     if (!this.selectedTargetTableId) return;
 
