@@ -40,6 +40,11 @@
                     (click)="openTable(table)">
                     Open Table
                   </button>
+                  <!-- <button cButton cOffcanvasToggle="OffcanvasStart" *ngIf="orderIsConfirmed"
+                    class="btn btn-success float-end" (click)="openTable(table)">
+                    See Orders
+                  </button> -->
+
                 </footer>
               </c-row>
             </c-card>
@@ -213,7 +218,7 @@
                 {{ sel.item.menuItemPriceAmount * sel.quantity | currency: sel.item.menuItemPriceCurrency }}
               </td>
               <td class="text-end">
-                <button class="btn btn-sm btn-outline-secondary me-1"  (click)="decrementItem(sel)">
+                <button class="btn btn-sm btn-outline-secondary me-1" (click)="decrementItem(sel)">
                   -
                 </button>
                 <button class="btn btn-sm btn-outline-danger" (click)="removeItem(sel)">
@@ -231,6 +236,19 @@
         [disabled]="selectedItems.length === 0">
         Confirm Order – {{ cartSubTotal | currency: cartCurrency }}
       </button>
+
+      <div *ngIf="showCloseConfirm" class="p-3 border rounded bg-light mb-2">
+        <p class="mb-2">Are you sure you want to close this order?</p>
+        <div class="d-flex justify-content-end"> <button cButton color="secondary" class="me-2"
+            (click)="cancelCloseOrder()"> Cancel </button> <button cButton color="warning"
+            (click)="confirmCloseOrder()"> Close Order </button> </div>
+      </div>
+
+      <button class="btn btn-warning w-100" *ngIf="orderIsConfirmed" (click)="closeOrder()"
+        [disabled]="selectedItems.length === 0">
+        Close Order – {{ cartSubTotal | currency: cartCurrency }}
+      </button>
+
     </div>
     <!-- END CART -->
   </div>

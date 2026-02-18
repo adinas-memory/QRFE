@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import Fuse from 'fuse.js';
 import { IconDirective } from '@coreui/icons-angular';
-import { BadgeComponent, ButtonCloseDirective, ButtonDirective, CardBodyComponent, CardComponent, CardFooterComponent, CardGroupComponent, CardHeaderComponent, CardImgDirective, CardTextDirective, CardTitleDirective, ColComponent, ColDirective, DropdownComponent, DropdownItemDirective, DropdownMenuDirective, DropdownToggleDirective, ModalBodyComponent, ModalComponent, ModalFooterComponent, ModalHeaderComponent, ModalTitleDirective, NavbarComponent, NavbarNavComponent, NavbarTogglerDirective, NavComponent, NavItemComponent, NavLinkDirective, OffcanvasBodyComponent, OffcanvasComponent, OffcanvasHeaderComponent, OffcanvasTitleDirective, OffcanvasToggleDirective, RowComponent, TableDirective, Tabs2Module, TemplateIdDirective, WidgetStatAComponent, WidgetStatFComponent } from '@coreui/angular';
+import { BadgeComponent, ButtonCloseDirective, ButtonDirective, CardBodyComponent, CardComponent, CardFooterComponent, CardGroupComponent, CardHeaderComponent, CardImgDirective, CardTextDirective, CardTitleDirective, ColComponent, ColDirective, DropdownComponent, DropdownItemDirective, DropdownMenuDirective, DropdownToggleDirective, ModalBodyComponent, ModalComponent, ModalFooterComponent, ModalHeaderComponent, ModalTitleDirective, ModalToggleDirective, NavbarComponent, NavbarNavComponent, NavbarTogglerDirective, NavComponent, NavItemComponent, NavLinkDirective, OffcanvasBodyComponent, OffcanvasComponent, OffcanvasHeaderComponent, OffcanvasTitleDirective, OffcanvasToggleDirective, RowComponent, TableDirective, Tabs2Module, TemplateIdDirective, WidgetStatAComponent, WidgetStatFComponent } from '@coreui/angular';
 import { TablesService } from '../../../core/services/tables-service/tables.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
@@ -34,7 +34,7 @@ import { OrderSyncService } from '../../../core/services/order-service/order-syn
       OffcanvasTitleDirective, OffcanvasToggleDirective,
       NavComponent, DropdownComponent, DropdownItemDirective,
       DropdownMenuDirective, DropdownToggleDirective, NavItemComponent,
-      NavLinkDirective
+      NavLinkDirective,
     ],
   styleUrls: ['./manage-orders.component.scss'],
   standalone: true,
@@ -72,7 +72,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   currentOrderId: string | null = null;
   private quantityBuffer: Record<string, number> = {};
   private quantityUpdate$ = new Subject<CartItem>();
-
+  showCloseConfirm = false;
 
   constructor(private tablesService: TablesService, private menuItemService: MenuItemServiceService,
     private authService: AuthService, private ordersService: OrdersService,
@@ -490,6 +490,36 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
     this.selectedTargetTableId = null;
   }
+
+  closeOrder() {
+    this.showCloseConfirm = true;
+  }
+  cancelCloseOrder() {
+    this.showCloseConfirm = false;    
+  }
+
+  confirmCloseOrder() {
+    this.showCloseConfirm = false;
+
+    this.ordersService.closeOrder(
+      this.restaurantId,
+      this.currentTableId,
+      this.currentOrderId!
+    ).subscribe({
+      next: (response: OrderDTO) => {
+        this.loadTables();
+        this.tableCarts[this.currentTableId] = [];
+        localStorage.removeItem('tableCarts');
+        this.currentTableId = '';
+        this.tableName = '';
+        this.orderIsConfirmed = false;
+        this.canvasVisible = false;
+      },
+      error: err => console.error('Error closing order:', err)
+    });
+  }
+
+
 
   ngOnDestroy(): void {
     this.destroy$.next();

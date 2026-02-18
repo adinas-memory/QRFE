@@ -51,13 +51,17 @@ export class OrdersService {
   }
 
   // new methods
-  addOrderItem(restaurantId: string, tableId: string,  currentOrderId: string, menuItemId: string, quantity: number): Observable<AddOrderItemResponse> {
+  addOrderItem(restaurantId: string, tableId: string, currentOrderId: string, menuItemId: string, quantity: number): Observable<AddOrderItemResponse> {
     console.log('Adding order item:', { restaurantId, tableId, currentOrderId, menuItemId, quantity });
     return this.http.post<AddOrderItemResponse>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${currentOrderId}/items`, { menuItemId, quantity }, { withCredentials: true });
   }
 
-  updateOrderItemQuantity(restaurantId: string, tableId: string, currentOrderId: string, orderItemId: string, quantity: number): Observable<UpdateOrderItemQuantityResponse>   {
+  updateOrderItemQuantity(restaurantId: string, tableId: string, currentOrderId: string, orderItemId: string, quantity: number): Observable<UpdateOrderItemQuantityResponse> {
     console.log('Updating order item quantity:', { restaurantId, tableId, currentOrderId, orderItemId, quantity });
     return this.http.put<UpdateOrderItemQuantityResponse>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${currentOrderId}/items/${orderItemId}`, { quantity }, { withCredentials: true });
+  }
+
+  closeOrderAfterPayment(restaurantId: string, tableId: string, orderId: string): Observable<OrderDTO> {
+    return this.http.post<OrderDTO>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${orderId}/close`, {}, { withCredentials: true });
   }
 }
