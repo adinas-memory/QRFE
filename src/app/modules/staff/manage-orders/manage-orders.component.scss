@@ -35,8 +35,6 @@
   padding: 5px 0;
 }
 
-
-
 .offcanvas-body {
   flex: 1 1 auto;
   overflow-y: auto;
@@ -57,3 +55,11 @@
   max-height: 25vh;
   overflow-y: auto;
 }
+
+.table-open { border: 2px solid #198754;  background-color: #8cf8c7; } 
+.table-closed { border: 2px solid #dc3545; background-color: #fa7d88; } 
+.waiter-active { border: 2px solid orange !important; background-color: #fad869 !important; } 
+.waiter-snoozed { border: 2px solid #adb5bd !important; background-color: #8abef1 !important; }
+
+// #198754;  background-color: #8cf8c7;
+// #dc3545; background-color: #fa7d88;

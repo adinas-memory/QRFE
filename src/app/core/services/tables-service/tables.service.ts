@@ -15,7 +15,7 @@ export class TablesService {
   constructor(private http: HttpClient, private ngZone: NgZone) { }
 
   getAll(restaurantId: string): Observable<TableDTO[]> {
-    return this.http.get<TableDTO[]>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/status`, { withCredentials: true });
+    return this.http.get<TableDTO[]>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/get-tables-status`, { withCredentials: true });
   }
 
   create(restaurantId: string, payload: { numberOfTables: number }): Observable<TableDTO[]> {
@@ -65,33 +65,30 @@ export class TablesService {
     return this.http.post<any>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/${tableId}/call-waiter`, {}, { withCredentials: true });
   }
 
-  listenSnoozeWaiterCall(restaurantId: string): Observable<any> {
-    return new Observable(observer => {
-      const controller = new AbortController();
+  // listenSnoozeWaiterCall(restaurantId: string): Observable<any> {
+  //   return new Observable(observer => {
+  //     const controller = new AbortController();
 
-      fetchEventSource(`${this.apiUrl}/sse/internal/restaurant/${restaurantId}`, {
-      // fetchEventSource(`/sse/internal/restaurant/${restaurantId}`, {
-        method: 'GET',
-        credentials: 'include',
-        signal: controller.signal,
+  //     fetchEventSource(`${this.apiUrl}/sse/internal/restaurant/${restaurantId}`, {      
+  //       method: 'GET',
+  //       credentials: 'include',
+  //       signal: controller.signal,
 
-        onmessage: (msg: any) => {
-          if (msg.event === 'WaiterCallSnoozed') {
-            this.ngZone.run(() => {
-              observer.next(JSON.parse(msg.data));
-              console.log('Snooze event received:', JSON.parse(msg.data));
-            });
-          }
-        },
+  //       onmessage: (msg: any) => {          
+  //           this.ngZone.run(() => {
+  //             observer.next(JSON.parse(msg.data));
+  //             console.log('Snooze event received:', JSON.parse(msg.data));
+  //           });          
+  //       },
 
-        onerror: (err: unknown) => {
-          this.ngZone.run(() => observer.error(err));
-        }
-      });
+  //       onerror: (err: unknown) => {
+  //         this.ngZone.run(() => observer.error(err));
+  //       }
+  //     });
 
-      return () => controller.abort();
-    });
-  }
+  //     return () => controller.abort();
+  //   });
+  // }
 
 
 }

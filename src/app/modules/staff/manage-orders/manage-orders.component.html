@@ -11,7 +11,7 @@
       <c-row>
         <c-col lg="6" xs="12" *ngFor="let table of tables">
           <c-card-group class="mb-4">
-            <c-card class="mb-3" [ngStyle]="{ 'max-width.px': 540 }" [color]="table.isTableOpen ? 'success' : 'danger'">
+            <c-card class="mb-3" [ngClass]="getTableCss(table)">
               <c-row class="g-0">
                 <c-card-header>
                   <h4>
@@ -37,14 +37,9 @@
                 </c-card-body>
                 <footer>
                   <button cButton cOffcanvasToggle="OffcanvasStart" class="btn btn-primary float-end"
-                    (click)="openTable(table)">
-                    Open Table
+                    (click)="table.order ? seeOrder(table) : openTable(table)">
+                    {{ table.order ? 'See Order' : 'Open Table' }}
                   </button>
-                  <!-- <button cButton cOffcanvasToggle="OffcanvasStart" *ngIf="orderIsConfirmed"
-                    class="btn btn-success float-end" (click)="openTable(table)">
-                    See Orders
-                  </button> -->
-
                 </footer>
               </c-row>
             </c-card>

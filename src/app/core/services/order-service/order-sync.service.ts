@@ -1,114 +1,57 @@
-import { Injectable } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { Injectable, NgZone } from '@angular/core';
+import { forkJoin, Observable } from 'rxjs';
 import { MenuItem } from '../../models/menu/menuItem';
 import { CartItem } from '../../models/orderingModel';
 import { OrderItemDTO } from '../../models/orderingModel';
 import { OrdersService } from './orders.service';
+import { fetchEventSource } from '@microsoft/fetch-event-source';
+import { environment } from '../../../../environments/environment'
 
 @Injectable({
   providedIn: 'root'
 })
 export class OrderSyncService {
 
+  private apiUrl = environment.apiUrl;
 
-  constructor(private ordersService: OrdersService) {
+  constructor(private ngZone: NgZone) {
   }
 
-  syncCartWithOrder(orderItems: OrderItemDTO[], menuItems: MenuItem[]): CartItem[] {
-    return orderItems.map(orderItem => {
-      const menuItem = menuItems.find(m => m.menuItemId === orderItem.menuItemId);
-      if (!menuItem) return null;
-      return {
-        item: menuItem,
-        quantity: orderItem.quantity
-      };
-    }).filter(x => x !== null) as CartItem[];
-  }
+  listenToRestaurantEvents(restaurantId: string): Observable<{ EventType: string, Data: any }> {
+    return new Observable(observer => {
+      const controller = new AbortController();
 
-  calculateOrderDiff(
-    cart: CartItem[],
-    orderItems: (OrderItemDTO | null)[]
-  ) {
-    const adds: { menuItemId: string; quantity: number }[] = [];
-    const updates: { orderItemId: string; quantity: number }[] = [];
-    const deletes: string[] = [];
+      fetchEventSource(`${this.apiUrl}/sse/internal/restaurant/${restaurantId}`, {
+        method: 'GET',
+        credentials: 'include',
+        signal: controller.signal,
 
-    const orderMap = new Map(
-      orderItems
-        .filter((o): o is OrderItemDTO => o !== null)
-        .map(o => [o.menuItemId, o])
-    );
+        onmessage: (msg: any) => {
+          this.ngZone.run(() => {
 
-    // ADD or UPDATE
-    for (const cartItem of cart) {
-      const existing = orderMap.get(cartItem.item.menuItemId);
+            const raw = JSON.parse(msg.data);
 
-      if (!existing) {
-        adds.push({
-          menuItemId: cartItem.item.menuItemId,
-          quantity: cartItem.quantity
-        });
-      } else if (existing.quantity !== cartItem.quantity) {
-        updates.push({
-          orderItemId: existing.orderItemId!,
-          quantity: cartItem.quantity
-        });
-      }
-    }
+            const EventType = raw.EventType ?? raw.event;
 
-    // DELETE
-    for (const orderItem of orderMap.values()) {
-      const stillExists = cart.some(c => c.item.menuItemId === orderItem.menuItemId);
-      if (!stillExists) {
-        deletes.push(orderItem.orderItemId!);
-      }
-    }
+            const Data = typeof raw.Data === 'string'
+              ? JSON.parse(raw.Data)
+              : raw.Data;
+            observer.next({ EventType, Data });
+          });
+        },
 
-    return { adds, updates, deletes };
+
+        onerror: err => {
+          this.ngZone.run(() => observer.error(err));
+        }
+      });
+
+      return () => controller.abort();
+    });
   }
 
 
-  // syncOrderWithBackend(
-  //   restaurantId: string,
-  //   tableId: string,
-  //   orderId: string,
-  //   diff: {
-  //     adds: { menuItemId: string; quantity: number }[],
-  //     updates: { orderItemId: string; quantity: number }[],
-  //     deletes: string[]
-  //   },
-  //   orderItems: OrderItemDTO[]
-  // ) {
-  //   const calls = [];
 
-  //   // ADD
-  //   for (const add of diff.adds) {
-  //     calls.push(
-  //       this.ordersService.addOrderItem(restaurantId, tableId, orderId, add)
-  //     );
-  //   }
 
-  //   // UPDATE
-  //   for (const upd of diff.updates) {
-  //   const orderItem = orderItems.find(o => o?.orderItemId === upd.orderItemId); 
-  //   if (!orderItem) continue;
-
-  //     calls.push(
-  //       this.ordersService.addOrderItem(restaurantId, tableId, orderId, {
-  //         menuItemId: orderItem.menuItemId,
-  //         quantity: upd.quantity
-  //       })
-  //     );
-  //   }
-
-  //   // DELETE
-  //   for (const del of diff.deletes) {
-  //     calls.push(
-  //       this.ordersService.removeOrderItem(restaurantId, tableId, orderId, del)
-  //     );
-  //   }
-
-  //   return forkJoin(calls);
-  // }
 
 }

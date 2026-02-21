@@ -1,6 +1,6 @@
 import { ButtonsComponent } from '../../../views/buttons/buttons/buttons.component';
 import { FormsModule } from '@angular/forms';
-import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, NgZone, OnDestroy, OnInit } from '@angular/core';
 import Fuse from 'fuse.js';
 import { IconDirective } from '@coreui/icons-angular';
 import { BadgeComponent, ButtonCloseDirective, ButtonDirective, CardBodyComponent, CardComponent, CardFooterComponent, CardGroupComponent, CardHeaderComponent, CardImgDirective, CardTextDirective, CardTitleDirective, ColComponent, ColDirective, DropdownComponent, DropdownItemDirective, DropdownMenuDirective, DropdownToggleDirective, ModalBodyComponent, ModalComponent, ModalFooterComponent, ModalHeaderComponent, ModalTitleDirective, ModalToggleDirective, NavbarComponent, NavbarNavComponent, NavbarTogglerDirective, NavComponent, NavItemComponent, NavLinkDirective, OffcanvasBodyComponent, OffcanvasComponent, OffcanvasHeaderComponent, OffcanvasTitleDirective, OffcanvasToggleDirective, RowComponent, TableDirective, Tabs2Module, TemplateIdDirective, WidgetStatAComponent, WidgetStatFComponent } from '@coreui/angular';
@@ -8,7 +8,7 @@ import { TablesService } from '../../../core/services/tables-service/tables.serv
 import { AuthService } from '../../../core/auth/auth.service';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
 import { filter, Subject, take, takeUntil, debounceTime, forkJoin } from 'rxjs';
-import { NgFor, NgIf, NgStyle, CurrencyPipe, JsonPipe } from '@angular/common';
+import { NgFor, NgIf, NgStyle, CurrencyPipe, JsonPipe, NgClass } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { cilBellExclamation } from '@coreui/icons';
 import { UserContextModel } from '../../../core/models/userContextModel';
@@ -34,7 +34,7 @@ import { OrderSyncService } from '../../../core/services/order-service/order-syn
       OffcanvasTitleDirective, OffcanvasToggleDirective,
       NavComponent, DropdownComponent, DropdownItemDirective,
       DropdownMenuDirective, DropdownToggleDirective, NavItemComponent,
-      NavLinkDirective,
+      NavLinkDirective, NgClass,
     ],
   styleUrls: ['./manage-orders.component.scss'],
   standalone: true,
@@ -49,6 +49,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   private waiterCallSubscription: any;
   private snoozeWaiterCallSubscription: any;
   waiterState: Record<string, WaiterCallState> = {};
+  WaiterCallState = WaiterCallState;
   modalVisible = false;
   categories: string[] = [];
   menuItems: MenuItem[] = [];
@@ -74,8 +75,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   private quantityUpdate$ = new Subject<CartItem>();
   showCloseConfirm = false;
 
-  constructor(private tablesService: TablesService, private menuItemService: MenuItemServiceService,
-    private authService: AuthService, private ordersService: OrdersService,
+
+  constructor(private tablesService: TablesService, private menuItemService: MenuItemServiceService, private ngZone: NgZone,
+    private authService: AuthService, private ordersService: OrdersService, private sseService: OrderSyncService,
   ) { }
 
   @HostListener('document:keydown.escape', ['$event'])
@@ -91,8 +93,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     }
   }
 
-
-
+  trackByTableId(index: number, table: TableDTO) { return table.tableId; }
 
   openOrder() {
     this.ordersService.listOpenOrderForTable(this.restaurantId, this.currentTableId)
@@ -112,7 +113,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.seatId ?? undefined
     )
       .pipe(take(1))
-      .subscribe(() => this.reloadOrder());
+      .subscribe(() => { });
   }
 
   private updateExistingOrder(order: OrderDTO) {
@@ -260,7 +261,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.currentOrderId!,
         item.menuItemId,
         1
-      ).subscribe(() => this.reloadOrder());
+      ).subscribe(() => { });
 
       return;
     }
@@ -398,13 +399,35 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: response => {
-          this.tables = response,
-            this.openTables = response.filter(t => t.isTableOpen);
-          this.closedTables = response.filter(t => !t.isTableOpen);
+          this.tables = response;
+          this.refreshTableLists();
         },
         error: err => console.error('[ManageTablesComponent] Error loading tables', err)
       });
   }
+
+  seeOrder(table: TableDTO) {
+    this.currentTableId = table.tableId;
+    this.tableName = table.tableName ?? '';
+    this.canvasVisible = true;
+
+    // încarcă order-ul existent, dar NU creează unul nou
+    this.ordersService.listOpenOrderForTable(this.restaurantId, this.currentTableId)
+      .pipe(take(1))
+      .subscribe(order => {
+        if (order) {
+          this.currentOrderId = order.orderId;
+          this.orderIsConfirmed = true;
+
+          this.tableCarts[this.currentTableId] = order.orderItems!.map(o => ({
+            item: this.menuItems.find(m => m.menuItemId === o?.menuItemId)!,
+            quantity: o?.quantity ?? 0,
+            orderItemId: o?.orderItemId
+          }));
+        }
+      });
+  }
+
 
   snoozeWaiterCall(tableId: string): void {
     this.tablesService.snoozeWaiterCall(this.restaurantId, tableId)
@@ -415,60 +438,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         },
         error: (err: unknown) => console.error('Error snoozing waiter call', err)
       });
-  }
-
-  ngOnInit(): void {
-    this.authService.getUserContext()
-      .pipe(
-        takeUntil(this.destroy$),
-        filter((user): user is UserContextModel => !!user && !!user.restaurantId),
-        take(1)
-      )
-      .subscribe(user => {
-        this.restaurantId = user.restaurantId ?? '';
-        this.loadTables();
-        this.loadMenuItems();
-
-        this.waiterCallSubscription = this.tablesService.listenForWaiterCall(this.restaurantId)
-          .subscribe({
-            next: (response: WaiterCallEvent) => {
-              const tableId = response.Data.TableId;
-              console.log('Received waiter call for tableId:', tableId);
-              this.waiterState = { ...this.waiterState, [tableId]: WaiterCallState.Active };
-            },
-            error: (err: unknown) => console.error('SSE error:', err)
-          });
-
-        this.snoozeWaiterCallSubscription = this.tablesService.listenSnoozeWaiterCall(this.restaurantId)
-          .subscribe({
-            next: (response: SnoozeWaiterCallEvent) => {
-              const tableId = response.Data.TableId;
-              this.waiterState = { ...this.waiterState, [tableId]: WaiterCallState.Snoozed };
-            },
-            error: (err: unknown) => console.error('SSE error:', err)
-          });
-      });
-
-    this.search$
-      .pipe(debounceTime(250))
-      .subscribe(term => {
-        if (!term.trim()) {
-          this.filteredResults = [];
-          return;
-        }
-
-        const results = this.fuse.search(term);
-        this.filteredResults = results.map(r => r.item);
-      });
-
-    const saved = localStorage.getItem('tableCarts');
-    if (saved) {
-      this.tableCarts = JSON.parse(saved);
-    }
-
-    this.quantityUpdate$
-      .pipe(debounceTime(500))
-      .subscribe(item => this.flushQuantityUpdate(item));
   }
 
   moveCartToSelectedTable() {
@@ -495,7 +464,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.showCloseConfirm = true;
   }
   cancelCloseOrder() {
-    this.showCloseConfirm = false;    
+    this.showCloseConfirm = false;
   }
 
   confirmCloseOrder() {
@@ -507,7 +476,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.currentOrderId!
     ).subscribe({
       next: (response: OrderDTO) => {
-        this.loadTables();
         this.tableCarts[this.currentTableId] = [];
         localStorage.removeItem('tableCarts');
         this.currentTableId = '';
@@ -519,12 +487,121 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     });
   }
 
+  markTableAsClosed(tableId: string) {
+    const updated = this.tables.map(t =>
+      t.tableId === tableId ? { ...t, isTableOpen: false } : { ...t }
+    );
 
+    this.tables = [...updated]; // <<<<< FORȚEAZĂ REFERINȚĂ NOUĂ
+    this.refreshTableLists();
+  }
+
+
+  markTableAsOpen(tableId: string) {
+    const updated = this.tables.map(t =>
+      t.tableId === tableId ? { ...t, isTableOpen: true } : { ...t }
+    );
+
+    this.tables = [...updated];
+    this.refreshTableLists();
+  }
+
+
+  refreshTableLists() {
+    this.openTables = this.tables.filter(t => !t.isTableOpen);
+    this.closedTables = this.tables.filter(t => t.isTableOpen);
+  }
+
+  getTableCss(table: TableDTO) {
+    if (this.waiterState[table.tableId] === WaiterCallState.Active) return 'active';
+    if (this.waiterState[table.tableId] === WaiterCallState.Snoozed) return 'snoozed';
+    return table.isTableOpen ? 'table-open' : 'table-closed';
+  }
+
+  ngOnInit(): void {
+    this.authService.getUserContext()
+      .pipe(
+        takeUntil(this.destroy$),
+        filter((user): user is UserContextModel => !!user && !!user.restaurantId),
+        take(1)
+      )
+      .subscribe(user => {
+        this.restaurantId = user.restaurantId ?? '';
+        this.loadTables();
+        this.refreshTableLists()
+        this.loadMenuItems();
+
+        this.sseService.listenToRestaurantEvents(this.restaurantId)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe(({ EventType, Data }) => {
+
+            // TOT ce modifică UI-ul trebuie să fie în ngZone.run
+            this.ngZone.run(() => {
+              switch (EventType) {
+
+                case 'WaiterCall':
+                  this.waiterState[Data.TableId] = WaiterCallState.Active;
+                  break;
+
+                case 'WaiterCallSnoozed':
+                  this.waiterState[Data.TableId] = WaiterCallState.Snoozed;
+                  break;
+
+                case 'NewOrderPrivateEvent':
+                  this.markTableAsClosed(Data.TableId);
+                  break;
+
+                case 'OrderClosedWithPayment':
+                  this.markTableAsOpen(Data.TableId);
+                  if (this.currentTableId === Data.TableId) { 
+                    this.orderIsConfirmed = false; 
+                    this.currentOrderId = null; 
+                    this.tableCarts[Data.TableId] = []; 
+                    this.saveCart();
+                  }
+                  break;
+
+                case 'OrderItemAdded':
+                  console.log('Order item added event received', Data);
+                  break;
+
+                default:
+                  console.warn('Unknown SSE event:', EventType);
+
+              }
+
+            });
+          });
+
+      });
+
+    this.search$
+      .pipe(debounceTime(250))
+      .subscribe(term => {
+        if (!term.trim()) {
+          this.filteredResults = [];
+          return;
+        }
+
+        const results = this.fuse.search(term);
+        this.filteredResults = results.map(r => r.item);
+      });
+
+    const saved = localStorage.getItem('tableCarts');
+    if (saved) {
+      this.tableCarts = JSON.parse(saved);
+    }
+
+    this.quantityUpdate$
+      .pipe(debounceTime(500))
+      .subscribe(item => this.flushQuantityUpdate(item));
+
+
+
+  }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    this.waiterCallSubscription?.unsubscribe();
-    this.snoozeWaiterCallSubscription?.unsubscribe();
   }
 }
