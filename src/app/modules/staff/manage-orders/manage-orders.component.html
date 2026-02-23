@@ -1,8 +1,8 @@
 <c-tabs [activeItemKey]="0">
   <c-tabs-list variant="pills">
     <button cTab [itemKey]="0" class="ms-3">All</button>
-    <button cTab [itemKey]="1" class="ms-2">Open</button>
-    <button cTab [itemKey]="2" class="ms-2">Closed</button>
+    <button cTab [itemKey]="1" class="ms-2">Free Tables</button>
+    <button cTab [itemKey]="2" class="ms-2">Occupied Tables</button>
   </c-tabs-list>
 
   <!-- List Tables -->
@@ -11,7 +11,7 @@
       <c-row>
         <c-col lg="6" xs="12" *ngFor="let table of tables">
           <c-card-group class="mb-4">
-            <c-card class="mb-3" [ngClass]="getTableCss(table)">
+            <c-card class="mb-3" [ngClass]="getTableCss(table, waiterState)">
               <c-row class="g-0">
                 <c-card-header>
                   <h4>

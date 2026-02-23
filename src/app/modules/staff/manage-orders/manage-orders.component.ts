@@ -18,6 +18,7 @@ import { MenuItemServiceService } from '../../../core/services/menu-item-service
 import { OrdersService } from '../../../core/services/order-service/orders.service';
 import { OrderItemDTO, CartItem, TableCart, OrderDTO } from '../../../core/models/orderingModel';
 import { OrderSyncService } from '../../../core/services/order-service/order-sync.service';
+import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
 
 @Component({
   selector: 'app-manage-orders',
@@ -74,10 +75,19 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   private quantityBuffer: Record<string, number> = {};
   private quantityUpdate$ = new Subject<CartItem>();
   showCloseConfirm = false;
+  tableComputed: Record<string, {
+    lastActionTime: string;
+    lastAddedItem: string;
+    total: number;
+    currency: string;
+    itemCount: number;
+    cssClass: string;
+  }> = {};
+
 
 
   constructor(private tablesService: TablesService, private menuItemService: MenuItemServiceService, private ngZone: NgZone,
-    private authService: AuthService, private ordersService: OrdersService, private sseService: OrderSyncService,
+    private authService: AuthService, private ordersService: OrdersService, private sseService: OrderSyncService, private miscService: MiscellaneousService
   ) { }
 
   @HostListener('document:keydown.escape', ['$event'])
@@ -95,10 +105,13 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   trackByTableId(index: number, table: TableDTO) { return table.tableId; }
 
+
+
+
+
   openOrder() {
     this.ordersService.listOpenOrderForTable(this.restaurantId, this.currentTableId)
-      .pipe(take(1))
-      .subscribe(order => {
+      .pipe(take(1)).subscribe(order => {
         if (!order) {
           this.createNewOrder();
           return;
@@ -276,11 +289,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
       if (existing) existing.quantity++;
       else cart.push({ item, quantity: 1 });
-
       this.saveCart();
       return;
     }
-
     // LIVE MODE → optimistic UI + batching
     const existing = this.selectedItems.find(x => x.item.menuItemId === item.menuItemId);
 
@@ -291,9 +302,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         quantity: 1,
         orderItemId: undefined
       });
-
       this.saveCart();
-
       // trimitem POST imediat (nu se poate batch-ui)
       this.ordersService.addOrderItem(
         this.restaurantId,
@@ -302,10 +311,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         item.menuItemId,
         1
       ).subscribe(() => { });
-
       return;
     }
-
     // UI optimistic: creștem quantity local
     existing.quantity++;
     this.saveCart();
@@ -313,8 +320,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     // batching
     this.queueQuantityUpdate(existing);
   }
-
-
 
   decrementItem(sel: CartItem) {
     if (!this.orderIsConfirmed) {
@@ -384,7 +389,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.quantityBuffer[item.orderItemId!] = item.quantity;
     this.quantityUpdate$.next(item);
   }
-
 
   private flushQuantityUpdate(item: CartItem) {
     const finalQuantity = this.quantityBuffer[item.orderItemId!];
@@ -553,6 +557,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       next: (response: OrderDTO) => {
         this.tableCarts[this.currentTableId] = [];
         localStorage.removeItem('tableCarts');
+        this.markTableAsOpen(this.currentTableId);
         this.currentTableId = '';
         this.tableName = '';
         this.orderIsConfirmed = false;
@@ -578,19 +583,14 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     );
 
     this.tables = [...updated];
+    console.log('Marking table as OPEN:', this.tables);
     this.refreshTableLists();
   }
 
 
   refreshTableLists() {
-    this.openTables = this.tables.filter(t => !t.isTableOpen);
-    this.closedTables = this.tables.filter(t => t.isTableOpen);
-  }
-
-  getTableCss(table: TableDTO) {
-    if (this.waiterState[table.tableId] === WaiterCallState.Active) return 'active';
-    if (this.waiterState[table.tableId] === WaiterCallState.Snoozed) return 'snoozed';
-    return table.isTableOpen ? 'table-open' : 'table-closed';
+    this.openTables = this.tables.filter(t => t.isTableOpen);
+    this.closedTables = this.tables.filter(t => !t.isTableOpen);
   }
 
   startSse() {
@@ -614,6 +614,24 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
               this.markTableAsClosed(Data.TableId);
               break;
 
+            case 'OrderUpdated':
+              this.tableCarts[Data.TableId] = Data.OrderItems.map((o: any) => ({
+                item: this.menuItems.find((m: MenuItem) => m.menuItemId === o.menuItemId)!,
+                quantity: o.quantity,
+                orderItemId: o.orderItemId
+              }));
+
+              this.tableComputed[Data.TableId] = {
+                lastActionTime: this.miscService.getLastActionTime(Data.TableId, Data.LastActionAt),
+                lastAddedItem: Data.LastAddedItem,
+                total: Data.Total,
+                currency: Data.Currency,
+                itemCount: Data.ItemCount,
+                cssClass: this.miscService.getTableCss(this.tables.find(t => t.tableId === Data.TableId)!, this.waiterState)
+              };
+              this.saveCart();
+              break;
+
             case 'OrderClosedWithPayment':
               this.markTableAsOpen(Data.TableId);
               if (this.currentTableId === Data.TableId) {
@@ -633,6 +651,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           }
         });
       });
+  }
+
+  getTableCss(table: TableDTO, waiterState: Record<string, WaiterCallState>): string {
+    return this.miscService.getTableCss(table, waiterState);
   }
 
   ngOnInit(): void {

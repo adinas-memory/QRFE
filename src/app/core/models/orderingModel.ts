@@ -63,3 +63,13 @@ export interface UpdateOrderItemQuantityResponse {
   quantity: number;
   action: string; 
 }
+
+export interface TableComputedInfo {
+  lastActionTime: string;   // ex: "2 minute în urmă"
+  lastAddedItem: string;    // ex: "Pizza Margherita"
+  total: number;            // subtotal numeric
+  currency: string;         // ex: "EUR"
+  itemCount: number;        // total items in order
+  cssClass: string;         // ex: "bg-success text-white"
+}
+

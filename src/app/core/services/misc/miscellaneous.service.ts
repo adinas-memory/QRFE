@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
 import { Observable } from 'rxjs';
 import { VenueSizeConfigList } from '../../models/venueSizeConfigModel';
+import { WaiterCallState } from '../../models/callWaiter/callWaiter';
+import { TableDTO } from '../../models/restaurantTablesModel';
 
 @Injectable({
   providedIn: 'root'
@@ -19,5 +21,27 @@ export class MiscellaneousService {
   getRestaurantLimits(): Observable<VenueSizeConfigList> {
     return this.http.get<VenueSizeConfigList>(`${this.apiUrl}/api/user/restaurant-limits`);
   }
-  
+
+  getLastActionTime(tableId: string, lastActionAt: Record<string, number>): string {
+    const ts = lastActionAt[tableId];
+    if (!ts) return '—';
+
+    const diff = Math.floor((Date.now() - ts) / 60000); // minute
+
+    if (diff === 0) return 'now';
+    if (diff === 1) return '1 minute ago';
+    return `${diff} minutes ago`;
+  }
+
+  getTableCss(table: TableDTO, waiterState: Record<string, WaiterCallState>): string {
+    if (waiterState[table.tableId] === WaiterCallState.Active) { return 'bg-warning text-dark'; }
+    if (waiterState[table.tableId] === WaiterCallState.Snoozed) { return 'bg-secondary text-white'; }
+    if (table.isTableOpen) { return 'bg-success text-white'; }
+    return 'bg-danger text-white';
+  }
+
+
+
+
+
 }
