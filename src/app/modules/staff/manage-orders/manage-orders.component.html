@@ -24,16 +24,12 @@
                 </c-card-header>
                 <c-card-body cCol [md]="8">
                   <h5 cCardTitle>{{ table.tableName }}</h5>
-                  <p cCardText>
-                    <!-- {{table.tableId}} -->
-                    {{waiterState[table.tableId]}}
-                    @if (waiterState[table.tableId] === 'active') {
-                    <svg [cIcon]="icons.cilBellExclamation" size="xl"></svg>
-                    <button cButton color="warning" variant="ghost" size="sm" (click)="snoozeWaiterCall(table.tableId)">
-                      Snooze
-                    </button>
-                    }
-                  </p>
+                  <p cCardText> Items: {{ tableComputed[table.tableId]?.itemCount }} </p>
+                  <p cCardText> Last: {{ tableComputed[table.tableId]?.lastAddedItem || '—' }} </p>
+                  <p class="text-muted small"> Updated: {{ tableComputed[table.tableId]?.lastActionTime }} </p>
+                  <p cCardText> @if (waiterState[table.tableId] === 'active') { <svg [cIcon]="icons.cilBellExclamation"
+                      size="xl"></svg> <button cButton color="warning" variant="ghost" size="sm"
+                      (click)="snoozeWaiterCall(table.tableId)"> Snooze </button> } </p>
                 </c-card-body>
                 <footer>
                   <button cButton cOffcanvasToggle="OffcanvasStart" class="btn btn-primary float-end"

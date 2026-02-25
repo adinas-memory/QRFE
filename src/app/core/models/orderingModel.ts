@@ -73,3 +73,31 @@ export interface TableComputedInfo {
   cssClass: string;         // ex: "bg-success text-white"
 }
 
+
+export interface OrderUpdatedSSEPayload {
+  RestaurantId: string;
+  TableId: string;
+  OrderId: string;
+
+  SubTotal: {
+    Amount: number;
+    Currency: string;
+  } | null;
+
+  ItemCount: number;
+
+  LastAddedItem: string | null;
+  LastActionAt: string; // ISO string trimis de backend
+
+  Items: {
+    OrderItemId: string;
+    MenuItemId: string;
+    Quantity: number;
+    OrderItemDescription?: string;
+    Category?: string;
+    OrderItemPriceAmount: number;
+    OrderItemPriceCurrency: string;
+  }[];
+}
+
+

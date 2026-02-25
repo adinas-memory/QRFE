@@ -16,7 +16,7 @@ import { SnoozeWaiterCallEvent, WaiterCallEvent, WaiterCallState } from '../../.
 import { MenuItem } from '../../../core/models/menu/menuItem';
 import { MenuItemServiceService } from '../../../core/services/menu-item-service/menu-item-service.service';
 import { OrdersService } from '../../../core/services/order-service/orders.service';
-import { OrderItemDTO, CartItem, TableCart, OrderDTO } from '../../../core/models/orderingModel';
+import { OrderItemDTO, CartItem, TableCart, OrderDTO, OrderUpdatedSSEPayload } from '../../../core/models/orderingModel';
 import { OrderSyncService } from '../../../core/services/order-service/order-sync.service';
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
 
@@ -555,9 +555,12 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.currentOrderId!
     ).subscribe({
       next: (response: OrderDTO) => {
-        this.tableCarts[this.currentTableId] = [];
-        localStorage.removeItem('tableCarts');
+        this.tableCarts[this.currentTableId] = [];        
+        this.ordersService.removeComputed();
+        this.tableComputed = {};
+        localStorage.removeItem('currentTableId');
         this.markTableAsOpen(this.currentTableId);
+        localStorage.removeItem('tableCarts');
         this.currentTableId = '';
         this.tableName = '';
         this.orderIsConfirmed = false;
@@ -599,7 +602,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       .subscribe(({ EventType, Data }) => {
 
         // TOT ce modifică UI-ul trebuie să fie în ngZone.run
-        this.ngZone.run(() => {
+        
           switch (EventType) {
 
             case 'WaiterCall':
@@ -615,20 +618,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
               break;
 
             case 'OrderUpdated':
-              this.tableCarts[Data.TableId] = Data.OrderItems.map((o: any) => ({
-                item: this.menuItems.find((m: MenuItem) => m.menuItemId === o.menuItemId)!,
-                quantity: o.quantity,
-                orderItemId: o.orderItemId
-              }));
-
-              this.tableComputed[Data.TableId] = {
-                lastActionTime: this.miscService.getLastActionTime(Data.TableId, Data.LastActionAt),
-                lastAddedItem: Data.LastAddedItem,
-                total: Data.Total,
-                currency: Data.Currency,
-                itemCount: Data.ItemCount,
-                cssClass: this.miscService.getTableCss(this.tables.find(t => t.tableId === Data.TableId)!, this.waiterState)
-              };
+              const payload = Data as OrderUpdatedSSEPayload;                        
+              this.tableCarts[payload.TableId] = this.ordersService.mapPayloadItemsToCart(payload.Items, this.menuItems);
+              this.tableComputed[payload.TableId] = this.ordersService
+              .mapPayloadToComputed( payload, (id: string) => this.tables.find(t => t.tableId === id), (table?: TableDTO) => this.miscService.getTableCss(table ?? ({} as TableDTO), this.waiterState), (d: any) => this.miscService.getLastActionTime(d) );
+              this.ordersService.saveComputed(this.tableComputed);
               this.saveCart();
               break;
 
@@ -637,7 +631,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
               if (this.currentTableId === Data.TableId) {
                 this.orderIsConfirmed = false;
                 this.currentOrderId = null;
-                this.tableCarts[Data.TableId] = [];
+                this.tableCarts[Data.TableId] = [];                
                 this.saveCart();
               }
               break;
@@ -646,10 +640,14 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
               console.log('Order item added event received', Data);
               break;
 
+            case 'OrderItemQuantityUpdated':
+              console.log('Order item quantity updated event received', Data);
+              break;
+
             default:
               console.warn('Unknown SSE event:', EventType);
           }
-        });
+        
       });
   }
 
@@ -679,6 +677,13 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
             this.menuItems = menu.menu.menuItems ?? [];
             this.categories = menu.categories ?? [];
             this.refreshTableLists();
+            this.tableComputed = this.ordersService.loadComputed() || {};
+
+            // Recompute cssClass for loaded entries
+            Object.keys(this.tableComputed).forEach(tableId => {
+            const entry = this.tableComputed[tableId];
+            entry.cssClass = this.miscService.getTableCss(this.tables.find(t => t.tableId === tableId)!, this.waiterState);
+            });
 
             // 3. Restaurăm cart-urile O SINGURĂ DATĂ
             const savedCarts = localStorage.getItem('tableCarts');

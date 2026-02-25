@@ -3,8 +3,8 @@ import { environment } from '../../../../environments/environment';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { TableDTO } from '../../models/restaurantTablesModel';
-import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { NgZone } from '@angular/core';
+
 
 @Injectable({
   providedIn: 'root'
@@ -64,31 +64,5 @@ export class TablesService {
   snoozeWaiterCall(restaurantId: string, tableId: string): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/${tableId}/call-waiter`, {}, { withCredentials: true });
   }
-
-  // listenSnoozeWaiterCall(restaurantId: string): Observable<any> {
-  //   return new Observable(observer => {
-  //     const controller = new AbortController();
-
-  //     fetchEventSource(`${this.apiUrl}/sse/internal/restaurant/${restaurantId}`, {      
-  //       method: 'GET',
-  //       credentials: 'include',
-  //       signal: controller.signal,
-
-  //       onmessage: (msg: any) => {          
-  //           this.ngZone.run(() => {
-  //             observer.next(JSON.parse(msg.data));
-  //             console.log('Snooze event received:', JSON.parse(msg.data));
-  //           });          
-  //       },
-
-  //       onerror: (err: unknown) => {
-  //         this.ngZone.run(() => observer.error(err));
-  //       }
-  //     });
-
-  //     return () => controller.abort();
-  //   });
-  // }
-
 
 }

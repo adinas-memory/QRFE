@@ -6,6 +6,7 @@ import { OrderItemDTO } from '../../models/orderingModel';
 import { OrdersService } from './orders.service';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { environment } from '../../../../environments/environment'
+import { SseEvent } from '../../models/sseModel';
 
 @Injectable({
   providedIn: 'root'
@@ -17,38 +18,38 @@ export class OrderSyncService {
   constructor(private ngZone: NgZone) {
   }
 
-  listenToRestaurantEvents(restaurantId: string): Observable<{ EventType: string, Data: any }> {
-    return new Observable(observer => {
-      const controller = new AbortController();
+listenToRestaurantEvents<T = any>(restaurantId: string): Observable<SseEvent<T>> {
+  return new Observable(observer => {
+    const controller = new AbortController();
 
-      fetchEventSource(`${this.apiUrl}/sse/internal/restaurant/${restaurantId}`, {
-        method: 'GET',
-        credentials: 'include',
-        signal: controller.signal,
+    fetchEventSource(`${this.apiUrl}/sse/internal/restaurant/${restaurantId}`, {
+      method: 'GET',
+      credentials: 'include',
+      signal: controller.signal,
 
-        onmessage: (msg: any) => {
-          this.ngZone.run(() => {
+      onmessage: (msg: any) => {
+        this.ngZone.run(() => {
+          const raw = JSON.parse(msg.data);
 
-            const raw = JSON.parse(msg.data);
+          const EventType = raw.EventType ?? raw.event;
 
-            const EventType = raw.EventType ?? raw.event;
+          const Data = typeof raw.Data === 'string'
+            ? JSON.parse(raw.Data)
+            : raw.Data;
 
-            const Data = typeof raw.Data === 'string'
-              ? JSON.parse(raw.Data)
-              : raw.Data;
-            observer.next({ EventType, Data });
-          });
-        },
+          observer.next({ EventType, Data } as SseEvent<T>);
+        });
+      },
 
-
-        onerror: err => {
-          this.ngZone.run(() => observer.error(err));
-        }
-      });
-
-      return () => controller.abort();
+      onerror: err => {
+        this.ngZone.run(() => observer.error(err));
+      }
     });
-  }
+
+    return () => controller.abort();
+  });
+}
+
 
 
 

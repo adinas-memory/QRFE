@@ -22,16 +22,17 @@ export class MiscellaneousService {
     return this.http.get<VenueSizeConfigList>(`${this.apiUrl}/api/user/restaurant-limits`);
   }
 
-  getLastActionTime(tableId: string, lastActionAt: Record<string, number>): string {
-    const ts = lastActionAt[tableId];
-    if (!ts) return '—';
+  getLastActionTime(lastActionAt: string): string {
+    if (!lastActionAt) return '—';
 
+    const ts = new Date(lastActionAt).getTime();
     const diff = Math.floor((Date.now() - ts) / 60000); // minute
 
-    if (diff === 0) return 'now';
+    if (diff <= 0) return 'now';
     if (diff === 1) return '1 minute ago';
     return `${diff} minutes ago`;
   }
+
 
   getTableCss(table: TableDTO, waiterState: Record<string, WaiterCallState>): string {
     if (waiterState[table.tableId] === WaiterCallState.Active) { return 'bg-warning text-dark'; }
