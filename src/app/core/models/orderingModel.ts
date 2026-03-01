@@ -100,4 +100,13 @@ export interface OrderUpdatedSSEPayload {
   }[];
 }
 
+export interface TableComputedDTO {
+  tableId: string;
+  isTableOpen: boolean;
+  orderId?: string;
+  lastActionAt?: string;  
+  lastAddedItem?: string;    // ex: "Pizza Margherita"
+  subTotal?: MoneyDTO;
+  itemCount?: number;
+}
 

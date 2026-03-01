@@ -2,9 +2,11 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment';
 import { Observable } from 'rxjs';
-import { AddOrderItemResponse, CartItem, OrderDTO, UpdateOrderItemQuantityResponse } from '../../models/orderingModel';
+import { AddOrderItemResponse, CartItem, OrderDTO, OrderUpdatedSSEPayload, TableComputedDTO, UpdateOrderItemQuantityResponse } from '../../models/orderingModel';
 import { MenuItem } from '../../models/menu/menuItem';
 import { TableDTO } from '../../models/restaurantTablesModel';
+import { WaiterCallState } from '../../models/callWaiter/callWaiter';
+import { MiscellaneousService } from '../misc/miscellaneous.service';
 
 
 @Injectable({
@@ -14,7 +16,7 @@ export class OrdersService {
   private apiUrl = environment.apiUrl;
 
 
-  constructor(private http: HttpClient) {
+  constructor(private http: HttpClient, private miscService: MiscellaneousService) {
   }
 
   newOrder(restaurantId: string, tableId: string, seatId?: string): Observable<{ order: OrderDTO }> {
@@ -139,36 +141,75 @@ export class OrdersService {
    * - getCssFn: (table: TableDTO | undefined) => string  (injectezi miscService.getTableCss bound)
    * - getLastActionFn: (dateOrString) => string  (injectezi miscService.getLastActionTime bound)
    */
-  mapPayloadToComputed(
-    payload: any,
-    findTableFn: (tableId: string) => TableDTO | undefined,
-    getCssFn: (table?: TableDTO) => string,
-    getLastActionFn: (d: any) => string
-  ): {
-    lastActionTime: string;
-    lastAddedItem: string;
-    total: number;
-    currency: string;
-    itemCount: number;
-    cssClass: string;
-  } {
-    const tableId = payload.TableId ?? payload.tableId;
-    const lastActionAt = payload.lastActionAt ?? payload.LastActionAt;
-    const lastAddedItem = payload.lastAddedItem ?? payload.LastAddedItem ?? '—';
-    const itemCount = payload.itemCount ?? payload.ItemCount ?? 0;
-    const subTotalAmount = payload.SubTotal?.Amount ?? payload.subTotal?.amount ?? 0;
-    const subTotalCurrency = payload.SubTotal?.Currency ?? payload.subTotal?.currency ?? '—';
+  // mapPayloadToComputed(
+  //   payload: any,
+  //   findTableFn: (tableId: string) => TableDTO | undefined,
+  //   getCssFn: (table?: TableDTO) => string,
+  //   getLastActionFn: (d: any) => string
+  // ): {
+  //   lastActionTime: string;
+  //   lastAddedItem: string;
+  //   total: number;
+  //   currency: string;
+  //   itemCount: number;
+  //   cssClass: string;
+  // } {
+  //   const tableId = payload.TableId ?? payload.tableId;
+  //   const lastActionAt = payload.lastActionAt ?? payload.LastActionAt;
+  //   const lastAddedItem = payload.lastAddedItem ?? payload.LastAddedItem ?? '—';
+  //   const itemCount = payload.itemCount ?? payload.ItemCount ?? 0;
+  //   const subTotalAmount = payload.SubTotal?.Amount ?? payload.subTotal?.amount ?? 0;
+  //   const subTotalCurrency = payload.SubTotal?.Currency ?? payload.subTotal?.currency ?? '—';
 
-    const table = findTableFn(tableId);
-    const cssClass = getCssFn(table);
+  //   const table = findTableFn(tableId);
+  //   const cssClass = getCssFn(table);
+
+  //   return {
+  //     lastActionTime: getLastActionFn(lastActionAt),
+  //     lastAddedItem,
+  //     total: subTotalAmount,
+  //     currency: subTotalCurrency,
+  //     itemCount,
+  //     cssClass
+  //   };
+  // }
+
+  mapPayloadToComputed(
+    payload: OrderUpdatedSSEPayload,
+    tables: TableDTO[],
+    waiterState: Record<string, WaiterCallState>,
+    getLastActionFn: (d: any) => string
+  ) {
+    const table = tables.find(t => t.tableId === payload.TableId);
 
     return {
-      lastActionTime: getLastActionFn(lastActionAt),
-      lastAddedItem,
-      total: subTotalAmount,
-      currency: subTotalCurrency,
-      itemCount,
-      cssClass
+      lastActionTime: getLastActionFn(payload.LastActionAt),
+      lastAddedItem: payload.LastAddedItem ?? '—',
+      total: payload.SubTotal?.Amount ?? 0,
+      currency: payload.SubTotal?.Currency ?? 'EUR',
+      itemCount: payload.ItemCount ?? 0,
+      cssClass: this.miscService.getTableCss(table!, waiterState)
     };
   }
+
+
+  mapTableToComputed(
+    table: TableDTO,
+    waiterState: Record<string, WaiterCallState>,
+    computed: TableComputedDTO,
+    getLastActionFn: (d: any) => string
+  ) {
+    return {
+      lastActionTime: getLastActionFn(computed.lastActionAt),
+      lastAddedItem: computed.lastAddedItem ?? '—',
+      total: computed.subTotal?.amount ?? 0,
+      currency: computed.subTotal?.currency ?? 'EUR',
+      itemCount: computed.itemCount ?? 0,
+      cssClass: this.miscService.getTableCss(table, waiterState)
+    };
+  }
+
+
+
+
 }
