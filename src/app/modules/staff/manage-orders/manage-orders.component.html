@@ -34,7 +34,7 @@
                 <footer>
                   <button cButton class="btn btn-primary float-end"
                     (click)="table.order ? seeOrder(table) : openTable(table)">
-                    {{ table.order ? 'See Order' : 'Open Table' }}
+                    {{ !table.isTableOpen ? 'See Order' : 'Open Table' }}
                   </button>
                 </footer>
               </c-row>
