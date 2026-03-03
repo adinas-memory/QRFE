@@ -22,9 +22,9 @@ export class MiscellaneousService {
     return this.http.get<VenueSizeConfigList>(`${this.apiUrl}/api/user/restaurant-limits`);
   }
 
-  getLastActionTime(lastActionAt: string): string {
+  getLastActionTime(lastActionAt: string | null): string {
     if (!lastActionAt) return '—';
-
+    console.log('Calculating last action time for:', lastActionAt);
     const ts = new Date(lastActionAt).getTime();
     const diff = Math.floor((Date.now() - ts) / 60000); // minute
 
@@ -40,9 +40,5 @@ export class MiscellaneousService {
     if (table.isTableOpen) { return 'bg-success text-white'; }
     return 'bg-danger text-white';
   }
-
-
-
-
 
 }

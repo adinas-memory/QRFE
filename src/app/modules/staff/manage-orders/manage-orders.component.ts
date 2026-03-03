@@ -90,7 +90,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   showCloseConfirm = false;
 
   tableComputed: Record<string, {
-    lastActionTime: string;
+    lastActionAt: string;
     lastAddedItem: string;
     total: number;
     currency: string;
@@ -101,7 +101,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   constructor(
     private tablesService: TablesService,
     private menuItemService: MenuItemServiceService,
-    private ngZone: NgZone,
     private authService: AuthService,
     private ordersService: OrdersService,
     private sseService: OrderSyncService,
@@ -543,8 +542,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (response: OrderDTO) => {
         this.tableCarts[this.currentTableId] = [];
-        this.ordersService.removeComputed();
-        this.tableComputed = {};
+        // this.ordersService.removeComputed();
+        // this.tableComputed = {};
+        delete this.tableComputed[this.currentTableId];
         localStorage.removeItem('currentTableId');
         this.markTableAsOpen(this.currentTableId);
         localStorage.removeItem('tableCarts');
@@ -601,6 +601,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
           case 'OrderUpdated': {
             const payload = Data as OrderUpdatedSSEPayload;
+            console.log('OrderUpdated event received', payload);
 
             this.tableCarts[payload.TableId] =
               this.ordersService.mapPayloadItemsToCart(payload.Items, this.menuItems);
@@ -609,8 +610,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
               this.ordersService.mapPayloadToComputed(
                 payload,
                 this.tables,
-                this.waiterState,
-                d => this.miscService.getLastActionTime(d)
+                this.waiterState
               );
 
             this.ordersService.saveComputed(this.tableComputed);
@@ -630,31 +630,43 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
           case 'TablesStatusesUpdate': {
             const computedList = Data as TableComputedDTO[];
+            console.log('TablesStatusesUpdate received', computedList);
 
-            // CHANGED: statusul meselor se bazează acum pe SSE
+            // 1) Actualizezi doar isTableOpen în this.tables
             this.tables = this.tables.map(t => {
               const c = computedList.find(x => x.tableId === t.tableId);
               return c ? { ...t, isTableOpen: c.isTableOpen } : t;
             });
+
             this.refreshTableLists();
 
-            this.tableComputed = {};
-            computedList.forEach(c => {
+            // 2) MERGE, nu replace
+            for (const c of computedList) {
               const table = this.tables.find(t => t.tableId === c.tableId);
-              if (!table) return;
+              if (!table) continue;
 
-              this.tableComputed[c.tableId] =
-                this.ordersService.mapTableToComputed(
-                  table,
-                  this.waiterState,
-                  c,
-                  d => this.miscService.getLastActionTime(d)
-                );
-            });
+              const existing = this.tableComputed[c.tableId] ?? {};
+
+              this.tableComputed[c.tableId] = {
+                //păstrezi valorile existente
+                ...existing,
+
+                //actualizezi doar ce vine din TablesStatusesUpdate
+                lastActionAt: c.lastActionAt ?? existing.lastActionAt,
+                lastAddedItem: c.lastAddedItem ?? existing.lastAddedItem ?? '—',
+                total: c.subTotal?.amount ?? existing.total ?? 0,
+                currency: c.subTotal?.currency ?? existing.currency ?? 'EUR',
+                itemCount: c.itemCount ?? existing.itemCount ?? 0,
+
+                //recalculezi cssClass pentru masa respectivă
+                cssClass: this.miscService.getTableCss(table, this.waiterState)
+              };
+            }
 
             this.ordersService.saveComputed(this.tableComputed);
             break;
           }
+
 
           case 'OrderItemAdded':
             console.log('Order item added event received', Data);
@@ -674,6 +686,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   getTableCss(table: TableDTO, waiterState: Record<string, WaiterCallState>): string {
     return this.miscService.getTableCss(table, waiterState);
   }
+  getLastActionTime(ts: string | null): string {
+    return this.miscService.getLastActionTime(ts);
+  }
+
 
   ngOnInit(): void {
     this.authService.getUserContext()
@@ -690,8 +706,22 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           menu: this.menuItemService.getAll(this.restaurantId).pipe(take(1))
         })
           .subscribe(({ tables, menu }) => {
+            console.log('Initial data loaded', { tables, menu });
 
             this.tables = tables;
+            for (const t of this.tables) {
+              if (!this.tableComputed[t.tableId]) {
+                this.tableComputed[t.tableId] = {
+                  lastActionAt: '—',
+                  lastAddedItem: '—',
+                  total: 0,
+                  currency: 'EUR',
+                  itemCount: 0,
+                  cssClass: this.miscService.getTableCss(t, this.waiterState)
+                };
+              }
+            }
+
             this.menuItems = menu.menu.menuItems ?? [];
             this.categories = menu.categories ?? [];
             this.refreshTableLists();

@@ -134,56 +134,15 @@ export class OrdersService {
     });
   }
 
-  /**
-   * Map payload -> tableComputed entry (fără efecte secundare).
-   * - payload: obiectul SSE OrderUpdated
-   * - findTableFn: (tableId) => TableDTO | undefined  (injectezi this.tables.find)
-   * - getCssFn: (table: TableDTO | undefined) => string  (injectezi miscService.getTableCss bound)
-   * - getLastActionFn: (dateOrString) => string  (injectezi miscService.getLastActionTime bound)
-   */
-  // mapPayloadToComputed(
-  //   payload: any,
-  //   findTableFn: (tableId: string) => TableDTO | undefined,
-  //   getCssFn: (table?: TableDTO) => string,
-  //   getLastActionFn: (d: any) => string
-  // ): {
-  //   lastActionTime: string;
-  //   lastAddedItem: string;
-  //   total: number;
-  //   currency: string;
-  //   itemCount: number;
-  //   cssClass: string;
-  // } {
-  //   const tableId = payload.TableId ?? payload.tableId;
-  //   const lastActionAt = payload.lastActionAt ?? payload.LastActionAt;
-  //   const lastAddedItem = payload.lastAddedItem ?? payload.LastAddedItem ?? '—';
-  //   const itemCount = payload.itemCount ?? payload.ItemCount ?? 0;
-  //   const subTotalAmount = payload.SubTotal?.Amount ?? payload.subTotal?.amount ?? 0;
-  //   const subTotalCurrency = payload.SubTotal?.Currency ?? payload.subTotal?.currency ?? '—';
-
-  //   const table = findTableFn(tableId);
-  //   const cssClass = getCssFn(table);
-
-  //   return {
-  //     lastActionTime: getLastActionFn(lastActionAt),
-  //     lastAddedItem,
-  //     total: subTotalAmount,
-  //     currency: subTotalCurrency,
-  //     itemCount,
-  //     cssClass
-  //   };
-  // }
-
   mapPayloadToComputed(
     payload: OrderUpdatedSSEPayload,
     tables: TableDTO[],
-    waiterState: Record<string, WaiterCallState>,
-    getLastActionFn: (d: any) => string
+    waiterState: Record<string, WaiterCallState>    
   ) {
     const table = tables.find(t => t.tableId === payload.TableId);
-
+    console.log('Mapping payload:', payload, 'Found table:', table);
     return {
-      lastActionTime: getLastActionFn(payload.LastActionAt),
+      lastActionAt: payload.LastActionAt,
       lastAddedItem: payload.LastAddedItem ?? '—',
       total: payload.SubTotal?.Amount ?? 0,
       currency: payload.SubTotal?.Currency ?? 'EUR',
@@ -196,11 +155,10 @@ export class OrdersService {
   mapTableToComputed(
     table: TableDTO,
     waiterState: Record<string, WaiterCallState>,
-    computed: TableComputedDTO,
-    getLastActionFn: (d: any) => string
+    computed: TableComputedDTO    
   ) {
     return {
-      lastActionTime: getLastActionFn(computed.lastActionAt),
+      lastActionAt: computed.lastActionAt,
       lastAddedItem: computed.lastAddedItem ?? '—',
       total: computed.subTotal?.amount ?? 0,
       currency: computed.subTotal?.currency ?? 'EUR',

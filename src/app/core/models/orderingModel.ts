@@ -24,8 +24,7 @@ export interface OrderDTO {
   currency: Currency;
   isOrderOpen: boolean;
   subTotal?: MoneyDTO;
-  finalTotalPrice?: FinalTotalPrice;
-  // IsDeleted is ignored in JSON
+  finalTotalPrice?: FinalTotalPrice;  
 }
 
 export interface MoneyDTO {
@@ -65,7 +64,7 @@ export interface UpdateOrderItemQuantityResponse {
 }
 
 export interface TableComputedInfo {
-  lastActionTime: string;   // ex: "2 minute în urmă"
+  lastActionAt: string;   // ex: "2 minute în urmă"
   lastAddedItem: string;    // ex: "Pizza Margherita"
   total: number;            // subtotal numeric
   currency: string;         // ex: "EUR"
