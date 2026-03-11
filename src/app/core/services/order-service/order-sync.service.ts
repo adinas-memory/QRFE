@@ -16,7 +16,7 @@ export class OrderSyncService {
 
   // reconnect / refresh control
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 6;
+  private maxReconnectAttempts = 25;
   private baseReconnectDelayMs = 1000;
   private isRefreshing = false;
   private refreshQueue = new BehaviorSubject<boolean>(false);

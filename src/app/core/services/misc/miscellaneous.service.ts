@@ -24,7 +24,7 @@ export class MiscellaneousService {
 
   getLastActionTime(lastActionAt: string | null): string {
     if (!lastActionAt) return '—';
-    console.log('Calculating last action time for:', lastActionAt);
+    // console.log('Calculating last action time for:', lastActionAt);
     const ts = new Date(lastActionAt).getTime();
     const diff = Math.floor((Date.now() - ts) / 60000); // minute
 
