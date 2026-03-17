@@ -51,7 +51,7 @@ export class LoginComponent implements OnInit, OnDestroy {
 
 
       this.authService.loginUser(formValue).subscribe({
-        next: (response: UserContextModel) => {          
+        next: (response: UserContextModel) => {
           this.authService.setUser(response);
           this.authService.setRestaurantCtx();
           const returnUrl = this.route.snapshot.queryParams['returnUrl'];
@@ -60,8 +60,12 @@ export class LoginComponent implements OnInit, OnDestroy {
 
           if (userRole === 'default') {
             this.router.navigate(['/']);
+
           } else if (userRole === 'default' && pending) {
             this.router.navigate(['public/restaurant-setup'])
+          }
+          else if (pending) {
+            this.router.navigate(['/register']);
           } else if (returnUrl) {
             this.router.navigateByUrl(returnUrl);
           } else if (userRole === 'staff') {
@@ -71,7 +75,7 @@ export class LoginComponent implements OnInit, OnDestroy {
           } else if (userRole === 'gadmin') {
             this.router.navigate(['/gadmin']);
           }
-
+          else { this.router.navigate(['/register']); }
         },
         error: (error) => {
           this.router.navigate(['/login']);
