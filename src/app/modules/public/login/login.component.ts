@@ -58,13 +58,15 @@ export class LoginComponent implements OnInit, OnDestroy {
           const pending = this.subscriptionService.getPendingPlan();
           const userRole = response.role
 
+          console.log('user role:', userRole);
+
           if (userRole === 'default') {
             this.router.navigate(['/']);
 
           } else if (userRole === 'default' && pending) {
             this.router.navigate(['public/restaurant-setup'])
           }
-          else if (pending) {
+          else if (pending && !userRole) {
             this.router.navigate(['/register']);
           } else if (returnUrl) {
             this.router.navigateByUrl(returnUrl);
@@ -88,7 +90,7 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.authService.clearRestaurantCtx();
-    this.authService.clearUser();
+    // this.authService.clearUser();    
 
   }
 

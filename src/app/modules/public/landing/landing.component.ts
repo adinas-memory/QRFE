@@ -71,9 +71,15 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
     this.subscriptionService.setPendingPlan({
       priceId: card.priceId,
       restaurantType: card.restaurantType
-    });
-
-    this.router.navigate(['/login']);
+    });   
+    const userRole = this.authService.getUserRole();
+    const pendingPlan = this.subscriptionService.getPendingPlan();
+    
+    if (!userRole && pendingPlan)  {
+      this.router.navigate(['/register']);
+    } else {
+      this.router.navigate(['/login']);
+    }
   }
 
   getLimit(type: string) {
@@ -96,7 +102,8 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngAfterViewInit(): void {
     this.authService.clearRestaurantCtx();
-    this.authService.clearUser();
+    // this.authService.clearUser();
+    
   }
 
 
