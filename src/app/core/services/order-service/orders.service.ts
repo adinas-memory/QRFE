@@ -66,8 +66,7 @@ export class OrdersService {
   closeOrderAfterPayment(restaurantId: string, tableId: string, orderId: string): Observable<OrderDTO> {
     return this.http.post<OrderDTO>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${orderId}/close`, {}, { withCredentials: true });
   }
-
-  // orders.service.ts
+    
   saveComputed(tableComputed: Record<string, any>): void {
     try {
       localStorage.setItem('tableComputed', JSON.stringify(tableComputed));
@@ -166,8 +165,5 @@ export class OrdersService {
       cssClass: this.miscService.getTableCss(table, waiterState)
     };
   }
-
-
-
 
 }

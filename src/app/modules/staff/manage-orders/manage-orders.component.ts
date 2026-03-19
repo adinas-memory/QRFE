@@ -35,6 +35,9 @@ import {
 } from '../../../core/models/orderingModel';
 import { OrderSyncService } from '../../../core/services/order-service/order-sync.service';
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
+import { OfflineDbService } from '../../../core/offline/offline-db';
+import { OfflineQueueProcessor } from '../../../core/offline/offline-queue-processor.service';
+import { SseEvent } from '../../../core/models/sseModel';
 
 @Component({
   selector: 'app-manage-orders',
@@ -62,9 +65,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private restaurantId = '';
   waiterState: Record<string, WaiterCallState> = {};
-  WaiterCallState = WaiterCallState;
-
-  modalVisible = false;
+  WaiterCallState = WaiterCallState; modalVisible = false;
   categories: string[] = [];
   menuItems: MenuItem[] = [];
   forceRefreshAfterUpdate = Date.now();
@@ -104,7 +105,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private ordersService: OrdersService,
     private sseService: OrderSyncService,
-    private miscService: MiscellaneousService
+    private miscService: MiscellaneousService,
+    private offlineDB: OfflineDbService
   ) { }
 
   @HostListener('document:keydown.escape', ['$event'])
@@ -119,6 +121,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   trackByTableId(index: number, table: TableDTO) { return table.tableId; }
+
+  async saveCartFor(tableId: string) {
+    const items = this.tableCarts[tableId] ?? [];
+    await this.offlineDB.saveCart(tableId, items);
+  }
 
   openOrder() {
     this.ordersService.listOpenOrderForTable(this.restaurantId, this.currentTableId)
@@ -164,7 +171,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     // OPTIONAL: poți păstra ca fallback manual, dar nu îl mai apela automat
     this.ordersService.listOpenOrderForTable(this.restaurantId, this.currentTableId)
       .pipe(take(1))
-      .subscribe(order => {
+      .subscribe(async order => {
         if (!order || !order.orderItems) return;
 
         this.currentOrderId = order.orderId;
@@ -178,7 +185,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           }));
 
         this.orderIsConfirmed = true;
-        this.saveCart();
+        await this.saveCartFor(this.currentTableId);
       });
   }
 
@@ -283,102 +290,166 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
   //#endregion
 
-  addCartItem(item: MenuItem) {
-    if (!this.orderIsConfirmed) {
-      const cart = this.tableCarts[this.currentTableId];
-      const existing = cart.find(x => x.item.menuItemId === item.menuItemId);
+  async addCartItem(item: MenuItem) {
+    // UI update instant
+    const cart = this.tableCarts[this.currentTableId];
+    const existing = cart.find(x => x.item.menuItemId === item.menuItemId);
+    console.log('[addCartItem] navigator.onLine =', navigator.onLine);
+    console.log('[addCartItem] orderIsConfirmed =', this.orderIsConfirmed);
 
-      if (existing) existing.quantity++;
-      else cart.push({ item, quantity: 1 });
-      this.saveCart();
+
+    // Dacă itemul există deja
+    if (existing) {
+      existing.quantity++;
+      await this.saveCartFor(this.currentTableId);
+
+      // Dacă comanda nu e confirmată → ne oprim aici
+      if (!this.orderIsConfirmed) return;
+
+      // Dacă suntem offline → punem UPDATE_QUANTITY în coadă
+      if (!navigator.onLine) {
+        console.log('[addCartItem] OFFLINE → ADD_ITEM queued');
+        await this.offlineDB.addOfflineAction({
+          type: 'UPDATE_QUANTITY',
+          restaurantId: this.restaurantId,
+          tableId: this.currentTableId,
+          orderId: this.currentOrderId!,
+          payload: {
+            orderItemId: existing.orderItemId!,
+            quantity: existing.quantity
+          }
+        });
+        console.log('[addCartItem] existing item → UPDATE_QUANTITY');
+        return;
+      }
+
+      // Dacă suntem online → folosim fluxul normal
+      console.log('[addCartItem] ONLINE → ADD_ITEM sent to server');
+      this.queueQuantityUpdate(existing);
       return;
     }
 
-    const existing = this.selectedItems.find(x => x.item.menuItemId === item.menuItemId);
+    // Dacă itemul NU există în cart
+    cart.push({ item, quantity: 1, orderItemId: undefined });
+    await this.saveCartFor(this.currentTableId);
 
-    if (!existing) {
-      this.tableCarts[this.currentTableId].push({
-        item,
-        quantity: 1,
-        orderItemId: undefined
+    // Dacă comanda nu e confirmată → ne oprim aici
+    if (!this.orderIsConfirmed) return;
+
+    // Dacă suntem offline → punem ADD_ITEM în coadă
+    if (!navigator.onLine) {
+      await this.offlineDB.addOfflineAction({
+        type: 'ADD_ITEM',
+        restaurantId: this.restaurantId,
+        tableId: this.currentTableId,
+        orderId: this.currentOrderId!,
+        payload: { menuItemId: item.menuItemId, quantity: 1 }
       });
-      this.saveCart();
 
-      this.ordersService.addOrderItem(
-        this.restaurantId,
-        this.currentTableId,
-        this.currentOrderId!,
-        item.menuItemId,
-        1
-      ).subscribe(() => { });
+
       return;
     }
 
-    existing.quantity++;
-    this.saveCart();
-    this.queueQuantityUpdate(existing);
+    // Dacă suntem online → trimitem direct
+    this.ordersService.addOrderItem(
+      this.restaurantId,
+      this.currentTableId,
+      this.currentOrderId!,
+      item.menuItemId,
+      1
+    ).subscribe(() => { });
   }
 
-  decrementItem(sel: CartItem) {
-    if (!this.orderIsConfirmed) {
-      const cart = this.tableCarts[this.currentTableId];
-      const existing = cart.find(x => x.item.menuItemId === sel.item.menuItemId);
-      if (!existing) return;
 
-      if (existing.quantity > 1) {
-        existing.quantity--;
+  async decrementItem(sel: CartItem) {
+    const cart = this.tableCarts[this.currentTableId];
+    const existing = cart.find(x => x.item.menuItemId === sel.item.menuItemId);
+    if (!existing) return;
+
+    // 1) UI update instant
+    if (existing.quantity > 1) {
+      existing.quantity--;
+    } else {
+      this.tableCarts[this.currentTableId] =
+        cart.filter(x => x.item.menuItemId !== sel.item.menuItemId);
+    }
+
+    await this.saveCartFor(this.currentTableId);
+
+    // 2) Dacă nu e confirmată comanda → doar local, nimic la server
+    if (!this.orderIsConfirmed) return;
+
+    // 3) Dacă suntem offline → punem în coadă
+    if (!navigator.onLine) {
+      if (existing.quantity > 0) {
+        // UPDATE_QUANTITY
+        await this.offlineDB.addOfflineAction({
+          type: 'UPDATE_QUANTITY',
+          restaurantId: this.restaurantId,
+          tableId: this.currentTableId,
+          orderId: this.currentOrderId!,
+          payload: {
+            orderItemId: existing.orderItemId!,
+            quantity: existing.quantity
+          }
+        });
       } else {
-        this.tableCarts[this.currentTableId] =
-          cart.filter(x => x.item.menuItemId !== sel.item.menuItemId);
+        // DELETE_ITEM
+        await this.offlineDB.addOfflineAction({
+          type: 'DELETE_ITEM',
+          restaurantId: this.restaurantId,
+          tableId: this.currentTableId,
+          orderId: this.currentOrderId!,
+          payload: { orderItemId: existing.orderItemId }
+        });
       }
-      this.saveCart();
       return;
     }
 
-    const existing = this.selectedItems.find(x => x.item.menuItemId === sel.item.menuItemId);
-    if (!existing) return;
-
-    if (existing.quantity > 1) {
-      existing.quantity--;
-      this.saveCart();
+    // 4) Dacă suntem online → trimitem normal
+    if (existing.quantity > 0) {
       this.queueQuantityUpdate(existing);
     } else {
-      this.tableCarts[this.currentTableId] =
-        this.tableCarts[this.currentTableId].filter(x => x.item.menuItemId !== sel.item.menuItemId);
-      this.saveCart();
-
       this.ordersService.deleteOrderItem(
         this.restaurantId,
         this.currentTableId,
         this.currentOrderId!,
         existing.orderItemId!
-      )
-        // CHANGED: nu mai chemăm reloadOrder, SSE va trimite OrderUpdated
-        .subscribe(() => { });
+      ).subscribe(() => { });
     }
   }
 
-  removeItem(sel: CartItem) {
+
+  async removeItem(sel: CartItem) {
     const cart = this.tableCarts[this.currentTableId];
     const existing = cart.find(x => x.item.menuItemId === sel.item.menuItemId);
     if (!existing) return;
 
-    if (!this.orderIsConfirmed) {
-      this.tableCarts[this.currentTableId] =
-        cart.filter(x => x.item.menuItemId !== sel.item.menuItemId);
+    // UI update instant
+    this.tableCarts[this.currentTableId] =
+      cart.filter(x => x.item.menuItemId !== sel.item.menuItemId);
 
-      this.saveCart();
+    await this.saveCartFor(this.currentTableId);
+    // OFFLINE → punem în coadă
+    if (!navigator.onLine) {
+      await this.offlineDB.addOfflineAction({
+        type: 'DELETE_ITEM',
+        restaurantId: this.restaurantId,
+        tableId: this.currentTableId,
+        orderId: this.currentOrderId!,
+        payload: { orderItemId: existing.orderItemId }
+      });
+
+
       return;
     }
-
+    // ONLINE → trimitem direct
     this.ordersService.deleteOrderItem(
       this.restaurantId,
       this.currentTableId,
       this.currentOrderId!,
       existing.orderItemId!
-    )
-      // CHANGED: nu mai chemăm reloadOrder, SSE va trimite OrderUpdated
-      .subscribe(() => { });
+    ).subscribe(() => { });
   }
 
   private queueQuantityUpdate(item: CartItem) {
@@ -386,11 +457,34 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.quantityUpdate$.next(item);
   }
 
-  private flushQuantityUpdate(item: CartItem) {
+  private async flushQuantityUpdate(item: CartItem) {
+
+    // 🔥 1. Dacă orderul e închis → ignorăm complet
+    if (!this.orderIsConfirmed || !this.currentOrderId) {
+      console.log('[flushQuantityUpdate] Ignored because order is closed');
+      return;
+    }
+
     const finalQuantity = this.quantityBuffer[item.orderItemId!];
     if (finalQuantity == null) return;
 
     delete this.quantityBuffer[item.orderItemId!];
+
+    await this.saveCartFor(this.currentTableId);
+
+    if (!navigator.onLine) {
+      await this.offlineDB.addOfflineAction({
+        type: 'UPDATE_QUANTITY',
+        restaurantId: this.restaurantId,
+        tableId: this.currentTableId,
+        orderId: this.currentOrderId!,
+        payload: {
+          orderItemId: item.orderItemId!,
+          quantity: finalQuantity
+        }
+      });
+      return;
+    }
 
     this.ordersService.updateOrderItemQuantity(
       this.restaurantId,
@@ -398,9 +492,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.currentOrderId!,
       item.orderItemId!,
       finalQuantity
-    )
-      // CHANGED: nu mai chemăm reloadOrder, SSE va trimite OrderUpdated
-      .subscribe(() => { });
+    ).subscribe(() => { });
   }
 
   openTable(table: TableDTO) {
@@ -416,7 +508,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
     this.ordersService.listOpenOrderForTable(this.restaurantId, this.currentTableId)
       .pipe(take(1))
-      .subscribe(order => {
+      .subscribe(async order => {
 
         if (order) {
           this.orderIsConfirmed = true;
@@ -428,7 +520,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
             orderItemId: o?.orderItemId
           }));
 
-          this.saveCart();
+          await this.saveCartFor(this.currentTableId);
           return;
         }
 
@@ -455,10 +547,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         },
         error: err => console.error('[MenuComponent] Error loading menu items', err)
       });
-  }
-
-  saveCart() {
-    localStorage.setItem('tableCarts', JSON.stringify(this.tableCarts));
   }
 
   loadTables(): void {
@@ -504,7 +592,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       });
   }
 
-  moveCartToSelectedTable() {
+  async moveCartToSelectedTable() {
     if (!this.selectedTargetTableId) return;
 
     const sourceId = this.currentTableId;
@@ -515,7 +603,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.tableCarts[targetId] = this.tableCarts[sourceId];
     delete this.tableCarts[sourceId];
 
-    this.saveCart();
+    await this.saveCartFor(targetId);
 
     const targetTable = this.tables.find(t => t.tableId === targetId);
     this.currentTableId = targetId;
@@ -532,22 +620,56 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.showCloseConfirm = false;
   }
 
-  confirmCloseOrder() {
+  async confirmCloseOrder() {
     this.showCloseConfirm = false;
 
+    // 1. Oprim orice update întârziat
+    this.quantityBuffer = {};
+    this.quantityUpdate$.complete();
+    this.quantityUpdate$ = new Subject<CartItem>(); // recreăm pentru următoarea comandă
+
+    // 2. Ștergem acțiunile offline pentru acest order
+    if (this.currentOrderId) {
+      await this.offlineDB.deleteActionsForOrder(this.currentOrderId);
+    }
+
+    // 3. UI update imediat
+    this.tableCarts[this.currentTableId] = [];
+    delete this.tableComputed[this.currentTableId];
+    localStorage.removeItem('currentTableId');
+    this.markTableAsOpen(this.currentTableId);
+
+    await this.offlineDB.deleteCart(this.currentTableId);
+
+    const tableId = this.currentTableId;
+    const orderId = this.currentOrderId!;
+
+    // OFFLINE → punem în coadă
+    if (!navigator.onLine) {
+      await this.offlineDB.addOfflineAction({
+        type: 'CLOSE_ORDER',
+        restaurantId: this.restaurantId,
+        tableId,
+        orderId,
+        payload: {}
+      });
+
+      // reset UI
+      this.currentTableId = '';
+      this.tableName = '';
+      this.orderIsConfirmed = false;
+      this.canvasVisible = false;
+
+      return;
+    }
+
+    // ONLINE → trimitem direct
     this.ordersService.closeOrder(
       this.restaurantId,
-      this.currentTableId,
-      this.currentOrderId!
+      tableId,
+      orderId
     ).subscribe({
-      next: (response: OrderDTO) => {
-        this.tableCarts[this.currentTableId] = [];
-        // this.ordersService.removeComputed();
-        // this.tableComputed = {};
-        delete this.tableComputed[this.currentTableId];
-        localStorage.removeItem('currentTableId');
-        this.markTableAsOpen(this.currentTableId);
-        localStorage.removeItem('tableCarts');
+      next: async () => {
         this.currentTableId = '';
         this.tableName = '';
         this.orderIsConfirmed = false;
@@ -556,6 +678,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       error: err => console.error('Error closing order:', err)
     });
   }
+
+
 
   markTableAsClosed(tableId: string) {
     const updated = this.tables.map(t =>
@@ -580,108 +704,95 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.closedTables = this.tables.filter(t => !t.isTableOpen);
   }
 
-  startSse() {
-    this.sseService.listenToRestaurantEvents(this.restaurantId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(({ EventType, Data }) => {
+  private async handleSseEvent({ EventType, Data }: SseEvent<any>) {
+    if (!EventType) return;
 
-        switch (EventType) {
+    switch (EventType) {
 
-          case 'WaiterCall':
-            this.waiterState[Data.TableId] = WaiterCallState.Active;
-            break;
+      case 'WaiterCall':
+        this.waiterState[Data.TableId] = WaiterCallState.Active;
+        break;
 
-          case 'WaiterCallSnoozed':
-            this.waiterState[Data.TableId] = WaiterCallState.Snoozed;
-            break;
+      case 'WaiterCallSnoozed':
+        this.waiterState[Data.TableId] = WaiterCallState.Snoozed;
+        break;
 
-          case 'NewOrderPrivateEvent':
-            this.markTableAsClosed(Data.TableId);
-            break;
+      case 'NewOrderPrivateEvent':
+        this.markTableAsClosed(Data.TableId);
+        break;
 
-          case 'OrderUpdated': {
-            const payload = Data as OrderUpdatedSSEPayload;
-            console.log('OrderUpdated event received', payload);
+      case 'OrderUpdated': {
+        const payload = Data as OrderUpdatedSSEPayload;
 
-            this.tableCarts[payload.TableId] =
-              this.ordersService.mapPayloadItemsToCart(payload.Items, this.menuItems);
+        this.tableCarts[payload.TableId] =
+          this.ordersService.mapPayloadItemsToCart(payload.Items, this.menuItems);
 
-            this.tableComputed[payload.TableId] =
-              this.ordersService.mapPayloadToComputed(
-                payload,
-                this.tables,
-                this.waiterState
-              );
+        this.tableComputed[payload.TableId] =
+          this.ordersService.mapPayloadToComputed(
+            payload,
+            this.tables,
+            this.waiterState
+          );
 
-            this.ordersService.saveComputed(this.tableComputed);
-            this.saveCart();
-            break;
-          }
+        this.ordersService.saveComputed(this.tableComputed);
+        await this.saveCartFor(this.currentTableId);
+        break;
+      }
 
-          case 'OrderClosedWithPayment':
-            this.markTableAsOpen(Data.TableId);
-            if (this.currentTableId === Data.TableId) {
-              this.orderIsConfirmed = false;
-              this.currentOrderId = null;
-              this.tableCarts[Data.TableId] = [];
-              this.saveCart();
-            }
-            break;
+      case 'OrderClosedWithPayment':
+        this.markTableAsOpen(Data.TableId);
+        if (this.currentTableId === Data.TableId) {
+          this.orderIsConfirmed = false;
+          this.currentOrderId = null;
+          this.tableCarts[Data.TableId] = [];
+          await this.saveCartFor(Data.TableId);
+        }
+        break;
 
-          case 'TablesStatusesUpdate': {
-            const computedList = Data as TableComputedDTO[];
-            console.log('TablesStatusesUpdate received', computedList);
+      case 'TablesStatusesUpdate': {
+        const computedList = Data as TableComputedDTO[];
 
-            // 1) Actualizezi doar isTableOpen în this.tables
-            this.tables = this.tables.map(t => {
-              const c = computedList.find(x => x.tableId === t.tableId);
-              return c ? { ...t, isTableOpen: c.isTableOpen } : t;
-            });
+        this.tables = this.tables.map(t => {
+          const c = computedList.find(x => x.tableId === t.tableId);
+          return c ? { ...t, isTableOpen: c.isTableOpen } : t;
+        });
 
-            this.refreshTableLists();
+        this.refreshTableLists();
 
-            // 2) MERGE, nu replace
-            for (const c of computedList) {
-              const table = this.tables.find(t => t.tableId === c.tableId);
-              if (!table) continue;
+        for (const c of computedList) {
+          const table = this.tables.find(t => t.tableId === c.tableId);
+          if (!table) continue;
 
-              const existing = this.tableComputed[c.tableId] ?? {};
+          const existing = this.tableComputed[c.tableId] ?? {};
 
-              this.tableComputed[c.tableId] = {
-                //păstrezi valorile existente
-                ...existing,
-
-                //actualizezi doar ce vine din TablesStatusesUpdate
-                lastActionAt: c.lastActionAt ?? existing.lastActionAt,
-                lastAddedItem: c.lastAddedItem ?? existing.lastAddedItem ?? '—',
-                total: c.subTotal?.amount ?? existing.total ?? 0,
-                currency: c.subTotal?.currency ?? existing.currency ?? 'EUR',
-                itemCount: c.itemCount ?? existing.itemCount ?? 0,
-
-                //recalculezi cssClass pentru masa respectivă
-                cssClass: this.miscService.getTableCss(table, this.waiterState)
-              };
-            }
-
-            this.ordersService.saveComputed(this.tableComputed);
-            break;
-          }
-
-
-          case 'OrderItemAdded':
-            console.log('Order item added event received', Data);
-            break;
-
-          case 'OrderItemQuantityUpdated':
-            console.log('Order item quantity updated event received', Data);
-            break;
-
-          default:
-            console.warn('Unknown SSE event:', EventType);
+          this.tableComputed[c.tableId] = {
+            ...existing,
+            lastActionAt: c.lastActionAt ?? existing.lastActionAt,
+            lastAddedItem: c.lastAddedItem ?? existing.lastAddedItem ?? '—',
+            total: c.subTotal?.amount ?? existing.total ?? 0,
+            currency: c.subTotal?.currency ?? existing.currency ?? 'EUR',
+            itemCount: c.itemCount ?? existing.itemCount ?? 0,
+            cssClass: this.miscService.getTableCss(table, this.waiterState)
+          };
         }
 
-      });
+        this.ordersService.saveComputed(this.tableComputed);
+        break;
+      }
+
+      case 'OrderItemAdded':
+        console.log('Order item added event received', Data);
+        break;
+
+      case 'OrderItemQuantityUpdated':
+        console.log('Order item quantity updated event received', Data);
+        break;
+
+      default:
+        console.warn('Unknown SSE event:', EventType);
+    }
   }
+
 
   getTableCss(table: TableDTO, waiterState: Record<string, WaiterCallState>): string {
     return this.miscService.getTableCss(table, waiterState);
@@ -690,8 +801,29 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     return this.miscService.getLastActionTime(ts);
   }
 
+  private areCartsEqual(a: CartItem[], b: CartItem[]): boolean {
+    if (!a || !b) return false;
+    if (a.length !== b.length) return false;
+
+    for (let i = 0; i < a.length; i++) {
+      const x = a[i];
+      const y = b[i];
+
+      if (!x || !y) return false;
+
+      if (x.item.menuItemId !== y.item.menuItemId) return false;
+      if (x.quantity !== y.quantity) return false;
+      if (x.orderItemId !== y.orderItemId) return false;
+    }
+
+    return true;
+  }
 
   ngOnInit(): void {
+    this.sseService.events$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(ev => this.handleSseEvent(ev));
+      
     this.authService.getUserContext()
       .pipe(
         takeUntil(this.destroy$),
@@ -705,7 +837,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           tables: this.tablesService.getAll(this.restaurantId).pipe(take(1)),
           menu: this.menuItemService.getAll(this.restaurantId).pipe(take(1))
         })
-          .subscribe(({ tables, menu }) => {
+          .subscribe(async ({ tables, menu }) => {
             console.log('Initial data loaded', { tables, menu });
 
             this.tables = tables;
@@ -735,10 +867,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
               );
             });
 
-            const savedCarts = localStorage.getItem('tableCarts');
-            if (savedCarts) {
-              this.tableCarts = JSON.parse(savedCarts);
-            }
+            await this.offlineDB.loadAllCarts().then(carts => {
+              this.tableCarts = carts;
+            });
 
             const savedTableId = localStorage.getItem('currentTableId');
             if (savedTableId) {
@@ -746,7 +877,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
               if (table) this.openTable(table);
             }
 
-            this.startSse();
           });
 
         this.search$
@@ -762,7 +892,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
         this.quantityUpdate$
           .pipe(debounceTime(500))
-          .subscribe(item => this.flushQuantityUpdate(item));
+          .subscribe(item => {
+            this.flushQuantityUpdate(item);
+          });
       });
   }
 

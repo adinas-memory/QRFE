@@ -7,7 +7,9 @@ import { ColorModeService } from '@coreui/angular';
 import { IconSetService, } from '@coreui/icons-angular';
 import { iconSubset } from './icons/icon-subset';
 import { AuthService } from './core/auth/auth.service';
-import {SpinnerComponent} from "./shared/components/spinner/spinner.component";
+import { SpinnerComponent } from "./shared/components/spinner/spinner.component";
+import { OfflineQueueProcessor } from './core/offline/offline-queue-processor.service';
+import { OrderSyncService } from './core/services/order-service/order-sync.service';
 
 
 @Component({
@@ -17,15 +19,17 @@ import {SpinnerComponent} from "./shared/components/spinner/spinner.component";
 })
 export class AppComponent implements OnInit {
   title = 'CoreUI Angular Admin Template';
+  private sseStarted = false;
 
   readonly #destroyRef: DestroyRef = inject(DestroyRef);
   readonly #activatedRoute: ActivatedRoute = inject(ActivatedRoute);
   readonly #router = inject(Router);
   readonly #titleService = inject(Title);
   readonly #authService = inject(AuthService);
-
+  readonly #offlineQueueProcessor = inject(OfflineQueueProcessor);
   readonly #colorModeService = inject(ColorModeService);
   readonly #iconSetService = inject(IconSetService);
+  readonly #orderSyncService = inject(OrderSyncService);
 
   constructor() {
     this.#titleService.setTitle(this.title);
@@ -48,6 +52,27 @@ export class AppComponent implements OnInit {
     const keyTheme = 'coreui-free-angular-admin-template-theme-default';
     const defaultValue = '"dark"';
     localStorage.setItem(keyTheme, defaultValue);
+
+    window.addEventListener('online', () => {
+      console.log('%c[APP] Online event detected, processing offline queue...', 'color: green; font-weight: bold;');
+      this.#offlineQueueProcessor.processQueue();
+    });
+
+    window.addEventListener('offline', () => {
+      console.log('%c[BROWSER] OFFLINE', 'color: red; font-weight: bold;');
+    });
+
+    this.#authService.getUserContext()
+      .pipe(
+        filter(user => !!user?.restaurantId),
+        take(1)
+      )
+      .subscribe(user => {
+        if (!this.sseStarted) {
+          this.sseStarted = true;
+          this.#orderSyncService.listenToRestaurantEvents(user!.restaurantId!);
+        }
+      });
 
     this.#router.events.pipe(
       filter(evt => evt instanceof NavigationEnd),

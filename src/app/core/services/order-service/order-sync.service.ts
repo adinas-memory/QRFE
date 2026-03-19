@@ -6,6 +6,7 @@ import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { environment } from '../../../../environments/environment';
 import { SseEvent } from '../../models/sseModel';
 import { AuthService } from '../../auth/auth.service';
+import { OfflineQueueProcessor } from '../../offline/offline-queue-processor.service';
 
 @Injectable({
   providedIn: 'root'
@@ -16,7 +17,7 @@ export class OrderSyncService {
 
   // reconnect / refresh control
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 25;
+  private maxReconnectAttempts = 8;
   private baseReconnectDelayMs = 1000;
   private isRefreshing = false;
   private refreshQueue = new BehaviorSubject<boolean>(false);
@@ -30,7 +31,10 @@ export class OrderSyncService {
   private eventBuffer: SseEvent<any>[] = [];
   private maxBufferSize = 200;
 
-  constructor(private auth: AuthService, private ngZone: NgZone) {}
+  constructor(private auth: AuthService, 
+    private ngZone: NgZone,
+    private queueProcessor: OfflineQueueProcessor,
+  ) {}
 
   listenToRestaurantEvents<T = any>(restaurantId: string): Observable<SseEvent<T>> {
     // start connection immediately
@@ -65,6 +69,7 @@ export class OrderSyncService {
         this.ngZone.run(() => {
           this.reconnectAttempts = 0;
         });
+        this.queueProcessor.processQueue();
       },
       onmessage: (msg) => {
         this.ngZone.run(() => {
