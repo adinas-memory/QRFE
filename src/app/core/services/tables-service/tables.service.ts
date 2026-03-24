@@ -1,9 +1,11 @@
 import { Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment';
-import { Observable } from 'rxjs';
+import { Observable, take } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { TableDTO } from '../../models/restaurantTablesModel';
 import { NgZone } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+
 
 
 @Injectable({
@@ -64,5 +66,32 @@ export class TablesService {
   snoozeWaiterCall(restaurantId: string, tableId: string): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/${tableId}/call-waiter`, {}, { withCredentials: true });
   }
+
+  async getAllWithFallback(restaurantId: string): Promise<TableDTO[]> {
+    if (navigator.onLine) {
+      try {
+        const tables = await firstValueFrom(this.getAll(restaurantId));
+        localStorage.setItem('tablesSnapshot', JSON.stringify(tables));
+        return tables;
+
+      } catch (err) {
+        console.warn('[TablesService] Online fetch failed, using local snapshot');
+        return this.loadLocalTables();
+      }
+    }
+
+    // offline → fallback
+    return this.loadLocalTables();
+  }
+
+  private loadLocalTables(): TableDTO[] {
+    try {
+      const saved = localStorage.getItem('tablesSnapshot');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  }
+
 
 }

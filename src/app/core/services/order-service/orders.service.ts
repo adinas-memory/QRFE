@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment';
-import { Observable } from 'rxjs';
+import { firstValueFrom, Observable } from 'rxjs';
 import { AddOrderItemResponse, CartItem, OrderDTO, OrderUpdatedSSEPayload, TableComputedDTO, UpdateOrderItemQuantityResponse } from '../../models/orderingModel';
 import { MenuItem } from '../../models/menu/menuItem';
 import { TableDTO } from '../../models/restaurantTablesModel';
@@ -66,7 +66,7 @@ export class OrdersService {
   closeOrderAfterPayment(restaurantId: string, tableId: string, orderId: string): Observable<OrderDTO> {
     return this.http.post<OrderDTO>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${orderId}/close`, {}, { withCredentials: true });
   }
-    
+
   saveComputed(tableComputed: Record<string, any>): void {
     try {
       localStorage.setItem('tableComputed', JSON.stringify(tableComputed));
@@ -136,7 +136,7 @@ export class OrdersService {
   mapPayloadToComputed(
     payload: OrderUpdatedSSEPayload,
     tables: TableDTO[],
-    waiterState: Record<string, WaiterCallState>    
+    waiterState: Record<string, WaiterCallState>
   ) {
     const table = tables.find(t => t.tableId === payload.TableId);
     console.log('Mapping payload:', payload, 'Found table:', table);
@@ -154,7 +154,7 @@ export class OrdersService {
   mapTableToComputed(
     table: TableDTO,
     waiterState: Record<string, WaiterCallState>,
-    computed: TableComputedDTO    
+    computed: TableComputedDTO
   ) {
     return {
       lastActionAt: computed.lastActionAt,
@@ -165,5 +165,35 @@ export class OrdersService {
       cssClass: this.miscService.getTableCss(table, waiterState)
     };
   }
+
+  async listOpenOrderForTableWithFallback(restaurantId: string, tableId: string): Promise<OrderDTO | null> {
+    if (navigator.onLine) {
+      try {
+        const order = await firstValueFrom(
+          this.listOpenOrderForTable(restaurantId, tableId)
+        );
+
+        // salvăm snapshot-ul local
+        localStorage.setItem(`orderSnapshot_${tableId}`, JSON.stringify(order));
+        return order;
+
+      } catch (err) {
+        console.warn('[OrdersService] Online fetch failed, using local snapshot');
+        return this.loadLocalOrder(tableId);
+      }
+    }
+    // offline → fallback
+    return this.loadLocalOrder(tableId);
+  }
+
+  private loadLocalOrder(tableId: string): OrderDTO | null {
+    try {
+      const saved = localStorage.getItem(`orderSnapshot_${tableId}`);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  }
+
 
 }

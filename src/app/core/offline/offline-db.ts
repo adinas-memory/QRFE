@@ -4,13 +4,14 @@ import { TableCart } from '../../core/models/orderingModel';
 
 export interface CartRecord {
     tableId: string;
+    orderId?: string;
     items: TableCart[string];
 }
 
 export interface OfflineAction {
     id?: number;
     restaurantId: string;
-    type: 'ADD_ITEM' | 'UPDATE_QUANTITY' | 'DELETE_ITEM' | 'CLOSE_ORDER';
+    type: 'NEW_ORDER' | 'ADD_ITEM' | 'UPDATE_QUANTITY' | 'DELETE_ITEM' | 'CLOSE_ORDER' | 'INIT_ORDER_ITEMS_FINAL';
     tableId: string;
     orderId?: string;
     payload: any;
@@ -26,9 +27,9 @@ class OfflineDB extends Dexie {
     constructor() {
         super('OfflineOrdersDB');
 
-        this.version(2).stores({
-            carts: '&tableId',
-            queue: '++id, status, tableId'
+        this.version(4).stores({
+            carts: '&tableId, orderId',
+            queue: '++id, status, tableId, type, orderId, restaurantId, timestamp'
         });
     }
 }
@@ -43,8 +44,17 @@ export class OfflineDbService {
     // CART CRUD
     // -------------------------------
 
-    async saveCart(tableId: string, items: TableCart[string]): Promise<void> {
-        await this.db.carts.put({ tableId, items });
+    async saveCart(tableId: string, items: TableCart[string], orderId?: string): Promise<void> {
+        await this.db.carts.put({ tableId, items, orderId });
+    }
+
+    async loadCart(tableId: string): Promise<TableCart[string]> {
+        const record = await this.db.carts.get(tableId);
+        return record?.items ?? [];
+    }
+
+    async loadCartRecord(tableId: string): Promise<CartRecord | null> {
+        return await this.db.carts.get(tableId) ?? null;
     }
 
     async loadAllCarts(): Promise<Record<string, TableCart[string]>> {
@@ -89,10 +99,22 @@ export class OfflineDbService {
 
     async deleteActionsForOrder(orderId: string): Promise<void> {
         const actions = await this.db.queue.toArray();
+
         for (const a of actions) {
             if (a.orderId === orderId) {
                 await this.db.queue.delete(a.id!);
             }
         }
     }
+
+    async replaceOrderId(oldId: string, newId: string): Promise<void> {
+        const actions = await this.db.queue.toArray();
+
+        for (const a of actions) {
+            if (a.orderId === oldId) {
+                await this.db.queue.update(a.id!, { orderId: newId });
+            }
+        }
+    }
+
 }
