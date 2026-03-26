@@ -41,4 +41,15 @@ export class MiscellaneousService {
     return 'bg-danger text-white';
   }
 
+  async isReallyOnline(): Promise<boolean> {
+    try {
+      const resp = await fetch('/ping-lite', {
+        method: 'HEAD',
+        cache: 'no-store'
+      });
+      return resp.ok;
+    } catch {
+      return false;
+    }
+  }
 }

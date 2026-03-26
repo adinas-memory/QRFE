@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import Dexie, { Table } from 'dexie';
 import { TableCart } from '../../core/models/orderingModel';
+import { MenuItem } from '../models/menu/menuItem';
+export interface MenuItemEntity extends MenuItem { }
 
 export interface CartRecord {
     tableId: string;
@@ -23,11 +25,13 @@ export interface OfflineAction {
 class OfflineDB extends Dexie {
     carts!: Table<CartRecord, string>;
     queue!: Table<OfflineAction, number>;
+    menuItems!: Table<MenuItemEntity, string>;
 
     constructor() {
         super('OfflineOrdersDB');
 
-        this.version(4).stores({
+        this.version(5).stores({
+            menuItems: 'menuItemId',
             carts: '&tableId, orderId',
             queue: '++id, status, tableId, type, orderId, restaurantId, timestamp'
         });
@@ -39,6 +43,14 @@ class OfflineDB extends Dexie {
 })
 export class OfflineDbService {
     private db = new OfflineDB();
+
+    // expunem tabelele
+    menuItems: Table<MenuItemEntity, string> = this.db.menuItems;
+    carts = this.db.carts;
+    queue = this.db.queue;
+
+    // expunem tranzacțiile
+    transaction = this.db.transaction.bind(this.db);
 
     // -------------------------------
     // CART CRUD
@@ -102,6 +114,7 @@ export class OfflineDbService {
 
         for (const a of actions) {
             if (a.orderId === orderId) {
+                console.log('[DB] deleteActionsForOrder:', orderId);
                 await this.db.queue.delete(a.id!);
             }
         }
@@ -112,9 +125,64 @@ export class OfflineDbService {
 
         for (const a of actions) {
             if (a.orderId === oldId) {
+                console.log('[DB] replaceOrderId:', oldId, '→', newId);
                 await this.db.queue.update(a.id!, { orderId: newId });
             }
         }
     }
+
+    async addToCart(tableId: string, menuItem: MenuItemEntity, quantity: number = 1) {
+        const record = await this.loadCartRecord(tableId);
+
+        const items = record?.items ?? [];
+
+        const existing = items.find(i => i.item.menuItemId === menuItem.menuItemId);
+
+        if (existing) {
+            existing.quantity += quantity;
+        } else {
+            items.push({
+                item: menuItem,
+                quantity
+            });
+        }
+
+        await this.saveCart(tableId, items, record?.orderId);
+    }
+
+    async updateQuantity(tableId: string, menuItemId: string, quantity: number) {
+        const record = await this.loadCartRecord(tableId);
+        if (!record) return;
+
+        const items = record.items.map(i =>
+            i.item.menuItemId === menuItemId ? { ...i, quantity } : i
+        );
+
+        await this.saveCart(tableId, items, record.orderId);
+    }
+
+    async removeItem(tableId: string, menuItemId: string) {
+        const record = await this.loadCartRecord(tableId);
+        if (!record) return;
+
+        const items = record.items.filter(i => i.item.menuItemId !== menuItemId);
+
+        await this.saveCart(tableId, items, record.orderId);
+    }
+
+
+    async cacheMenu(menuItems: MenuItem[]): Promise<void> {
+        await this.db.transaction('rw', this.menuItems, async () => {
+            await this.menuItems.clear();
+            await this.menuItems.bulkAdd(menuItems);
+        });
+    }
+
+    async loadMenu(): Promise<{ menuItems: MenuItem[], categories: string[] }> {
+        const menuItems = await this.menuItems.toArray();
+        const categories = [...new Set(menuItems.map(i => i.category))];
+        return { menuItems, categories };
+    }
+
 
 }

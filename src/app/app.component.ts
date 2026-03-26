@@ -10,6 +10,7 @@ import { AuthService } from './core/auth/auth.service';
 import { SpinnerComponent } from "./shared/components/spinner/spinner.component";
 import { OfflineQueueProcessor } from './core/offline/offline-queue-processor.service';
 import { OrderSyncService } from './core/services/order-service/order-sync.service';
+import { MiscellaneousService } from './core/services/misc/miscellaneous.service';
 
 
 @Component({
@@ -30,6 +31,7 @@ export class AppComponent implements OnInit {
   readonly #colorModeService = inject(ColorModeService);
   readonly #iconSetService = inject(IconSetService);
   readonly #orderSyncService = inject(OrderSyncService);
+  readonly #miscService = inject(MiscellaneousService);
 
   constructor() {
     this.#titleService.setTitle(this.title);
@@ -53,20 +55,41 @@ export class AppComponent implements OnInit {
     const defaultValue = '"dark"';
     localStorage.setItem(keyTheme, defaultValue);
 
-    window.addEventListener('online', () => {
-      console.log('%c[APP] Online event detected, processing offline queue...', 'color: green; font-weight: bold;');
+    // 1. Detectăm tab hidden
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        console.log('[APP] Tab hidden → ignore offline events');
+      }
+    });
+
+    // 2. Detectăm evenimentul offline
+    window.addEventListener('offline', async () => {
+      if (document.hidden) return;
+
+      const realOnline = await this.#miscService.isReallyOnline();
+      if (realOnline) {
+        console.log('[APP] False offline event');
+        return;
+      }
+
+      console.log('[APP] Real offline detected');
+    });
+
+    // 3. Detectăm revenirea online
+    window.addEventListener('online', async () => {
+      const realOnline = await this.#miscService.isReallyOnline();
+      if (!realOnline) {
+        console.log('[APP] Browser says online, but backend unreachable');
+        return;
+      }
+
+      console.log('%c[APP] Real online → processing offline queue...', 'color: green; font-weight: bold;');
       this.#offlineQueueProcessor.processQueue();
     });
 
-    window.addEventListener('offline', () => {
-      console.log('%c[BROWSER] OFFLINE', 'color: red; font-weight: bold;');
-    });
-
+    // 4. Restul logicii tale (SSE, routing, session)
     this.#authService.getUserContext()
-      .pipe(
-        filter(user => !!user?.restaurantId),
-        take(1)
-      )
+      .pipe(filter(user => !!user?.restaurantId), take(1))
       .subscribe(user => {
         if (!this.sseStarted) {
           this.sseStarted = true;
@@ -77,13 +100,12 @@ export class AppComponent implements OnInit {
     this.#router.events.pipe(
       filter(evt => evt instanceof NavigationEnd),
       take(1)
-    ).subscribe((evt: NavigationEnd) => {
+    ).subscribe(() => {
       const deepest = this.getDeepestChild(this.#router.routerState.root.snapshot);
       const isPublic = deepest?.data?.['public'] === true;
-      // console.log("isPublic route:", isPublic);
 
       if (!isPublic) {
-        this.#authService.restoreSession().subscribe(user => {
+        this.#authService.restoreSession().subscribe(() => {
           this.#authService.pingSession(false).subscribe();
         });
       } else {
@@ -91,4 +113,5 @@ export class AppComponent implements OnInit {
       }
     });
   }
+
 }

@@ -18,7 +18,7 @@ import { } from '@coreui/angular';
 import { MenuItemServiceService } from '../../../core/services/menu-item-service/menu-item-service.service';
 import { filter, Subject, take, takeUntil } from 'rxjs';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MenuItem } from '../../../core/models/menu/menuItem';
+import { MenuItem, MenuResponse } from '../../../core/models/menu/menuItem';
 import { AuthService } from '../../../core/auth/auth.service';
 import { NgFor, CurrencyPipe } from '@angular/common';
 import { UserContextModel } from '../../../core/models/userContextModel';
@@ -68,7 +68,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
       menuItemName: ['', Validators.required],
       menuItemDescription: ['', Validators.required],
       menuItemPriceAmount: [0, [Validators.required, Validators.min(0.01)]],
-      menuItemCategory: ['', Validators.required],      
+      menuItemCategory: ['', Validators.required],
       menuItemIcon: [null, Validators.required]
     });
   }
@@ -88,13 +88,18 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
     this.menuItemService.getAll(this.restaurantId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: response => {
-          this.menuItems = response.menu?.menuItems ?? [];
-          this.categories = response.categories ?? [];
+        next: (response: MenuResponse) => {
+
+          // dacă backend-ul trimite un singur meniu, îl luăm pe primul
+          const first = response;
+
+          this.menuItems = first?.menu?.menuItems ?? [];
+          this.categories = first?.categories ?? [];
         },
-        error: err => console.error('[MenuComponent] Error loading menu items', err)
+        error: err => console.error('[ManageMenuComponent] Error loading menu items', err)
       });
   }
+
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;

@@ -4,6 +4,8 @@ import { Observable } from 'rxjs';
 import { MenuItem, MenuResponse } from '../../models/menu/menuItem';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { MenuItemEntity, OfflineDbService } from '../../offline/offline-db';
+
 
 @Injectable({
   providedIn: 'root'
@@ -11,7 +13,7 @@ import { firstValueFrom } from 'rxjs';
 export class MenuItemServiceService {
   private apiUrl = environment.apiUrl;
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, private offlineDB: OfflineDbService) { }
 
   getAll(restaurantId: string): Observable<MenuResponse> {
     return this.http.get<MenuResponse>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/menu`, { withCredentials: true });
@@ -29,33 +31,64 @@ export class MenuItemServiceService {
     return this.http.delete<void>(`${this.apiUrl}/api/restaurants/${restaurantId}/admin/menu/${menuItemId}`, { withCredentials: true });
   }
 
-  async getAllWithFallback(restaurantId: string): Promise<{ menuItems: MenuItem[], categories: string[] }> {
-    if (navigator.onLine) {
-      try {
-        const response = await firstValueFrom(this.getAll(restaurantId));
+  // async getAllWithFallback(restaurantId: string): Promise<{ menuItems: MenuItem[], categories: string[] }> {
+  //   if (navigator.onLine) {
+  //     try {
+  //       const response = await firstValueFrom(this.getAll(restaurantId));
 
-        const menuItems = response.menu?.menuItems ?? [];
-        const categories = response.categories ?? [];
+  //       // Backend returns an array of menus → extract all menuItems
+  //       const allItems: MenuItem[] = response.flatMap(m => m.menu.menuItems);
 
-        localStorage.setItem('menuSnapshot', JSON.stringify({ menuItems, categories }));
+  //       // Save to Dexie
+  //       await this.offlineDB.transaction('rw', this.offlineDB.menuItems, async () => {
+  //         await this.offlineDB.menuItems.clear();
+  //         await this.offlineDB.menuItems.bulkAdd(allItems);
+  //       });
 
-        return { menuItems, categories };
+  //       const categories = [...new Set(allItems.map(i => i.category))];
 
-      } catch (err) {
-        console.warn('[MenuService] Online fetch failed, using local snapshot');
-        return this.loadLocalMenu();
-      }
-    }
+  //       return { menuItems: allItems, categories };
 
-    return this.loadLocalMenu();
+  //     } catch (err) {
+  //       console.warn('[MenuService] Online fetch failed, using Dexie fallback');
+  //       return this.loadFromDexie();
+  //     }
+  //   }
+
+  //   // Offline → Dexie fallback
+  //   return this.loadFromDexie();
+  // }
+
+async getAllWithFallback(
+  restaurantId: string
+): Promise<{ menuItems: MenuItem[], categories: string[] }> {
+
+  try {
+    const response = await firstValueFrom(this.getAll(restaurantId));
+    console.log('[MenuItemService] Fetched menu from backend', response);
+
+    // backend-ul trimite UN SINGUR obiect, nu array
+    const menuItems = response.menu.menuItems;
+    console.log('[MenuItemService] Extracted menu items', menuItems);
+
+    await this.offlineDB.cacheMenu(menuItems);
+
+  } catch (err) {
+    console.warn('[MenuItemService] Backend unavailable, using Dexie fallback');
   }
 
-  private loadLocalMenu(): { menuItems: MenuItem[], categories: string[] } {
-    try {
-      const saved = localStorage.getItem('menuSnapshot');
-      return saved ? JSON.parse(saved) : { menuItems: [], categories: [] };
-    } catch {
-      return { menuItems: [], categories: [] };
-    }
-  }
+  return await this.offlineDB.loadMenu();
+}
+
+
+
+
+  // private async loadFromDexie(): Promise<{ menuItems: MenuItem[], categories: string[] }> {
+  //   const menuItems = await this.offlineDB.menuItems.toArray() as MenuItemEntity[];
+
+  //   const categories: string[] = [...new Set(menuItems.map((i: MenuItemEntity) => i.category))];
+
+  //   return { menuItems, categories };
+  // }
+
 }

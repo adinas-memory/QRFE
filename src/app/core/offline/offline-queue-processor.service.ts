@@ -2,6 +2,9 @@ import { Injectable } from "@angular/core";
 import { OrdersService } from "../services/order-service/orders.service";
 import { OfflineAction, OfflineDbService } from "./offline-db";
 import { firstValueFrom } from "rxjs";
+import { CartItem, OrderItemDTO } from "../models/orderingModel";
+import { MiscellaneousService } from "../services/misc/miscellaneous.service";
+
 
 @Injectable({ providedIn: 'root' })
 export class OfflineQueueProcessor {
@@ -9,18 +12,15 @@ export class OfflineQueueProcessor {
 
     constructor(
         private offlineDB: OfflineDbService,
-        private ordersService: OrdersService
+        private ordersService: OrdersService,
+        private miscService: MiscellaneousService
     ) { }
 
     async processQueue() {
         console.log('%c[QUEUE] Processing queue...', 'color: blue; font-weight: bold;');
         // debounce pentru false-positive offline
         await new Promise(res => setTimeout(res, 500));
-        
-        if (!navigator.onLine) {
-            console.log('[QUEUE] Offline → skip processing');
-            return;
-        }
+
 
         if (this.processing) return;
         this.processing = true;
@@ -30,7 +30,9 @@ export class OfflineQueueProcessor {
             if (!actions.length) return;
 
             // compresie înainte de sortare
+            console.log('[QUEUE] Raw actions:', actions);
             actions = await this.compressQueue(actions);
+            console.log('[QUEUE] After compression:', actions);
 
             actions = actions.sort((a, b) =>
                 this.getActionOrder(a.type) - this.getActionOrder(b.type)
@@ -48,16 +50,11 @@ export class OfflineQueueProcessor {
         }
     }
 
-    private getMenuItemFromSnapshot(menuItemId: string) {
-        const snapshotRaw = localStorage.getItem('menuSnapshot');
-        if (!snapshotRaw) return null;
-
-        const snapshot = JSON.parse(snapshotRaw);
-        return snapshot.menuItems.find((m: any) => m.menuItemId === menuItemId) ?? null;
+    private async getMenuItem(menuItemId: string) {
+        return await this.offlineDB.menuItems.get(menuItemId);
     }
 
     private async foldActionsForOrder(orderId: string): Promise<any[]> {
-        // 1. găsim tableId din acțiuni
         const actions = await this.offlineDB.getPendingActions();
         const related = actions.filter(a => a.orderId === orderId);
 
@@ -65,40 +62,10 @@ export class OfflineQueueProcessor {
 
         const tableId = related[0].tableId;
 
-        // 2. cart-ul actual din Dexie
-        let cart = await this.offlineDB.loadCart(tableId);
-
-        // 3. aplicăm acțiunile peste cart
-        for (const a of related) {
-            switch (a.type) {
-                case 'ADD_ITEM': {
-                    const menuItem = this.getMenuItemFromSnapshot(a.payload.menuItemId);
-                    console.error('[OfflineQueue] MenuItem not found in snapshot:', a.payload.menuItemId);
-                    if (!menuItem) continue;
-
-                    cart.push({
-                        item: menuItem,
-                        quantity: a.payload.quantity,
-                        orderItemId: undefined
-                    });
-                    break;
-                }
-
-                case 'UPDATE_QUANTITY': {
-                    const item = cart.find(i => i.item.menuItemId === a.payload.menuItemId);
-                    if (item) item.quantity = a.payload.quantity;
-                    break;
-                }
-
-                case 'DELETE_ITEM': {
-                    cart = cart.filter(i => i.item.menuItemId !== a.payload.menuItemId);
-                    break;
-                }
-            }
-        }
-
-        return cart;
+        // Starea finală este deja în Dexie
+        return await this.offlineDB.loadCart(tableId);
     }
+
 
     private getActionOrder(type: string): number {
         switch (type) {
@@ -113,6 +80,7 @@ export class OfflineQueueProcessor {
     }
 
     private async processAction(action: OfflineAction): Promise<boolean> {
+        console.log('[QUEUE] Processing action:', action);
         // 1. Dacă acțiunea NU este NEW_ORDER și orderId este local → o sărim
         if (action.type !== 'NEW_ORDER' && action.orderId?.startsWith('local-')) {
             console.log('[QUEUE] Waiting for real orderId → skip:', action.type);
@@ -127,6 +95,7 @@ export class OfflineQueueProcessor {
         try {
             switch (action.type) {
                 case 'NEW_ORDER': {
+                    console.log('[QUEUE] NEW_ORDER → calling backend newOrder()');
                     // 1. creăm order real
                     const res = await firstValueFrom(
                         this.ordersService.newOrder(
@@ -139,6 +108,7 @@ export class OfflineQueueProcessor {
                     const realOrderId = res.order.orderId;
 
                     // 2. înlocuim orderId local cu cel real
+                    console.log('[QUEUE] Replacing local orderId', action.orderId, '→', realOrderId);
                     await this.offlineDB.replaceOrderId(action.orderId!, realOrderId);
 
                     // 3. reconstruim starea finală a cart-ului
@@ -147,7 +117,7 @@ export class OfflineQueueProcessor {
                     console.log('[QUEUE] Final cart after fold:', finalCart);
 
                     // 4. trimitem INIT_ORDER_ITEMS_FINAL
-                    await firstValueFrom(
+                    const finalRes = await firstValueFrom(
                         this.ordersService.updateOrderItem(
                             action.restaurantId,
                             action.tableId,
@@ -162,8 +132,8 @@ export class OfflineQueueProcessor {
                         )
                     );
 
-                    // 5. ștergem toate acțiunile pentru acest order
-                    await this.offlineDB.deleteActionsForOrder(action.orderId!);
+                    // 5. actualizăm Dexie cu adevărul global
+                    await this.applyFinalOrderState(action.tableId, finalRes.orderItems);
 
                     // 6. marcăm NEW_ORDER ca done
                     await this.offlineDB.markActionDone(action.id!);
@@ -205,23 +175,120 @@ export class OfflineQueueProcessor {
         }
     }
 
+    async applyFinalOrderState(
+        tableId: string,
+        orderItems: (OrderItemDTO | null)[] | null | undefined
+    ): Promise<void> {
+
+        // 1. fallback sigur
+        const safeItems = (orderItems ?? []).filter(
+            (o): o is OrderItemDTO => o !== null
+        );
+
+        // 2. mapăm în CartItem[]
+        const items: CartItem[] = safeItems.map(o => ({
+            item: {
+                menuItemId: o.menuItemId,
+                menuItemName: o.orderItemName,
+                menuItemDescription: o.orderItemDescription,
+                menuItemPriceAmount: o.orderItemPriceAmount ?? 0,
+                menuItemPriceCurrency: o.orderItemPriceCurrency,
+                menuItemIconUrl: undefined, // backend nu trimite icon aici
+                category: o.category
+            },
+            quantity: o.quantity,
+            orderItemId: o.orderItemId
+        }));
+
+        // 3. salvăm în Dexie
+        await this.offlineDB.saveCart(tableId, items);
+    }
+
+
 
 
     private async compressQueue(actions: OfflineAction[]): Promise<OfflineAction[]> {
-        const map = new Map<string, OfflineAction>();
+        const perItem = new Map<string, OfflineAction[]>();
+        const result: OfflineAction[] = [];
 
+        // 1. Separăm acțiunile "de control" de cele pe item
         for (const action of actions) {
-            if (action.type === 'UPDATE_QUANTITY') {
-                const key = `${action.orderId}-${action.payload.orderItemId}`;
-                map.set(key, action); // suprascrie acțiunile anterioare
-            } else {
-                // ADD_ITEM și DELETE_ITEM nu se pot comprima
-                const key = `${action.id}`;
-                map.set(key, action);
+            if (action.type === 'NEW_ORDER' || action.type === 'CLOSE_ORDER') {
+                // le păstrăm exact cum sunt, în ordinea lor
+                result.push(action);
+                continue;
+            }
+
+            // defensiv: dacă nu avem menuItemId, nu putem comprima
+            const menuItemId = action.payload?.menuItemId;
+            if (!menuItemId) {
+                result.push(action);
+                continue;
+            }
+
+            const key = `${action.orderId}-${menuItemId}`;
+            if (!perItem.has(key)) perItem.set(key, []);
+            perItem.get(key)!.push(action);
+        }
+
+        type CompressedState =
+            | { type: 'ADD_ITEM'; quantity: number }
+            | { type: 'UPDATE_QUANTITY'; quantity: number }
+            | { type: 'DELETE_ITEM' };
+
+        // 2. Comprimăm per item
+        for (const ops of perItem.values()) {
+            let state: CompressedState | null = null;
+
+            for (const op of ops) {
+                switch (op.type) {
+                    case 'ADD_ITEM':
+                        state = { type: 'ADD_ITEM', quantity: op.payload.quantity };
+                        break;
+
+                    case 'UPDATE_QUANTITY':
+                        if (state && 'quantity' in state) {
+                            state.quantity = op.payload.quantity;
+                        } else {
+                            state = { type: 'UPDATE_QUANTITY', quantity: op.payload.quantity };
+                        }
+                        break;
+
+                    case 'DELETE_ITEM':
+                        state = { type: 'DELETE_ITEM' };
+                        break;
+                }
+            }
+
+            if (state) {
+                const base = ops[0];
+
+                if (state.type === 'DELETE_ITEM') {
+                    result.push({
+                        ...base,
+                        type: 'DELETE_ITEM',
+                        payload: {
+                            menuItemId: base.payload.menuItemId
+                        }
+                    });
+                } else {
+                    result.push({
+                        ...base,
+                        type: state.type,
+                        payload: {
+                            menuItemId: base.payload.menuItemId,
+                            quantity: state.quantity
+                        }
+                    });
+                }
             }
         }
 
-        return Array.from(map.values());
+        return result;
     }
+
+
+
+
 
 }

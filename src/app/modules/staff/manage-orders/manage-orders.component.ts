@@ -122,10 +122,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   trackByTableId(index: number, table: TableDTO) { return table.tableId; }
 
-  // async saveCartFor(tableId: string) {
-  //   const items = this.tableCarts[tableId] ?? [];
-  //   await this.offlineDB.saveCart(tableId, items);
-  // }
 
   async openOrder() {
     const order = await this.ordersService.listOpenOrderForTableWithFallback(this.restaurantId, this.currentTableId);
@@ -166,17 +162,19 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   async confirmOrder() {
-    console.log('[CONFIRM] offline?', !navigator.onLine);
-    console.log('[CONFIRM] orderIsConfirmed?', this.orderIsConfirmed);
-    console.log('[CONFIRM] currentOrderId?', this.currentOrderId);
-
+    if (document.hidden) {
+      console.log('[CONFIRM] Tab hidden → skip confirmOrder');
+      return;
+    }
 
     //  1. PRIMA verificare: suntem offline?
-    if (!navigator.onLine) {
+    if (!(await this.miscService.isReallyOnline())) {
       const localOrderId = 'local-' + crypto.randomUUID();
 
       this.currentOrderId = localOrderId;
       this.orderIsConfirmed = true;
+
+      const cart = await this.offlineDB.loadCart(this.currentTableId);
       // 1. NEW_ORDER
       await this.offlineDB.addOfflineAction({
         type: 'NEW_ORDER',
@@ -186,14 +184,22 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         payload: { seatId: this.seatId ?? null }
       });
       // 2. INIT_ORDER_ITEMS
-      const items = this.tableCarts[this.currentTableId].map(ci => ({
-        menuItemId: ci.item.menuItemId,
-        quantity: ci.quantity
-      }));
+      await this.offlineDB.addOfflineAction({
+        type: 'INIT_ORDER_ITEMS_FINAL',
+        restaurantId: this.restaurantId,
+        tableId: this.currentTableId,
+        orderId: localOrderId,
+        payload: {
+          orderItems: cart.map(ci => ({
+            menuItemId: ci.item.menuItemId,
+            quantity: ci.quantity
+          })),
+          seatId: null
+        }
+      });
 
       this.markTableAsClosed(this.currentTableId);
       this.updateComputedLocal(this.currentTableId);
-      // localStorage.removeItem(`orderSnapshot_${this.currentTableId}`);
       return;
     }
 
@@ -204,6 +210,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     );
 
     if (!order) {
+      const cart = await this.offlineDB.loadCart(this.currentTableId);
       //  3. Online + fără order → creăm unul real
       this.ordersService.newOrder(
         this.restaurantId,
@@ -211,26 +218,29 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.seatId ?? undefined
       )
         .pipe(take(1))
-        .subscribe(newOrder => {
+        .subscribe(async newOrder => {
 
           this.currentOrderId = newOrder.order.orderId;
 
-          const items = this.tableCarts[this.currentTableId].map(ci => ({
-            menuItemId: ci.item.menuItemId,
-            quantity: ci.quantity
-          }));
+          const body = {
+            orderItems: cart.map(ci => ({
+              menuItemId: ci.item.menuItemId,
+              quantity: ci.quantity
+            })),
+            seatId: null
+          };
 
           this.ordersService.updateOrderItem(
             this.restaurantId,
             this.currentTableId,
             this.currentOrderId,
-            { orderItems: items, seatId: null }
+            { orderItems: body.orderItems, seatId: null }
           )
             .pipe(take(1))
             .subscribe(async () => {
               this.orderIsConfirmed = true;
               this.markTableAsClosed(this.currentTableId);
-              // 🔥 2. Salvăm în Dexie orderId + items
+              //  2. Salvăm în Dexie orderId + items
               await this.offlineDB.saveCart(
                 this.currentTableId,
                 this.tableCarts[this.currentTableId],
@@ -242,7 +252,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // 🔥 4. Online + order existent → update
+    // 4. Online + order existent → update
     this.updateExistingOrder(order);
     this.currentOrderId = order.orderId;
     this.orderIsConfirmed = true;
@@ -305,12 +315,13 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   //#endregion
 
   async addCartItem(item: MenuItem) {
+    if (document.hidden) {
+      console.log('[CONFIRM] Tab hidden → skip confirmOrder');
+      return;
+    }
     // UI update instant
     const cart = this.tableCarts[this.currentTableId];
     const existing = cart.find(x => x.item.menuItemId === item.menuItemId);
-    console.log('[addCartItem] navigator.onLine =', navigator.onLine);
-    console.log('[addCartItem] orderIsConfirmed =', this.orderIsConfirmed);
-
 
     // Dacă itemul există deja
     if (existing) {
@@ -325,7 +336,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       if (!this.orderIsConfirmed) return;
 
       // Dacă suntem offline → punem UPDATE_QUANTITY în coadă
-      if (!navigator.onLine) {
+      if (!(await this.miscService.isReallyOnline())) {
         console.log('[addCartItem] OFFLINE → ADD_ITEM queued');
         await this.offlineDB.addOfflineAction({
           type: 'UPDATE_QUANTITY',
@@ -358,7 +369,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     if (!this.orderIsConfirmed) return;
 
     // Dacă suntem offline → punem ADD_ITEM în coadă
-    if (!navigator.onLine) {
+    if (!(await this.miscService.isReallyOnline())) {
       await this.offlineDB.addOfflineAction({
         type: 'ADD_ITEM',
         restaurantId: this.restaurantId,
@@ -413,6 +424,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
 
   async decrementItem(sel: CartItem) {
+    if (document.hidden) {
+      console.log('[CONFIRM] Tab hidden → skip confirmOrder');
+      return;
+    }
     const tableId = this.currentTableId;
     const existing = this.tableCarts[tableId].find(
       x => x.item.menuItemId === sel.item.menuItemId
@@ -420,7 +435,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     if (!existing) return;
 
     // UI update trebuie să se întâmple ÎNAINTE de orice return
-    if (existing.quantity > 1) {      
+    if (existing.quantity > 1) {
       existing.quantity--;
     } else {
       existing.quantity = 0;
@@ -451,7 +466,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     const orderItemId = existing.orderItemId;
 
     // 3) OFFLINE → queue
-    if (!navigator.onLine) {
+    if (!(await this.miscService.isReallyOnline())) {
       if (existing.quantity > 0) {
         await this.offlineDB.addOfflineAction({
           type: 'UPDATE_QUANTITY',
@@ -466,7 +481,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           restaurantId: this.restaurantId,
           tableId,
           orderId,
-          payload: { orderItemId }
+          payload: { orderItemId, menuItemId: existing.item.menuItemId, quantity: existing.quantity }
         });
       }
       return;
@@ -485,67 +500,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     }
   }
 
-
-
-  // async decrementItem(sel: CartItem) {
-  //   const cart = this.tableCarts[this.currentTableId];
-  //   const existing = cart.find(x => x.item.menuItemId === sel.item.menuItemId);
-  //   if (!existing) return;
-
-  //   // 1) UI update instant
-  //   if (existing.quantity > 1) {
-  //     existing.quantity--;
-  //   } else {
-  //     this.tableCarts[this.currentTableId] =
-  //       cart.filter(x => x.item.menuItemId !== sel.item.menuItemId);
-  //   }
-
-  //   await this.saveCartFor(this.currentTableId);
-
-  //   // 2) Dacă nu e confirmată comanda → doar local, nimic la server
-  //   if (!this.orderIsConfirmed) return;
-
-  //   // 3) Dacă suntem offline → punem în coadă
-  //   if (!navigator.onLine) {
-  //     if (existing.quantity > 0) {
-  //       // UPDATE_QUANTITY
-  //       await this.offlineDB.addOfflineAction({
-  //         type: 'UPDATE_QUANTITY',
-  //         restaurantId: this.restaurantId,
-  //         tableId: this.currentTableId,
-  //         orderId: this.currentOrderId!,
-  //         payload: {
-  //           orderItemId: existing.orderItemId!,
-  //           quantity: existing.quantity
-  //         }
-  //       });
-  //     } else {
-  //       // DELETE_ITEM
-  //       await this.offlineDB.addOfflineAction({
-  //         type: 'DELETE_ITEM',
-  //         restaurantId: this.restaurantId,
-  //         tableId: this.currentTableId,
-  //         orderId: this.currentOrderId!,
-  //         payload: { orderItemId: existing.orderItemId }
-  //       });
-  //     }
-  //     return;
-  //   }
-
-  //   // 4) Dacă suntem online → trimitem normal
-  //   if (existing.quantity > 0) {
-  //     this.queueQuantityUpdate(existing);
-  //   } else {
-  //     this.ordersService.deleteOrderItem(
-  //       this.restaurantId,
-  //       this.currentTableId,
-  //       this.currentOrderId!,
-  //       existing.orderItemId!
-  //     ).subscribe(() => { });
-  //   }
-  // }
-
   async removeItem(sel: CartItem) {
+    if (document.hidden) {
+      console.log('[CONFIRM] Tab hidden → skip confirmOrder');
+      return;
+    }
     const tableId = this.currentTableId;
     const existing = this.tableCarts[tableId].find(
       x => x.item.menuItemId === sel.item.menuItemId
@@ -586,7 +545,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     const orderItemId = existing.orderItemId;
 
     // 3) Order confirmat + OFFLINE → queue + local
-    if (!navigator.onLine) {
+    if (!(await this.miscService.isReallyOnline())) {
       console.log('[removeItem] Confirmed order + OFFLINE → queue DELETE_ITEM');
 
       this.tableCarts[tableId] = this.tableCarts[tableId].filter(i => i !== existing);
@@ -602,7 +561,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         restaurantId: this.restaurantId,
         tableId,
         orderId,
-        payload: { orderItemId }
+        payload: { orderItemId, menuItemId: existing.item.menuItemId }
       });
 
       return;
@@ -687,7 +646,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.currentOrderId ?? undefined
     );
 
-    if (!navigator.onLine) {
+    if (!(await this.miscService.isReallyOnline())) {
       await this.offlineDB.addOfflineAction({
         type: 'UPDATE_QUANTITY',
         restaurantId: this.restaurantId,
@@ -761,22 +720,21 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
 
+  // loadMenuItems(): void {
+  //   this.offlineDB.menuItems.toArray()
+  //     .then(menuItems => {
+  //       this.menuItems = menuItems;
 
-  loadMenuItems(): void {
-    this.menuItemService.getAll(this.restaurantId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: response => {
-          this.menuItems = response.menu?.menuItems ?? [];
-          this.fuse = new Fuse(this.menuItems, {
-            keys: ['menuItemName'],
-            threshold: 0.3,
-          });
-          this.categories = response.categories ?? [];
-        },
-        error: err => console.error('[MenuComponent] Error loading menu items', err)
-      });
-  }
+  //       this.fuse = new Fuse(this.menuItems, {
+  //         keys: ['menuItemName'],
+  //         threshold: 0.3,
+  //       });
+
+  //       this.categories = [...new Set(menuItems.map(i => i.category))];
+  //     })
+  //     .catch(err => console.error('[MenuComponent] Error loading menu items from Dexie', err));
+  // }
+
 
   loadTables(): void {
     this.tablesService.getAll(this.restaurantId)
@@ -852,6 +810,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   async confirmCloseOrder() {
+    if (document.hidden) {
+      console.log('[CONFIRM] Tab hidden → skip confirmOrder');
+      return;
+    }
     this.showCloseConfirm = false;
 
     // 1. Oprim orice update întârziat
@@ -863,7 +825,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     const orderId = this.currentOrderId!;
 
     // 3. OFFLINE → punem în coadă
-    if (!navigator.onLine) {
+    if (!(await this.miscService.isReallyOnline())) {
       await this.offlineDB.addOfflineAction({
         type: 'CLOSE_ORDER',
         restaurantId: this.restaurantId,

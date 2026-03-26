@@ -31,10 +31,10 @@ export class OrderSyncService {
   private eventBuffer: SseEvent<any>[] = [];
   private maxBufferSize = 200;
 
-  constructor(private auth: AuthService, 
+  constructor(private auth: AuthService,
     private ngZone: NgZone,
     private queueProcessor: OfflineQueueProcessor,
-  ) {}
+  ) { }
 
   listenToRestaurantEvents<T = any>(restaurantId: string): Observable<SseEvent<T>> {
     // start connection immediately
@@ -51,6 +51,10 @@ export class OrderSyncService {
   }
 
   private openConnection(restaurantId: string) {
+    if (document.hidden) {
+      console.log('[SSE] Tab hidden → skip openConnection');
+      return;
+    }
     // ensure single controller/connection
     this.close();
     this.controller = new AbortController();
@@ -123,6 +127,10 @@ export class OrderSyncService {
   }
 
   private handleSseError(restaurantId: string, err: any) {
+    if (document.hidden) {
+      console.log('[SSE] Tab hidden → skip handleSseError');
+      return;
+    }
     // If already refreshing, do nothing (we'll reconnect after refresh completes)
     if (this.isRefreshing) return;
 
@@ -157,6 +165,10 @@ export class OrderSyncService {
         const delay = Math.min(30000, this.baseReconnectDelayMs * Math.pow(2, this.reconnectAttempts - 1));
         console.warn(`[OrderSync] refresh failed, scheduling reconnect attempt ${this.reconnectAttempts} in ${delay}ms`);
         timer(delay).pipe(take(1)).subscribe(() => {
+          if (document.hidden) {
+            console.log('[SSE] Tab hidden → skip scheduled reconnect');
+            return;
+          }
           // attempt to reopen; this will again trigger refresh flow if needed
           this.openConnection(restaurantId);
         });
