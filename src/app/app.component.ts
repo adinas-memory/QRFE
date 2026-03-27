@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, HostListener, inject, OnInit } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, ActivatedRouteSnapshot, NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { delay, filter, map, take, tap } from 'rxjs/operators';
@@ -41,6 +41,16 @@ export class AppComponent implements OnInit {
     this.#colorModeService.localStorageItemName.set('coreui-free-angular-admin-template-theme-default');
     this.#colorModeService.eventName.set('ColorSchemeChange');
   }
+
+  // prevent refresh in offline mode
+  @HostListener('window:beforeunload', ['$event'])
+  preventRefreshOffline(event: BeforeUnloadEvent) {
+    if (!navigator.onLine) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+  }
+
 
   getDeepestChild(route: ActivatedRouteSnapshot): ActivatedRouteSnapshot {
     let current = route;
