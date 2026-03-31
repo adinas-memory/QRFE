@@ -2,11 +2,14 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment';
 import { firstValueFrom, Observable } from 'rxjs';
-import { AddOrderItemResponse, CartItem, OrderDTO, OrderUpdatedSSEPayload, TableComputedDTO, UpdateOrderItemQuantityResponse } from '../../models/orderingModel';
+import { AddOrderItemResponse, CartItem, InitAddOrderResponse, OrderDTO, OrderUpdatedSSEPayload, TableComputedDTO, UpdateOrderItemQuantityResponse } from '../../models/orderingModel';
 import { MenuItem } from '../../models/menu/menuItem';
 import { TableDTO } from '../../models/restaurantTablesModel';
 import { WaiterCallState } from '../../models/callWaiter/callWaiter';
 import { MiscellaneousService } from '../misc/miscellaneous.service';
+import { OfflineDbService } from '../../offline/offline-db';
+import { OnlineStateService } from '../../offline/online-state-service';
+
 
 
 @Injectable({
@@ -16,8 +19,18 @@ export class OrdersService {
   private apiUrl = environment.apiUrl;
 
 
-  constructor(private http: HttpClient, private miscService: MiscellaneousService) {
+  constructor(private http: HttpClient,
+    private miscService: MiscellaneousService,
+    private offlineDB: OfflineDbService,
+    private onlineStateService: OnlineStateService) {
   }
+
+
+
+
+  // ------------------------------
+  // HTTP METHODS (OBSERVABLES)
+  // ------------------------------
 
   newOrder(restaurantId: string, tableId: string, seatId?: string): Observable<{ order: OrderDTO }> {
     return this.http.post<{ order: OrderDTO }>(
@@ -32,8 +45,8 @@ export class OrdersService {
   }
 
   //confirm order
-  updateOrderItem(restaurantId: string, tableId: string, orderId: string, body: { orderItems: { menuItemId: string; quantity: number }[], seatId: string | null }): Observable<OrderDTO> {
-    return this.http.put<OrderDTO>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${orderId}/init-add-order-items`, body, { withCredentials: true });
+  updateOrderItem(restaurantId: string, tableId: string, orderId: string, body: { orderItems: { menuItemId: string; quantity: number }[], seatId: string | null }): Observable<InitAddOrderResponse> {
+    return this.http.put<InitAddOrderResponse>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${orderId}/init-add-order-items`, body, { withCredentials: true });
   }
 
   deleteOrderItem(restaurantId: string, tableId: string, orderId: string, orderItemId: string): Observable<OrderDTO> {
@@ -85,54 +98,6 @@ export class OrdersService {
     }
   }
 
-  removeComputed(): void {
-    try {
-      localStorage.removeItem('tableComputed');
-    } catch (e) {
-      console.error('Failed to remove tableComputed', e);
-    }
-  }
-
-  saveWaiterState(waiterState: Record<string, any>): void {
-    try {
-      localStorage.setItem('waiterState', JSON.stringify(waiterState));
-    } catch (e) {
-      console.error('Failed to save waiterState', e);
-    }
-  }
-
-  loadWaiterState(): Record<string, any> {
-    try {
-      const saved = localStorage.getItem('waiterState');
-      return saved ? JSON.parse(saved) : {};
-    } catch (e) {
-      console.error('Failed to load waiterState', e);
-      return {};
-    }
-  }
-
-  // orders.service.ts (adaugă în clasa OrdersService)
-
-  /**
-   * Map payload items -> TableCart (fără efecte secundare).
-   * - items: payload.Items (array)
-   * - menuItems: lista curentă de MenuItem din componentă
-   */
-  mapPayloadItemsToCart(items: any[] | undefined, menuItems: MenuItem[]): CartItem[] {
-    if (!items || !Array.isArray(items)) return [];
-
-    return items.map(o => {
-      const menuItemId = o.MenuItemId ?? o.menuItemId;
-      const menuItem = menuItems.find(m => m.menuItemId === menuItemId) ?? ({} as MenuItem);
-
-      return {
-        item: menuItem,
-        quantity: o.Quantity ?? o.quantity ?? 0,
-        orderItemId: o.OrderItemId ?? o.orderItemId
-      } as CartItem;
-    });
-  }
-
   mapPayloadToComputed(
     payload: OrderUpdatedSSEPayload,
     tables: TableDTO[],
@@ -150,48 +115,32 @@ export class OrdersService {
     };
   }
 
+  async listOpenOrderForTableWithFallback(
+    restaurantId: string,
+    tableId: string
+  ): Promise<OrderDTO | null> {
 
-  mapTableToComputed(
-    table: TableDTO,
-    waiterState: Record<string, WaiterCallState>,
-    computed: TableComputedDTO
-  ) {
-    return {
-      lastActionAt: computed.lastActionAt,
-      lastAddedItem: computed.lastAddedItem ?? '—',
-      total: computed.subTotal?.amount ?? 0,
-      currency: computed.subTotal?.currency ?? 'EUR',
-      itemCount: computed.itemCount ?? 0,
-      cssClass: this.miscService.getTableCss(table, waiterState)
-    };
-  }
+    const localOrder = await this.offlineDB.loadOrder(tableId);
 
-  async listOpenOrderForTableWithFallback(restaurantId: string, tableId: string): Promise<OrderDTO | null> {
-    if (navigator.onLine) {
-      try {
-        const order = await firstValueFrom(
-          this.listOpenOrderForTable(restaurantId, tableId)
-        );
-
-        // salvăm snapshot-ul local
-        localStorage.setItem(`orderSnapshot_${tableId}`, JSON.stringify(order));
-        return order;
-
-      } catch (err) {
-        console.warn('[OrdersService] Online fetch failed, using local snapshot');
-        return this.loadLocalOrder(tableId);
-      }
+    if (!this.onlineStateService.isOnline) {
+      return localOrder;
     }
-    // offline → fallback
-    return this.loadLocalOrder(tableId);
-  }
 
-  private loadLocalOrder(tableId: string): OrderDTO | null {
     try {
-      const saved = localStorage.getItem(`orderSnapshot_${tableId}`);
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
+      const remoteOrder = await firstValueFrom(
+        this.listOpenOrderForTable(restaurantId, tableId)
+      );
+
+      if (!remoteOrder || !remoteOrder.orderId) {
+        return localOrder;
+      }
+
+      await this.offlineDB.saveOrderSnapshot(tableId, remoteOrder);
+      return remoteOrder;
+
+    } catch (err: any) {
+      console.warn('Failed to fetch order from server, falling back to local. Error:', err);
+      return localOrder;
     }
   }
 

@@ -12,6 +12,10 @@ export interface OrderItemDTO {
   quantity: number;
 }
 
+export interface InitAddOrderResponse {
+  order: OrderDTO;
+}
+
 export interface OrderDTO {
   restaurantId?: string;
   orderId: string;

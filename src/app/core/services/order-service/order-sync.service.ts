@@ -7,6 +7,8 @@ import { environment } from '../../../../environments/environment';
 import { SseEvent } from '../../models/sseModel';
 import { AuthService } from '../../auth/auth.service';
 import { OfflineQueueProcessor } from '../../offline/offline-queue-processor.service';
+import { OfflineDbService } from '../../offline/offline-db';
+import { OnlineStateService } from '../../offline/online-state-service';
 
 @Injectable({
   providedIn: 'root'
@@ -20,7 +22,7 @@ export class OrderSyncService {
   private maxReconnectAttempts = 8;
   private baseReconnectDelayMs = 1000;
   private isRefreshing = false;
-  private refreshQueue = new BehaviorSubject<boolean>(false);
+  private syncInProgress = false;
 
   // event stream
   private eventsSubject = new Subject<SseEvent<any>>();
@@ -34,7 +36,35 @@ export class OrderSyncService {
   constructor(private auth: AuthService,
     private ngZone: NgZone,
     private queueProcessor: OfflineQueueProcessor,
+    private offlineDB: OfflineDbService,
+    private onlineStateService: OnlineStateService    
   ) { }
+
+  async trySyncNow() {
+    if (this.syncInProgress) return;
+    if (!this.onlineStateService.isOnline) return;
+    this.syncInProgress = true;
+
+    try {
+      const actions = await this.offlineDB.getPendingActions();
+
+      for (const action of actions) {
+        try {
+          await this.queueProcessor.processAction(action);
+          if (!action.id) return console.warn('[SYNC] Action has no ID, cannot mark done:', action);
+          await this.offlineDB.markActionDone(action.id);
+        } catch (err) {
+          console.warn('[SYNC] Action failed, will retry later:', action, err);
+          this.onlineStateService.setOffline();
+          break; // ne oprim, nu stricăm ordinea
+        }
+      }
+
+    } finally {
+      this.syncInProgress = false;
+    }
+  }
+
 
   listenToRestaurantEvents<T = any>(restaurantId: string): Observable<SseEvent<T>> {
     // start connection immediately
@@ -69,7 +99,7 @@ export class OrderSyncService {
       credentials: 'include',
       signal: this.controller.signal,
       onopen: async (response) => {
-        // successful handshake
+        this.onlineStateService.setOnline();
         this.ngZone.run(() => {
           this.reconnectAttempts = 0;
         });
@@ -100,6 +130,7 @@ export class OrderSyncService {
       },
       onerror: (err) => {
         // fetchEventSource calls onerror on network/auth issues
+        this.onlineStateService.setOffline();
         this.ngZone.run(() => {
           // if server sends a specific auth error payload, you can detect it here
           // fallback: treat any error as potential auth issue and try refresh

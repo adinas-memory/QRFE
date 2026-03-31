@@ -5,6 +5,8 @@ import { HttpClient } from '@angular/common/http';
 import { TableDTO } from '../../models/restaurantTablesModel';
 import { NgZone } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { MiscellaneousService } from '../misc/miscellaneous.service';
+import { OnlineStateService } from '../../offline/online-state-service';
 
 
 
@@ -14,7 +16,9 @@ import { firstValueFrom } from 'rxjs';
 export class TablesService {
   private apiUrl = environment.apiUrl;
 
-  constructor(private http: HttpClient, private ngZone: NgZone) { }
+  constructor(private http: HttpClient,
+    private ngZone: NgZone,    
+    private onlineStateService: OnlineStateService,) { }
 
   getAll(restaurantId: string): Observable<TableDTO[]> {
     return this.http.get<TableDTO[]>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/get-tables-status`, { withCredentials: true });
@@ -68,7 +72,7 @@ export class TablesService {
   }
 
   async getAllWithFallback(restaurantId: string): Promise<TableDTO[]> {
-    if (navigator.onLine) {
+    if (this.onlineStateService.isOnline) {
       try {
         const tables = await firstValueFrom(this.getAll(restaurantId));
         localStorage.setItem('tablesSnapshot', JSON.stringify(tables));
@@ -76,22 +80,28 @@ export class TablesService {
 
       } catch (err) {
         console.warn('[TablesService] Online fetch failed, using local snapshot');
+        this.onlineStateService.setOffline();
         return this.loadLocalTables();
       }
     }
 
-    // offline → fallback
     return this.loadLocalTables();
   }
 
   private loadLocalTables(): TableDTO[] {
     try {
       const saved = localStorage.getItem('tablesSnapshot');
-      return saved ? JSON.parse(saved) : [];
+      const parsed = saved ? JSON.parse(saved) : [];
+
+      // garantăm că întoarcem un array valid
+      if (!Array.isArray(parsed)) return [];
+
+      return parsed;
     } catch {
       return [];
     }
   }
+
 
 
 }

@@ -26,12 +26,11 @@ export class AppComponent implements OnInit {
   readonly #activatedRoute: ActivatedRoute = inject(ActivatedRoute);
   readonly #router = inject(Router);
   readonly #titleService = inject(Title);
-  readonly #authService = inject(AuthService);
-  readonly #offlineQueueProcessor = inject(OfflineQueueProcessor);
+  readonly #authService = inject(AuthService);  
   readonly #colorModeService = inject(ColorModeService);
   readonly #iconSetService = inject(IconSetService);
   readonly #orderSyncService = inject(OrderSyncService);
-  readonly #miscService = inject(MiscellaneousService);
+ 
 
   constructor() {
     this.#titleService.setTitle(this.title);
@@ -72,30 +71,6 @@ export class AppComponent implements OnInit {
       }
     });
 
-    // 2. Detectăm evenimentul offline
-    window.addEventListener('offline', async () => {
-      if (document.hidden) return;
-
-      const realOnline = await this.#miscService.isReallyOnline();
-      if (realOnline) {
-        console.log('[APP] False offline event');
-        return;
-      }
-
-      console.log('[APP] Real offline detected');
-    });
-
-    // 3. Detectăm revenirea online
-    window.addEventListener('online', async () => {
-      const realOnline = await this.#miscService.isReallyOnline();
-      if (!realOnline) {
-        console.log('[APP] Browser says online, but backend unreachable');
-        return;
-      }
-
-      console.log('%c[APP] Real online → processing offline queue...', 'color: green; font-weight: bold;');
-      this.#offlineQueueProcessor.processQueue();
-    });
 
     // 4. Restul logicii tale (SSE, routing, session)
     this.#authService.getUserContext()

@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import Dexie, { Table } from 'dexie';
-import { TableCart } from '../../core/models/orderingModel';
+import { OrderDTO, OrderItemDTO, TableCart } from '../../core/models/orderingModel';
 import { MenuItem } from '../models/menu/menuItem';
+import { Currency } from '../models/restaurantTablesModel';
 export interface MenuItemEntity extends MenuItem { }
 
 export interface CartRecord {
@@ -13,7 +14,7 @@ export interface CartRecord {
 export interface OfflineAction {
     id?: number;
     restaurantId: string;
-    type: 'NEW_ORDER' | 'ADD_ITEM' | 'UPDATE_QUANTITY' | 'DELETE_ITEM' | 'CLOSE_ORDER' | 'INIT_ORDER_ITEMS_FINAL';
+    type: 'NEW_ORDER' | 'ADD_ITEM' | 'UPDATE_ORDER' | 'UPDATE_QUANTITY' | 'DELETE_ITEM' | 'CLOSE_ORDER' | 'INIT_ORDER_ITEMS_FINAL';
     tableId: string;
     orderId?: string;
     payload: any;
@@ -98,8 +99,11 @@ export class OfflineDbService {
     }
 
     async getPendingActions(): Promise<OfflineAction[]> {
-        return this.db.queue.where('status').equals('pending').toArray();
+        const actions = await this.db.queue.where('status').equals('pending').toArray();
+        console.log('[DB] Pending actions:', actions);
+        return actions;
     }
+
 
     async markActionDone(id: number) {
         await this.db.queue.delete(id);
@@ -131,45 +135,6 @@ export class OfflineDbService {
         }
     }
 
-    async addToCart(tableId: string, menuItem: MenuItemEntity, quantity: number = 1) {
-        const record = await this.loadCartRecord(tableId);
-
-        const items = record?.items ?? [];
-
-        const existing = items.find(i => i.item.menuItemId === menuItem.menuItemId);
-
-        if (existing) {
-            existing.quantity += quantity;
-        } else {
-            items.push({
-                item: menuItem,
-                quantity
-            });
-        }
-
-        await this.saveCart(tableId, items, record?.orderId);
-    }
-
-    async updateQuantity(tableId: string, menuItemId: string, quantity: number) {
-        const record = await this.loadCartRecord(tableId);
-        if (!record) return;
-
-        const items = record.items.map(i =>
-            i.item.menuItemId === menuItemId ? { ...i, quantity } : i
-        );
-
-        await this.saveCart(tableId, items, record.orderId);
-    }
-
-    async removeItem(tableId: string, menuItemId: string) {
-        const record = await this.loadCartRecord(tableId);
-        if (!record) return;
-
-        const items = record.items.filter(i => i.item.menuItemId !== menuItemId);
-
-        await this.saveCart(tableId, items, record.orderId);
-    }
-
 
     async cacheMenu(menuItems: MenuItem[]): Promise<void> {
         await this.db.transaction('rw', this.menuItems, async () => {
@@ -184,5 +149,48 @@ export class OfflineDbService {
         return { menuItems, categories };
     }
 
+    async saveOrderSnapshot(tableId: string, order: OrderDTO): Promise<void> {
+        const items = (order.orderItems ?? [])
+            .filter((o): o is OrderItemDTO => o !== null)
+            .map(o => ({
+                item: {
+                    menuItemId: o.menuItemId,
+                    menuItemName: o.orderItemName,
+                    menuItemDescription: o.orderItemDescription,
+                    menuItemPriceAmount: o.orderItemPriceAmount ?? 0,
+                    menuItemPriceCurrency: o.orderItemPriceCurrency,
+                    menuItemIconUrl: undefined,
+                    category: o.category
+                },
+                quantity: o.quantity,
+                orderItemId: o.orderItemId
+            }));
 
+        await this.saveCart(tableId, items, order.orderId);
+    }
+
+
+    async loadOrder(tableId: string): Promise<OrderDTO | null> {
+        const record = await this.loadCartRecord(tableId);
+        if (!record || !record.orderId) return null;
+
+        return {
+            orderId: record.orderId,
+            tableId,
+            createdOn: new Date().toISOString(), // fallback
+            isOrderOpen: true,
+            currency: (record.items[0]?.item.menuItemPriceCurrency ?? 'EUR') as Currency,
+
+            orderItems: record.items.map(i => ({
+                orderItemId: i.orderItemId,
+                menuItemId: i.item.menuItemId,
+                orderItemName: i.item.menuItemName,
+                orderItemDescription: i.item.menuItemDescription ?? '',
+                orderItemPriceAmount: i.item.menuItemPriceAmount,
+                orderItemPriceCurrency: i.item.menuItemPriceCurrency as Currency,
+                category: i.item.category,
+                quantity: i.quantity
+            }))
+        };
+    }
 }
