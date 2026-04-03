@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { OrdersService } from "../services/order-service/orders.service";
 import { OfflineAction, OfflineDbService } from "./offline-db";
-import { debounceTime, distinctUntilChanged, firstValueFrom, Subject } from "rxjs";
+import { debounceTime, distinctUntilChanged, filter, firstValueFrom, Subject } from "rxjs";
 import { CartItem, OrderItemDTO } from "../models/orderingModel";
 import { OnlineStateService } from "./online-state-service";
 
@@ -21,6 +21,16 @@ export class OfflineQueueProcessor {
                 debounceTime(350)
             )
             .subscribe(() => this.processQueue());
+
+        this.onlineStateService.online$
+            .pipe(
+                filter(isOnline => isOnline),
+                debounceTime(500) // lasă interceptorul să se stabilizeze
+            )
+            .subscribe(() => {
+                console.log('[QUEUE] Back online → trigger processing');
+                this.processQueue();
+            });
     }
 
     triggerProcessing() {
@@ -35,28 +45,27 @@ export class OfflineQueueProcessor {
 
         try {
             let pending = await this.offlineDB.getPendingActions();
-            console.log('[PROCESS QUEUE] Pending actions from Dexie:', pending);
-
-            // 1. comprimăm acțiunile (ADD/UPDATE/DELETE)
             const compressed = await this.compressQueue(pending);
-            console.log('[PROCESS QUEUE] Pending actions from Dexie:', compressed);
             await this.offlineDB.replaceActions(compressed);
 
-            // 2. ordonăm acțiunile
             const actions = compressed.sort((a, b) =>
                 this.getActionOrder(a.type) - this.getActionOrder(b.type)
             );
 
-            // 3. procesăm acțiunile
             for (const action of actions) {
                 const ok = await this.processAction(action);
 
-                if (!ok) {
-                    // Interceptorul a marcat offline → oprim procesarea
-                    break;
-                }
+                if (!ok) break;
 
                 await this.offlineDB.markActionDone(action.id!);
+
+                // ← FIX: după NEW_ORDER, Dexie are orderId-urile reale
+                // dar array-ul din memorie nu. Restart cu date proaspete.
+                if (action.type === 'NEW_ORDER' || action.type === 'INIT_ORDER_ITEMS_FINAL') {
+                    console.log('[QUEUE] NEW_ORDER done → restarting queue with fresh data');
+                    this.triggerProcessing(); // debounced 350ms
+                    return; // finally → processing = false
+                }
             }
 
         } finally {

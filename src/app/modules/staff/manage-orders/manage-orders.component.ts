@@ -134,6 +134,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
     const cart = await this.offlineDB.loadCart(this.currentTableId);
 
+    await this.offlineDB.saveCart(this.currentTableId, cart, localOrderId);
+
     // 1. NEW_ORDER → queue
     await this.offlineDB.addOfflineAction({
       type: 'NEW_ORDER',
@@ -361,64 +363,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.queueProcessor.triggerProcessing();
     }
   }
-
-  // async decrementItem(sel: CartItem) {
-  //   if (document.hidden) return;
-
-  //   const tableId = this.currentTableId;
-
-  //   // 1. Încărcăm cart-ul REAL din Dexie
-  //   const record = await this.offlineDB.loadCartRecord(tableId);
-  //   const cart = await this.offlineDB.loadCart(tableId);
-  //   const orderId = record?.orderId ?? null;
-  //   // console.log('Decrementing item in cart:', cart );
-
-  //   this.tableCarts[tableId] = [...cart]; // actualizam UI cu cartul real din Dexie
-
-  //   const existing = cart.find(i => i.item.menuItemId === sel.item.menuItemId);
-  //   console.log('Found existing item in cart for decrement:', existing);
-  //   if (!existing) return;
-
-  //   // 2. UI update local
-  //   if (existing.quantity > 1) {
-  //     existing.quantity--;
-  //   } else {
-  //     // existing.quantity = 0;
-  //     cart.splice(cart.indexOf(existing), 1);
-  //   }
-
-  //   // 3. Salvăm în Dexie
-  //   await this.offlineDB.saveCart(tableId, cart, orderId ?? undefined);
-
-
-  //   console.log('tableId:', tableId, 'Current cart after decrement:', cart, 'currentOrderId:', this.currentOrderId);
-
-  //   // this.tableCarts[tableId] = await this.offlineDB.loadCart(tableId); // re-sync UI with Dexie after update
-  //   console.log('CART2', this.tableCarts[tableId]);
-  //   // 4. Dacă orderId este local → stop
-  //   if (orderId?.startsWith('local-')) return;
-  //   if (!this.orderIsConfirmed) return;
-
-  //   // 5. Dacă nu avem orderItemId → așteptăm SSE
-  //   if (!existing.orderItemId) return;
-
-  //   // 6. Queue action
-  //   await this.offlineDB.addOfflineAction({
-  //     type: existing.quantity > 0 ? 'UPDATE_QUANTITY' : 'DELETE_ITEM',
-  //     restaurantId: this.restaurantId,
-  //     tableId,
-  //     orderId: orderId ?? undefined,
-  //     payload: {
-  //       orderItemId: existing.orderItemId,        
-  //       quantity: existing.quantity
-  //     }
-  //   });
-
-  //   if (this.onlineStateService.isOnline) {
-  //     this.queueProcessor.triggerProcessing();
-  //   }
-  // }
-
 
   async removeItem(sel: CartItem) {
     if (document.hidden) return;
