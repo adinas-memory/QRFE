@@ -40,6 +40,8 @@ import { OfflineQueueProcessor } from '../../../core/offline/offline-queue-proce
 import { SseEvent } from '../../../core/models/sseModel';
 import { OnlineStateService } from '../../../core/offline/online-state-service';
 
+
+
 @Component({
   selector: 'app-manage-orders',
   imports: [
@@ -122,37 +124,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   trackByTableId(index: number, table: TableDTO) { return table.tableId; }
-
-  private async updateExistingOrder(order: OrderDTO) {
-    const updatedItems = this.selectedItems.map(ci => ({
-      menuItemId: ci.item.menuItemId,
-      quantity: ci.quantity
-    }));
-
-    // 1. Queue action
-    await this.offlineDB.addOfflineAction({
-      type: 'UPDATE_ORDER',
-      restaurantId: this.restaurantId,
-      tableId: this.currentTableId,
-      orderId: order.orderId,
-      payload: {
-        orderItems: updatedItems,
-        seatId: null
-      }
-    });
-
-    // 2. UI update local
-    await this.offlineDB.saveCart(
-      this.currentTableId,
-      this.tableCarts[this.currentTableId],
-      order.orderId
-    );
-
-    // 3. Dacă suntem online → sync imediat
-    if (this.onlineStateService.isOnline) {
-      this.sseService.trySyncNow();
-    }
-  }
 
   async confirmOrder() {
     if (document.hidden) return;
@@ -279,8 +250,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   async addCartItem(item: MenuItem) {
     if (document.hidden) return;
-
-    const cart = this.tableCarts[this.currentTableId];
+    const tableId = this.currentTableId;
+    const record = await this.offlineDB.loadCartRecord(tableId);
+    const orderId = record?.orderId ?? null;
+    const cart = record ? record.items : [];
+    console.log('Adding item to cart:', { item, tableId, cart });
     const existing = cart.find(x => x.item.menuItemId === item.menuItemId);
 
     // UI update local
@@ -291,11 +265,13 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     }
 
     await this.offlineDB.saveCart(
-      this.currentTableId,
-      this.tableCarts[this.currentTableId],
-      this.currentOrderId ?? undefined
+      tableId,
+      cart,
+      orderId ?? undefined
     );
 
+    this.tableCarts[tableId] = [...cart]; // actualizam UI cu cartul real din Dexie
+    console.log('ORDERITEMID', existing?.orderItemId);
     // Dacă orderul nu e confirmat → doar local
     if (!this.orderIsConfirmed) return;
 
@@ -303,17 +279,18 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     await this.offlineDB.addOfflineAction({
       type: existing ? 'UPDATE_QUANTITY' : 'ADD_ITEM',
       restaurantId: this.restaurantId,
-      tableId: this.currentTableId,
-      orderId: this.currentOrderId!,
-      payload: existing
-        ? { orderItemId: existing.orderItemId!, menuItemId: existing.item.menuItemId!,  quantity: existing.quantity }
-        : { menuItemId: item.menuItemId, quantity: 1 }
+      tableId,
+      orderId: orderId ?? undefined,
+      payload: {
+        orderItemId: existing?.orderItemId ?? null,
+        menuItemId: item.menuItemId,
+        quantity: existing ? existing.quantity : 1
+      }
     });
 
-//
     // Dacă suntem online → backend (queueProcessor va trimite)
     if (this.onlineStateService.isOnline) {
-      this.queueProcessor.processQueue();
+      this.queueProcessor.triggerProcessing();
     }
 
   }
@@ -340,99 +317,151 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.ordersService.saveComputed(this.tableComputed);
   }
 
-
-
   async decrementItem(sel: CartItem) {
     if (document.hidden) return;
 
     const tableId = this.currentTableId;
-    const existing = this.tableCarts[tableId].find(
-      x => x.item.menuItemId === sel.item.menuItemId
-    );
+    const record = await this.offlineDB.loadCartRecord(tableId);
+    const cart = await this.offlineDB.loadCart(tableId);
+    const orderId = record?.orderId ?? null;
+
+    const existing = cart.find(i => i.item.menuItemId === sel.item.menuItemId);
     if (!existing) return;
 
-    // UI update local
-    if (existing.quantity > 1) {
-      existing.quantity--;
+    // Determinăm tipul acțiunii ÎNAINTE să modificăm starea
+    const willDelete = existing.quantity <= 1;
+    const finalQuantity = willDelete ? 0 : existing.quantity - 1;
+
+    if (willDelete) {
+      cart.splice(cart.indexOf(existing), 1);
     } else {
-      this.tableCarts[tableId] = this.tableCarts[tableId].filter(i => i !== existing);
+      existing.quantity--;
     }
 
-    await this.offlineDB.saveCart(
-      tableId,
-      this.tableCarts[tableId],
-      this.currentOrderId ?? undefined
-    );
+    this.tableCarts[tableId] = [...cart];
+    await this.offlineDB.saveCart(tableId, cart, orderId ?? undefined);
 
-    // Dacă orderId este local → doar local
-    if (this.currentOrderId?.startsWith('local-')) return;
-
-    // Dacă orderul nu e confirmat → doar local
+    if (orderId?.startsWith('local-')) return;
     if (!this.orderIsConfirmed) return;
-
-    // Dacă itemul nu are încă orderItemId → așteptăm SSE
     if (!existing.orderItemId) return;
 
-    const orderId = this.currentOrderId;
-    const orderItemId = existing.orderItemId;
+    await this.offlineDB.addOfflineAction({
+      type: willDelete ? 'DELETE_ITEM' : 'UPDATE_QUANTITY',
+      restaurantId: this.restaurantId,
+      tableId,
+      orderId: orderId ?? undefined,
+      payload: {
+        orderItemId: existing.orderItemId,
+        menuItemId: existing.item.menuItemId, // ← adaugă și asta pentru compressQueue
+        quantity: finalQuantity
+      }
+    });
 
-    // Dacă suntem offline → queue
-    if (!this.onlineStateService.isOnline) {
-      await this.offlineDB.addOfflineAction({
-        type: existing.quantity > 0 ? 'UPDATE_QUANTITY' : 'DELETE_ITEM',
-        restaurantId: this.restaurantId,
-        tableId,
-        orderId: orderId ?? undefined,
-        payload: {
-          orderItemId,
-          menuItemId: existing.item.menuItemId,
-          quantity: existing.quantity
-        }
-      });
-      return;
+    if (this.onlineStateService.isOnline) {
+      this.queueProcessor.triggerProcessing();
     }
   }
+
+  // async decrementItem(sel: CartItem) {
+  //   if (document.hidden) return;
+
+  //   const tableId = this.currentTableId;
+
+  //   // 1. Încărcăm cart-ul REAL din Dexie
+  //   const record = await this.offlineDB.loadCartRecord(tableId);
+  //   const cart = await this.offlineDB.loadCart(tableId);
+  //   const orderId = record?.orderId ?? null;
+  //   // console.log('Decrementing item in cart:', cart );
+
+  //   this.tableCarts[tableId] = [...cart]; // actualizam UI cu cartul real din Dexie
+
+  //   const existing = cart.find(i => i.item.menuItemId === sel.item.menuItemId);
+  //   console.log('Found existing item in cart for decrement:', existing);
+  //   if (!existing) return;
+
+  //   // 2. UI update local
+  //   if (existing.quantity > 1) {
+  //     existing.quantity--;
+  //   } else {
+  //     // existing.quantity = 0;
+  //     cart.splice(cart.indexOf(existing), 1);
+  //   }
+
+  //   // 3. Salvăm în Dexie
+  //   await this.offlineDB.saveCart(tableId, cart, orderId ?? undefined);
+
+
+  //   console.log('tableId:', tableId, 'Current cart after decrement:', cart, 'currentOrderId:', this.currentOrderId);
+
+  //   // this.tableCarts[tableId] = await this.offlineDB.loadCart(tableId); // re-sync UI with Dexie after update
+  //   console.log('CART2', this.tableCarts[tableId]);
+  //   // 4. Dacă orderId este local → stop
+  //   if (orderId?.startsWith('local-')) return;
+  //   if (!this.orderIsConfirmed) return;
+
+  //   // 5. Dacă nu avem orderItemId → așteptăm SSE
+  //   if (!existing.orderItemId) return;
+
+  //   // 6. Queue action
+  //   await this.offlineDB.addOfflineAction({
+  //     type: existing.quantity > 0 ? 'UPDATE_QUANTITY' : 'DELETE_ITEM',
+  //     restaurantId: this.restaurantId,
+  //     tableId,
+  //     orderId: orderId ?? undefined,
+  //     payload: {
+  //       orderItemId: existing.orderItemId,        
+  //       quantity: existing.quantity
+  //     }
+  //   });
+
+  //   if (this.onlineStateService.isOnline) {
+  //     this.queueProcessor.triggerProcessing();
+  //   }
+  // }
 
 
   async removeItem(sel: CartItem) {
     if (document.hidden) return;
 
     const tableId = this.currentTableId;
-    const existing = this.tableCarts[tableId].find(
-      x => x.item.menuItemId === sel.item.menuItemId
-    );
+
+    // 1. Încărcăm cart-ul REAL din Dexie
+    const record = await this.offlineDB.loadCartRecord(tableId);
+    const cart = await this.offlineDB.loadCart(tableId);
+    const orderId = record?.orderId ?? null;
+
+    this.tableCarts[tableId] = [...cart]; // actualizam UI cu cartul real din Dexie
+
+    const existing = cart.find(i => i.item.menuItemId === sel.item.menuItemId);
     if (!existing) return;
 
-    // UI update local
-    this.tableCarts[tableId] = this.tableCarts[tableId].filter(i => i !== existing);
-    await this.offlineDB.saveCart(
-      tableId,
-      this.tableCarts[tableId],
-      this.currentOrderId ?? undefined
-    );
+    // 2. UI update local (în memorie)
+    const newCart = cart.filter(i => i.item.menuItemId !== sel.item.menuItemId);
+    console.log('Removing item from cart:', { sel, tableId, cart, newCart });
 
-    // Dacă orderId este local → doar local
-    if (this.currentOrderId?.startsWith('local-')) return;
+    // 3. Salvăm în Dexie
+    await this.offlineDB.saveCart(tableId, newCart, orderId ?? undefined);
 
-    // Dacă orderul nu e confirmat → doar local
+    // 4. Dacă orderId este local → stop
+    if (orderId?.startsWith('local-')) return;
     if (!this.orderIsConfirmed) return;
 
-    // Dacă itemul nu are orderItemId → așteptăm SSE
+    // 5. Dacă nu avem orderItemId → așteptăm SSE
     if (!existing.orderItemId) return;
 
-    const orderId = this.currentOrderId;
-    const orderItemId = existing.orderItemId;
+    // 6. Queue action
+    await this.offlineDB.addOfflineAction({
+      type: 'DELETE_ITEM',
+      restaurantId: this.restaurantId,
+      tableId,
+      orderId: orderId ?? undefined,
+      payload: {
+        orderItemId: existing.orderItemId
+      }
+    });
 
-    // Dacă suntem offline → queue
-    if (!this.onlineStateService.isOnline) {
-      await this.offlineDB.addOfflineAction({
-        type: 'DELETE_ITEM',
-        restaurantId: this.restaurantId,
-        tableId,
-        orderId: orderId ?? undefined,
-        payload: { orderItemId, menuItemId: existing.item.menuItemId }
-      });
-      return;
+    if (this.onlineStateService.isOnline) {
+      this.queueProcessor.triggerProcessing();
     }
   }
 
@@ -663,8 +692,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         const payload = Data as OrderUpdatedSSEPayload;
         const tableId = payload.TableId;
 
-        // 1. Luăm cart-ul local
-        const cart = this.tableCarts[tableId] ?? [];
+        // 1. Luăm cart-ul din Dexie (adevărul local)
+        const cart = await this.offlineDB.loadCart(tableId);
 
         // 2. Injectăm orderItemId în itemele existente
         for (const sseItem of payload.Items) {
@@ -674,6 +703,13 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           }
         }
 
+        // 4. Salvăm în Dexie (fără să stricăm offline)
+        await this.offlineDB.saveCart(
+          tableId,
+          cart,
+          payload.OrderId
+        );
+
         // 3. Actualizăm computed
         this.tableComputed[tableId] =
           this.ordersService.mapPayloadToComputed(
@@ -682,15 +718,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
             this.waiterState
           );
 
-        // 4. Salvăm în Dexie (fără să stricăm offline)
-        await this.offlineDB.saveCart(
-          tableId,
-          cart,
-          payload.OrderId
-        );
-
         // 5. Reîncărcăm cart-ul din Dexie → UI devine 100% corect
-        this.tableCarts[tableId] = await this.offlineDB.loadCart(tableId);
+        this.tableCarts[tableId] = cart;
 
         break;
       }

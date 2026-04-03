@@ -58,7 +58,13 @@ export class OfflineDbService {
     // -------------------------------
 
     async saveCart(tableId: string, items: TableCart[string], orderId?: string): Promise<void> {
-        await this.db.carts.put({ tableId, items, orderId });
+        const existing = await this.db.carts.get(tableId);
+
+        await this.db.carts.put({
+            tableId,
+            items: items.length ? items : existing?.items ?? [],
+            orderId: orderId ?? existing?.orderId
+        });
     }
 
     async loadCart(tableId: string): Promise<TableCart[string]> {
@@ -102,6 +108,11 @@ export class OfflineDbService {
         const actions = await this.db.queue.where('status').equals('pending').toArray();
         console.log('[DB] Pending actions:', actions);
         return actions;
+    }
+
+    async replaceActions(newActions: OfflineAction[]): Promise<void> {
+        await this.db.queue.clear();
+        await this.db.queue.bulkAdd(newActions);
     }
 
 
