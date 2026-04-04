@@ -17,7 +17,7 @@ import {
 import { TablesService } from '../../../core/services/tables-service/tables.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
-import { filter, Subject, take, takeUntil, debounceTime, forkJoin, from } from 'rxjs';
+import { filter, Subject, take, takeUntil, debounceTime, forkJoin, from, firstValueFrom } from 'rxjs';
 import { NgFor, NgIf, NgStyle, CurrencyPipe, JsonPipe, NgClass } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { cilBellExclamation } from '@coreui/icons';
@@ -133,10 +133,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.orderIsConfirmed = true;
 
     const cart = await this.offlineDB.loadCart(this.currentTableId);
-
     await this.offlineDB.saveCart(this.currentTableId, cart, localOrderId);
 
-    // 1. NEW_ORDER → queue
     await this.offlineDB.addOfflineAction({
       type: 'NEW_ORDER',
       restaurantId: this.restaurantId,
@@ -145,7 +143,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       payload: { seatId: this.seatId ?? null }
     });
 
-    // 2. INIT_ORDER_ITEMS_FINAL → snapshot complet
     await this.offlineDB.addOfflineAction({
       type: 'INIT_ORDER_ITEMS_FINAL',
       restaurantId: this.restaurantId,
@@ -159,39 +156,83 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       }
     });
 
-    // 3. UI update local
     this.markTableAsClosed(this.currentTableId);
     this.updateComputedLocal(this.currentTableId);
 
-    // 4. Dacă suntem online → pornim sync
+    // ✅ Dacă online → procesăm imediat, polling actualizează currentOrderId
     if (this.onlineStateService.isOnline) {
-      this.sseService.trySyncNow();
+      this.queueProcessor.triggerProcessing();
     }
-    // După confirmare, recitim cart-ul din Dexie
-    // După confirmare, recitim cart-ul din Dexie până când orderId devine real
-    let attempts = 0;
-    const maxAttempts = 20; // ~2 secunde
-
-    const interval = setInterval(async () => {
-      attempts++;
-
-      const record = await this.offlineDB.loadCartRecord(this.currentTableId);
-
-      if (record?.orderId && !record.orderId.startsWith('local-')) {
-        // Avem orderId real
-        this.currentOrderId = record.orderId;
-        this.orderIsConfirmed = true;
-        this.tableCarts[this.currentTableId] = record.items;
-        clearInterval(interval);
-        return;
-      }
-
-      if (attempts >= maxAttempts) {
-        clearInterval(interval);
-      }
-    }, 100);
 
   }
+
+  // async confirmOrder() {
+  //   if (document.hidden) return;
+
+  //   const localOrderId = 'local-' + crypto.randomUUID();
+  //   this.currentOrderId = localOrderId;
+  //   this.orderIsConfirmed = true;
+
+  //   const cart = await this.offlineDB.loadCart(this.currentTableId);
+
+  //   await this.offlineDB.saveCart(this.currentTableId, cart, localOrderId);
+
+  //   // 1. NEW_ORDER → queue
+  //   await this.offlineDB.addOfflineAction({
+  //     type: 'NEW_ORDER',
+  //     restaurantId: this.restaurantId,
+  //     tableId: this.currentTableId,
+  //     orderId: localOrderId,
+  //     payload: { seatId: this.seatId ?? null }
+  //   });
+
+  //   // 2. INIT_ORDER_ITEMS_FINAL → snapshot complet
+  //   await this.offlineDB.addOfflineAction({
+  //     type: 'INIT_ORDER_ITEMS_FINAL',
+  //     restaurantId: this.restaurantId,
+  //     tableId: this.currentTableId,
+  //     orderId: localOrderId,
+  //     payload: {
+  //       items: cart.map(ci => ({
+  //         menuItemId: ci.item.menuItemId,
+  //         quantity: ci.quantity
+  //       }))
+  //     }
+  //   });
+
+  //   // 3. UI update local
+  //   this.markTableAsClosed(this.currentTableId);
+  //   this.updateComputedLocal(this.currentTableId);
+
+  //   // 4. Dacă suntem online → pornim sync
+  //   if (this.onlineStateService.isOnline) {
+  //     this.sseService.trySyncNow();
+  //   }
+  //   // După confirmare, recitim cart-ul din Dexie
+  //   // După confirmare, recitim cart-ul din Dexie până când orderId devine real
+  //   let attempts = 0;
+  //   const maxAttempts = 20; // ~2 secunde
+
+  //   const interval = setInterval(async () => {
+  //     attempts++;
+
+  //     const record = await this.offlineDB.loadCartRecord(this.currentTableId);
+
+  //     if (record?.orderId && !record.orderId.startsWith('local-')) {
+  //       // Avem orderId real
+  //       this.currentOrderId = record.orderId;
+  //       this.orderIsConfirmed = true;
+  //       this.tableCarts[this.currentTableId] = record.items;
+  //       clearInterval(interval);
+  //       return;
+  //     }
+
+  //     if (attempts >= maxAttempts) {
+  //       clearInterval(interval);
+  //     }
+  //   }, 100);
+
+  // }
 
 
 
@@ -374,14 +415,14 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     const cart = await this.offlineDB.loadCart(tableId);
     const orderId = record?.orderId ?? null;
 
-    this.tableCarts[tableId] = [...cart]; // actualizam UI cu cartul real din Dexie
-
     const existing = cart.find(i => i.item.menuItemId === sel.item.menuItemId);
     if (!existing) return;
 
     // 2. UI update local (în memorie)
     const newCart = cart.filter(i => i.item.menuItemId !== sel.item.menuItemId);
     console.log('Removing item from cart:', { sel, tableId, cart, newCart });
+    // Actualizează UI cu cart-ul filtrat
+    this.tableCarts[tableId] = [...newCart];
 
     // 3. Salvăm în Dexie
     await this.offlineDB.saveCart(tableId, newCart, orderId ?? undefined);
@@ -400,7 +441,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       tableId,
       orderId: orderId ?? undefined,
       payload: {
-        orderItemId: existing.orderItemId
+        orderItemId: existing.orderItemId,
+        menuItemId: existing.item.menuItemId
       }
     });
 
@@ -511,13 +553,27 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   async confirmCloseOrder() {
     if (document.hidden) {
-      console.log('[CONFIRM] Tab hidden → skip confirmOrder');
       return;
     }
     this.showCloseConfirm = false;
 
     const tableId = this.currentTableId;
-    const orderId = this.currentOrderId!;
+    let orderId = this.currentOrderId!;
+
+    if (orderId?.startsWith('local-')) {
+      await this.offlineDB.addOfflineAction({
+        type: 'CLOSE_ORDER',
+        restaurantId: this.restaurantId,
+        tableId,
+        orderId,
+        payload: {}
+      });
+      this.currentTableId = '';
+      this.tableName = '';
+      this.orderIsConfirmed = false;
+      this.canvasVisible = false;
+      return;
+    }
 
     // 3. OFFLINE → punem în coadă
     if (!this.onlineStateService.isOnline) {
@@ -819,6 +875,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
             if (savedTableId) {
               const table = this.tables.find(t => t.tableId === savedTableId);
               if (table) this.openTable(table);
+            }
+          });
+
+        this.queueProcessor.orderConfirmed$
+          .pipe(takeUntil(this.destroy$))
+          .subscribe(({ tableId, orderId }) => {
+            if (this.currentTableId === tableId) {
+              this.currentOrderId = orderId;
+              this.orderIsConfirmed = true;
             }
           });
 

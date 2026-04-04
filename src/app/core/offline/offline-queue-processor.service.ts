@@ -9,6 +9,7 @@ import { OnlineStateService } from "./online-state-service";
 export class OfflineQueueProcessor {
     private processing = false;
     private trigger$ = new Subject<void>();
+    readonly orderConfirmed$ = new Subject<{ tableId: string; orderId: string }>();
 
 
     constructor(
@@ -156,10 +157,24 @@ export class OfflineQueueProcessor {
                     // 6. marcăm NEW_ORDER ca done
                     await this.offlineDB.markActionDone(action.id!);
 
-                    // 7. repornim coada (pentru acțiunile rămase)
-                    // this.processing = false;
-                    // setTimeout(() => this.processQueue(), 0);
+                    this.orderConfirmed$.next({ tableId: action.tableId, orderId: realOrderId });
 
+                    const allActions = await this.offlineDB.getPendingActions();
+                    for (const a of allActions) {
+                        const isRedundant =
+                            a.orderId === realOrderId &&
+                            (
+                                a.type === 'INIT_ORDER_ITEMS_FINAL' ||
+                                a.type === 'ADD_ITEM' ||
+                                a.type === 'UPDATE_QUANTITY' ||
+                                a.type === 'DELETE_ITEM'
+                            );
+                        if (isRedundant) {
+                            await this.offlineDB.markActionDone(a.id!);
+                        }
+                    }
+
+                    this.triggerProcessing();
                     return true;
                 }
 
@@ -268,8 +283,6 @@ export class OfflineQueueProcessor {
                 }
 
                 case 'DELETE_ITEM': {
-                    console.log('[QUEUE] DELETE_ITEM → backend deleteOrderItem()');
-
                     const res = await firstValueFrom(
                         this.ordersService.deleteOrderItem(
                             action.restaurantId,

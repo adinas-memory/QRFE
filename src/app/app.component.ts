@@ -8,29 +8,41 @@ import { IconSetService, } from '@coreui/icons-angular';
 import { iconSubset } from './icons/icon-subset';
 import { AuthService } from './core/auth/auth.service';
 import { SpinnerComponent } from "./shared/components/spinner/spinner.component";
-import { OfflineQueueProcessor } from './core/offline/offline-queue-processor.service';
 import { OrderSyncService } from './core/services/order-service/order-sync.service';
-import { MiscellaneousService } from './core/services/misc/miscellaneous.service';
+import { OnlineStateService } from './core/offline/online-state-service';
 
 
 @Component({
   selector: 'app-root',
-  template: `<app-spinner></app-spinner><router-outlet></router-outlet>`,
+  standalone: true,
+  template: `<div class="offline-wrapper" [class.offline-active]="isOffline">
+
+  <div class="offline-banner" *ngIf="isOffline">
+    <span class="blink">OFFLINE MODE</span>
+  </div>
+
+  <app-spinner></app-spinner>
+  <router-outlet></router-outlet>
+
+</div>
+
+`,
   imports: [RouterOutlet, SpinnerComponent],
 })
 export class AppComponent implements OnInit {
   title = 'CoreUI Angular Admin Template';
   private sseStarted = false;
+  isOffline = false;
 
   readonly #destroyRef: DestroyRef = inject(DestroyRef);
   readonly #activatedRoute: ActivatedRoute = inject(ActivatedRoute);
   readonly #router = inject(Router);
   readonly #titleService = inject(Title);
-  readonly #authService = inject(AuthService);  
+  readonly #authService = inject(AuthService);
   readonly #colorModeService = inject(ColorModeService);
   readonly #iconSetService = inject(IconSetService);
   readonly #orderSyncService = inject(OrderSyncService);
- 
+  readonly #onlineStateService = inject(OnlineStateService);
 
   constructor() {
     this.#titleService.setTitle(this.title);
@@ -64,13 +76,9 @@ export class AppComponent implements OnInit {
     const defaultValue = '"dark"';
     localStorage.setItem(keyTheme, defaultValue);
 
-    // 1. Detectăm tab hidden
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        console.log('[APP] Tab hidden → ignore offline events');
-      }
+    this.#onlineStateService.online$.subscribe(isOnline => {
+      this.isOffline = !isOnline;
     });
-
 
     // 4. Restul logicii tale (SSE, routing, session)
     this.#authService.getUserContext()
