@@ -1,6 +1,6 @@
 import { Router } from '@angular/router';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, catchError, map, of, tap, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, catchError, map, of, tap, throwError } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { UserContextModel } from '../models/userContextModel';
 import { RegisterUserRequestModel } from '../models/registerUserRequestModel';
@@ -13,6 +13,7 @@ import { LoginUserRequestModel } from '../models/loginUserRequestModel';
 export class AuthService {
   private userSubject = new BehaviorSubject<UserContextModel | null>(null);
   user$: Observable<UserContextModel | null> = this.userSubject.asObservable();
+  readonly loggedIn$ = new Subject<void>();
   // use environment variable
   private apiUrl = environment.apiUrl;
 
@@ -56,8 +57,13 @@ export class AuthService {
 
   // --- Session management ---
   setUser(user: UserContextModel): void {
+    const wasLoggedOut = !this.userSubject.value;  // era delogat înainte?
     this.userSubject.next(user);
     localStorage.setItem('UserCtx', JSON.stringify(user));
+
+    if (wasLoggedOut) {
+      this.loggedIn$.next();  // ← emite doar la login real, nu la restore session
+    }
   }
 
   setRestaurantCtx(): void {

@@ -382,7 +382,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     }
 
     this.tableCarts[tableId] = [...cart];
-    await this.offlineDB.saveCart(tableId, cart, orderId ?? undefined);
+    await this.offlineDB.saveCart(tableId, cart, orderId ?? undefined, true);
 
     if (orderId?.startsWith('local-')) return;
     if (!this.orderIsConfirmed) return;
@@ -425,7 +425,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.tableCarts[tableId] = [...newCart];
 
     // 3. Salvăm în Dexie
-    await this.offlineDB.saveCart(tableId, newCart, orderId ?? undefined);
+    await this.offlineDB.saveCart(tableId, newCart, orderId ?? undefined, true);
 
     // 4. Dacă orderId este local → stop
     if (orderId?.startsWith('local-')) return;
@@ -880,11 +880,19 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
         this.queueProcessor.orderConfirmed$
           .pipe(takeUntil(this.destroy$))
-          .subscribe(({ tableId, orderId }) => {
+          .subscribe(async ({ tableId, orderId }) => {
+            // Reload cart din Dexie → adevărul real după sync
+            const cart = await this.offlineDB.loadCart(tableId);
+            this.tableCarts[tableId] = [...cart];
+
             if (this.currentTableId === tableId) {
               this.currentOrderId = orderId;
               this.orderIsConfirmed = true;
             }
+
+            // Actualizăm și tabla vizuală
+            this.markTableAsClosed(tableId);
+            this.updateComputedLocal(tableId);
           });
 
         // SEARCH

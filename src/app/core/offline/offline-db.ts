@@ -8,6 +8,7 @@ export interface MenuItemEntity extends MenuItem { }
 export interface CartRecord {
     tableId: string;
     orderId?: string;
+    restaurantId?: string;
     items: TableCart[string];
 }
 
@@ -20,6 +21,7 @@ export interface OfflineAction {
     payload: any;
     timestamp: number;
     status: 'pending' | 'processing' | 'done' | 'error';
+    retryCount?: number;
 }
 
 
@@ -57,12 +59,17 @@ export class OfflineDbService {
     // CART CRUD
     // -------------------------------
 
-    async saveCart(tableId: string, items: TableCart[string], orderId?: string): Promise<void> {
+    async saveCart(
+        tableId: string,
+        items: TableCart[string],
+        orderId?: string,
+        allowEmpty: boolean = false  // ← nou
+    ): Promise<void> {
         const existing = await this.db.carts.get(tableId);
 
         await this.db.carts.put({
             tableId,
-            items: items.length ? items : existing?.items ?? [],
+            items: (allowEmpty || items.length) ? items : existing?.items ?? [],
             orderId: orderId ?? existing?.orderId
         });
     }
@@ -111,17 +118,30 @@ export class OfflineDbService {
     }
 
     async replaceActions(newActions: OfflineAction[]): Promise<void> {
-        await this.db.queue.clear();
-        await this.db.queue.bulkAdd(newActions);
+        await this.db.transaction('rw', this.db.queue, async () => {
+            await this.db.queue.clear();
+            await this.db.queue.bulkAdd(newActions);
+        });
     }
-
 
     async markActionDone(id: number) {
         await this.db.queue.delete(id);
     }
 
     async markActionError(id: number) {
-        await this.db.queue.update(id, { status: 'error' });
+        const action = await this.db.queue.get(id);
+        const retries = (action?.retryCount ?? 0) + 1;
+
+        if (retries >= 3) {
+            console.warn('[DB] Action failed 3 times → deleting:', action?.type);
+            await this.db.queue.delete(id);
+        } else {
+            await this.db.queue.update(id, {
+                status: 'pending',  // ← retry, nu error permanent
+                retryCount: retries
+            });
+        }
+        // await this.db.queue.update(id, { status: 'error' });
     }
 
     async deleteActionsForOrder(orderId: string): Promise<void> {

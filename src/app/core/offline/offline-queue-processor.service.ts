@@ -4,6 +4,7 @@ import { OfflineAction, OfflineDbService } from "./offline-db";
 import { debounceTime, distinctUntilChanged, filter, firstValueFrom, Subject } from "rxjs";
 import { CartItem, OrderItemDTO } from "../models/orderingModel";
 import { OnlineStateService } from "./online-state-service";
+import { AuthService } from "../auth/auth.service";
 
 @Injectable({ providedIn: 'root' })
 export class OfflineQueueProcessor {
@@ -15,8 +16,16 @@ export class OfflineQueueProcessor {
     constructor(
         private offlineDB: OfflineDbService,
         private ordersService: OrdersService,
-        private onlineStateService: OnlineStateService
+        private onlineStateService: OnlineStateService,
+        private authService: AuthService
     ) {
+        this.authService.loggedIn$
+            .subscribe(async () => {
+                console.log('[QUEUE] Re-login → trigger processing');
+                await this.recoverOrphanedCarts(); 
+                this.triggerProcessing();
+            });
+
         this.trigger$
             .pipe(
                 debounceTime(350)
@@ -28,14 +37,62 @@ export class OfflineQueueProcessor {
                 filter(isOnline => isOnline),
                 debounceTime(500) // lasă interceptorul să se stabilizeze
             )
-            .subscribe(() => {
+            .subscribe(async () => {
                 console.log('[QUEUE] Back online → trigger processing');
+                await this.recoverOrphanedCarts();
                 this.processQueue();
             });
     }
 
     triggerProcessing() {
         this.trigger$.next();
+    }
+
+    private async recoverOrphanedCarts(): Promise<void> {
+        const allCarts = await this.offlineDB.carts.toArray();
+        const allActions = await this.offlineDB.queue.toArray();
+
+        for (const cart of allCarts) {
+            if (!cart.orderId?.startsWith('local-')) continue;
+
+            const hasAction = allActions.some(a => a.orderId === cart.orderId);
+            if (hasAction) continue;
+
+            // Găsim restaurantId din orice acțiune pentru același tableId
+            const ref = allActions.find(a => a.tableId === cart.tableId);
+
+            // Fallback: din AuthService direct
+            const restaurantId = ref?.restaurantId
+                ?? this.authService.getUserSnapshot()?.restaurantId;
+
+            if (!restaurantId) {
+                console.warn('[RECOVERY] Cannot recover cart, no restaurantId:', cart.tableId);
+                continue;
+            }
+
+            console.warn('[RECOVERY] Re-queuing orphaned cart:', cart.tableId);
+
+            await this.offlineDB.addOfflineAction({
+                type: 'NEW_ORDER',
+                restaurantId,
+                tableId: cart.tableId,
+                orderId: cart.orderId,
+                payload: { seatId: null }
+            });
+
+            await this.offlineDB.addOfflineAction({
+                type: 'INIT_ORDER_ITEMS_FINAL',
+                restaurantId,
+                tableId: cart.tableId,
+                orderId: cart.orderId,
+                payload: {
+                    items: cart.items.map(ci => ({
+                        menuItemId: ci.item.menuItemId,
+                        quantity: ci.quantity
+                    }))
+                }
+            });
+        }
     }
 
     async processQueue() {
@@ -320,7 +377,7 @@ export class OfflineQueueProcessor {
 
             return true;
 
-        } catch (err) {
+        } catch (err: any) {
             console.error('[QUEUE] Error processing action:', err);
             await this.offlineDB.markActionError(action.id!);
             return false;
@@ -369,6 +426,7 @@ export class OfflineQueueProcessor {
 
             const menuItemId = action.payload?.menuItemId;
             if (!menuItemId) {
+                console.warn('[COMPRESS] Action without menuItemId → skip compression:', action.type);
                 result.push(action);
                 continue;
             }
