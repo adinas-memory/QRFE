@@ -91,6 +91,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   currentOrderId: string | null = null;
   showCloseConfirm = false;
 
+
   tableComputed: Record<string, {
     lastActionAt: string;
     lastAddedItem: string;
@@ -166,77 +167,12 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   }
 
-  // async confirmOrder() {
-  //   if (document.hidden) return;
-
-  //   const localOrderId = 'local-' + crypto.randomUUID();
-  //   this.currentOrderId = localOrderId;
-  //   this.orderIsConfirmed = true;
-
-  //   const cart = await this.offlineDB.loadCart(this.currentTableId);
-
-  //   await this.offlineDB.saveCart(this.currentTableId, cart, localOrderId);
-
-  //   // 1. NEW_ORDER → queue
-  //   await this.offlineDB.addOfflineAction({
-  //     type: 'NEW_ORDER',
-  //     restaurantId: this.restaurantId,
-  //     tableId: this.currentTableId,
-  //     orderId: localOrderId,
-  //     payload: { seatId: this.seatId ?? null }
-  //   });
-
-  //   // 2. INIT_ORDER_ITEMS_FINAL → snapshot complet
-  //   await this.offlineDB.addOfflineAction({
-  //     type: 'INIT_ORDER_ITEMS_FINAL',
-  //     restaurantId: this.restaurantId,
-  //     tableId: this.currentTableId,
-  //     orderId: localOrderId,
-  //     payload: {
-  //       items: cart.map(ci => ({
-  //         menuItemId: ci.item.menuItemId,
-  //         quantity: ci.quantity
-  //       }))
-  //     }
-  //   });
-
-  //   // 3. UI update local
-  //   this.markTableAsClosed(this.currentTableId);
-  //   this.updateComputedLocal(this.currentTableId);
-
-  //   // 4. Dacă suntem online → pornim sync
-  //   if (this.onlineStateService.isOnline) {
-  //     this.sseService.trySyncNow();
-  //   }
-  //   // După confirmare, recitim cart-ul din Dexie
-  //   // După confirmare, recitim cart-ul din Dexie până când orderId devine real
-  //   let attempts = 0;
-  //   const maxAttempts = 20; // ~2 secunde
-
-  //   const interval = setInterval(async () => {
-  //     attempts++;
-
-  //     const record = await this.offlineDB.loadCartRecord(this.currentTableId);
-
-  //     if (record?.orderId && !record.orderId.startsWith('local-')) {
-  //       // Avem orderId real
-  //       this.currentOrderId = record.orderId;
-  //       this.orderIsConfirmed = true;
-  //       this.tableCarts[this.currentTableId] = record.items;
-  //       clearInterval(interval);
-  //       return;
-  //     }
-
-  //     if (attempts >= maxAttempts) {
-  //       clearInterval(interval);
-  //     }
-  //   }, 100);
-
-  // }
-
-
 
   //#region Getters 
+  get isOnline() {
+    return this.onlineStateService.isOnline;
+  }
+
   get filteredMenuItems(): MenuItem[] {
     const term = this.searchTerm.trim().toLowerCase();
     if (!term) return [];
@@ -601,6 +537,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       next: async () => {
         await this.offlineDB.deleteCart(tableId);
         delete this.tableComputed[tableId];
+        this.ordersService.saveComputed(this.tableComputed);
         this.tableCarts[tableId] = [];
         this.currentTableId = '';
         this.tableName = '';

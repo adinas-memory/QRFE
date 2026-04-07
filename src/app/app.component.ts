@@ -20,7 +20,7 @@ import { NgIf } from '@angular/common';
 
   @if (isOffline) {
     <div class="offline-banner">
-      <span class="blink">OFFLINE MODE</span>
+      <span class="blink">NO INTERNET CONNECTION</span>
     </div>
   }
 
