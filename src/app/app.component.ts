@@ -10,6 +10,7 @@ import { AuthService } from './core/auth/auth.service';
 import { SpinnerComponent } from "./shared/components/spinner/spinner.component";
 import { OrderSyncService } from './core/services/order-service/order-sync.service';
 import { OnlineStateService } from './core/offline/online-state-service';
+import { NgIf } from '@angular/common';
 
 
 @Component({
@@ -17,16 +18,16 @@ import { OnlineStateService } from './core/offline/online-state-service';
   standalone: true,
   template: `<div class="offline-wrapper" [class.offline-active]="isOffline">
 
-  <div class="offline-banner" *ngIf="isOffline">
-    <span class="blink">OFFLINE MODE</span>
-  </div>
+  @if (isOffline) {
+    <div class="offline-banner">
+      <span class="blink">OFFLINE MODE</span>
+    </div>
+  }
 
   <app-spinner></app-spinner>
   <router-outlet></router-outlet>
 
-</div>
-
-`,
+</div>`,
   imports: [RouterOutlet, SpinnerComponent],
 })
 export class AppComponent implements OnInit {
