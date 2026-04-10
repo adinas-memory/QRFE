@@ -1,37 +1,61 @@
 import { Injectable } from '@angular/core';
-import { ToasterService } from '@coreui/angular';
-
-
+import { BehaviorSubject } from 'rxjs';
+import { AppToast } from '../../models/toastModel';
 
 @Injectable({ providedIn: 'root' })
 export class AppToastService {
-  constructor(private toaster: ToasterService) {}
-private current: any[] = [];
-  private push(toast:any) {
-    const current = this.toaster.toasterState$.subscribe(state => {
-      state ?? [];
-    });
-    this.toaster.setState(toast);
+  private toastsSubject = new BehaviorSubject<AppToast[]>([]);
+  readonly toasts$ = this.toastsSubject.asObservable();
+
+  private get current() { return this.toastsSubject.value; }
+
+  private pushToast(t: AppToast) {
+    const list = [...this.current, t];
+    this.toastsSubject.next(list);
+    if (t.autohide) {
+      setTimeout(() => this.remove(t.id), t.delay ?? 5000);
+    }
   }
 
-  success(message: string, title = 'Success') {
-    this.push({
+  success(message: string, title = 'Success', delay = 3000) {
+    this.pushToast({
+      id: crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2),
       title,
-      body: message,   // use `body`, not `message`
+      message,
       color: 'success',
       autohide: true,
-      delay: 3000
+      delay
     });
   }
 
-  error(message: string, title = 'Error') {
-    this.push({
+  error(message: string, title = 'Error', delay = 5000) {
+    this.pushToast({
+      id: crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2),
       title,
-      body: message,
+      message,
       color: 'danger',
       autohide: true,
-      delay: 5000
+      delay
     });
   }
-}
 
+  info(message: string, title = 'Info', delay = 3000) {
+    this.pushToast({
+      id: crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2),
+      title,
+      message,
+      color: 'info',
+      autohide: true,
+      delay
+    });
+  }
+
+  remove(id: string) {
+    const list = this.current.filter(t => t.id !== id);
+    this.toastsSubject.next(list);
+  }
+
+  clear() {
+    this.toastsSubject.next([]);
+  }
+}

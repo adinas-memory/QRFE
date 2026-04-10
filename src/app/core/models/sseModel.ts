@@ -3,6 +3,7 @@ export interface SseEvent<T> {
   RestaurantId: string;
   Sequence: number;
   Data: T;
+  InitiatedBy: string;
 }
 
 

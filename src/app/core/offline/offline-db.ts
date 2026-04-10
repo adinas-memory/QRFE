@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import Dexie, { Table } from 'dexie';
 import { OrderDTO, OrderItemDTO, TableCart } from '../../core/models/orderingModel';
 import { MenuItem } from '../models/menu/menuItem';
-import { Currency } from '../models/restaurantTablesModel';
+import { Currency, TableDTO } from '../models/restaurantTablesModel';
 export interface MenuItemEntity extends MenuItem { }
 
 export interface CartRecord {
@@ -24,19 +24,29 @@ export interface OfflineAction {
     retryCount?: number;
 }
 
+interface TableStatusRow {
+    tableId: string;
+    available: boolean;
+}
+
+interface TableEntity extends TableDTO { }
 
 class OfflineDB extends Dexie {
     carts!: Table<CartRecord, string>;
     queue!: Table<OfflineAction, number>;
     menuItems!: Table<MenuItemEntity, string>;
+    tablesStatus!: Table<TableStatusRow, string>;
+    tablesStore!: Table<TableEntity, string>;
 
     constructor() {
         super('OfflineOrdersDB');
 
-        this.version(5).stores({
+        this.version(8).stores({
             menuItems: 'menuItemId',
             carts: '&tableId, orderId',
-            queue: '++id, status, tableId, type, orderId, restaurantId, timestamp'
+            queue: '++id, status, tableId, type, orderId, restaurantId, timestamp',
+            tablesStatus: '&tableId',
+            tablesStore: '&tableId',
         });
     }
 }
@@ -224,4 +234,53 @@ export class OfflineDbService {
             }))
         };
     }
+
+    // metode adiționale pentru tablesStatus
+    async saveTablesStatus(map: Record<string, boolean>): Promise<void> {
+        const rows = Object.keys(map).map(tableId => ({
+            tableId,
+            available: !!map[tableId]
+        }));
+
+        await this.db.transaction('rw', this.db.tablesStatus, async () => {
+            // curățăm toate intrările și scriem noile statusuri
+            await this.db.tablesStatus.clear();
+            if (rows.length) {
+                // bulkPut folosește PK (tableId) pentru upsert
+                await this.db.tablesStatus.bulkPut(rows);
+            }
+        });
+    }
+
+    // Încarcă map-ul complet din Dexie
+    async loadTablesStatusMap(): Promise<Record<string, boolean>> {
+        const map: Record<string, boolean> = {};
+        const rows = await this.db.tablesStatus.toArray();
+        for (const r of rows) {
+            map[r.tableId] = !!r.available;
+        }
+        return map;
+    }
+
+    // Upsert pentru o singură masă (efficient pentru SSE)
+    async upsertTableStatus(tableId: string, available: boolean): Promise<void> {
+        // put/ bulkPut folosește tableId ca PK (Variantă B)
+        await this.db.tablesStatus.put({ tableId, available });
+    }
+
+    // saveTables
+    async saveTables(tables: TableDTO[]): Promise<void> {
+        const rows = tables.map(t => ({ ...t }));
+        await this.db.transaction('rw', this.db.tablesStore, async () => {
+            await this.db.tablesStore.clear();
+            if (rows.length) await this.db.tablesStore.bulkPut(rows);
+        });
+    }
+
+    // loadLocalTables
+    async loadLocalTables(): Promise<TableDTO[]> {
+        const rows = await this.db.tablesStore.toArray();
+        return rows as TableDTO[];
+    }
+
 }

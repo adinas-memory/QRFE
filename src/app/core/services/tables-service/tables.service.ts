@@ -7,6 +7,8 @@ import { NgZone } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { MiscellaneousService } from '../misc/miscellaneous.service';
 import { OnlineStateService } from '../../offline/online-state-service';
+import { OrderDTO } from '../../models/orderingModel';
+import { OfflineDbService } from '../../offline/offline-db';
 
 
 
@@ -17,8 +19,9 @@ export class TablesService {
   private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient,
-    private ngZone: NgZone,    
-    private onlineStateService: OnlineStateService,) { }
+    private ngZone: NgZone,
+    private onlineStateService: OnlineStateService,
+    private offlineDB: OfflineDbService) { }
 
   getAll(restaurantId: string): Observable<TableDTO[]> {
     return this.http.get<TableDTO[]>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/get-tables-status`, { withCredentials: true });
@@ -75,17 +78,19 @@ export class TablesService {
     if (this.onlineStateService.isOnline) {
       try {
         const tables = await firstValueFrom(this.getAll(restaurantId));
-        localStorage.setItem('tablesSnapshot', JSON.stringify(tables));
+        await this.offlineDB.saveTables(tables);
+        const map = this.buildAvailabilityMapFromTables(tables);
+        await this.offlineDB.saveTablesStatus(map);
         return tables;
 
       } catch (err) {
         console.warn('[TablesService] Online fetch failed, using local snapshot');
         this.onlineStateService.setOffline();
-        return this.loadLocalTables();
+        return this.offlineDB.loadLocalTables();
       }
     }
 
-    return this.loadLocalTables();
+    return this.offlineDB.loadLocalTables();
   }
 
   private loadLocalTables(): TableDTO[] {
@@ -100,6 +105,44 @@ export class TablesService {
     } catch {
       return [];
     }
+  }
+  // utils/build-availability-from-orders.ts
+
+
+  buildAvailabilityMapFromOrders(list: OrderDTO[] | null | undefined): Record<string, boolean> {
+    const map: Record<string, boolean> = {};
+    if (!Array.isArray(list)) return map;
+
+    for (const entry of list) {
+      // extragem tableId din entry sau din order (fallback)
+      const tableId = entry.tableId ?? '';
+      if (!tableId) continue;
+
+      // backend poate folosi isOrderOpen sau isTableOpen; preferăm isTableOpen când există
+      const isTableOpen = (entry as any).isTableOpen ?? entry.isOrderOpen ?? false;
+
+      // dacă există obiect order, considerăm că masa are order deschis doar dacă order.isOrderOpen === true
+      const orderObj = entry;
+      const hasOpenOrder = !!orderObj && !!orderObj.isOrderOpen === true;
+
+      // disponibil dacă masa e deschisă și nu are order deschis
+      const available = !!isTableOpen && !hasOpenOrder;
+
+      map[tableId] = available;
+    }
+
+    return map;
+  }
+
+  buildAvailabilityMapFromTables(tables: TableDTO[] | null | undefined): Record<string, boolean> {
+    const map: Record<string, boolean> = {};
+    if (!Array.isArray(tables)) return map;
+    for (const t of tables) {
+      if (!t?.tableId) continue;
+      // regula: disponibil dacă isTableOpen === true și nu există order
+      map[t.tableId] = !!t.isTableOpen && !t.order;
+    }
+    return map;
   }
 
 

@@ -1,0 +1,14 @@
+<div class="toast-container">
+  <ng-container *ngFor="let t of toasts$ | async">
+    <c-toast [autohide]="t.autohide ?? true" [fade]="true" [visible]="true">
+      <c-toast-header>
+        <strong class="me-auto">{{ t.title }}</strong>
+        <small class="text-muted"></small>
+        <button type="button" class="btn-close" aria-label="Close" (click)="toastService.remove(t.id)"></button>
+      </c-toast-header>
+      <c-toast-body>
+        {{ t.message }}
+      </c-toast-body>
+    </c-toast>
+  </ng-container>
+</div>

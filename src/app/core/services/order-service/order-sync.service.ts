@@ -118,8 +118,9 @@ export class OrderSyncService {
           const Data = typeof raw.Data === 'string' ? JSON.parse(raw.Data) : raw.Data;
           const Sequence = raw.Sequence ?? raw.sequence;
           const RestaurantId = raw.RestaurantId ?? raw.restaurantId;
+          const InitiatedBy = raw.InitiatedBy ?? 'unknown';
 
-          const sse: SseEvent<any> = { EventType, Data, Sequence, RestaurantId };
+          const sse: SseEvent<any> = { EventType, Data, Sequence, RestaurantId, InitiatedBy };
 
           if (this.isRefreshing && this.bufferWhileReconnecting) {
             this.bufferEvent(sse);
@@ -209,7 +210,7 @@ export class OrderSyncService {
         this.close();
         this.auth.clearUser();
         // emit a special event so components can react (optional)
-        this.eventsSubject.next({ EventType: 'SSE_AUTH_FAILED', Data: null, Sequence: 0, RestaurantId: restaurantId });
+        this.eventsSubject.next({ EventType: 'SSE_AUTH_FAILED', Data: null, Sequence: 0, RestaurantId: restaurantId, InitiatedBy: 'system' });
       }
     });
   }

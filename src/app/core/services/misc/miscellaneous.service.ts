@@ -35,22 +35,24 @@ export class MiscellaneousService {
 
 
   getTableCss(table: TableDTO, waiterState: Record<string, WaiterCallState>): string {
-    if (!table) return 'bg-secondary text-white'; 
+    if (!table) return 'bg-secondary text-white';
     if (waiterState[table.tableId] === WaiterCallState.Active) { return 'bg-warning text-dark'; }
     if (waiterState[table.tableId] === WaiterCallState.Snoozed) { return 'bg-secondary text-white'; }
     if (table.isTableOpen) { return 'bg-success text-white'; }
     return 'bg-danger text-white';
   }
 
-  // async isReallyOnline(): Promise<boolean> {
-  //   try {
-  //     const resp = await fetch('/ping-lite', {
-  //       method: 'HEAD',
-  //       cache: 'no-store'
-  //     });
-  //     return resp.ok;
-  //   } catch {
-  //     return false;
-  //   }
-  // }
+  parseApiError(err: any): { exception?: string, details?: string, errors?: any[] } {
+    try {
+      const body = err?.error ?? err;
+      return {
+        exception: body?.exception ?? body?.Exception,
+        details: body?.details ?? body?.Details ?? (err?.message || 'Server error'),
+        errors: body?.errors ?? body?.Errors
+      };
+    } catch {
+      return { details: 'Unexpected server error' };
+    }
+  }
+
 }

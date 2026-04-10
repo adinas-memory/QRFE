@@ -10,7 +10,7 @@ import { AuthService } from './core/auth/auth.service';
 import { SpinnerComponent } from "./shared/components/spinner/spinner.component";
 import { OrderSyncService } from './core/services/order-service/order-sync.service';
 import { OnlineStateService } from './core/offline/online-state-service';
-import { NgIf } from '@angular/common';
+import { AppToastsComponent } from '../app/shared/components/app-toast/app-toast.component';
 
 
 @Component({
@@ -25,10 +25,11 @@ import { NgIf } from '@angular/common';
   }
 
   <app-spinner></app-spinner>
+  <app-toasts></app-toasts>
   <router-outlet></router-outlet>
 
 </div>`,
-  imports: [RouterOutlet, SpinnerComponent],
+  imports: [RouterOutlet, SpinnerComponent, AppToastsComponent],
 })
 export class AppComponent implements OnInit {
   title = 'CoreUI Angular Admin Template';

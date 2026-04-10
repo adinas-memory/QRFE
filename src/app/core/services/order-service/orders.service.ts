@@ -143,6 +143,14 @@ export class OrdersService {
       return localOrder;
     }
   }
+ 
+  moveOrder(restaurantId: string, sourceTableId: string, targetTableId: string) {
+    return this.http.post<{ orderId?: string, sourceTable?: TableDTO, targetTable?: TableDTO }>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/${sourceTableId}/move-cart`,
+      { targetTableId },
+      { withCredentials: true }
+    );
+  }
 
 
 }
