@@ -1,32 +1,31 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ToastComponent, ToastHeaderComponent, ToastBodyComponent } from '@coreui/angular';
-import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
+import { Component } from '@angular/core';
 import { AsyncPipe, NgFor } from '@angular/common';
-import { Observable } from 'rxjs';
-import { AppToast } from '../../../core/models/toastModel';
+import { ToasterComponent } from '@coreui/angular';
+import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
+import { ToastBaseComponent } from '../toast-base/toast-base.component';
 
 @Component({
   selector: 'app-toasts',
   standalone: true,
-  imports: [CommonModule, ToastComponent, ToastHeaderComponent, ToastBodyComponent, NgFor, AsyncPipe],
-  templateUrl: './app-toast.component.html',
-  styles: [`
-    .toast-container {
-      position: fixed;
-      top: 1rem;
-      right: 1rem;
-      z-index: 1200;
-      width: 320px;
-    }
-  `]
+  imports: [AsyncPipe, NgFor, ToasterComponent, ToastBaseComponent],
+  template: `
+    <c-toaster position="top-end" class="p-3">
+      <app-toast-base
+        *ngFor="let toast of toastService.toasts$ | async; trackBy: trackById"
+        [color]="toast.color || 'primary'"
+        [title]="toast.title || ''"
+        [message]="toast.message"
+        [autohide]="toast.autohide ?? true"
+        [delay]="toast.delay"
+        [visible]="true"
+      />
+    </c-toaster>
+  `
 })
-export class AppToastsComponent implements OnInit {
-    toasts$!: Observable<AppToast[]>;
-  
+export class AppToastsComponent {
   constructor(public toastService: AppToastService) {}
 
-  ngOnInit(): void {
-    this.toasts$ = this.toastService.toasts$;
-  }  
+  trackById(_: number, toast: { id: string }) {
+    return toast.id;
+  }
 }
