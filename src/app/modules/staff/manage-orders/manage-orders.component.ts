@@ -1,6 +1,7 @@
+// ─── IMPORTS ──────────────────────────────────────────────────────────────────
 import { ButtonsComponent } from '../../../views/buttons/buttons/buttons.component';
 import { FormsModule } from '@angular/forms';
-import { Component, HostListener, NgZone, OnDestroy, OnInit, AfterViewInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import Fuse from 'fuse.js';
 import { IconDirective } from '@coreui/icons-angular';
 import {
@@ -29,9 +30,9 @@ import { OrdersService } from '../../../core/services/order-service/orders.servi
 import {
   CartItem,
   TableCart,
-  OrderDTO,
   OrderUpdatedSSEPayload,
-  TableComputedDTO
+  TableComputedDTO,
+  OrderDTO
 } from '../../../core/models/orderingModel';
 import { OrderSyncService } from '../../../core/services/order-service/order-sync.service';
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
@@ -40,8 +41,6 @@ import { OfflineQueueProcessor } from '../../../core/offline/offline-queue-proce
 import { SseEvent } from '../../../core/models/sseModel';
 import { OnlineStateService } from '../../../core/offline/online-state-service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
-
-
 
 @Component({
   selector: 'app-manage-orders',
@@ -68,8 +67,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   icons = { cilBellExclamation };
   private destroy$ = new Subject<void>();
   private restaurantId = '';
+
   waiterState: Record<string, WaiterCallState> = {};
-  WaiterCallState = WaiterCallState; modalVisible = false;
+  WaiterCallState = WaiterCallState;
+  modalVisible = false;
   categories: string[] = [];
   menuItems: MenuItem[] = [];
   forceRefreshAfterUpdate = Date.now();
@@ -82,7 +83,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   tables: TableDTO[] = [];
   openTables: TableDTO[] = [];
   closedTables: TableDTO[] = [];
-  subTotal: number = 0;
   searchTerm: string = '';
   search$ = new Subject<string>();
   filteredResults: MenuItem[] = [];
@@ -91,9 +91,12 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   orderIsConfirmed = false;
   currentOrderId: string | null = null;
   showCloseConfirm = false;
+
+  /**
+   * Sursa unică de adevăr pentru disponibilitatea meselor.
+   * Derivată din this.tables[] via buildAvailabilityMap și sincronizată în Dexie.
+   */
   tablesAvailable: Record<string, boolean> = {};
-
-
 
   tableComputed: Record<string, {
     lastActionAt: string;
@@ -102,6 +105,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     currency: string;
     itemCount: number;
     cssClass: string;
+    initiatedBy: string;
   }> = {};
 
   constructor(
@@ -115,23 +119,87 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     private onlineStateService: OnlineStateService,
     private queueProcessor: OfflineQueueProcessor,
     private appToast: AppToastService,
-  ) {
-    this.appToast.toasts$.subscribe(v => console.log('AppToastsComponent toasts$', v));
+  ) {}
 
+  // ─── GETTERS ──────────────────────────────────────────────────────────────────
+
+  get isOnline() { return this.onlineStateService.isOnline; }
+
+  get filteredMenuItems(): MenuItem[] {
+    const term = this.searchTerm.trim().toLowerCase();
+    if (!term) return [];
+    return this.menuItems.filter(i => i.menuItemName.toLowerCase().includes(term));
   }
 
-  @HostListener('document:keydown.escape', ['$event'])
-  onEscPressed(event: Event) {
-    const keyboardEvent = event as KeyboardEvent;
+  get selectedItems(): CartItem[] {
+    return this.tableCarts[this.currentTableId] ?? [];
+  }
+
+  get filteredItems() {
+    return this.menuItems.filter(i => i.category === this.selectedCategory);
+  }
+
+  get groupedMenuItems(): { [category: string]: MenuItem[] } {
+    return this.menuItems.reduce((acc, item) => {
+      const cat = item.category;
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(item);
+      return acc;
+    }, {} as { [category: string]: MenuItem[] });
+  }
+
+  get nonEmptyCategories(): string[] {
+    return this.categories.filter(cat => this.groupedMenuItems[cat]?.length > 0);
+  }
+
+  /**
+   * Mese libere pentru mutare: exclude masa curentă, bazat pe tablesAvailable.
+   */
+  get availableTablesForMove(): TableDTO[] {
+    return this.tables.filter(t =>
+      t.tableId !== this.currentTableId &&
+      this.tablesAvailable[t.tableId] === true
+    );
+  }
+
+  get cartSubTotal(): number {
+    const cart = this.tableCarts[this.currentTableId] ?? [];
+    return cart.reduce((sum, s) => sum + s.item.menuItemPriceAmount * s.quantity, 0);
+  }
+
+  get cartCurrency(): string | undefined {
+    return this.tableCarts[this.currentTableId]?.[0]?.item.menuItemPriceCurrency;
+  }
+
+  /**
+   * FIX BUG 5: Anterior verifica Object.values(tablesAvailable).some(v => v === true)
+   * fără să excludă masa curentă → putea returna true fără ținte reale.
+   * Acum folosește availableTablesForMove care exclude corect masa curentă.
+   */
+  canMoveOrder(): boolean {
+    return (
+      this.isOnline &&
+      this.orderIsConfirmed &&
+      !!this.currentOrderId &&
+      !this.currentOrderId.startsWith('local-') &&
+      this.availableTablesForMove.length > 0
+    );
+  }
+
+  // ─── KEYBOARD ─────────────────────────────────────────────────────────────────
+
+  @HostListener('document:keydown.escape')
+  onEscPressed() {
     if (this.searchTerm) {
       this.searchTerm = '';
       this.filteredResults = [];
-      const input = document.querySelector('#searchInput') as HTMLInputElement;
-      input?.focus();
+      (document.querySelector('#searchInput') as HTMLInputElement)?.focus();
     }
   }
 
-  trackByTableId(index: number, table: TableDTO) { return table.tableId; }
+  trackByTableId(_: number, table: TableDTO) { return table.tableId; }
+
+  // ─── ORDER ACTIONS ────────────────────────────────────────────────────────────
 
   async confirmOrder() {
     if (document.hidden) return;
@@ -156,122 +224,31 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       restaurantId: this.restaurantId,
       tableId: this.currentTableId,
       orderId: localOrderId,
-      payload: {
-        items: cart.map(ci => ({
-          menuItemId: ci.item.menuItemId,
-          quantity: ci.quantity
-        }))
-      }
+      payload: { items: cart.map(ci => ({ menuItemId: ci.item.menuItemId, quantity: ci.quantity })) }
     });
 
     this.markTableAsClosed(this.currentTableId);
     this.updateComputedLocal(this.currentTableId);
 
-    // ✅ Dacă online → procesăm imediat, polling actualizează currentOrderId
-    if (this.onlineStateService.isOnline) {
-      this.queueProcessor.triggerProcessing();
-    }
-
+    if (this.onlineStateService.isOnline) this.queueProcessor.triggerProcessing();
   }
-
-
-  //#region Getters 
-  get isOnline() {
-    return this.onlineStateService.isOnline;
-  }
-
-  get filteredMenuItems(): MenuItem[] {
-    const term = this.searchTerm.trim().toLowerCase();
-    if (!term) return [];
-    return this.menuItems.filter(item =>
-      item.menuItemName.toLowerCase().includes(term)
-    );
-  }
-
-  get selectedItems(): CartItem[] {
-    return this.tableCarts[this.currentTableId] ?? [];
-  }
-
-  get filteredItems() {
-    return this.menuItems.filter(i => i.category === this.selectedCategory);
-  }
-
-  get groupedMenuItems(): { [category: string]: MenuItem[] } {
-    return this.menuItems.reduce((acc, item) => {
-      const cat = item.category;
-      if (!acc[cat]) {
-        acc[cat] = [];
-      }
-      acc[cat].push(item);
-      return acc;
-    }, {} as { [category: string]: MenuItem[] });
-  }
-
-  get nonEmptyCategories(): string[] {
-    return this.categories.filter(cat =>
-      this.groupedMenuItems[cat]?.length > 0
-    );
-  }
-
-  get availableTablesForMove(): TableDTO[] {
-    const availability = this.tablesAvailable ?? {};
-    return this.tables.filter(t =>
-      t.tableId !== this.currentTableId &&
-      t.isTableOpen &&
-      availability[t.tableId] === true
-    );
-  }
-
-
-  // get availableTablesForMove(): TableDTO[] {
-  //   return this.tables.filter(t =>
-  //     t.tableId !== this.currentTableId &&
-  //     t.isTableOpen &&
-  //     !t.order
-  //   );
-  // }
-
-  get cartSubTotal(): number {
-    const cart = this.tableCarts[this.currentTableId] ?? [];
-    return cart.reduce((sum, sel) =>
-      sum + sel.item.menuItemPriceAmount * sel.quantity, 0
-    );
-  }
-
-  get cartCurrency(): string | undefined {
-    const cart = this.tableCarts[this.currentTableId] ?? [];
-    return cart.length > 0 ? cart[0].item.menuItemPriceCurrency : undefined;
-  }
-  //#endregion
 
   async addCartItem(item: MenuItem) {
     if (document.hidden) return;
     const tableId = this.currentTableId;
     const record = await this.offlineDB.loadCartRecord(tableId);
     const orderId = record?.orderId ?? null;
-    const cart = record ? record.items : [];
-    console.log('Adding item to cart:', { item, tableId, cart });
+    const cart = record?.items ?? [];
+
     const existing = cart.find(x => x.item.menuItemId === item.menuItemId);
+    if (existing) existing.quantity++;
+    else cart.push({ item, quantity: 1, orderItemId: undefined });
 
-    // UI update local
-    if (existing) {
-      existing.quantity++;
-    } else {
-      cart.push({ item, quantity: 1, orderItemId: undefined });
-    }
+    await this.offlineDB.saveCart(tableId, cart, orderId ?? undefined);
+    this.tableCarts[tableId] = [...cart];
 
-    await this.offlineDB.saveCart(
-      tableId,
-      cart,
-      orderId ?? undefined
-    );
-
-    this.tableCarts[tableId] = [...cart]; // actualizam UI cu cartul real din Dexie
-    console.log('ORDERITEMID', existing?.orderItemId);
-    // Dacă orderul nu e confirmat → doar local
     if (!this.orderIsConfirmed) return;
 
-    // queue    
     await this.offlineDB.addOfflineAction({
       type: existing ? 'UPDATE_QUANTITY' : 'ADD_ITEM',
       restaurantId: this.restaurantId,
@@ -284,30 +261,22 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Dacă suntem online → backend (queueProcessor va trimite)
-    if (this.onlineStateService.isOnline) {
-      this.queueProcessor.triggerProcessing();
-    }
-
+    if (this.onlineStateService.isOnline) this.queueProcessor.triggerProcessing();
   }
-
 
   updateComputedLocal(tableId: string) {
     const cart = this.tableCarts[tableId] ?? [];
-
     const table = this.tables.find(t => t.tableId === tableId);
-    if (!table) {
-      console.warn('[updateComputedLocal] Table not found:', tableId);
-      return;
-    }
+    if (!table) return;
 
     this.tableComputed[tableId] = {
       lastActionAt: new Date().toISOString(),
       lastAddedItem: cart.length ? cart[cart.length - 1].item.menuItemName : '—',
       total: cart.reduce((s, c) => s + c.item.menuItemPriceAmount * c.quantity, 0),
-      currency: cart[0]?.item.menuItemPriceCurrency ?? 'EUR',
+      currency: cart[0]?.item.menuItemPriceCurrency ?? '—',
       itemCount: cart.reduce((s, c) => s + c.quantity, 0),
-      cssClass: this.miscService.getTableCss(table, this.waiterState)
+      cssClass: this.miscService.getTableCss(table, this.waiterState),
+      initiatedBy: this.tableComputed[tableId]?.initiatedBy ?? 'system'
     };
 
     this.ordersService.saveComputed(this.tableComputed);
@@ -315,7 +284,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   async decrementItem(sel: CartItem) {
     if (document.hidden) return;
-
     const tableId = this.currentTableId;
     const record = await this.offlineDB.loadCartRecord(tableId);
     const cart = await this.offlineDB.loadCart(tableId);
@@ -324,46 +292,31 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     const existing = cart.find(i => i.item.menuItemId === sel.item.menuItemId);
     if (!existing) return;
 
-    // Determinăm tipul acțiunii ÎNAINTE să modificăm starea
     const willDelete = existing.quantity <= 1;
     const finalQuantity = willDelete ? 0 : existing.quantity - 1;
 
-    if (willDelete) {
-      cart.splice(cart.indexOf(existing), 1);
-    } else {
-      existing.quantity--;
-    }
+    if (willDelete) cart.splice(cart.indexOf(existing), 1);
+    else existing.quantity--;
 
     this.tableCarts[tableId] = [...cart];
     await this.offlineDB.saveCart(tableId, cart, orderId ?? undefined, true);
 
-    if (orderId?.startsWith('local-')) return;
-    if (!this.orderIsConfirmed) return;
-    if (!existing.orderItemId) return;
+    if (orderId?.startsWith('local-') || !this.orderIsConfirmed || !existing.orderItemId) return;
 
     await this.offlineDB.addOfflineAction({
       type: willDelete ? 'DELETE_ITEM' : 'UPDATE_QUANTITY',
       restaurantId: this.restaurantId,
       tableId,
       orderId: orderId ?? undefined,
-      payload: {
-        orderItemId: existing.orderItemId,
-        menuItemId: existing.item.menuItemId, // ← adaugă și asta pentru compressQueue
-        quantity: finalQuantity
-      }
+      payload: { orderItemId: existing.orderItemId, menuItemId: existing.item.menuItemId, quantity: finalQuantity }
     });
 
-    if (this.onlineStateService.isOnline) {
-      this.queueProcessor.triggerProcessing();
-    }
+    if (this.onlineStateService.isOnline) this.queueProcessor.triggerProcessing();
   }
 
   async removeItem(sel: CartItem) {
     if (document.hidden) return;
-
     const tableId = this.currentTableId;
-
-    // 1. Încărcăm cart-ul REAL din Dexie
     const record = await this.offlineDB.loadCartRecord(tableId);
     const cart = await this.offlineDB.loadCart(tableId);
     const orderId = record?.orderId ?? null;
@@ -371,51 +324,31 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     const existing = cart.find(i => i.item.menuItemId === sel.item.menuItemId);
     if (!existing) return;
 
-    // 2. UI update local (în memorie)
     const newCart = cart.filter(i => i.item.menuItemId !== sel.item.menuItemId);
-    console.log('Removing item from cart:', { sel, tableId, cart, newCart });
-    // Actualizează UI cu cart-ul filtrat
     this.tableCarts[tableId] = [...newCart];
-
-    // 3. Salvăm în Dexie
     await this.offlineDB.saveCart(tableId, newCart, orderId ?? undefined, true);
 
-    // 4. Dacă orderId este local → stop
-    if (orderId?.startsWith('local-')) return;
-    if (!this.orderIsConfirmed) return;
+    if (orderId?.startsWith('local-') || !this.orderIsConfirmed || !existing.orderItemId) return;
 
-    // 5. Dacă nu avem orderItemId → așteptăm SSE
-    if (!existing.orderItemId) return;
-
-    // 6. Queue action
     await this.offlineDB.addOfflineAction({
       type: 'DELETE_ITEM',
       restaurantId: this.restaurantId,
       tableId,
       orderId: orderId ?? undefined,
-      payload: {
-        orderItemId: existing.orderItemId,
-        menuItemId: existing.item.menuItemId
-      }
+      payload: { orderItemId: existing.orderItemId, menuItemId: existing.item.menuItemId }
     });
 
-    if (this.onlineStateService.isOnline) {
-      this.queueProcessor.triggerProcessing();
-    }
+    if (this.onlineStateService.isOnline) this.queueProcessor.triggerProcessing();
   }
-
 
   async openTable(table: TableDTO) {
     const tableId = table.tableId;
     this.currentTableId = tableId;
     this.tableName = table.tableName ?? '';
     this.canvasVisible = true;
-
     localStorage.setItem('currentTableId', tableId);
 
-    // 1. Citim doar din Dexie
     const record = await this.offlineDB.loadCartRecord(tableId);
-
     if (record) {
       this.currentOrderId = record.orderId ?? null;
       this.orderIsConfirmed = !!this.currentOrderId && !this.currentOrderId.startsWith('local-');
@@ -423,24 +356,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // 2. Dacă nu există nimic în Dexie → masă goală
     this.orderIsConfirmed = false;
     this.currentOrderId = null;
     this.tableCarts[tableId] = [];
-  }
-
-
-
-  loadTables(): void {
-    this.tablesService.getAll(this.restaurantId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: response => {
-          this.tables = response;
-          this.refreshTableLists();
-        },
-        error: err => console.error('[ManageTablesComponent] Error loading tables', err)
-      });
   }
 
   async seeOrder(table: TableDTO) {
@@ -449,13 +367,14 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.tableName = table.tableName ?? '';
     this.canvasVisible = true;
 
-    const order = await this.ordersService.listOpenOrderForTableWithFallback(this.restaurantId, this.currentTableId);
+    const order = await this.ordersService.listOpenOrderForTableWithFallback(
+      this.restaurantId, this.currentTableId
+    );
 
     if (order) {
       this.currentOrderId = order.orderId;
       this.orderIsConfirmed = true;
-
-      this.tableCarts[this.currentTableId] = order.orderItems!.map(o => ({
+      this.tableCarts[this.currentTableId] = (order.orderItems ?? []).map(o => ({
         item: this.menuItems.find(m => m.menuItemId === o?.menuItemId)!,
         quantity: o?.quantity ?? 0,
         orderItemId: o?.orderItemId
@@ -466,23 +385,17 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   snoozeWaiterCall(tableId: string): void {
     this.tablesService.snoozeWaiterCall(this.restaurantId, tableId)
       .pipe(take(1))
-      .subscribe({
-        next: () => { },
-        error: (err: unknown) => console.error('Error snoozing waiter call', err)
-      });
+      .subscribe({ error: (err: unknown) => console.error('Error snoozing waiter call', err) });
   }
 
-  async moveCartToSelectedTable() {
-    if (!this.selectedTargetTableId) return;
+  // ─── MOVE ORDER ───────────────────────────────────────────────────────────────
 
-    if (!this.onlineStateService.isOnline) {
-      this.appToast.error('Move unavailable while offline.');
-      this.selectedTargetTableId = null;
-      return;
-    }
+  async moveCartToSelectedTable() {
+    if (!this.canMoveOrder() || !this.selectedTargetTableId) return;
 
     const sourceId = this.currentTableId;
     const targetId = this.selectedTargetTableId;
+
     const record = await this.offlineDB.loadCartRecord(sourceId);
     if (!record) {
       this.appToast.error('No cart found for source table.');
@@ -490,110 +403,119 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Hint din Dexie (conservator: undefined => refuzăm)
-    const statusMap = await this.offlineDB.loadTablesStatusMap();
-    const targetStatus = statusMap[targetId];
-    if (targetStatus === false || targetStatus === undefined) {
-      this.appToast.error('Target table appears occupied or unknown. Refreshing status...');
-      try {
-        const list = await firstValueFrom(this.ordersService.listTablesStatus(this.restaurantId));
-        const map = this.tablesService.buildAvailabilityMapFromOrders(list); // dacă folosești util
-        await this.offlineDB.saveTablesStatus(map);
-        this.tablesAvailable = await this.offlineDB.loadTablesStatusMap();
-        // this.updateAvailableTablesDropdown?.();
-      } catch {
-        // swallow
-      } finally {
-        this.selectedTargetTableId = null;
-      }
+    if (this.tablesAvailable[targetId] !== true) {
+      this.appToast.error('Target table appears occupied. Refreshing status...');
+      await this.syncTablesAvailability();
+      this.selectedTargetTableId = null;
       return;
     }
 
-    // Apel server atomic
     try {
-      const res = await firstValueFrom(this.ordersService.moveOrder(this.restaurantId, sourceId, targetId));
+      const res = await firstValueFrom(
+        this.ordersService.moveOrder(this.restaurantId, sourceId, targetId)
+      );
 
-      // actualizăm carturile local doar după confirmarea server
       const finalOrderId = res?.orderId ?? record.orderId;
+
+      // Actualizare Dexie
       await this.offlineDB.saveCart(targetId, record.items, finalOrderId);
       await this.offlineDB.deleteCart(sourceId);
 
-      // actualizăm statusurile în Dexie: target = ocupată, source = liberă
+      // FIX BUG 1 + BUG 4:
+      // Actualizăm this.tables[] imediat cu obiecte NOI (spread) → Angular detectează schimbarea
+      // → CSS / culori se schimbă instant, fără să așteptăm SSE.
+      // - targetId: isTableOpen=false (ocupat), order simulat (non-null)
+      // - sourceId: isTableOpen=true (liber), order=null → buildAvailabilityMap returnează corect true
+      this.tables = this.tables.map(t => {
+        if (t.tableId === targetId) return { ...t, isTableOpen: false, order: { orderId: finalOrderId } as unknown as OrderDTO };
+        if (t.tableId === sourceId) return { ...t, isTableOpen: true, order: undefined };
+        return t;
+      });
+      this.refreshTableLists();
+
+      // FIX BUG 2:
+      // Actualizăm tableComputed imediat după move — SSE va suprascrie cu datele reale.
+      this.tableCarts[targetId] = record.items;
+      this.tableCarts[sourceId] = [];
+      this.updateComputedLocal(targetId);  // total, lastAddedItem, lastActionAt pentru masa ocupată
+      // Resetăm computed pentru masa eliberată
+      const sourceTable = this.tables.find(t => t.tableId === sourceId)!;
+      this.tableComputed[sourceId] = {
+        lastActionAt: new Date().toISOString(),
+        lastAddedItem: '—',
+        total: 0,
+        currency: '—',
+        itemCount: 0,
+        cssClass: this.miscService.getTableCss(sourceTable, this.waiterState),
+        initiatedBy: this.tableComputed[sourceId]?.initiatedBy ?? 'system'
+      };
+
+      // FIX BUG 3: buildAvailabilityMap citește !t.order — acum sourceId are order=null → correct true
       await this.offlineDB.upsertTableStatus(targetId, false);
       await this.offlineDB.upsertTableStatus(sourceId, true);
+      this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
 
-      // reîncărcăm starea locală și UI
+      // Comutăm contextul UI pe masa țintă
+      this.currentTableId = targetId;
+      this.tableName = this.tables.find(t => t.tableId === targetId)?.tableName ?? '';
+      this.orderIsConfirmed = true;
+      this.currentOrderId = finalOrderId ?? null;
       this.tableCarts = await this.offlineDB.loadAllCarts();
-      this.tablesAvailable = await this.offlineDB.loadTablesStatusMap();
-      // this.updateAvailableTablesDropdown?.();
 
-      this.updateComputedLocal(targetId);
-      this.updateComputedLocal(sourceId);
-
+      this.ordersService.saveComputed(this.tableComputed);
       this.appToast.success('Order moved successfully.');
+
     } catch (err: any) {
-      const parsed = this.miscService.parseApiError?.(err) ?? { details: undefined };
       if (err?.status === 409) {
+        const parsed = this.miscService.parseApiError?.(err) ?? { details: undefined };
         this.appToast.error(parsed.details ?? 'Target table is occupied. Move aborted.');
-        // refresh status from server
-        try {
-          const list = await firstValueFrom(this.ordersService.listTablesStatus(this.restaurantId));
-          const map = this.tablesService.buildAvailabilityMapFromOrders(list);
-          await this.offlineDB.saveTablesStatus(map);
-          this.tablesAvailable = await this.offlineDB.loadTablesStatusMap();
-          // this.updateAvailableTablesDropdown?.();
-        } catch { /* swallow */ }
+        await this.syncTablesAvailability();
       } else {
-        this.appToast.error(parsed.details ?? 'Failed to move order. Please try again.');
+        this.appToast.error('Failed to move order. Please try again.');
       }
     } finally {
       this.selectedTargetTableId = null;
     }
   }
 
-
-  // async moveCartToSelectedTable() {
-  //   if (!this.selectedTargetTableId) return;
-
-  //   const sourceId = this.currentTableId;
-  //   const targetId = this.selectedTargetTableId;
-
-  //   if (!this.tableCarts[sourceId]) return;
-
-  //   this.tableCarts[targetId] = this.tableCarts[sourceId];
-  //   delete this.tableCarts[sourceId];
-
-  //   await this.offlineDB.saveCart(
-  //     this.currentTableId,
-  //     this.tableCarts[this.currentTableId],
-  //     this.currentOrderId ?? undefined
-  //   );
-
-  //   const targetTable = this.tables.find(t => t.tableId === targetId);
-  //   this.currentTableId = targetId;
-  //   this.tableName = targetTable?.tableName ?? '';
-
-  //   this.selectedTargetTableId = null;
-  // }
-
-  closeOrder() {
-    this.showCloseConfirm = true;
+  /**
+   * Re-fetch tables de la server și sincronizează complet starea locală.
+   * Singurul loc din cod care face asta — apelat după conflict (pre-flight sau 409).
+   */
+  private async syncTablesAvailability(): Promise<void> {
+    try {
+      const tables = await firstValueFrom(this.tablesService.getAll(this.restaurantId));
+      await this.offlineDB.saveTables(tables);
+      const map = this.tablesService.buildAvailabilityMap(tables);
+      await this.offlineDB.saveTablesStatus(map);
+      this.tables = tables;   // referință nouă → Angular detectează
+      this.tablesAvailable = map;
+      this.refreshTableLists();
+    } catch (err) {
+      console.warn('[syncTablesAvailability] Failed to refresh:', err);
+    }
   }
 
-  cancelCloseOrder() {
-    this.showCloseConfirm = false;
-  }
+  // ─── CLOSE ORDER ──────────────────────────────────────────────────────────────
+
+  closeOrder() { this.showCloseConfirm = true; }
+  cancelCloseOrder() { this.showCloseConfirm = false; }
 
   async confirmCloseOrder() {
-    if (document.hidden) {
-      return;
-    }
+    if (document.hidden) return;
     this.showCloseConfirm = false;
 
     const tableId = this.currentTableId;
-    let orderId = this.currentOrderId!;
+    const orderId = this.currentOrderId;
 
-    if (orderId?.startsWith('local-')) {
+    // FIX BUG 6: currentOrderId poate fi null — înainte codul folosea ! (non-null assertion)
+    // pe un câmp care în practică poate fi null dacă butonul e apăsat fără order activ.
+    if (!orderId) {
+      this.resetCanvasState();
+      return;
+    }
+
+    if (orderId.startsWith('local-') || !this.onlineStateService.isOnline) {
       await this.offlineDB.addOfflineAction({
         type: 'CLOSE_ORDER',
         restaurantId: this.restaurantId,
@@ -601,65 +523,51 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         orderId,
         payload: {}
       });
-      this.currentTableId = '';
-      this.tableName = '';
-      this.orderIsConfirmed = false;
-      this.canvasVisible = false;
+      this.resetCanvasState();
       return;
     }
 
-    // 3. OFFLINE → punem în coadă
-    if (!this.onlineStateService.isOnline) {
-      await this.offlineDB.addOfflineAction({
-        type: 'CLOSE_ORDER',
-        restaurantId: this.restaurantId,
-        tableId,
-        orderId,
-        payload: {}
-      });
-
-      this.currentTableId = '';
-      this.tableName = '';
-      this.orderIsConfirmed = false;
-      this.canvasVisible = false;
-      return;
-    }
-
-    // 4. ONLINE → trimitem direct
-    this.ordersService.closeOrder(
-      this.restaurantId,
-      tableId,
-      orderId
-    ).subscribe({
+    this.ordersService.closeOrder(this.restaurantId, tableId, orderId).subscribe({
       next: async () => {
         await this.offlineDB.deleteCart(tableId);
         delete this.tableComputed[tableId];
         this.ordersService.saveComputed(this.tableComputed);
         this.tableCarts[tableId] = [];
-        this.currentTableId = '';
-        this.tableName = '';
-        this.orderIsConfirmed = false;
-        this.canvasVisible = false;
+        this.resetCanvasState();
       },
       error: err => console.error('Error closing order:', err)
     });
   }
 
-  markTableAsClosed(tableId: string) {
-    const updated = this.tables.map(t =>
-      t.tableId === tableId ? { ...t, isTableOpen: false } : { ...t }
-    );
+  private resetCanvasState() {
+    this.currentTableId = '';
+    this.tableName = '';
+    this.orderIsConfirmed = false;
+    this.currentOrderId = null;
+    this.canvasVisible = false;
+  }
 
-    this.tables = [...updated];
+  // ─── TABLE STATE HELPERS ──────────────────────────────────────────────────────
+
+  /**
+   * FIX BUG 4: Folosim map+spread în loc de mutație în-place.
+   * Mutația directă pe obiect (table.isTableOpen = x) nu produce o referință nouă
+   * → Angular change detection nu detectează schimbarea → UI nu se actualizează.
+   */
+  markTableAsClosed(tableId: string) {
+    this.tables = this.tables.map(t =>
+      t.tableId === tableId ? { ...t, isTableOpen: false } : t
+    );
     this.refreshTableLists();
   }
 
   markTableAsOpen(tableId: string) {
-    const updated = this.tables.map(t =>
-      t.tableId === tableId ? { ...t, isTableOpen: true } : { ...t }
+    // FIX BUG 3: curățăm și order când deschidem masa, nu doar isTableOpen.
+    // buildAvailabilityMap verifică !t.order → dacă order rămâne setat, masa
+    // apare ca ocupată chiar dacă isTableOpen=true.
+    this.tables = this.tables.map(t =>
+      t.tableId === tableId ? { ...t, isTableOpen: true, order: undefined } : t
     );
-
-    this.tables = [...updated];
     this.refreshTableLists();
   }
 
@@ -668,7 +576,17 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.closedTables = this.tables.filter(t => !t.isTableOpen);
   }
 
-  private async handleSseEvent({ EventType, Data }: SseEvent<any>) {
+  getTableCss(table: TableDTO, waiterState: Record<string, WaiterCallState>): string {
+    return this.miscService.getTableCss(table, waiterState);
+  }
+
+  getLastActionTime(ts: string | null): string {
+    return this.miscService.getLastActionTime(ts);
+  }
+
+  // ─── SSE HANDLER ─────────────────────────────────────────────────────────────
+
+  private async handleSseEvent({ EventType, Data, InitiatedBy }: SseEvent<any>): Promise<void> {
     if (!EventType) return;
 
     switch (EventType) {
@@ -683,20 +601,12 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
       case 'OrderItemDeleted': {
         const tableId = Data.TableId ?? this.currentTableId;
-        const orderItemId = Data.OrderItemId;
-
-        console.log('Order item deleted event received', Data);
-
         if (this.tableCarts[tableId]) {
           this.tableCarts[tableId] = this.tableCarts[tableId].filter(
-            i => i.orderItemId !== orderItemId
+            i => i.orderItemId !== Data.OrderItemId
           );
           delete this.tableComputed[tableId];
-          await this.offlineDB.saveCart(
-            this.currentTableId,
-            this.tableCarts[this.currentTableId],
-            this.currentOrderId ?? undefined
-          );
+          await this.offlineDB.saveCart(tableId, this.tableCarts[tableId], this.currentOrderId ?? undefined);
         }
         break;
       }
@@ -704,141 +614,101 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       case 'NewOrderPrivateEvent': {
         const realId = Data.OrderId;
         const tableId = Data.TableId;
-        // 🔥 ÎNTOTDEAUNA actualizăm orderId-ul pentru masa respectivă
         if (this.currentTableId === tableId) {
           this.currentOrderId = realId;
           this.orderIsConfirmed = true;
         }
-        // injectăm orderId în Dexie
         const record = await this.offlineDB.loadCartRecord(tableId);
-        if (record) {
-          await this.offlineDB.saveCart(tableId, record.items, realId);
-        }
+        if (record) await this.offlineDB.saveCart(tableId, record.items, realId);
         break;
       }
 
       case 'OrderUpdated': {
-        if (this.currentOrderId?.startsWith('local-')) {
-          console.log('[SSE] Ignoring snapshot save for local order');
-          break;
-        }
-
+        if (this.currentOrderId?.startsWith('local-')) break;
         const payload = Data as OrderUpdatedSSEPayload;
         const tableId = payload.TableId;
-
-        // 1. Luăm cart-ul din Dexie (adevărul local)
         const cart = await this.offlineDB.loadCart(tableId);
 
-        // 2. Injectăm orderItemId în itemele existente
         for (const sseItem of payload.Items) {
           const localItem = cart.find(ci => ci.item.menuItemId === sseItem.MenuItemId);
-          if (localItem) {
-            localItem.orderItemId = sseItem.OrderItemId;
-          }
+          if (localItem) localItem.orderItemId = sseItem.OrderItemId;
         }
 
-        // 4. Salvăm în Dexie (fără să stricăm offline)
-        await this.offlineDB.saveCart(
-          tableId,
-          cart,
-          payload.OrderId
+        await this.offlineDB.saveCart(tableId, cart, payload.OrderId);
+        this.tableComputed[tableId] = this.ordersService.mapPayloadToComputed(
+          payload, this.tables, this.waiterState, InitiatedBy
         );
-
-        // 3. Actualizăm computed
-        this.tableComputed[tableId] =
-          this.ordersService.mapPayloadToComputed(
-            payload,
-            this.tables,
-            this.waiterState
-          );
-
-        // 5. Reîncărcăm cart-ul din Dexie → UI devine 100% corect
         this.tableCarts[tableId] = cart;
-
         break;
       }
 
-
-      case 'OrderClosedWithPayment':
-        console.log('Order closed event received', Data);
+      case 'OrderClosedWithPayment': {
         const tableId = Data.TableId;
         await this.offlineDB.deleteCart(tableId);
-        // this.tableCarts[tableId] = [];
-        // delete this.tableComputed[tableId];
+        delete this.tableComputed[tableId];
+        // FIX BUG 3: markTableAsOpen curăță și order → buildAvailabilityMap returnează corect true
         this.markTableAsOpen(tableId);
         if (this.currentTableId === tableId) {
-          this.orderIsConfirmed = false;
-          this.canvasVisible = false;
-          this.currentTableId = '';
-          this.tableName = '';
           this.tableCarts[tableId] = [];
-          await this.offlineDB.deleteCart(this.currentTableId);
+          this.resetCanvasState();
         }
-
         break;
+      }
 
       case 'TablesStatusesUpdate': {
         const computedList = Data as TableComputedDTO[];
+
+        // FIX BUG 4: spread → obiecte noi → Angular detectează schimbarea.
+        // FIX BUG 3: când masa e liberă (isTableOpen=true, fără orderId) → curățăm order.
         this.tables = this.tables.map(t => {
           const c = computedList.find(x => x.tableId === t.tableId);
-          return c ? { ...t, isTableOpen: c.isTableOpen } : t;
+          if (!c) return t;
+          const isFreed = c.isTableOpen && !c.orderId;
+          return { ...t, isTableOpen: c.isTableOpen, order: isFreed ? undefined : t.order };
         });
-
         this.refreshTableLists();
 
         for (const c of computedList) {
           const table = this.tables.find(t => t.tableId === c.tableId);
           if (!table) continue;
-
-          const existing = this.tableComputed[c.tableId] ?? {};
-
-          this.tableComputed[c.tableId] = {
-            ...existing,
-            lastActionAt: c.lastActionAt ?? existing.lastActionAt,
-            lastAddedItem: c.lastAddedItem ?? existing.lastAddedItem ?? '—',
-            total: c.subTotal?.amount ?? existing.total ?? 0,
-            currency: c.subTotal?.currency ?? existing.currency ?? 'EUR',
-            itemCount: c.itemCount ?? existing.itemCount ?? 0,
-            cssClass: this.miscService.getTableCss(table, this.waiterState)
-          };
+          this.tableComputed[c.tableId] = this.ordersService.mapComputedDtoToComputed(
+            c, this.tables, this.waiterState, InitiatedBy
+          );
         }
 
         this.ordersService.saveComputed(this.tableComputed);
+        this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
         break;
       }
 
       case 'MoveOrderAtTableUpdate': {
-        const computedList = Data as TableComputedDTO[]; // sau payload specific
-        console.log('MoveOrderAtTableUpdate event received', computedList);
-        // update tables open flags and computed
+        const computedList = Data as TableComputedDTO[];
+
+        this.tables = this.tables.map(t => {
+          const c = computedList.find(x => x.tableId === t.tableId);
+          if (!c) return t;
+          const isFreed = c.isTableOpen && !c.orderId;
+          return { ...t, isTableOpen: c.isTableOpen, order: isFreed ? undefined : t.order };
+        });
+
         for (const c of computedList) {
           const table = this.tables.find(t => t.tableId === c.tableId);
           if (!table) continue;
-          // update table open flag
-          table.isTableOpen = c.isTableOpen;
-          await this.offlineDB.saveTables(this.tables);
-          // update computed
-          this.tableComputed[c.tableId] = {
-            lastActionAt: c.lastActionAt ?? this.tableComputed[c.tableId]?.lastActionAt,
-            lastAddedItem: c.lastAddedItem ?? this.tableComputed[c.tableId]?.lastAddedItem ?? '—',
-            total: c.subTotal?.amount ?? this.tableComputed[c.tableId]?.total ?? 0,
-            currency: c.subTotal?.currency ?? this.tableComputed[c.tableId]?.currency ?? 'EUR',
-            itemCount: c.itemCount ?? this.tableComputed[c.tableId]?.itemCount ?? 0,
-            cssClass: this.miscService.getTableCss(table, this.waiterState)
-          };
+          this.tableComputed[c.tableId] = this.ordersService.mapComputedDtoToComputed(
+            c, this.tables, this.waiterState, InitiatedBy
+          );
         }
-        this.tablesAvailable = this.tablesService.buildAvailabilityMapFromTables(this.tables);
+        
+        await this.offlineDB.saveTables(this.tables);
+        this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
         this.refreshTableLists();
         this.ordersService.saveComputed(this.tableComputed);
         break;
       }
 
       case 'OrderItemAdded':
-        console.log('Order item added event received', Data);
-        break;
-
       case 'OrderItemQuantityUpdated':
-        console.log('Order item quantity updated event received', Data);
+        // Gestionate via OrderUpdated
         break;
 
       default:
@@ -846,34 +716,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     }
   }
 
-
-  getTableCss(table: TableDTO, waiterState: Record<string, WaiterCallState>): string {
-    return this.miscService.getTableCss(table, waiterState);
-  }
-  getLastActionTime(ts: string | null): string {
-    return this.miscService.getLastActionTime(ts);
-  }
-
-  private areCartsEqual(a: CartItem[], b: CartItem[]): boolean {
-    if (!a || !b) return false;
-    if (a.length !== b.length) return false;
-
-    for (let i = 0; i < a.length; i++) {
-      const x = a[i];
-      const y = b[i];
-
-      if (!x || !y) return false;
-
-      if (x.item.menuItemId !== y.item.menuItemId) return false;
-      if (x.quantity !== y.quantity) return false;
-      if (x.orderItemId !== y.orderItemId) return false;
-    }
-
-    return true;
-  }
+  // ─── LIFECYCLE ────────────────────────────────────────────────────────────────
 
   ngOnInit(): void {
-    // setTimeout(() => this.appToast.success('debug persistent', 'Test', 10000), 300);
     this.sseService.events$
       .pipe(takeUntil(this.destroy$))
       .subscribe(ev => this.handleSseEvent(ev));
@@ -890,83 +735,58 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         forkJoin({
           tables: from(this.tablesService.getAllWithFallback(this.restaurantId)),
           menu: from(this.menuItemService.getAllWithFallback(this.restaurantId))
-        })
-          .subscribe(async ({ tables, menu }) => {
+        }).subscribe(async ({ tables, menu }) => {
+          this.tables = tables;
+          this.refreshTableLists();
 
-            console.log('Initial data loaded', { tables, menu });
+          this.menuItems = menu.menuItems ?? [];
+          this.categories = menu.categories ?? [];
+          this.tablesAvailable = await this.offlineDB.loadTablesStatusMap();
+          this.tableComputed = this.ordersService.loadComputed() || {};
 
-            // --- TABLES ---
-            this.tables = tables;
-            this.refreshTableLists();
-
-            // --- MENU ---
-            this.menuItems = menu.menuItems ?? [];
-            this.categories = menu.categories ?? [];
-            this.tablesAvailable = await this.offlineDB.loadTablesStatusMap();
-
-            // --- COMPUTED ---
-            this.tableComputed = this.ordersService.loadComputed() || {};
-
-            for (const t of this.tables) {
-              if (!this.tableComputed[t.tableId]) {
-                this.tableComputed[t.tableId] = {
-                  lastActionAt: '—',
-                  lastAddedItem: '—',
-                  total: 0,
-                  currency: 'EUR',
-                  itemCount: 0,
-                  cssClass: this.miscService.getTableCss(t, this.waiterState)
-                };
-              }
-            }
-
-            // recalculăm cssClass pentru toate mesele
-            Object.keys(this.tableComputed).forEach(tableId => {
-              const entry = this.tableComputed[tableId];
-              entry.cssClass = this.miscService.getTableCss(
-                this.tables.find(t => t.tableId === tableId)!,
-                this.waiterState
+          for (const t of this.tables) {
+            if (!this.tableComputed[t.tableId]) {
+              this.tableComputed[t.tableId] = this.ordersService.mapComputedDtoToComputed(
+                { tableId: t.tableId, isTableOpen: !!t.isTableOpen },
+                this.tables, this.waiterState, this.tableComputed[t.tableId]?.initiatedBy ?? 'system'
               );
-            });
+            }
+          }
 
-            // --- CARTS ---
-            this.tableCarts = await this.offlineDB.loadAllCarts();
-
-            // --- RESTORE CURRENT TABLE ---
-            const savedTableId = localStorage.getItem('currentTableId');
-            if (savedTableId) {
-              const table = this.tables.find(t => t.tableId === savedTableId);
-              if (table) this.openTable(table);
+          Object.keys(this.tableComputed).forEach(tableId => {
+            const table = this.tables.find(t => t.tableId === tableId);
+            if (table) {
+              this.tableComputed[tableId].cssClass = this.miscService.getTableCss(table, this.waiterState);
             }
           });
+
+          this.tableCarts = await this.offlineDB.loadAllCarts();
+
+          const savedTableId = localStorage.getItem('currentTableId');
+          if (savedTableId) {
+            const table = this.tables.find(t => t.tableId === savedTableId);
+            if (table) this.openTable(table);
+          }
+        });
 
         this.queueProcessor.orderConfirmed$
           .pipe(takeUntil(this.destroy$))
           .subscribe(async ({ tableId, orderId }) => {
-            // Reload cart din Dexie → adevărul real după sync
             const cart = await this.offlineDB.loadCart(tableId);
             this.tableCarts[tableId] = [...cart];
-
             if (this.currentTableId === tableId) {
               this.currentOrderId = orderId;
               this.orderIsConfirmed = true;
             }
-
-            // Actualizăm și tabla vizuală
             this.markTableAsClosed(tableId);
             this.updateComputedLocal(tableId);
           });
 
-        // SEARCH
         this.search$
-          .pipe(debounceTime(250))
+          .pipe(debounceTime(250), takeUntil(this.destroy$))
           .subscribe(term => {
-            if (!term.trim()) {
-              this.filteredResults = [];
-              return;
-            }
-            const results = this.fuse.search(term);
-            this.filteredResults = results.map(r => r.item);
+            if (!term.trim()) { this.filteredResults = []; return; }
+            this.filteredResults = this.fuse.search(term).map(r => r.item);
           });
       });
   }

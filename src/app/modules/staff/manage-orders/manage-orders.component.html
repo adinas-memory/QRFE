@@ -30,6 +30,9 @@
                     ? getLastActionTime(tableComputed[table.tableId].lastActionAt)
                     : '—'
                     }}
+                    <span *ngIf="tableComputed[table.tableId]?.initiatedBy">
+                      — by {{ tableComputed[table.tableId].initiatedBy }}
+                    </span>
                   </p>
                   <p cCardText> @if (waiterState[table.tableId] === 'active') { <svg [cIcon]="icons.cilBellExclamation"
                       size="xl"></svg> <button cButton color="warning" variant="ghost" size="sm"
@@ -67,6 +70,9 @@
                   ? getLastActionTime(tableComputed[table.tableId].lastActionAt)
                   : '—'
                   }}
+                  <span *ngIf="tableComputed[table.tableId]?.initiatedBy">
+                    — by {{ tableComputed[table.tableId].initiatedBy }}
+                  </span>
                 </p>
                 <p cCardText> @if (waiterState[table.tableId] === 'active') { <svg [cIcon]="icons.cilBellExclamation"
                     size="xl"></svg> <button cButton color="warning" variant="ghost" size="sm"
@@ -104,6 +110,9 @@
                   ? getLastActionTime(tableComputed[table.tableId].lastActionAt)
                   : '—'
                   }}
+                  <span *ngIf="tableComputed[table.tableId]?.initiatedBy">
+                    — by {{ tableComputed[table.tableId].initiatedBy }}
+                  </span>
                 </p>
                 <p cCardText> @if (waiterState[table.tableId] === 'active') { <svg [cIcon]="icons.cilBellExclamation"
                     size="xl"></svg> <button cButton color="warning" variant="ghost" size="sm"
@@ -126,37 +135,37 @@
 <c-offcanvas backdrop="static" class="offcanvas" placement="end" [visible]="canvasVisible"
   (visibleChange)="canvasVisible = $event">
   <div class="offcanvas-wrapper">
-<c-offcanvas-header class="offcanvas-header-fix">
+    <c-offcanvas-header class="offcanvas-header-fix">
 
-<div class="title-stack">
-  <h6 cOffcanvasTitle class="title-text">{{ tableName }}</h6>
+      <div class="title-stack">
+        <h6 cOffcanvasTitle class="title-text">{{ tableName }}</h6>
 
-  <c-dropdown class="move-dropdown">
-    <button cButton cDropdownToggle color="secondary outline" size="sm" [disabled]="!isOnline">
-      Move to
-    </button>
-    <ul cDropdownMenu class="w-100">
-      <li *ngFor="let t of availableTablesForMove">
-        <button cDropdownItem (click)="selectedTargetTableId = t.tableId; moveCartToSelectedTable()">
-          {{ t.tableName }}
-        </button>
-      </li>
-      <li *ngIf="availableTablesForMove.length === 0">
-        <span class="dropdown-item text-muted">No free tables available</span>
-      </li>
-    </ul>
-  </c-dropdown>
-</div>
+        <c-dropdown class="move-dropdown">
+          <button cButton cDropdownToggle color="secondary outline" size="sm" [disabled]="!canMoveOrder()">
+            Move to
+          </button>
+          <ul cDropdownMenu class="w-100">
+            <li *ngFor="let t of availableTablesForMove">
+              <button cDropdownItem (click)="selectedTargetTableId = t.tableId; moveCartToSelectedTable()">
+                {{ t.tableName }}
+              </button>
+            </li>
+            <li *ngIf="availableTablesForMove.length === 0">
+              <span class="dropdown-item text-muted">No free tables available</span>
+            </li>
+          </ul>
+        </c-dropdown>
+      </div>
 
 
-  <div class="search-wrapper px-3 pt-2">
-    <input id="searchInput" type="text" class="form-control" placeholder="Search product..."
-      [(ngModel)]="searchTerm" (ngModelChange)="search$.next($event)">
-  </div>
+      <div class="search-wrapper px-3 pt-2">
+        <input id="searchInput" type="text" class="form-control" placeholder="Search product..."
+          [(ngModel)]="searchTerm" (ngModelChange)="search$.next($event)">
+      </div>
 
-  <button cButtonClose class="text-reset ms-auto" (click)="canvasVisible = false"></button>
+      <button cButtonClose class="text-reset ms-auto" (click)="canvasVisible = false"></button>
 
-</c-offcanvas-header>
+    </c-offcanvas-header>
 
 
     <c-offcanvas-body class="offcanvas-body">

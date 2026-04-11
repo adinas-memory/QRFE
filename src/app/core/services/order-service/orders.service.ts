@@ -101,19 +101,40 @@ export class OrdersService {
   mapPayloadToComputed(
     payload: OrderUpdatedSSEPayload,
     tables: TableDTO[],
-    waiterState: Record<string, WaiterCallState>
-  ) {
-    const table = tables.find(t => t.tableId === payload.TableId);
-    console.log('Mapping payload:', payload, 'Found table:', table);
+    waiterState: Record<string, WaiterCallState>,
+    initiatedBy?: string
+  ) {    
+    const table = tables.find(t => t.tableId === payload.TableId);    
     return {
       lastActionAt: payload.LastActionAt,
       lastAddedItem: payload.LastAddedItem ?? '—',
       total: payload.SubTotal?.Amount ?? 0,
-      currency: payload.SubTotal?.Currency ?? 'EUR',
+      currency: payload.SubTotal?.Currency ?? '—',
       itemCount: payload.ItemCount ?? 0,
-      cssClass: this.miscService.getTableCss(table!, waiterState)
+      cssClass: this.miscService.getTableCss(table!, waiterState),
+      initiatedBy: initiatedBy ?? 'system'
     };
   }
+
+  mapComputedDtoToComputed(
+    dto: TableComputedDTO,
+    tables: TableDTO[],
+    waiterState: Record<string, WaiterCallState>,
+    initiatedBy?: string
+  ) {    
+    const table = tables.find(t => t.tableId === dto.tableId);
+
+    return {
+      lastActionAt: dto.lastActionAt ?? new Date().toISOString(),
+      lastAddedItem: dto.lastAddedItem ?? '—',
+      total: dto.subTotal?.amount ?? 0,
+      currency: dto.subTotal?.currency ?? '—',
+      itemCount: dto.itemCount ?? 0,
+      cssClass: this.miscService.getTableCss(table!, waiterState),
+      initiatedBy: initiatedBy ?? 'system'
+    };
+  }
+
 
   async listOpenOrderForTableWithFallback(
     restaurantId: string,
@@ -143,7 +164,7 @@ export class OrdersService {
       return localOrder;
     }
   }
- 
+
   moveOrder(restaurantId: string, sourceTableId: string, targetTableId: string) {
     return this.http.post<{ orderId?: string, sourceTable?: TableDTO, targetTable?: TableDTO }>(
       `${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/${sourceTableId}/move-cart`,
