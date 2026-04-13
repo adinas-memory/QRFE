@@ -22,7 +22,7 @@ import { MenuItem, MenuResponse } from '../../../core/models/menu/menuItem';
 import { AuthService } from '../../../core/auth/auth.service';
 import { NgFor, CurrencyPipe } from '@angular/common';
 import { UserContextModel } from '../../../core/models/userContextModel';
-import { ToastBaseComponent } from '../../../shared/components/toast-base/toast-base.component';
+import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 ;
 
 @Component({
@@ -59,11 +59,11 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
   editModalVisible = false;
   forceRefreshAfterUpdate = Date.now();
 
-  readonly toaster = viewChild(ToasterComponent);
+  // readonly toaster = viewChild(ToasterComponent);
 
   constructor(private menuItemService: MenuItemServiceService,
     private fb: FormBuilder, private authService: AuthService,
-  ) {
+    private appToast: AppToastService) {
     this.menuItemsForm = this.fb.group({
       menuItemName: ['', Validators.required],
       menuItemDescription: ['', Validators.required],
@@ -151,23 +151,34 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
     if (this.selectedItem) {
       this.menuItemService.update(this.restaurantId, this.selectedItem.menuItemId, formData)
         .pipe(takeUntil(this.destroy$))
-        .subscribe(() => {
-          this.addToast('Menu Item Updated:', 'Success', 3000, 'success');
-          this.resetForm();
-          this.loadMenuItems();
-          this.closeEditModal();
-        }, error => {
-          this.addToast('Error:', error.Message, 5000, 'danger');
-        });
+        .subscribe({
+          next: () => {
+            this.appToast.success(`Menu Item Updated: ${this.menuItemsForm.get('menuItemName')?.value ?? ''}`);
+            this.resetForm();
+            this.loadMenuItems();
+            this.closeEditModal();
+          },
+          error: (error) => {
+            this.appToast.error(`Error updating Menu Item: ${error?.Message}`);
+            this.resetForm();
+            this.closeEditModal();
+            this.loadMenuItems();
+          }
+        })
     } else {
       this.menuItemService.create(this.restaurantId, formData)
         .pipe(takeUntil(this.destroy$))
-        .subscribe(() => {
-          this.addToast('Menu Item Created:', this.menuItemsForm.get('menuItemName')?.value ?? '', 3000, 'success');
-          this.resetForm();
-          this.loadMenuItems();
-        }, error => {
-          this.addToast('Error:', error.Message, 5000, 'danger');
+        .subscribe({
+          next: () => {
+            this.appToast.success(`Menu Item Created: ${this.menuItemsForm.get('menuItemName')?.value ?? ''}`);
+            this.resetForm();
+            this.loadMenuItems();
+          },
+          error: (error) => {
+            this.appToast.error(`Error creating Menu Item: ${error?.Message}`);
+            this.resetForm();
+            this.loadMenuItems();
+          }
         });
     }
   }
@@ -177,29 +188,32 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
       const updated = { ...this.selectedItem, ...this.menuItemsForm.value, menuItemPriceCurrency: this.selectedItem.menuItemPriceCurrency };
       this.menuItemService.update(this.restaurantId, this.selectedItem.menuItemId, updated)
         .pipe(takeUntil(this.destroy$))
-        .subscribe(() => {
-          this.addToast('Menu Item Updated:', 'Success', 3000, 'success');
-          this.closeEditModal();
-          this.loadMenuItems();
-        },
-          error => {
+        .subscribe({
+          next: () => {
+            this.loadMenuItems();
+            this.closeEditModal();
+            this.resetForm();
+            this.appToast.success(`Menu Item Updated: ${updated.menuItemName}`);
+          },
+          error: (error) => {
+
             this.closeEditModal();
             this.loadMenuItems();
-            this.addToast('Error:', error.Message, 5000, 'danger');
-          });
+            this.resetForm();
+            this.appToast.error(`Error updating Menu Item: ${error?.Message}`);
+          }
+        });
+      // .subscribe(() => {
+      //   this.addToast('Menu Item Updated:', 'Success', 3000, 'success');
+      //   this.closeEditModal();
+      //   this.loadMenuItems();
+      // },
+      //   error => {
+      //     this.closeEditModal();
+      //     this.loadMenuItems();
+      //     this.addToast('Error:', error.Message, 5000, 'danger');
+      //   });
     }
-  }
-
-  addToast(title: string, message: string, delay: number, color: string) {
-    const options = {
-      title: title,
-      delay: delay,
-      message: message,
-      placement: this.placement,
-      color: color,
-      autohide: true
-    };
-    const componentRef = this.toaster()?.addToast(ToastBaseComponent, { ...options });
   }
 
   ngOnInit(): void {
@@ -209,9 +223,14 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
         filter((user): user is UserContextModel => !!user && !!user.restaurantId),
         take(1)
       )
-      .subscribe(user => {
-        this.restaurantId = user?.restaurantId ?? '';
-        this.loadMenuItems();
+      .subscribe({
+        next: (user) => {
+          this.restaurantId = user?.restaurantId ?? '';
+          this.loadMenuItems();
+        },
+        error: (err) => {
+          this.appToast.error(`Error fetching menu items: ${err?.Message}`);
+        }
       });
   }
 

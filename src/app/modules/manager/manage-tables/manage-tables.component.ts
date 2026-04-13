@@ -16,6 +16,7 @@ import { TablesService } from '../../../core/services/tables-service/tables.serv
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
 import { ToastBaseComponent } from '../../../shared/components/toast-base/toast-base.component';
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
+import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 
 @Component({
   selector: 'app-manage-tables',
@@ -56,6 +57,7 @@ export class ManageTablesComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private tablesService: TablesService,
     private miscService: MiscellaneousService,
+    private appToast: AppToastService,
   ) {
     this.addTablesForm = this.fb.group({
       numberOfTables: [1, [Validators.required, Validators.min(1)]],
@@ -77,12 +79,8 @@ export class ManageTablesComponent implements OnInit, OnDestroy {
     if (this.existing + this.numberToAdd > this.maxAllowed) {
       this.remaining = this.maxAllowed - this.existing;
 
-      this.addToast(
-        'Limit exceeded',
-        `You already reached the maximum number of tables (${this.maxAllowed}).`,
-        4000,
-        'danger'
-      );
+      this.appToast.error(`You can only add ${this.remaining} more table(s).`);
+
       this.activeTab = '0';
       console.log('this.activeTab:', this.activeTab);
       return;
@@ -94,12 +92,12 @@ export class ManageTablesComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.addToast('Tables Created:', `${payload.numberOfTables}`, 3000, 'success');
+          this.appToast.success('Tables Created:', `${payload.numberOfTables}`);
           this.addTablesForm.reset({ numberOfTables: 1 });
           setTimeout(() => { this.loadTables(); }, 150);
         },
         error: (err) => {
-          this.addToast('Error:', err?.Message ?? 'Failed to create tables', 5000, 'danger');
+          this.appToast.error(`Error: ${err?.Message} Failed to create tables`);
         }
       });
   }
@@ -111,7 +109,7 @@ export class ManageTablesComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: response => { this.tables = [...response]; },
-        error: err => console.error('[ManageTablesComponent] Error loading tables', err)
+        error: err => this.appToast.error(`Error: ${err?.Message} Failed to load tables`)
       });
   }
 
@@ -131,9 +129,13 @@ export class ManageTablesComponent implements OnInit, OnDestroy {
     if (confirm(`Delete table #${table.tableName}`)) {
       this.tablesService.delete(this.restaurantId, table.tableId)
         .pipe(takeUntil(this.destroy$))
-        .subscribe(() => {
-          this.loadTables();
-          this.activeTab = '0';
+        .subscribe({
+          next: () => {
+            this.loadTables();
+            this.activeTab = '0';
+            this.appToast.success(`Table Deleted: ${table.tableName}`);
+          },
+          error: (err) => this.appToast.error(`Error: ${err?.Message} Failed to delete table`)
         });
     }
   }
@@ -145,20 +147,17 @@ export class ManageTablesComponent implements OnInit, OnDestroy {
 
     this.tablesService.update(this.restaurantId, this.selectedTable.tableId, payload)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.addToast('Table Updated:', payload.tableName, 3000, 'success');
-        this.resetForm();
-        this.loadTables();
-        this.closeEditModal();
-        this.activeTab = '0';
-        console.log('this.activeTab:', this.activeTab);
+      .subscribe({
+        next: () => {
+          this.appToast.success('Table Updated:', payload.tableName);
+          this.resetForm();
+          this.loadTables();
+          this.closeEditModal();
+          this.activeTab = '0';
+          console.log('this.activeTab:', this.activeTab);
+        },
+        error: (err) => this.appToast.error(`Error: ${err?.Message} Failed to update table`)
       });
-
-  }
-
-  addToast(title: string, message: string, delay: number, color: string) {
-    const options = { title, message, delay, placement: this.placement, color, autohide: true };
-    this.toaster()?.addToast(ToastBaseComponent, { ...options });
   }
 
   resetForm(): void {
@@ -185,9 +184,12 @@ export class ManageTablesComponent implements OnInit, OnDestroy {
         tap(limits => this.restaurantLimits = limits.find(x => x.type === this.restaurantType) ?? null),
         switchMap(() => this.tablesService.getAll(this.restaurantId))
       )
-      .subscribe(tables => {
-        this.tables = [...tables];
-        this.activeTab = '0';
+      .subscribe({
+        next: (tables) => {
+          this.tables = [...tables],
+            this.activeTab = '0';
+        },
+        error: err => this.appToast.error(`Error: ${err?.Message} Failed to load tables`)
       });
   }
 

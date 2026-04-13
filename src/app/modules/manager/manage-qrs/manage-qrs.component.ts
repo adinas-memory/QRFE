@@ -9,6 +9,7 @@ import {
   CardComponent, CardImgDirective, CardTextDirective, CardTitleDirective, Tabs2Module,
   TabContentComponent
 } from '@coreui/angular';
+import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 
 @Component({
   selector: 'app-manage-qrs',
@@ -24,7 +25,8 @@ export class ManageQrsComponent {
   restaurantId: string = '';
 
   constructor(private qrService: QrCodesService,
-    private authService: AuthService) { }
+    private authService: AuthService,
+    private appToast: AppToastService,) { }
 
 
   ngOnInit(): void {
@@ -36,7 +38,7 @@ export class ManageQrsComponent {
         }
       },
       error: (err) => {
-        console.error('Error fetching user context:', err);
+        this.appToast.error(`Error fetching user context: ${err?.Message}`);
       }
     });
   }
@@ -51,7 +53,7 @@ export class ManageQrsComponent {
         }
       },
       error: (error) => {
-        console.error('Error fetching QR Codes:', error);
+        this.appToast.error(`Error fetching QR Codes: ${error?.Message}`);        
       }
     });
   }
@@ -68,7 +70,7 @@ export class ManageQrsComponent {
         this.loadQrCodes();
       },
       error: (error) => {
-        console.error('Error renewing QR Codes:', error);
+        this.appToast.error(`Error renewing QR Codes: ${error?.Message}`);        
       }
     });
   }
