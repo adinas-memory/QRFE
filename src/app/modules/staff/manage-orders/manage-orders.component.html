@@ -41,6 +41,12 @@
                         Picked up
                       </button>
                     }
+                    @if (barPickupRequested[table.tableId]) {
+                      <span class="badge bg-primary me-2">Bar pickup</span>
+                      <button cButton color="primary" variant="ghost" size="sm" (click)="snoozeBarPickup(table.tableId)">
+                        Picked up
+                      </button>
+                    }
                     @if (waiterState[table.tableId] === 'active') { <svg [cIcon]="icons.cilBellExclamation"
                       size="xl"></svg> <button cButton color="warning" variant="ghost" size="sm"
                       (click)="snoozeWaiterCall(table.tableId)"> Snooze </button> }
@@ -89,6 +95,12 @@
                       Picked up
                     </button>
                   }
+                  @if (barPickupRequested[table.tableId]) {
+                    <span class="badge bg-primary me-2">Bar pickup</span>
+                    <button cButton color="primary" variant="ghost" size="sm" (click)="snoozeBarPickup(table.tableId)">
+                      Picked up
+                    </button>
+                  }
                   @if (waiterState[table.tableId] === 'active') { <svg [cIcon]="icons.cilBellExclamation"
                     size="xl"></svg> <button cButton color="warning" variant="ghost" size="sm"
                     (click)="snoozeWaiterCall(table.tableId)"> Snooze </button> }
@@ -134,6 +146,12 @@
                   @if (kitchenPickupRequested[table.tableId]) {
                     <span class="badge bg-info me-2">Kitchen pickup</span>
                     <button cButton color="info" variant="ghost" size="sm" (click)="snoozeKitchenPickup(table.tableId)">
+                      Picked up
+                    </button>
+                  }
+                  @if (barPickupRequested[table.tableId]) {
+                    <span class="badge bg-primary me-2">Bar pickup</span>
+                    <button cButton color="primary" variant="ghost" size="sm" (click)="snoozeBarPickup(table.tableId)">
                       Picked up
                     </button>
                   }

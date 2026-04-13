@@ -83,6 +83,11 @@ export class DefaultLayoutComponent implements OnInit {
             iconComponent: { name: 'cil-restaurant' }
           },
           {
+            name: 'Bar',
+            url: '/staff/bar',
+            iconComponent: { name: 'cil-drink-alcohol' }
+          },
+          {
             name: 'Orders',
             url: '/staff/orders',
             iconComponent: { name: 'cil-list' }
@@ -106,6 +111,11 @@ export class DefaultLayoutComponent implements OnInit {
             iconComponent: { name: 'cil-restaurant' }
           },
           {
+            name: 'Bar',
+            url: '/staff/bar',
+            iconComponent: { name: 'cil-drink-alcohol' }
+          },
+          {
             name: 'Orders',
             url: '/manager/manage-orders',
             iconComponent: { name: 'cil-list' }
@@ -119,11 +129,6 @@ export class DefaultLayoutComponent implements OnInit {
             name: 'Menu',
             url: '/manager/manage-menu',
             iconComponent: { name: 'cil-restaurant' }
-          },
-          {
-            name: 'Bars',
-            url: '/manager/manage-bars',
-            iconComponent: { name: 'cil-drink-alcohol' }
           },
           {
             name: 'Staff',

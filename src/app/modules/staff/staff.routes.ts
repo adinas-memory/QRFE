@@ -37,6 +37,12 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./kitchen/kitchen.component').then(m => m.KitchenComponent),
         data: { title: 'Kitchen' }
+      },
+      {
+        path: 'bar',
+        loadComponent: () =>
+          import('./bar/bar.component').then(m => m.BarComponent),
+        data: { title: 'Bar' }
       }
     ]
   }

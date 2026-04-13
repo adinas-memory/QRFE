@@ -39,9 +39,8 @@ export const routes: Routes = [
       },
       {
         path: 'manage-bars',
-        loadComponent: () =>
-          import('./manage-bars/manage-bars.component').then(m => m.ManageBarsComponent),
-        data: { title: 'Bars' }
+        redirectTo: '/staff/bar',
+        pathMatch: 'full'
       },
       {
         path: 'manage-staff',

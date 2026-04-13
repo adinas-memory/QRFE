@@ -2,7 +2,7 @@
 import { Injectable, NgZone } from '@angular/core';
 import { Observable, Subject, BehaviorSubject, of, timer } from 'rxjs';
 import { switchMap, take, catchError } from 'rxjs/operators';
-import { fetchEventSource } from '@microsoft/fetch-event-source';
+import { fetchEventSource, EventStreamContentType } from '@microsoft/fetch-event-source';
 import { environment } from '../../../../environments/environment';
 import { SseEvent } from '../../models/sseModel';
 import { AuthService } from '../../auth/auth.service';
@@ -21,6 +21,10 @@ export class OrderSyncService {
   private connectionSeq = 0;
   private connectedRestaurantId: string | null = null;
   private readonly tabId = crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
+  /**
+   * Same-browser only: Edge tabs share with Edge; Chrome with Chrome.
+   * Cross-browser delivery relies on each browser having its own live SSE connection to the API.
+   */
   private readonly bc: BroadcastChannel | null =
     typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('qrfe-internal-sse') : null;
 
@@ -141,7 +145,20 @@ export class OrderSyncService {
       method: 'GET',
       credentials: 'include',
       signal: this.controller.signal,
+      /**
+       * Default library behaviour aborts SSE while the document is hidden, which drops events
+       * with no backfill — bad for Kitchen/Bar when another browser places orders or the tab
+       * is in the background. Keep the stream alive whenever possible.
+       */
+      openWhenHidden: true,
       onopen: async (response) => {
+        if (!response.ok) {
+          throw new Error(`SSE subscribe failed: HTTP ${response.status}`);
+        }
+        const contentType = response.headers.get('content-type');
+        if (!contentType?.startsWith(EventStreamContentType)) {
+          throw new Error(`SSE expected ${EventStreamContentType}, got: ${contentType ?? 'none'}`);
+        }
         console.log('[SSE][internal] open', { url, status: response.status });
         this.onlineStateService.setOnline();
         this.ngZone.run(() => {

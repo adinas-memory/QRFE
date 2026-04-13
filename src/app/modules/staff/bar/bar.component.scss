@@ -1,0 +1,22 @@
+table {
+  vertical-align: middle;
+}
+
+.bar-items {
+  border-left: 3px solid var(--cui-border-color, #e0e0e0);
+  padding-left: 0.75rem;
+}
+
+.bar-added {
+  background: rgba(40, 167, 69, 0.15);
+}
+
+.bar-updated {
+  background: rgba(255, 193, 7, 0.18);
+}
+
+.bar-deleted {
+  background: rgba(220, 53, 69, 0.12);
+  text-decoration: line-through;
+  opacity: 0.85;
+}

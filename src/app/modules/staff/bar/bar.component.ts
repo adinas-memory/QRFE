@@ -16,7 +16,7 @@ import {
 } from '../../../core/models/orderingModel';
 import { MenuItemServiceService } from '../../../core/services/menu-item-service/menu-item-service.service';
 import { MenuItem } from '../../../core/models/menu/menuItem';
-import { isFoodCategory } from '../../../core/models/menu/menu-item-category';
+import { isDrinkCategory } from '../../../core/models/menu/menu-item-category';
 import { OrdersService } from '../../../core/services/order-service/orders.service';
 import {
   ButtonDirective,
@@ -27,15 +27,15 @@ import {
   RowComponent,
   TableDirective
 } from '@coreui/angular';
-import { KitchenService } from '../../../core/services/kitchen-service/kitchen.service';
+import { BarService } from '../../../core/services/bar-service/bar.service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { OfflineDbService } from '../../../core/offline/offline-db';
 
 type MarkKind = 'added' | 'updated' | 'deleted';
 type ItemMark = { kind: MarkKind; until: number };
 
-type KitchenLineItem = {
-  id: string; // orderItemId (preferred) or synthetic key
+type BarLineItem = {
+  id: string;
   orderItemId?: string;
   menuItemId: string;
   name: string;
@@ -44,20 +44,20 @@ type KitchenLineItem = {
   mark?: ItemMark;
 };
 
-type KitchenOrder = {
+type BarOrder = {
   restaurantId: string;
   tableId: string;
   tableName: string;
   orderId: string;
   lastActionAt: string;
-  items: KitchenLineItem[];
+  items: BarLineItem[];
 };
 
 @Component({
-  selector: 'app-kitchen',
+  selector: 'app-bar',
   standalone: true,
-  templateUrl: './kitchen.component.html',
-  styleUrls: ['./kitchen.component.scss'],
+  templateUrl: './bar.component.html',
+  styleUrls: ['./bar.component.scss'],
   imports: [
     RowComponent,
     ColComponent,
@@ -72,13 +72,13 @@ type KitchenOrder = {
     DatePipe,
   ]
 })
-export class KitchenComponent implements OnInit, OnDestroy {
+export class BarComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private restaurantId = '';
   private hydrating = false;
 
   tablesById: Record<string, TableDTO> = {};
-  ordersByTableId: Record<string, KitchenOrder> = {}; // derived from Dexie carts
+  ordersByTableId: Record<string, BarOrder> = {};
   private menuItemsById: Record<string, MenuItem | undefined> = {};
 
   private orderIdToTableId: Record<string, string> = {};
@@ -88,7 +88,7 @@ export class KitchenComponent implements OnInit, OnDestroy {
   private clearMarkTimers: Record<string, ReturnType<typeof setTimeout>> = {};
   private readonly markMs = 90_000;
 
-  get orders(): KitchenOrder[] {
+  get orders(): BarOrder[] {
     return Object.values(this.ordersByTableId)
       .sort((a, b) => (b.lastActionAt ?? '').localeCompare(a.lastActionAt ?? ''));
   }
@@ -99,7 +99,7 @@ export class KitchenComponent implements OnInit, OnDestroy {
     private menuItemService: MenuItemServiceService,
     private ordersService: OrdersService,
     private sse: OrderSyncService,
-    private kitchenApi: KitchenService,
+    private barApi: BarService,
     private toast: AppToastService,
     private offlineDB: OfflineDbService,
   ) {}
@@ -109,7 +109,6 @@ export class KitchenComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(ev => this.handleSseEvent(ev));
 
-    // UI should reflect Dexie: rebuild when carts mutate.
     this.offlineDB.cartsChanged$
       .pipe(takeUntil(this.destroy$))
       .subscribe(async ({ tableId }) => {
@@ -125,7 +124,6 @@ export class KitchenComponent implements OnInit, OnDestroy {
       )
       .subscribe(async user => {
         this.restaurantId = user.restaurantId!;
-        // Ensure SSE is started in THIS tab as well (reliable even if app init was hidden).
         this.sse.listenToRestaurantEvents(this.restaurantId);
         const [tables, menu] = await Promise.all([
           this.tablesService.getAllWithFallback(this.restaurantId),
@@ -150,15 +148,15 @@ export class KitchenComponent implements OnInit, OnDestroy {
   async callWaiterForPickup(tableId: string): Promise<void> {
     if (!this.restaurantId) return;
     try {
-      await firstValueFrom(this.kitchenApi.callWaiterForPickup(this.restaurantId, tableId));
-      this.toast.success('Waiter called for pickup.');
+      await firstValueFrom(this.barApi.callWaiterForPickup(this.restaurantId, tableId));
+      this.toast.success('Waiter called for bar pickup.');
     } catch (err) {
-      console.error('[Kitchen] callWaiterForPickup failed', err);
+      console.error('[Bar] callWaiterForPickup failed', err);
       this.toast.error('Failed to call waiter.');
     }
   }
 
-  private handleSseEvent({ EventType, Data }: SseEvent<any>) {
+  private handleSseEvent({ EventType, Data }: SseEvent<unknown>) {
     switch (EventType) {
       case 'OrderUpdated': {
         const payload = Data as OrderUpdatedSSEPayload;
@@ -181,7 +179,7 @@ export class KitchenComponent implements OnInit, OnDestroy {
         break;
       }
       case 'OrderClosedWithPayment': {
-        const tableId = Data?.TableId;
+        const tableId = (Data as { TableId?: string })?.TableId;
         if (tableId) delete this.ordersByTableId[tableId];
         break;
       }
@@ -192,7 +190,7 @@ export class KitchenComponent implements OnInit, OnDestroy {
 
   /**
    * Initial load should reflect server truth. We fetch open orders per table and
-   * write snapshots into Dexie; UI then derives from Dexie (single source of truth).
+   * write snapshots into Dexie; UI then derives from Dexie.
    */
   private async hydrateFromBackend(tables: TableDTO[]): Promise<void> {
     if (!this.restaurantId) return;
@@ -236,6 +234,10 @@ export class KitchenComponent implements OnInit, OnDestroy {
     return this.expandedTableIds.has(tableId);
   }
 
+  private filterDrinks(items: CartItem[]): CartItem[] {
+    return items.filter(c => isDrinkCategory(c.item.category));
+  }
+
   private async applyOrderUpdated(payload: OrderUpdatedSSEPayload) {
     const tableId = payload.TableId;
     this.orderIdToTableId[payload.OrderId] = tableId;
@@ -252,16 +254,16 @@ export class KitchenComponent implements OnInit, OnDestroy {
           menuItemName: '—',
           menuItemDescription: '',
           menuItemPriceAmount: 0,
-          menuItemPriceCurrency: (i as any).OrderItemPriceCurrency ?? 'EUR',
+          menuItemPriceCurrency: (i as { OrderItemPriceCurrency?: string }).OrderItemPriceCurrency ?? 'EUR',
           menuItemIconUrl: undefined,
-          category: (i as any).Category ?? 'Unknown',
+          category: (i as { Category?: string }).Category ?? 'Unknown',
         },
         quantity: i.Quantity,
         orderItemId: i.OrderItemId,
       } satisfies CartItem;
     });
 
-    this.diffAndMark(tableId, existing, nextCart);
+    this.diffAndMark(tableId, this.filterDrinks(existing), this.filterDrinks(nextCart));
     await this.offlineDB.saveCart(tableId, nextCart, payload.OrderId, true);
     await this.rebuildFromDexie(tableId, payload.LastActionAt);
   }
@@ -272,6 +274,7 @@ export class KitchenComponent implements OnInit, OnDestroy {
 
     const cart = await this.offlineDB.loadCart(tableId);
     const mi = this.menuItemsById[payload.menuItemId];
+    const category = mi?.category ?? 'Unknown';
 
     cart.push({
       item: mi ?? {
@@ -287,7 +290,9 @@ export class KitchenComponent implements OnInit, OnDestroy {
       orderItemId: payload.orderItemId,
     });
 
-    this.setMark(tableId, payload.orderItemId, 'added');
+    if (isDrinkCategory(category)) {
+      this.setMark(tableId, payload.orderItemId, 'added');
+    }
     await this.offlineDB.saveCart(tableId, cart, payload.orderId, true);
   }
 
@@ -298,7 +303,9 @@ export class KitchenComponent implements OnInit, OnDestroy {
     const it = cart.find(c => c.orderItemId === payload.orderItemId);
     if (!it) return;
     it.quantity = payload.quantity;
-    this.setMark(tableId, payload.orderItemId, 'updated');
+    if (isDrinkCategory(it.item.category)) {
+      this.setMark(tableId, payload.orderItemId, 'updated');
+    }
     await this.offlineDB.saveCart(tableId, cart, payload.orderId, true);
   }
 
@@ -308,7 +315,10 @@ export class KitchenComponent implements OnInit, OnDestroy {
     const cart = await this.offlineDB.loadCart(tableId);
     const idx = cart.findIndex(c => c.orderItemId === payload.orderItemId);
     if (idx === -1) return;
-    this.setMark(tableId, payload.orderItemId, 'deleted');
+    const wasDrink = isDrinkCategory(cart[idx].item.category);
+    if (wasDrink) {
+      this.setMark(tableId, payload.orderItemId, 'deleted');
+    }
     cart.splice(idx, 1);
     await this.offlineDB.saveCart(tableId, cart, payload.orderId, true);
   }
@@ -324,7 +334,7 @@ export class KitchenComponent implements OnInit, OnDestroy {
       }
       this.orderIdToTableId[record.orderId] = tableId;
 
-      const mapped = this.mapCartToKitchenItems(tableId, record.items);
+      const mapped = this.mapCartToBarItems(tableId, record.items);
       if (!mapped.length) {
         delete this.ordersByTableId[tableId];
         return;
@@ -346,7 +356,7 @@ export class KitchenComponent implements OnInit, OnDestroy {
       const record = await this.offlineDB.loadCartRecord(tId);
       if (!record?.orderId || record.orderId.startsWith('local-')) continue;
       this.orderIdToTableId[record.orderId] = tId;
-      const mapped = this.mapCartToKitchenItems(tId, items);
+      const mapped = this.mapCartToBarItems(tId, items);
       if (!mapped.length) continue;
       this.ordersByTableId[tId] = {
         restaurantId: this.restaurantId,
@@ -359,9 +369,9 @@ export class KitchenComponent implements OnInit, OnDestroy {
     }
   }
 
-  private mapCartToKitchenItems(tableId: string, cart: CartItem[]): KitchenLineItem[] {
+  private mapCartToBarItems(tableId: string, cart: CartItem[]): BarLineItem[] {
     return cart
-      .filter(c => isFoodCategory(c.item.category))
+      .filter(c => isDrinkCategory(c.item.category))
       .map(c => {
         const id = c.orderItemId ?? `menu:${c.item.menuItemId}`;
         const mark = this.marksByTableId[tableId]?.[id];
@@ -403,4 +413,3 @@ export class KitchenComponent implements OnInit, OnDestroy {
     }
   }
 }
-
