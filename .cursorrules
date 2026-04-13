@@ -1,0 +1,27 @@
+# Angular 20 Development Rules
+
+## Architecture & Framework
+- Use **Angular 20** syntax and features.
+- Prefer **Standalone Components** over NgModules.
+- Use the new **Control Flow** syntax (@if, @for, @switch) instead of structural directives (*ngIf, *ngFor).
+- Keep components small and focused (Single Responsibility Principle).
+
+## RxJS & State Management
+- Use **RxJS** for complex asynchronous streams and event handling.
+- Always handle subscription cleanup using `takeUntilDestroyed()` or the `async` pipe.
+- Prefer `Signal` for local UI state and `Observable` for data streams from services.
+- When converting Observables to Signals, use `toSignal()`.
+
+## CoreUI Integration
+- Use **CoreUI Angular** components wherever possible to maintain UI consistency.
+- Follow CoreUI's utility-first classes for spacing and layout.
+- Ensure all modal and sidebar interactions follow the CoreUI service patterns.
+
+## Code Style & Standards
+- Enforce **Strict TypeScript**: No `any` type allowed. Define interfaces for all API responses and component props.
+- Use **SCSS** for styling, following BEM methodology if custom classes are needed.
+- Services must be provided in 'root' unless a specific singleton scope is required.
+
+## Cursor Interaction
+- Always check `@Codebase` before suggesting new service creation to avoid duplication.
+- When generating templates, ensure they are accessible (ARIA labels, semantic HTML).
