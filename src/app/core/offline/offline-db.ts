@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import Dexie, { Table } from 'dexie';
+import { Subject } from 'rxjs';
 import { OrderDTO, OrderItemDTO, TableCart } from '../../core/models/orderingModel';
 import { MenuItem } from '../models/menu/menuItem';
 import { Currency, TableDTO } from '../models/restaurantTablesModel';
@@ -62,6 +63,13 @@ export class OfflineDbService {
     carts = this.db.carts;
     queue = this.db.queue;
 
+    /**
+     * UI guideline: components should reflect IndexedDB (Dexie).
+     * Emit on mutations so UIs can re-load from Dexie.
+     */
+    private cartsChangedSubject = new Subject<{ tableId: string }>();
+    readonly cartsChanged$ = this.cartsChangedSubject.asObservable();
+
     // expunem tranzacțiile
     transaction = this.db.transaction.bind(this.db);
 
@@ -82,6 +90,8 @@ export class OfflineDbService {
             items: (allowEmpty || items.length) ? items : existing?.items ?? [],
             orderId: orderId ?? existing?.orderId
         });
+
+        this.cartsChangedSubject.next({ tableId });
     }
 
     async loadCart(tableId: string): Promise<TableCart[string]> {
@@ -106,6 +116,7 @@ export class OfflineDbService {
 
     async deleteCart(tableId: string): Promise<void> {
         await this.db.carts.delete(tableId);
+        this.cartsChangedSubject.next({ tableId });
     }
 
     async clearAllCarts(): Promise<void> {

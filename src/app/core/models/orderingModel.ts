@@ -67,6 +67,13 @@ export interface UpdateOrderItemQuantityResponse {
   action: string; 
 }
 
+export interface DeleteOrderItemSSEPayload {
+  orderId: string;
+  orderItemId: string;
+  quantity: number;
+  action: string;
+}
+
 export interface TableComputedInfo {
   lastActionAt: string;   // ex: "2 minute în urmă"
   lastAddedItem: string;    // ex: "Pizza Margherita"

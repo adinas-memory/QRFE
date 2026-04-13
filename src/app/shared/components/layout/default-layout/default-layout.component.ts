@@ -78,6 +78,11 @@ export class DefaultLayoutComponent implements OnInit {
             iconComponent: { name: 'cil-speedometer' }
           },
           {
+            name: 'Kitchen',
+            url: '/staff/kitchen',
+            iconComponent: { name: 'cil-restaurant' }
+          },
+          {
             name: 'Orders',
             url: '/staff/orders',
             iconComponent: { name: 'cil-list' }
@@ -94,6 +99,11 @@ export class DefaultLayoutComponent implements OnInit {
             name: 'Dashboard',
             url: '/manager/dashboard',
             iconComponent: { name: 'cil-speedometer' }
+          },
+          {
+            name: 'Kitchen',
+            url: '/staff/kitchen',
+            iconComponent: { name: 'cil-restaurant' }
           },
           {
             name: 'Orders',

@@ -34,9 +34,17 @@
                       — by {{ tableComputed[table.tableId].initiatedBy }}
                     </span>
                   </p>
-                  <p cCardText> @if (waiterState[table.tableId] === 'active') { <svg [cIcon]="icons.cilBellExclamation"
+                  <p cCardText>
+                    @if (kitchenPickupRequested[table.tableId]) {
+                      <span class="badge bg-info me-2">Kitchen pickup</span>
+                      <button cButton color="info" variant="ghost" size="sm" (click)="snoozeKitchenPickup(table.tableId)">
+                        Picked up
+                      </button>
+                    }
+                    @if (waiterState[table.tableId] === 'active') { <svg [cIcon]="icons.cilBellExclamation"
                       size="xl"></svg> <button cButton color="warning" variant="ghost" size="sm"
-                      (click)="snoozeWaiterCall(table.tableId)"> Snooze </button> } </p>
+                      (click)="snoozeWaiterCall(table.tableId)"> Snooze </button> }
+                  </p>
                 </c-card-body>
                 <footer>
                   <button cButton class="btn btn-primary float-end" [disabled]="!isOnline"
@@ -74,9 +82,17 @@
                     — by {{ tableComputed[table.tableId].initiatedBy }}
                   </span>
                 </p>
-                <p cCardText> @if (waiterState[table.tableId] === 'active') { <svg [cIcon]="icons.cilBellExclamation"
+                <p cCardText>
+                  @if (kitchenPickupRequested[table.tableId]) {
+                    <span class="badge bg-info me-2">Kitchen pickup</span>
+                    <button cButton color="info" variant="ghost" size="sm" (click)="snoozeKitchenPickup(table.tableId)">
+                      Picked up
+                    </button>
+                  }
+                  @if (waiterState[table.tableId] === 'active') { <svg [cIcon]="icons.cilBellExclamation"
                     size="xl"></svg> <button cButton color="warning" variant="ghost" size="sm"
-                    (click)="snoozeWaiterCall(table.tableId)"> Snooze </button> } </p>
+                    (click)="snoozeWaiterCall(table.tableId)"> Snooze </button> }
+                </p>
               </c-card-body>
               <footer>
                 <button cButton class="btn btn-primary float-end"
@@ -114,9 +130,17 @@
                     — by {{ tableComputed[table.tableId].initiatedBy }}
                   </span>
                 </p>
-                <p cCardText> @if (waiterState[table.tableId] === 'active') { <svg [cIcon]="icons.cilBellExclamation"
+                <p cCardText>
+                  @if (kitchenPickupRequested[table.tableId]) {
+                    <span class="badge bg-info me-2">Kitchen pickup</span>
+                    <button cButton color="info" variant="ghost" size="sm" (click)="snoozeKitchenPickup(table.tableId)">
+                      Picked up
+                    </button>
+                  }
+                  @if (waiterState[table.tableId] === 'active') { <svg [cIcon]="icons.cilBellExclamation"
                     size="xl"></svg> <button cButton color="warning" variant="ghost" size="sm"
-                    (click)="snoozeWaiterCall(table.tableId)"> Snooze </button> } </p>
+                    (click)="snoozeWaiterCall(table.tableId)"> Snooze </button> }
+                </p>
               </c-card-body>
               <footer>
                 <button cButton class="btn btn-primary float-end"

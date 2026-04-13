@@ -41,6 +41,7 @@ import { OfflineQueueProcessor } from '../../../core/offline/offline-queue-proce
 import { SseEvent } from '../../../core/models/sseModel';
 import { OnlineStateService } from '../../../core/offline/online-state-service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
+import { KitchenService } from '../../../core/services/kitchen-service/kitchen.service';
 
 @Component({
   selector: 'app-manage-orders',
@@ -70,6 +71,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   waiterState: Record<string, WaiterCallState> = {};
   WaiterCallState = WaiterCallState;
+  kitchenPickupRequested: Record<string, boolean> = {};
+  private kitchenPickupTimers: Record<string, any> = {};
   modalVisible = false;
   categories: string[] = [];
   menuItems: MenuItem[] = [];
@@ -114,6 +117,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private ordersService: OrdersService,
     private sseService: OrderSyncService,
+    private kitchenService: KitchenService,
     private miscService: MiscellaneousService,
     private offlineDB: OfflineDbService,
     private onlineStateService: OnlineStateService,
@@ -388,6 +392,12 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       .subscribe({ error: (err: unknown) => console.error('Error snoozing waiter call', err) });
   }
 
+  snoozeKitchenPickup(tableId: string): void {
+    this.kitchenService.snoozePickupCall(this.restaurantId, tableId)
+      .pipe(take(1))
+      .subscribe({ error: (err: unknown) => console.error('Error snoozing kitchen pickup', err) });
+  }
+
   // ─── MOVE ORDER ───────────────────────────────────────────────────────────────
 
   async moveCartToSelectedTable() {
@@ -591,6 +601,33 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
     switch (EventType) {
 
+      case 'KitchenWaiterCall': {
+        const tableId = Data?.TableId;
+        if (tableId) {
+          console.log('[ManageOrders][SSE] KitchenWaiterCall', Data);
+          this.kitchenPickupRequested[tableId] = true;
+          this.appToast.info(`Kitchen requests pickup at table ${this.tables.find(t => t.tableId === tableId)?.tableName ?? tableId}`);
+          if (this.kitchenPickupTimers[tableId]) clearTimeout(this.kitchenPickupTimers[tableId]);
+          this.kitchenPickupTimers[tableId] = setTimeout(() => {
+            delete this.kitchenPickupRequested[tableId];
+          }, 2 * 60 * 1000);
+        }
+        break;
+      }
+
+      case 'KitchenWaiterCallSnoozed': {
+        const tableId = Data?.TableId;
+        if (tableId) {
+          console.log('[ManageOrders][SSE] KitchenWaiterCallSnoozed', Data);
+          delete this.kitchenPickupRequested[tableId];
+          if (this.kitchenPickupTimers[tableId]) {
+            clearTimeout(this.kitchenPickupTimers[tableId]);
+            delete this.kitchenPickupTimers[tableId];
+          }
+        }
+        break;
+      }
+
       case 'WaiterCall':
         this.waiterState[Data.TableId] = WaiterCallState.Active;
         break;
@@ -646,6 +683,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         const tableId = Data.TableId;
         await this.offlineDB.deleteCart(tableId);
         delete this.tableComputed[tableId];
+        delete this.kitchenPickupRequested[tableId];
         // FIX BUG 3: markTableAsOpen curăță și order → buildAvailabilityMap returnează corect true
         this.markTableAsOpen(tableId);
         if (this.currentTableId === tableId) {
@@ -794,6 +832,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    this.sseService.close();
+    Object.values(this.kitchenPickupTimers).forEach(t => clearTimeout(t));
   }
 }

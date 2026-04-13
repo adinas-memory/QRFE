@@ -16,6 +16,13 @@ import { OnlineStateService } from '../../offline/online-state-service';
 export class OrderSyncService {
   private apiUrl = environment.apiUrl;
   private controller: AbortController | null = null;
+  private lastRestaurantId: string | null = null;
+  private pendingOpenRestaurantId: string | null = null;
+  private connectionSeq = 0;
+  private connectedRestaurantId: string | null = null;
+  private readonly tabId = crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
+  private readonly bc: BroadcastChannel | null =
+    typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('qrfe-internal-sse') : null;
 
   // reconnect / refresh control
   private reconnectAttempts = 0;
@@ -38,7 +45,30 @@ export class OrderSyncService {
     private queueProcessor: OfflineQueueProcessor,
     private offlineDB: OfflineDbService,
     private onlineStateService: OnlineStateService    
-  ) { }
+  ) {
+    // Cross-tab fanout: if one tab receives SSE, share it to others.
+    this.bc?.addEventListener('message', (ev: MessageEvent) => {
+      const msg = ev.data as { sourceTabId?: string; sse?: SseEvent<any> } | null;
+      const sse = msg?.sse;
+      if (!sse) return;
+      if (msg?.sourceTabId && msg.sourceTabId === this.tabId) return; // ignore own echoes
+      this.ngZone.run(() => {
+        this.eventsSubject.next(sse);
+      });
+    });
+
+    // If app was loaded in a background tab, we might skip SSE open.
+    // When the tab becomes visible, (re)open SSE if needed.
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        const rid = this.pendingOpenRestaurantId ?? this.lastRestaurantId;
+        if (rid && !this.controller) {
+          console.log('[SSE][internal] tab visible -> opening connection');
+          this.openConnection(rid);
+        }
+      }
+    });
+  }
 
   async trySyncNow() {
     if (this.syncInProgress) return;
@@ -68,26 +98,39 @@ export class OrderSyncService {
 
   listenToRestaurantEvents<T = any>(restaurantId: string): Observable<SseEvent<T>> {
     // start connection immediately
+    this.lastRestaurantId = restaurantId;
     this.openConnection(restaurantId);
     return this.events$ as Observable<SseEvent<T>>;
   }
 
   close() {
     try {
+      console.warn('[SSE][internal] close() called');
       this.controller?.abort();
     } catch { /* ignore */ }
     this.controller = null;
+    this.connectedRestaurantId = null;
     this.eventBuffer = [];
   }
 
   private openConnection(restaurantId: string) {
-    if (document.hidden) {
-      console.log('[SSE] Tab hidden → skip openConnection');
+    // already connected to the same restaurant
+    if (this.controller && this.connectedRestaurantId === restaurantId) {
+      console.log('[SSE][internal] openConnection skipped (already connected)', { restaurantId });
       return;
     }
-    // ensure single controller/connection
-    this.close();
+    if (document.hidden) {
+      console.log('[SSE][internal] Tab hidden → defer openConnection');
+      this.pendingOpenRestaurantId = restaurantId;
+      return;
+    }
+    this.pendingOpenRestaurantId = null;
+    const connId = ++this.connectionSeq;
+    console.log('[SSE][internal] openConnection start', { connId, restaurantId });
+    // ensure single controller/connection (switching restaurants)
+    if (this.controller) this.close();
     this.controller = new AbortController();
+    this.connectedRestaurantId = restaurantId;
 
     const url = `${this.apiUrl.replace(/\/$/, '')}/sse/internal/restaurant/${restaurantId}`;
 
@@ -99,6 +142,7 @@ export class OrderSyncService {
       credentials: 'include',
       signal: this.controller.signal,
       onopen: async (response) => {
+        console.log('[SSE][internal] open', { url, status: response.status });
         this.onlineStateService.setOnline();
         this.ngZone.run(() => {
           this.reconnectAttempts = 0;
@@ -107,6 +151,8 @@ export class OrderSyncService {
       },
       onmessage: (msg) => {
         this.ngZone.run(() => {
+          // msg.event comes from SSE "event:" field (if server sets it)
+          // msg.data is the SSE "data:" payload (string)
           let raw: any;
           try {
             raw = JSON.parse(msg.data);
@@ -114,23 +160,48 @@ export class OrderSyncService {
             raw = msg.data;
           }
 
-          const EventType = raw.EventType ?? raw.event;
-          const Data = typeof raw.Data === 'string' ? JSON.parse(raw.Data) : raw.Data;
-          const Sequence = raw.Sequence ?? raw.sequence;
-          const RestaurantId = raw.RestaurantId ?? raw.restaurantId;
-          const InitiatedBy = raw.InitiatedBy ?? 'unknown';
+          const EventType = msg.event || raw?.EventType || raw?.event || raw?.type || '';
+
+          // support both envelopes:
+          // A) { EventType, Data, Sequence, RestaurantId, InitiatedBy }
+          // B) payload-only (no wrapper) -> treat raw as Data
+          let Data: any = raw?.Data ?? raw?.data ?? raw;
+          if (typeof Data === 'string') {
+            try { Data = JSON.parse(Data); } catch { /* keep string */ }
+          }
+
+          const Sequence = raw?.Sequence ?? raw?.sequence ?? 0;
+          const RestaurantId =
+            raw?.RestaurantId ??
+            raw?.restaurantId ??
+            Data?.RestaurantId ??
+            Data?.restaurantId ??
+            restaurantId;
+          const InitiatedBy = raw?.InitiatedBy ?? raw?.initiatedBy ?? 'unknown';
+
+          // ignore "empty" keepalive-like messages
+          if (!EventType && (typeof msg.data === 'string') && msg.data.trim() === '') return;
 
           const sse: SseEvent<any> = { EventType, Data, Sequence, RestaurantId, InitiatedBy };
+          console.log('[SSE][internal] message', { eventFromServer: msg.event, EventType, Sequence, RestaurantId, InitiatedBy, Data, raw });
 
           if (this.isRefreshing && this.bufferWhileReconnecting) {
             this.bufferEvent(sse);
           } else {
             this.eventsSubject.next(sse);
           }
+
+          // also broadcast to other tabs (best-effort)
+          try {
+            this.bc?.postMessage({ sourceTabId: this.tabId, sse });
+          } catch {
+            // ignore
+          }
         });
       },
       onerror: (err) => {
         // fetchEventSource calls onerror on network/auth issues
+        console.error('[SSE][internal] error', err);
         this.onlineStateService.setOffline();
         this.ngZone.run(() => {
           // if server sends a specific auth error payload, you can detect it here
