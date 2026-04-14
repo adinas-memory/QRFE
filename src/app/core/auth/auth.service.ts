@@ -60,6 +60,7 @@ export class AuthService {
     const wasLoggedOut = !this.userSubject.value;  // era delogat înainte?
     this.userSubject.next(user);
     localStorage.setItem('UserCtx', JSON.stringify(user));
+    this.setRestaurantCtx();
 
     if (wasLoggedOut) {
       this.loggedIn$.next();  // ← emite doar la login real, nu la restore session
@@ -103,15 +104,19 @@ export class AuthService {
         const user = JSON.parse(raw) as UserContextModel;
         console.log('[AuthService] Restoring user:', user);
         this.userSubject.next(user);
+        localStorage.setItem('UserCtx', JSON.stringify(user));
+        this.setRestaurantCtx();
         return of(user);
       } catch {
         console.warn('[AuthService] Failed to parse UserCtx');
         this.userSubject.next(null);
+        this.clearRestaurantCtx();
         return of(null);
       }
     }
 
     this.userSubject.next(null);
+    this.clearRestaurantCtx();
     return of(null);
   }
   // --- Refresh from backend ---

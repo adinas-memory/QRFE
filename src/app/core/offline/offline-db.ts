@@ -100,6 +100,7 @@ export class OfflineDbService {
     }
 
     async loadCartRecord(tableId: string): Promise<CartRecord | null> {
+        if (!tableId) return null;
         return await this.db.carts.get(tableId) ?? null;
     }
 
@@ -219,6 +220,63 @@ export class OfflineDbService {
             }));
 
         await this.saveCart(tableId, items, order.orderId);
+    }
+
+    /**
+     * Apply an authoritative snapshot from backend (/api/sync).
+     * Server state wins; local offline queue will be replayed separately.
+     */
+    async applySyncSnapshot(tables: TableDTO[]): Promise<void> {
+        console.log('[SYNC][DB] apply snapshot', { tablesCount: tables?.length ?? 0 });
+        await this.saveTables(tables);
+        const availability = this.buildAvailabilityMapFromTables(tables);
+        await this.saveTablesStatus(availability);
+
+        const openOrderTableIds = new Set<string>();
+
+        for (const t of tables ?? []) {
+            if (!t?.tableId) continue;
+            const order = (t as any).order as OrderDTO | undefined;
+            if (order?.orderId && order?.isOrderOpen) {
+                openOrderTableIds.add(t.tableId);
+                await this.saveOrderSnapshot(t.tableId, order);
+            } else {
+                // If server says it's open/no order, delete local cart snapshot *unless*
+                // we have a locally confirmed order that hasn't been reconciled yet.
+                const local = await this.loadCartRecord(t.tableId);
+                const localOrderId = local?.orderId;
+                const hasLocalUnconfirmed = !!localOrderId && localOrderId.startsWith('local-');
+                const hasPendingForTable = await this.hasPendingActionsForTable(t.tableId);
+
+                if (hasLocalUnconfirmed || hasPendingForTable) {
+                    continue;
+                }
+
+                await this.deleteCart(t.tableId);
+            }
+        }
+    }
+
+    private async hasPendingActionsForTable(tableId: string): Promise<boolean> {
+        if (!tableId) return false;
+        const count = await this.db.queue
+            .where('tableId')
+            .equals(tableId)
+            .and(a => a.status === 'pending')
+            .count();
+
+        return count > 0;
+    }
+
+    private buildAvailabilityMapFromTables(tables: TableDTO[] | null | undefined): Record<string, boolean> {
+        const map: Record<string, boolean> = {};
+        if (!Array.isArray(tables)) return map;
+        for (const t of tables) {
+            if (!t?.tableId) continue;
+            const hasOrder = !!(t as any).order;
+            map[t.tableId] = !!t.isTableOpen && !hasOrder;
+        }
+        return map;
     }
 
 

@@ -1,0 +1,33 @@
+:host {
+  display: block;
+}
+
+.public-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 600px at 20% 10%, rgba(13, 110, 253, 0.18), transparent 60%),
+    radial-gradient(900px 520px at 80% 30%, rgba(32, 201, 151, 0.14), transparent 55%),
+    linear-gradient(180deg, #0f1215 0%, #0b0d10 100%);
+  color: #fff;
+}
+
+.public-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  backdrop-filter: blur(10px);
+  background: rgba(15, 18, 21, 0.72);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.public-content {
+  padding-top: 18px;
+  padding-bottom: 24px;
+}
+
+.public-footer {
+  opacity: 0.85;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.15);
+}
+

@@ -17,6 +17,8 @@ import { Router } from '@angular/router';
 import { SubscriptionPayloadModel } from '../../../core/models/subscriptionPayloadModel';
 import { AuthService } from '../../../core/auth/auth.service';
 import { UserContextModel } from '../../../core/models/userContextModel';
+import { RouterLink } from '@angular/router';
+import { CardBodyComponent, CardComponent, RowComponent } from '@coreui/angular';
 
 @Component({
   selector: 'app-restaurant-setup',
@@ -24,6 +26,9 @@ import { UserContextModel } from '../../../core/models/userContextModel';
     ReactiveFormsModule,
     ContainerComponent,
     ButtonDirective,
+    CardComponent,
+    CardBodyComponent,
+    RowComponent,
     ColComponent,
     FormCheckComponent,
     FormCheckInputDirective,
@@ -31,7 +36,8 @@ import { UserContextModel } from '../../../core/models/userContextModel';
     FormControlDirective,
     FormDirective,
     FormLabelDirective,
-    FormSelectDirective],
+    FormSelectDirective,
+    RouterLink],
   standalone: true,
   templateUrl: './restaurant-setup.component.html',
   styleUrl: './restaurant-setup.component.scss'

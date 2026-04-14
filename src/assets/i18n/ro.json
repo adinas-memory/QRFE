@@ -1,0 +1,45 @@
+{
+  "landing": {
+    "brand": "U.R.S.",
+    "headline": "Universal Restaurant System",
+    "subheadline": "POS offline-first pentru restaurante. Update-uri în timp real, fluxuri pentru staff și setup curat.",
+    "ctaPrimary": "Vezi pachete",
+    "ctaSecondary": "Contul meu",
+    "pricingTitle": "Alege pachetul",
+    "pricingSubtitle": "Începe simplu. Upgrade oricând.",
+    "featuresTitle": "Gândit pentru operațiuni zilnice",
+    "features": {
+      "realtime": "Update-uri în timp real prin SSE",
+      "offline": "Offline-first (Dexie) cu reconciliere sigură",
+      "staff": "Fluxuri Kitchen / Bar / Staff",
+      "security": "Acces pe roluri"
+    },
+    "subscribe": "Abonează-te",
+    "language": "Limbă"
+  },
+  "payment": {
+    "success": {
+      "title": "Plata a fost confirmată",
+      "body": "Îți mulțumim. Vei fi redirecționat către login în câteva secunde.",
+      "cta": "Mergi la login"
+    },
+    "failure": {
+      "title": "Plata a eșuat",
+      "body": "Nu am putut confirma plata. Te rugăm să încerci din nou sau să contactezi suportul.",
+      "cta": "Înapoi"
+    }
+  },
+  "client": {
+    "callWaiter": "Cheamă ospătarul",
+    "callWaiterConfirm": "Vrei să chemi ospătarul la masă?",
+    "called": "Ospătarul a fost chemat.",
+    "close": "Închide"
+  },
+  "staff": {
+    "confirm": "Confirmă",
+    "reset": "Reset",
+    "resetConfirm": "Resetezi cartul local (Dexie) și starea formularului pentru masa curentă?",
+    "moveTo": "Mută la"
+  }
+}
+

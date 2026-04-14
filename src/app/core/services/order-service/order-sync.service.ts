@@ -9,6 +9,7 @@ import { AuthService } from '../../auth/auth.service';
 import { OfflineQueueProcessor } from '../../offline/offline-queue-processor.service';
 import { OfflineDbService } from '../../offline/offline-db';
 import { OnlineStateService } from '../../offline/online-state-service';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -34,6 +35,7 @@ export class OrderSyncService {
   private baseReconnectDelayMs = 1000;
   private isRefreshing = false;
   private syncInProgress = false;
+  private watermarkSequence = 0;
 
   // event stream
   private eventsSubject = new Subject<SseEvent<any>>();
@@ -161,6 +163,16 @@ export class OrderSyncService {
         }
         console.log('[SSE][internal] open', { url, status: response.status });
         this.onlineStateService.setOnline();
+
+        // Hybrid reconnect: apply authoritative snapshot + watermark
+        try {
+          console.log('[SSE][internal] calling /api/sync', { restaurantId });
+          await this.syncRestaurantState(restaurantId);
+          console.log('[SSE][internal] /api/sync applied', { restaurantId, watermarkSequence: this.watermarkSequence });
+        } catch (e) {
+          console.warn('[SSE][internal] /api/sync failed (continuing live SSE only)', e);
+        }
+
         this.ngZone.run(() => {
           this.reconnectAttempts = 0;
         });
@@ -202,6 +214,11 @@ export class OrderSyncService {
           const sse: SseEvent<any> = { EventType, Data, Sequence, RestaurantId, InitiatedBy };
           console.log('[SSE][internal] message', { eventFromServer: msg.event, EventType, Sequence, RestaurantId, InitiatedBy, Data, raw });
 
+          if (Sequence && Sequence <= this.watermarkSequence) {
+            // already included in last /api/sync snapshot or previously applied
+            return;
+          }
+
           if (this.isRefreshing && this.bufferWhileReconnecting) {
             this.bufferEvent(sse);
           } else {
@@ -231,6 +248,26 @@ export class OrderSyncService {
       // fetchEventSource may reject on abort or fatal errors
       this.ngZone.run(() => this.handleSseError(restaurantId, err));
     });
+  }
+
+  private async syncRestaurantState(restaurantId: string): Promise<void> {
+    const url = `${this.apiUrl.replace(/\/$/, '')}/api/sync?restaurantId=${encodeURIComponent(restaurantId)}`;
+    console.log('[SYNC] GET', url);
+    const res = await fetch(url, { method: 'GET', credentials: 'include' });
+    if (!res.ok) throw new Error(`Sync failed: HTTP ${res.status}`);
+    const json = await res.json() as any;
+
+    // ASP.NET typically serializes to camelCase by default (restaurantId/tables/watermark).
+    // Accept both PascalCase and camelCase to avoid "empty snapshot" bugs.
+    const watermark = json?.Watermark ?? json?.watermark;
+    const seq = watermark?.Sequence ?? watermark?.sequence ?? 0;
+    if (typeof seq === 'number' && seq > this.watermarkSequence) {
+      this.watermarkSequence = seq;
+    }
+
+    const tables = (json?.Tables ?? json?.tables ?? []) as any[];
+    console.log('[SYNC] snapshot received', { restaurantId, tablesCount: tables.length, watermark });
+    await this.offlineDB.applySyncSnapshot(tables as any);
   }
 
   private bufferEvent(ev: SseEvent<any>) {

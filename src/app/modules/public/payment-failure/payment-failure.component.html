@@ -1,1 +1,16 @@
-<p>payment-failure works!</p>
+<c-container class="py-5">
+  <c-card class="mx-auto shadow-sm" style="max-width: 520px;">
+    <c-card-body class="p-4">
+      <c-alert color="danger" class="mb-3">
+        <div class="fw-semibold">{{ 'payment.failure.title' | transloco }}</div>
+        <div class="small">{{ 'payment.failure.body' | transloco }}</div>
+      </c-alert>
+
+      <div class="d-flex gap-2 justify-content-end">
+        <a cButton color="secondary" variant="outline" [routerLink]="['/']">
+          {{ 'payment.failure.cta' | transloco }}
+        </a>
+      </div>
+    </c-card-body>
+  </c-card>
+</c-container>

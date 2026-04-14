@@ -1,46 +1,102 @@
 <c-header>
   <c-container fluid>
-    <c-header-brand [routerLink]
-      ><h1><i>U.R.S.</i></h1></c-header-brand
-    >
-    <c-header-nav class="ms-auto">
+    <c-header-brand [routerLink]>
+      <div class="brand">
+        <h1 class="brand-title"><i>{{ 'landing.brand' | transloco }}</i></h1>
+      </div>
+    </c-header-brand>
+    <c-header-nav class="ms-auto align-items-center">
+      <c-dropdown class="me-3">
+        <button cButton cDropdownToggle color="light" variant="outline" class="d-flex align-items-center gap-2">
+          <svg [cIcon]="icons[activeLang]" size="lg"></svg>
+          <span class="text-uppercase">{{ activeLang }}</span>
+        </button>
+        <ul cDropdownMenu>
+          <li><button cDropdownItem (click)="setLanguage('ro')"><svg [cIcon]="icons.ro" size="lg" class="me-2"></svg> RO</button></li>
+          <li><button cDropdownItem (click)="setLanguage('en')"><svg [cIcon]="icons.en" size="lg" class="me-2"></svg> EN</button></li>
+          <li><button cDropdownItem (click)="setLanguage('it')"><svg [cIcon]="icons.it" size="lg" class="me-2"></svg> IT</button></li>
+          <li><button cDropdownItem (click)="setLanguage('fr')"><svg [cIcon]="icons.fr" size="lg" class="me-2"></svg> FR</button></li>
+          <li><button cDropdownItem (click)="setLanguage('es')"><svg [cIcon]="icons.es" size="lg" class="me-2"></svg> ES</button></li>
+          <li><button cDropdownItem (click)="setLanguage('de')"><svg [cIcon]="icons.de" size="lg" class="me-2"></svg> DE</button></li>
+          <li><button cDropdownItem (click)="setLanguage('sv')"><svg [cIcon]="icons.sv" size="lg" class="me-2"></svg> SV</button></li>
+        </ul>
+      </c-dropdown>
       <button cButton color="light" routerLink="/login" variant="outline">
-        My Account
+        {{ 'landing.ctaSecondary' | transloco }}
       </button>
     </c-header-nav>
   </c-container>
   <c-header-divider />
-  <c-container fluid>
-    <c-header-text>Universal Restaurant System</c-header-text>
-  </c-container>
 </c-header>
-<c-container class="my-5">
-  <c-row class="align-items-stretch">
-    @for (card of cards; track card.restaurantType) {
-    <c-col [xs]="12" [sm]="4" [md]="12" [lg]="4">
-      <c-card class="mb-4 h-100" [cBorder]="cardBorderColor" [color]="cardBackgroundColor">
-        <c-card-header
-          >{{ card.restaurantType }} restaurant business</c-card-header
-        >
-        <c-card-body class="bg-gradient">
-          <h5 cCardTitle>
-            {{ card.priceAmount | currency : card.priceCurrency }} / month
-          </h5>
-          @let limit = getLimit(card.restaurantType);
-          <ul>
-            <li>Max tables: {{ limit?.maxTables }}</li>
-            <li>Max bars: {{ limit?.maxBars }}</li>
-            <li>Max bar seats: {{ limit?.maxBarSeats }}</li>
+
+<section class="hero">
+  <c-container class="py-5">
+    <c-row class="align-items-center gy-4">
+      <c-col [xs]="12" [lg]="6">
+        <div class="hero-copy">
+          <div class="hero-kicker">{{ 'landing.headline' | transloco }}</div>
+          <h2 class="hero-title">{{ 'landing.headline' | transloco }}</h2>
+          <p class="hero-subtitle">{{ 'landing.subheadline' | transloco }}</p>
+          <div class="d-flex flex-wrap gap-2 mt-4">
+            <a cButton color="info" variant="outline" class="px-4" href="#pricing">
+              {{ 'landing.ctaPrimary' | transloco }}
+            </a>
+            <a cButton color="light" variant="outline" class="px-4" routerLink="/login">
+              {{ 'landing.ctaSecondary' | transloco }}
+            </a>
+          </div>
+        </div>
+      </c-col>
+      <c-col [xs]="12" [lg]="6">
+        <div class="hero-panel shadow-sm">
+          <div class="hero-panel-title">{{ 'landing.featuresTitle' | transloco }}</div>
+          <ul class="hero-features">
+            <li>{{ 'landing.features.realtime' | transloco }}</li>
+            <li>{{ 'landing.features.offline' | transloco }}</li>
+            <li>{{ 'landing.features.staff' | transloco }}</li>
+            <li>{{ 'landing.features.security' | transloco }}</li>
           </ul>
-          <p cCardText>{{ card.description }}</p>
-        </c-card-body>
-        <c-card-footer class="text-medium-emphasis text-center">
-          <button cButton color="info" shape="rounded-0" class="shadow" variant="outline" (click)="handleCardClick(card)">
-            Subscribe
-          </button>
-        </c-card-footer>
-      </c-card>
-    </c-col>
-    }
-  </c-row>
-</c-container>
+        </div>
+      </c-col>
+    </c-row>
+  </c-container>
+</section>
+
+<section id="pricing" class="pricing">
+  <c-container class="py-5">
+    <div class="section-title">
+      <h3 class="mb-1">{{ 'landing.pricingTitle' | transloco }}</h3>
+      <div class="text-muted">{{ 'landing.pricingSubtitle' | transloco }}</div>
+    </div>
+
+    <c-row class="align-items-stretch mt-4">
+      @for (card of cards; track card.restaurantType) {
+      <c-col [xs]="12" [md]="6" [lg]="4">
+        <c-card class="mb-4 h-100 pricing-card">
+          <c-card-header class="pricing-header">
+            <div class="fw-semibold">{{ card.restaurantType }} restaurant</div>
+          </c-card-header>
+          <c-card-body class="pricing-body">
+            <div class="price">
+              <span class="price-amount">{{ card.priceAmount | currency : card.priceCurrency }}</span>
+              <span class="price-period">/ month</span>
+            </div>
+            @let limit = getLimit(card.restaurantType);
+            <ul class="pricing-list">
+              <li>Max tables: {{ limit?.maxTables }}</li>
+              <li>Max bars: {{ limit?.maxBars }}</li>
+              <li>Max bar seats: {{ limit?.maxBarSeats }}</li>
+            </ul>
+            <div class="text-muted small">{{ card.description }}</div>
+          </c-card-body>
+          <c-card-footer class="text-center">
+            <button cButton color="info" variant="outline" class="w-100" (click)="handleCardClick(card)">
+              {{ 'landing.subscribe' | transloco }}
+            </button>
+          </c-card-footer>
+        </c-card>
+      </c-col>
+      }
+    </c-row>
+  </c-container>
+</section>

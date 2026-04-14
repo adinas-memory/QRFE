@@ -30,6 +30,7 @@ import {
 import { BarService } from '../../../core/services/bar-service/bar.service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { OfflineDbService } from '../../../core/offline/offline-db';
+import { NotificationSoundService } from '../../../core/services/sound/notification-sound.service';
 
 type MarkKind = 'added' | 'updated' | 'deleted';
 type ItemMark = { kind: MarkKind; until: number };
@@ -87,6 +88,8 @@ export class BarComponent implements OnInit, OnDestroy {
   private marksByTableId: Record<string, Record<string, ItemMark>> = {};
   private clearMarkTimers: Record<string, ReturnType<typeof setTimeout>> = {};
   private readonly markMs = 90_000;
+  private pendingSoundKind: 'new' | 'updated' | null = null;
+  private pendingSoundTimer: ReturnType<typeof setTimeout> | null = null;
 
   get orders(): BarOrder[] {
     return Object.values(this.ordersByTableId)
@@ -102,9 +105,11 @@ export class BarComponent implements OnInit, OnDestroy {
     private barApi: BarService,
     private toast: AppToastService,
     private offlineDB: OfflineDbService,
+    private sounds: NotificationSoundService,
   ) {}
 
   ngOnInit(): void {
+    this.sounds.armOnce();
     this.sse.events$
       .pipe(takeUntil(this.destroy$))
       .subscribe(ev => this.handleSseEvent(ev));
@@ -390,12 +395,29 @@ export class BarComponent implements OnInit, OnDestroy {
   private setMark(tableId: string, itemId: string, kind: MarkKind) {
     const until = Date.now() + this.markMs;
     (this.marksByTableId[tableId] ??= {})[itemId] = { kind, until };
+    this.queueSound(kind);
     const timerKey = `${tableId}:${itemId}`;
     if (this.clearMarkTimers[timerKey]) clearTimeout(this.clearMarkTimers[timerKey]);
     this.clearMarkTimers[timerKey] = setTimeout(() => {
       const m = this.marksByTableId[tableId]?.[itemId];
       if (m && m.until <= Date.now()) delete this.marksByTableId[tableId][itemId];
     }, this.markMs + 250);
+  }
+
+  private queueSound(kind: MarkKind) {
+    if (this.hydrating) return;
+    if (document.hidden) return;
+    if (kind !== 'added' && kind !== 'updated') return;
+
+    this.pendingSoundKind = (this.pendingSoundKind === 'new' || kind === 'added') ? 'new' : 'updated';
+    if (this.pendingSoundTimer) return;
+
+    this.pendingSoundTimer = setTimeout(() => {
+      this.pendingSoundTimer = null;
+      const k = this.pendingSoundKind;
+      this.pendingSoundKind = null;
+      if (k) this.sounds.play(k);
+    }, 0);
   }
 
   private diffAndMark(tableId: string, prev: CartItem[], next: CartItem[]) {

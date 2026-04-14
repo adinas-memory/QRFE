@@ -105,11 +105,14 @@ export class OrdersService {
     initiatedBy?: string
   ) {    
     const table = tables.find(t => t.tableId === payload.TableId);    
+    const anySubTotal = payload.SubTotal as unknown as { Amount?: number; Currency?: string; amount?: number; currency?: string } | null | undefined;
+    const amount = anySubTotal?.Amount ?? anySubTotal?.amount ?? 0;
+    const currency = anySubTotal?.Currency ?? anySubTotal?.currency ?? '';
     return {
       lastActionAt: payload.LastActionAt,
       lastAddedItem: payload.LastAddedItem ?? '—',
-      total: payload.SubTotal?.Amount ?? 0,
-      currency: payload.SubTotal?.Currency ?? '—',
+      total: amount,
+      currency,
       itemCount: payload.ItemCount ?? 0,
       cssClass: this.miscService.getTableCss(table!, waiterState),
       initiatedBy: initiatedBy ?? 'system'
@@ -125,13 +128,13 @@ export class OrdersService {
     const table = tables.find(t => t.tableId === dto.tableId);
 
     return {
-      lastActionAt: dto.lastActionAt ?? new Date().toISOString(),
+      lastActionAt: dto.lastActionAt ?? '',
       lastAddedItem: dto.lastAddedItem ?? '—',
       total: dto.subTotal?.amount ?? 0,
-      currency: dto.subTotal?.currency ?? '—',
+      currency: dto.subTotal?.currency ?? '',
       itemCount: dto.itemCount ?? 0,
       cssClass: this.miscService.getTableCss(table!, waiterState),
-      initiatedBy: initiatedBy ?? 'system'
+      initiatedBy: initiatedBy ?? ''
     };
   }
 

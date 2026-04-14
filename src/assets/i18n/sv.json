@@ -1,0 +1,45 @@
+{
+  "landing": {
+    "brand": "U.R.S.",
+    "headline": "Universal Restaurant System",
+    "subheadline": "Offline-first POS för restauranger. Realtidsuppdateringar, personalflöden och en ren setup.",
+    "ctaPrimary": "Se paket",
+    "ctaSecondary": "Mitt konto",
+    "pricingTitle": "Välj ditt paket",
+    "pricingSubtitle": "Börja enkelt. Uppgradera när du vill.",
+    "featuresTitle": "Byggt för vardagen",
+    "features": {
+      "realtime": "Realtidsuppdateringar via SSE",
+      "offline": "Offline-first (Dexie) med säker synk",
+      "staff": "Kök / Bar / Personalflöden",
+      "security": "Rollbaserad åtkomst"
+    },
+    "subscribe": "Prenumerera",
+    "language": "Språk"
+  },
+  "payment": {
+    "success": {
+      "title": "Betalning bekräftad",
+      "body": "Tack. Du omdirigeras till inloggning om några sekunder.",
+      "cta": "Gå till inloggning"
+    },
+    "failure": {
+      "title": "Betalning misslyckades",
+      "body": "Vi kunde inte bekräfta betalningen. Försök igen eller kontakta support.",
+      "cta": "Tillbaka"
+    }
+  },
+  "client": {
+    "callWaiter": "Kalla på servitör",
+    "callWaiterConfirm": "Kalla på servitören till ditt bord?",
+    "called": "Servitören har kallats.",
+    "close": "Stäng"
+  },
+  "staff": {
+    "confirm": "Bekräfta",
+    "reset": "Återställ",
+    "resetConfirm": "Återställ lokal kundvagn (Dexie) och formulärstatus för aktuellt bord?",
+    "moveTo": "Flytta till"
+  }
+}
+

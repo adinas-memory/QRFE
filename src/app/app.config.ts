@@ -18,9 +18,27 @@ import { loadingInterceptor } from './core/interceptors/loading.interceptor';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { loggingInterceptor } from './core/interceptors/logging.interceptor';
 import { provideServiceWorker } from '@angular/service-worker';
+import { provideTransloco, TranslocoService } from '@jsverse/transloco';
+import { TranslocoHttpLoader } from './core/i18n/transloco-loader';
+import { LANG_STORAGE_KEY, DEFAULT_LANG, translocoConfig, type AppLang, APP_LANGS } from './core/i18n/transloco.config';
 
 export function initAuth(authService: AuthService) {
   return () => authService.restoreSession().toPromise();
+}
+
+function initLanguage(transloco: TranslocoService) {
+  return () => {
+    let lang: AppLang = DEFAULT_LANG;
+    try {
+      const stored = localStorage.getItem(LANG_STORAGE_KEY);
+      if (stored && (APP_LANGS as readonly string[]).includes(stored)) {
+        lang = stored as AppLang;
+      }
+    } catch {
+      // ignore
+    }
+    transloco.setActiveLang(lang);
+  };
 }
 
 export const appConfig: ApplicationConfig = {
@@ -29,6 +47,12 @@ export const appConfig: ApplicationConfig = {
       provide: APP_INITIALIZER,
       useFactory: initAuth,
       deps: [AuthService],
+      multi: true
+    },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initLanguage,
+      deps: [TranslocoService],
       multi: true
     },
     provideRouter(routes,
@@ -52,6 +76,10 @@ export const appConfig: ApplicationConfig = {
     ),
     importProvidersFrom(SidebarModule, DropdownModule),
     IconSetService,
+    provideTransloco({
+      config: translocoConfig,
+      loader: TranslocoHttpLoader
+    }),
     provideAnimationsAsync(), provideServiceWorker('ngsw-worker.js', {
             enabled: !isDevMode(),
             registrationStrategy: 'registerWhenStable:30000'

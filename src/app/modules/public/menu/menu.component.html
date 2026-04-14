@@ -1,3 +1,4 @@
+<div class="menu-modern">
 <c-tabs [activeItemKey]="0">
   <c-tabs-list variant="tabs" class="c-tabs-custom d-flex flex-row flex-nowrap overflow-x-auto overflow-y-hidden">
     <button
@@ -78,3 +79,31 @@
     <img [src]="selectedImageUrl" [alt]="selectedImageName" class="img-fluid" />
   </c-modal-body>
 </c-modal>
+
+<button cButton color="primary" class="call-waiter-btn shadow" (click)="callWaiterModalVisible = true">
+  {{ 'client.callWaiter' | transloco }}
+</button>
+
+@if (waiterCalled) {
+  <div class="waiter-called-toast shadow-sm">
+    {{ 'client.called' | transloco }}
+  </div>
+}
+
+<c-modal [(visible)]="callWaiterModalVisible" alignment="center">
+  <c-modal-header>
+    <h5 cModalTitle>{{ 'client.callWaiter' | transloco }}</h5>
+  </c-modal-header>
+  <c-modal-body>
+    {{ 'client.callWaiterConfirm' | transloco }}
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="callWaiterModalVisible = false">
+      {{ 'client.close' | transloco }}
+    </button>
+    <button cButton color="primary" (click)="confirmCallWaiter()">
+      {{ 'client.callWaiter' | transloco }}
+    </button>
+  </c-modal-footer>
+</c-modal>
+</div>

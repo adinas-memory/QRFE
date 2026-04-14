@@ -37,6 +37,18 @@
   padding: 5px 0;
 }
 
+.categories-sticky ::ng-deep .nav-tabs {
+  overflow-y: hidden;
+}
+
+.categories-sticky ::ng-deep .nav {
+  overflow-y: hidden;
+}
+
+.categories-sticky ::ng-deep .nav-link {
+  white-space: nowrap;
+}
+
 .offcanvas-body {
   flex: 1 1 auto;
   overflow-y: auto;

@@ -1,0 +1,45 @@
+{
+  "landing": {
+    "brand": "U.R.S.",
+    "headline": "Universal Restaurant System",
+    "subheadline": "POS offline-first pour restaurants. Mises à jour en temps réel, flux staff, et configuration simple.",
+    "ctaPrimary": "Voir les offres",
+    "ctaSecondary": "Mon compte",
+    "pricingTitle": "Choisissez votre offre",
+    "pricingSubtitle": "Commencez petit. Passez à l’offre supérieure quand vous voulez.",
+    "featuresTitle": "Conçu pour l’exploitation quotidienne",
+    "features": {
+      "realtime": "Mises à jour en temps réel via SSE",
+      "offline": "Offline-first (Dexie) avec réconciliation sûre",
+      "staff": "Flux Cuisine / Bar / Staff",
+      "security": "Accès basé sur les rôles"
+    },
+    "subscribe": "S’abonner",
+    "language": "Langue"
+  },
+  "payment": {
+    "success": {
+      "title": "Paiement confirmé",
+      "body": "Merci. Vous serez redirigé vers la connexion dans quelques secondes.",
+      "cta": "Aller à la connexion"
+    },
+    "failure": {
+      "title": "Paiement échoué",
+      "body": "Nous n’avons pas pu confirmer le paiement. Veuillez réessayer ou contacter le support.",
+      "cta": "Retour"
+    }
+  },
+  "client": {
+    "callWaiter": "Appeler le serveur",
+    "callWaiterConfirm": "Appeler le serveur à votre table ?",
+    "called": "Le serveur a été appelé.",
+    "close": "Fermer"
+  },
+  "staff": {
+    "confirm": "Confirmer",
+    "reset": "Réinitialiser",
+    "resetConfirm": "Réinitialiser le panier local (Dexie) et l’état du formulaire pour la table courante ?",
+    "moveTo": "Déplacer vers"
+  }
+}
+

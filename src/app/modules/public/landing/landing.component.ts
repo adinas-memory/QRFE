@@ -25,6 +25,11 @@ import { SubscriptionService } from '../../../core/services/subscription-service
 import { ProductLimitModel, RestaurantType, SubscriptionProductModel } from '../../../core/models/subscription-product';
 import { combineLatest, forkJoin, Subject, Subscription, takeUntil } from 'rxjs';
 import { CurrencyPipe, JsonPipe } from '@angular/common';
+import { DropdownComponent, DropdownItemDirective, DropdownMenuDirective, DropdownToggleDirective } from '@coreui/angular';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { IconDirective } from '@coreui/icons-angular';
+import { LANG_STORAGE_KEY, type AppLang } from '../../../core/i18n/transloco.config';
+import { IconSubset } from '../../../icons/icon-subset';
 
 @Component({
   selector: 'app-landing',
@@ -44,6 +49,12 @@ import { CurrencyPipe, JsonPipe } from '@angular/common';
     CardTitleDirective, CardFooterComponent,
     CardTextDirective,
     ButtonDirective,
+    DropdownComponent,
+    DropdownItemDirective,
+    DropdownMenuDirective,
+    DropdownToggleDirective,
+    TranslocoPipe,
+    IconDirective
   ],
   styleUrls: ['./landing.component.scss'],
   templateUrl: './landing.component.html'
@@ -62,8 +73,29 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
   constructor(
     private authService: AuthService,
     private subscriptionService: SubscriptionService,
+    private transloco: TranslocoService,
     private router: Router) {
 
+  }
+
+  icons: Record<AppLang, IconSubset> = {
+    ro: IconSubset.cifRo,
+    en: IconSubset.cifGb,
+    it: IconSubset.cifIt,
+    fr: IconSubset.cifFr,
+    es: IconSubset.cifEs,
+    de: IconSubset.cifDe,
+    sv: IconSubset.cifSe
+  };
+
+  get activeLang(): AppLang {
+    const l = this.transloco.getActiveLang();
+    return (l === 'ro' || l === 'en' || l === 'it' || l === 'fr' || l === 'es' || l === 'de' || l === 'sv') ? l : 'ro';
+  }
+
+  setLanguage(l: AppLang) {
+    this.transloco.setActiveLang(l);
+    try { localStorage.setItem(LANG_STORAGE_KEY, l); } catch { /* ignore */ }
   }
 
 

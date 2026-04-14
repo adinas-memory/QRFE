@@ -1,43 +1,111 @@
 :host {
-  /* Card styling */
-  c-card {
-    background: linear-gradient(145deg, #e8fff5, #c8ffe4);
-    color: #d100a8;
-    border-radius: 16px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
-  }
+  display: block;
+}
 
-  c-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 12px 28px rgba(0,0,0,0.12);
-  }
+.brand-title {
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
 
-  /* Button styling */
-  button[cButton] {
-    background: linear-gradient(135deg, #f30fc6, #ff4fd6);
-    color: white;
-    border: none;
-    padding: 10px 18px;
-    border-radius: 12px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    transition: all 0.25s ease;
-    box-shadow: 0 4px 12px rgba(243, 15, 198, 0.35);
-  }
+.hero {
+  background:
+    radial-gradient(1200px 500px at 20% 20%, rgba(13, 110, 253, 0.25), transparent 60%),
+    radial-gradient(900px 450px at 80% 30%, rgba(32, 201, 151, 0.22), transparent 55%),
+    linear-gradient(180deg, rgba(33, 37, 41, 1) 0%, rgba(24, 27, 31, 1) 100%);
+  color: #fff;
+}
 
-  /* Hover: invert + glow + border animation */
-  button[cButton]:hover {
-    background: white;
-    color: #f30fc6;
-    border: 2px solid #f30fc6;
-    box-shadow: 0 6px 18px rgba(243, 15, 198, 0.45);
-    transform: translateY(-2px);
-  }
+.hero-copy .hero-kicker {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
 
-  /* Active click effect */
-  button[cButton]:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(243, 15, 198, 0.25);
-  }
+.hero-title {
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  line-height: 1.05;
+  margin-top: 0.25rem;
+  margin-bottom: 1rem;
+  font-weight: 800;
+}
+
+.hero-subtitle {
+  max-width: 52ch;
+  opacity: 0.9;
+  font-size: 1.05rem;
+}
+
+.hero-panel {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 18px 18px 14px;
+  backdrop-filter: blur(8px);
+}
+
+.hero-panel-title {
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.hero-features {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.hero-features li {
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.pricing {
+  background: #0f1215;
+  color: #fff;
+}
+
+.section-title {
+  max-width: 720px;
+}
+
+.pricing-card {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.pricing-header {
+  background: rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pricing-body {
+  padding: 18px;
+}
+
+.price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.price-amount {
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+
+.price-period {
+  opacity: 0.75;
+}
+
+.pricing-list {
+  padding-left: 18px;
+  margin: 0 0 12px;
+  opacity: 0.9;
 }

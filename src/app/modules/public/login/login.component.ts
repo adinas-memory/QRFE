@@ -23,6 +23,7 @@ import { UserContextModel } from '../../../core/models/userContextModel';
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
+  styleUrl: './login.component.scss',
   standalone: true,
   imports: [RouterLink, ContainerComponent, RowComponent, ColComponent,
     CardGroupComponent, CardComponent, CardBodyComponent, FormDirective,

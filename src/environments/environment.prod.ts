@@ -1,6 +1,5 @@
 export const environment = {
   production: true,
-  // apiUrl: 'https://unrsystem.go.ro',
-  apiUrl: 'http://localhost:7051',
+  apiUrl: 'https://unrsystem.go.ro',  
   poweredBy: 'QRFE Prod Server'
 };

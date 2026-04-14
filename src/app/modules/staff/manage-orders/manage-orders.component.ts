@@ -19,7 +19,7 @@ import { TablesService } from '../../../core/services/tables-service/tables.serv
 import { AuthService } from '../../../core/auth/auth.service';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
 import { filter, Subject, take, takeUntil, debounceTime, forkJoin, from, firstValueFrom } from 'rxjs';
-import { NgFor, NgIf, NgStyle, CurrencyPipe, JsonPipe, NgClass } from '@angular/common';
+import { NgFor, NgIf, NgStyle, CurrencyPipe, DecimalPipe, JsonPipe, NgClass } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { cilBellExclamation } from '@coreui/icons';
 import { UserContextModel } from '../../../core/models/userContextModel';
@@ -43,13 +43,14 @@ import { OnlineStateService } from '../../../core/offline/online-state-service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { KitchenService } from '../../../core/services/kitchen-service/kitchen.service';
 import { BarService } from '../../../core/services/bar-service/bar.service';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 @Component({
   selector: 'app-manage-orders',
   imports: [
     RowComponent, Tabs2Module, FormsModule,
     ColComponent, NgFor, NgIf, TableDirective,
-    CardBodyComponent, CurrencyPipe, JsonPipe,
+    CardBodyComponent, CurrencyPipe, DecimalPipe, JsonPipe,
     CardComponent, CardGroupComponent, CardHeaderComponent,
     CardFooterComponent, ButtonsComponent, ButtonDirective,
     CardImgDirective, BadgeComponent, ButtonCloseDirective,
@@ -60,6 +61,12 @@ import { BarService } from '../../../core/services/bar-service/bar.service';
     NavComponent, DropdownComponent, DropdownItemDirective,
     DropdownMenuDirective, DropdownToggleDirective,
     NavLinkDirective, NgClass,
+    TranslocoPipe,
+    ModalComponent,
+    ModalHeaderComponent,
+    ModalBodyComponent,
+    ModalFooterComponent,
+    ModalTitleDirective,
   ],
   styleUrls: ['./manage-orders.component.scss'],
   standalone: true,
@@ -97,6 +104,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   orderIsConfirmed = false;
   currentOrderId: string | null = null;
   showCloseConfirm = false;
+  resetConfirmVisible = false;
 
   /**
    * Sursa unică de adevăr pentru disponibilitatea meselor.
@@ -281,11 +289,56 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       lastActionAt: new Date().toISOString(),
       lastAddedItem: cart.length ? cart[cart.length - 1].item.menuItemName : '—',
       total: cart.reduce((s, c) => s + c.item.menuItemPriceAmount * c.quantity, 0),
-      currency: cart[0]?.item.menuItemPriceCurrency ?? '—',
+      currency: cart[0]?.item.menuItemPriceCurrency ?? '',
       itemCount: cart.reduce((s, c) => s + c.quantity, 0),
       cssClass: this.miscService.getTableCss(table, this.waiterState),
-      initiatedBy: this.tableComputed[tableId]?.initiatedBy ?? 'system'
+      initiatedBy: this.tableComputed[tableId]?.initiatedBy ?? ''
     };
+
+    this.ordersService.saveComputed(this.tableComputed);
+  }
+
+  private hydrateComputedFromTables(): void {
+    // REST is authoritative for initial state; SSE only updates.
+    // If SSE is temporarily down (expired token, reconnecting), this ensures totals aren't stuck at 0/undefined.
+    for (const t of this.tables) {
+      const order = t.order;
+
+      // no order -> keep / ensure empty computed
+      if (!order || !order.isOrderOpen) {
+        this.tableComputed[t.tableId] = this.ordersService.mapComputedDtoToComputed(
+          { tableId: t.tableId, isTableOpen: !!t.isTableOpen },
+          this.tables,
+          this.waiterState,
+          this.tableComputed[t.tableId]?.initiatedBy ?? ''
+        );
+        continue;
+      }
+
+      const items = (order.orderItems ?? []).filter((x): x is NonNullable<typeof x> => !!x);
+      const itemCount = items.reduce((s, i) => s + (i.quantity ?? 0), 0);
+
+      const subtotalAmount =
+        order.subTotal?.amount ??
+        order.finalTotalPrice?.amount ??
+        items.reduce((s, i) => s + ((i.orderItemPriceAmount ?? 0) * (i.quantity ?? 0)), 0);
+
+      const currency =
+        (order.subTotal?.currency ?? order.finalTotalPrice?.currency)?.toString?.() ?? '';
+
+      const lastAddedItem =
+        (items.length ? items[items.length - 1].orderItemName : null) ?? '—';
+
+      this.tableComputed[t.tableId] = {
+        lastActionAt: this.tableComputed[t.tableId]?.lastActionAt ?? '',
+        lastAddedItem,
+        total: subtotalAmount ?? 0,
+        currency,
+        itemCount,
+        cssClass: this.miscService.getTableCss(t, this.waiterState),
+        initiatedBy: this.tableComputed[t.tableId]?.initiatedBy ?? ''
+      };
+    }
 
     this.ordersService.saveComputed(this.tableComputed);
   }
@@ -308,6 +361,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
     this.tableCarts[tableId] = [...cart];
     await this.offlineDB.saveCart(tableId, cart, orderId ?? undefined, true);
+
+    if (this.orderIsConfirmed && cart.length === 0) {
+      await this.freeTableAfterEmptyConfirmedCart(tableId, orderId ?? undefined);
+      return;
+    }
 
     if (orderId?.startsWith('local-') || !this.orderIsConfirmed || !existing.orderItemId) return;
 
@@ -335,6 +393,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     const newCart = cart.filter(i => i.item.menuItemId !== sel.item.menuItemId);
     this.tableCarts[tableId] = [...newCart];
     await this.offlineDB.saveCart(tableId, newCart, orderId ?? undefined, true);
+
+    if (this.orderIsConfirmed && newCart.length === 0) {
+      await this.freeTableAfterEmptyConfirmedCart(tableId, orderId ?? undefined);
+      return;
+    }
 
     if (orderId?.startsWith('local-') || !this.orderIsConfirmed || !existing.orderItemId) return;
 
@@ -553,6 +616,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         delete this.tableComputed[tableId];
         this.ordersService.saveComputed(this.tableComputed);
         this.tableCarts[tableId] = [];
+        // If SSE is down, we still need to reflect close immediately (avoid stale red table).
+        this.markTableAsOpen(tableId);
+        await this.offlineDB.upsertTableStatus(tableId, true);
+        this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
         this.resetCanvasState();
       },
       error: err => console.error('Error closing order:', err)
@@ -565,6 +632,64 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.orderIsConfirmed = false;
     this.currentOrderId = null;
     this.canvasVisible = false;
+  }
+
+  requestResetCanvas() {
+    this.resetConfirmVisible = true;
+  }
+
+  cancelResetCanvas() {
+    this.resetConfirmVisible = false;
+  }
+
+  async confirmResetCanvas() {
+    this.resetConfirmVisible = false;
+    if (!this.currentTableId) return;
+
+    const tableId = this.currentTableId;
+    const orderId = this.currentOrderId;
+
+    // Clear local state (Dexie + in-memory) for current table.
+    await this.offlineDB.deleteCart(tableId);
+    this.tableCarts[tableId] = [];
+
+    if (orderId) {
+      await this.offlineDB.deleteActionsForOrder(orderId);
+    }
+
+    delete this.tableComputed[tableId];
+    this.ordersService.saveComputed(this.tableComputed);
+
+    this.resetCanvasState();
+  }
+
+  private async freeTableAfterEmptyConfirmedCart(tableId: string, orderId?: string): Promise<void> {
+    // UX rule: if a confirmed order ends up with 0 items (user deleted everything),
+    // treat it as "free table" immediately (don't leave it red/occupied).
+    await this.offlineDB.deleteCart(tableId);
+    this.tableCarts[tableId] = [];
+    delete this.tableComputed[tableId];
+    this.ordersService.saveComputed(this.tableComputed);
+
+    // enqueue close to backend if possible (best-effort)
+    if (orderId) {
+      await this.offlineDB.addOfflineAction({
+        type: 'CLOSE_ORDER',
+        restaurantId: this.restaurantId,
+        tableId,
+        orderId,
+        payload: {}
+      });
+      if (this.onlineStateService.isOnline) this.queueProcessor.triggerProcessing();
+    }
+
+    this.markTableAsOpen(tableId);
+    await this.offlineDB.upsertTableStatus(tableId, true);
+    this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+
+    if (this.currentTableId === tableId) {
+      this.resetCanvasState();
+    }
   }
 
   // ─── TABLE STATE HELPERS ──────────────────────────────────────────────────────
@@ -732,19 +857,51 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       case 'TablesStatusesUpdate': {
         const computedList = Data as TableComputedDTO[];
 
-        // FIX BUG 4: spread → obiecte noi → Angular detectează schimbarea.
-        // FIX BUG 3: când masa e liberă (isTableOpen=true, fără orderId) → curățăm order.
-        this.tables = this.tables.map(t => {
+        // IMPORTANT:
+        // Backend may emit TablesStatusesUpdate snapshots where orderId/subTotal are not yet consistent
+        // with a just-confirmed order (race / eventual consistency). Don't let that overwrite local truth.
+        const updatedTables: TableDTO[] = [];
+        for (const t of this.tables) {
+          if (!t?.tableId) continue;
           const c = computedList.find(x => x.tableId === t.tableId);
-          if (!c) return t;
-          const isFreed = c.isTableOpen && !c.orderId;
-          return { ...t, isTableOpen: c.isTableOpen, order: isFreed ? undefined : t.order };
-        });
+          if (!c) {
+            updatedTables.push(t);
+            continue;
+          }
+
+          const localRecord = await this.offlineDB.loadCartRecord(t.tableId);
+          const localHasOrder = !!localRecord?.orderId || (localRecord?.items?.length ?? 0) > 0;
+
+          // Only accept "freed" snapshot if we do NOT have local evidence of an open order.
+          const snapshotSaysFreed = c.isTableOpen && !c.orderId;
+          const allowFreeOverride = snapshotSaysFreed && !localHasOrder;
+
+          if (allowFreeOverride) {
+            updatedTables.push({ ...t, isTableOpen: true, order: undefined });
+            continue;
+          }
+
+          // Otherwise: keep occupied if localHasOrder, and only take snapshot's isTableOpen when it doesn't conflict.
+          // If snapshot says occupied (isTableOpen=false), accept it.
+          const nextIsTableOpen = localHasOrder ? false : c.isTableOpen;
+          updatedTables.push({ ...t, isTableOpen: nextIsTableOpen });
+        }
+        this.tables = updatedTables;
         this.refreshTableLists();
 
         for (const c of computedList) {
+          if (!c?.tableId) continue;
           const table = this.tables.find(t => t.tableId === c.tableId);
           if (!table) continue;
+
+          const localRecord = await this.offlineDB.loadCartRecord(c.tableId);
+          const localHasOrder = !!localRecord?.orderId || (localRecord?.items?.length ?? 0) > 0;
+
+          // Avoid overwriting a locally-confirmed cart subtotal with snapshot zeros.
+          if (localHasOrder && (c.subTotal?.amount ?? 0) === 0) {
+            continue;
+          }
+
           this.tableComputed[c.tableId] = this.ordersService.mapComputedDtoToComputed(
             c, this.tables, this.waiterState, InitiatedBy
           );
@@ -818,14 +975,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           this.tablesAvailable = await this.offlineDB.loadTablesStatusMap();
           this.tableComputed = this.ordersService.loadComputed() || {};
 
-          for (const t of this.tables) {
-            if (!this.tableComputed[t.tableId]) {
-              this.tableComputed[t.tableId] = this.ordersService.mapComputedDtoToComputed(
-                { tableId: t.tableId, isTableOpen: !!t.isTableOpen },
-                this.tables, this.waiterState, this.tableComputed[t.tableId]?.initiatedBy ?? 'system'
-              );
-            }
-          }
+          this.hydrateComputedFromTables();
 
           Object.keys(this.tableComputed).forEach(tableId => {
             const table = this.tables.find(t => t.tableId === tableId);

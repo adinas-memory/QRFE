@@ -1,0 +1,45 @@
+{
+  "landing": {
+    "brand": "U.R.S.",
+    "headline": "Universal Restaurant System",
+    "subheadline": "POS offline-first para restaurantes. Actualizaciones en tiempo real, flujos de staff y configuración simple.",
+    "ctaPrimary": "Ver planes",
+    "ctaSecondary": "Mi cuenta",
+    "pricingTitle": "Elige tu plan",
+    "pricingSubtitle": "Empieza pequeño. Mejora cuando quieras.",
+    "featuresTitle": "Hecho para el día a día",
+    "features": {
+      "realtime": "Actualizaciones en tiempo real vía SSE",
+      "offline": "Offline-first (Dexie) con reconciliación segura",
+      "staff": "Flujos Cocina / Bar / Staff",
+      "security": "Acceso basado en roles"
+    },
+    "subscribe": "Suscribirse",
+    "language": "Idioma"
+  },
+  "payment": {
+    "success": {
+      "title": "Pago confirmado",
+      "body": "Gracias. Serás redirigido al login en unos segundos.",
+      "cta": "Ir al login"
+    },
+    "failure": {
+      "title": "Pago fallido",
+      "body": "No pudimos confirmar el pago. Inténtalo de nuevo o contacta soporte.",
+      "cta": "Volver"
+    }
+  },
+  "client": {
+    "callWaiter": "Llamar al camarero",
+    "callWaiterConfirm": "¿Llamar al camarero a tu mesa?",
+    "called": "Se ha llamado al camarero.",
+    "close": "Cerrar"
+  },
+  "staff": {
+    "confirm": "Confirmar",
+    "reset": "Reset",
+    "resetConfirm": "¿Resetear el carrito local (Dexie) y el estado del formulario para la mesa actual?",
+    "moveTo": "Mover a"
+  }
+}
+

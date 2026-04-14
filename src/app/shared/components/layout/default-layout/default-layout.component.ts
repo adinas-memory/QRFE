@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { NgScrollbar } from 'ngx-scrollbar';
 import { IconSetService } from '@coreui/icons-angular';
@@ -22,6 +22,7 @@ import { navItems } from './_nav';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { UserContextModel } from '../../../../core/models/userContextModel';
 import { TitleCasePipe } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 function isOverflown(element: HTMLElement) {
   return (
@@ -56,6 +57,7 @@ function isOverflown(element: HTMLElement) {
 export class DefaultLayoutComponent implements OnInit {
   public navItems: INavData[] = [];
   restaurantName: string | any| null = null;
+  private readonly destroyRef = inject(DestroyRef);
 
 
   constructor(private auth: AuthService, public iconSet: IconSetService) {
@@ -65,7 +67,14 @@ export class DefaultLayoutComponent implements OnInit {
   ngOnInit(): void {
     const role = this.auth.getUserSnapshot()?.role ?? 'default';
     this.navItems = this.getNavItemsForRole(role);
-    this.restaurantName = this.auth.getRestaurantCtx()?.name ?? null; 
+    this.restaurantName = this.auth.getRestaurantCtx()?.name ?? null;
+
+    // Keep header in sync across refresh / restoreSession / refresh-token.
+    this.auth.user$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(user => {
+        this.restaurantName = user?.restaurantName ?? this.auth.getRestaurantCtx()?.name ?? null;
+      });
   }
 
   getNavItemsForRole(role: string): INavData[] {
@@ -80,7 +89,7 @@ export class DefaultLayoutComponent implements OnInit {
           {
             name: 'Kitchen',
             url: '/staff/kitchen',
-            iconComponent: { name: 'cil-restaurant' }
+            iconComponent: { name: 'cil-dinner' }
           },
           {
             name: 'Bar',
@@ -108,7 +117,7 @@ export class DefaultLayoutComponent implements OnInit {
           {
             name: 'Kitchen',
             url: '/staff/kitchen',
-            iconComponent: { name: 'cil-restaurant' }
+            iconComponent: { name: 'cil-dinner' }
           },
           {
             name: 'Bar',

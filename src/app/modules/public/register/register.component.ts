@@ -25,6 +25,7 @@ import { PendingPlanModel } from '../../../core/models/pendingPlanModel';
 @Component({
   selector: 'app-register',
   templateUrl: './register.component.html',
+  styleUrl: './register.component.scss',
   standalone: true,
   imports: [ContainerComponent, ReactiveFormsModule, ToasterComponent,
     RowComponent, ColComponent, CardComponent, CardBodyComponent,

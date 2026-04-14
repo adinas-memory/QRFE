@@ -16,9 +16,10 @@
                 <c-card-header>
                   <h4>
                     Total:
-                    {{
-                    tableComputed[table.tableId]?.total | currency : tableComputed[table.tableId]?.currency
-                    }}
+                    {{ (tableComputed[table.tableId]?.total ?? 0) | number:'1.2-2' }}
+                    @if (tableComputed[table.tableId]?.currency && tableComputed[table.tableId]?.currency !== '—') {
+                      <span class="text-muted ms-1">{{ tableComputed[table.tableId].currency }}</span>
+                    }
                   </h4>
                 </c-card-header>
                 <c-card-body cCol [md]="8">
@@ -72,7 +73,10 @@
               <c-card-header>
                 <h4>
                   Total:
-                  {{ tableComputed[table.tableId]?.total | currency : tableComputed[table.tableId]?.currency }}
+                  {{ (tableComputed[table.tableId]?.total ?? 0) | number:'1.2-2' }}
+                  @if (tableComputed[table.tableId]?.currency && tableComputed[table.tableId]?.currency !== '—') {
+                    <span class="text-muted ms-1">{{ tableComputed[table.tableId].currency }}</span>
+                  }
                 </h4>
               </c-card-header>
               <c-card-body cCol [md]="8">
@@ -126,7 +130,10 @@
               <c-card-header>
                 <h4>
                   Total:
-                  {{ tableComputed[table.tableId]?.total | currency : tableComputed[table.tableId]?.currency }}
+                  {{ (tableComputed[table.tableId]?.total ?? 0) | number:'1.2-2' }}
+                  @if (tableComputed[table.tableId]?.currency && tableComputed[table.tableId]?.currency !== '—') {
+                    <span class="text-muted ms-1">{{ tableComputed[table.tableId].currency }}</span>
+                  }
                 </h4>
               </c-card-header>
               <c-card-body cCol [md]="8">
@@ -182,23 +189,21 @@
       <div class="title-stack">
         <h6 cOffcanvasTitle class="title-text">{{ tableName }}</h6>
 
-        <c-dropdown class="move-dropdown">
-          <button cButton cDropdownToggle color="secondary outline" size="sm" [disabled]="!canMoveOrder()">
-            Move to
-          </button>
-          <ul cDropdownMenu class="w-100">
-            <li *ngFor="let t of availableTablesForMove">
-              <button cDropdownItem (click)="selectedTargetTableId = t.tableId; moveCartToSelectedTable()">
-                {{ t.tableName }}
-              </button>
-            </li>
-            <li *ngIf="availableTablesForMove.length === 0">
-              <span class="dropdown-item text-muted">No free tables available</span>
-            </li>
-          </ul>
-        </c-dropdown>
+        @if (canMoveOrder()) {
+          <c-dropdown class="move-dropdown">
+            <button cButton cDropdownToggle color="secondary outline" size="sm">
+              {{ 'staff.moveTo' | transloco }}
+            </button>
+            <ul cDropdownMenu class="w-100">
+              <li *ngFor="let t of availableTablesForMove">
+                <button cDropdownItem (click)="selectedTargetTableId = t.tableId; moveCartToSelectedTable()">
+                  {{ t.tableName }}
+                </button>
+              </li>
+            </ul>
+          </c-dropdown>
+        }
       </div>
-
 
       <div class="search-wrapper px-3 pt-2">
         <input id="searchInput" type="text" class="form-control" placeholder="Search product..."
@@ -290,10 +295,16 @@
 
       <hr>
 
-      <button class="btn btn-primary w-100" *ngIf="!orderIsConfirmed" (click)="confirmOrder()"
-        [disabled]="selectedItems.length === 0 || !isOnline">
-        Confirm Order – {{ cartSubTotal | currency: cartCurrency }}
-      </button>
+      <div class="d-flex gap-2" *ngIf="!orderIsConfirmed">
+        <button class="btn btn-primary flex-grow-1" (click)="confirmOrder()"
+          [disabled]="selectedItems.length === 0 || !isOnline">
+          {{ 'staff.confirm' | transloco }} – {{ cartSubTotal | currency: cartCurrency }}
+        </button>
+        <button class="btn btn-outline-danger" (click)="requestResetCanvas()"
+          [disabled]="selectedItems.length === 0">
+          {{ 'staff.reset' | transloco }}
+        </button>
+      </div>
 
       <div *ngIf="showCloseConfirm" class="p-3 border rounded bg-light mb-2">
         <p class="mb-2">Are you sure you want to close this order?</p>
@@ -312,3 +323,20 @@
   </div>
 </c-offcanvas>
 <!-- END OFFCANVAS -->
+
+<c-modal [(visible)]="resetConfirmVisible">
+  <c-modal-header>
+    <h5 cModalTitle>{{ 'staff.reset' | transloco }}</h5>
+  </c-modal-header>
+  <c-modal-body>
+    {{ 'staff.resetConfirm' | transloco }}
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="cancelResetCanvas()">
+      {{ 'client.close' | transloco }}
+    </button>
+    <button cButton color="danger" (click)="confirmResetCanvas()">
+      {{ 'staff.reset' | transloco }}
+    </button>
+  </c-modal-footer>
+</c-modal>
