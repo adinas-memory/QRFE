@@ -2,6 +2,14 @@
   display: block;
 }
 
+.lang-flag {
+  display: inline-block;
+  width: 1.25rem;
+  height: 0.95rem;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08) inset;
+}
+
 .brand-title {
   margin: 0;
   font-weight: 800;

@@ -3,6 +3,21 @@
     <c-card class="mb-4">
       <c-card-header class="d-flex align-items-center justify-content-between">
         <strong>Bar</strong>
+        <button
+          cButton
+          color="info"
+          variant="outline"
+          size="sm"
+          (click)="toggleSound()"
+        >
+          @if (!soundEnabled) {
+            Enable sound
+          } @else if (soundMuted) {
+            Sound: OFF
+          } @else {
+            Sound: ON
+          }
+        </button>
       </c-card-header>
       <c-card-body>
         <div *ngIf="orders.length === 0" class="text-muted">

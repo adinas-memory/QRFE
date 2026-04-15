@@ -21,6 +21,9 @@
 // We use those styles to show code examples, you should remove them in your application.
 @use "examples";
 
+// CoreUI Icons (Flags) - enables `.cif-xx` CSS flag classes.
+@import "@coreui/icons/css/flag.min.css";
+
 .offline-wrapper.offline-active {
   border: 5px solid red;  
   transition: border-color 0.3s ease;

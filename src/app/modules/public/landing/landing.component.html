@@ -8,17 +8,17 @@
     <c-header-nav class="ms-auto align-items-center">
       <c-dropdown class="me-3">
         <button cButton cDropdownToggle color="light" variant="outline" class="d-flex align-items-center gap-2">
-          <svg [cIcon]="icons[activeLang]" size="lg"></svg>
+          <span class="lang-flag" [ngClass]="'cif-' + activeLang"></span>
           <span class="text-uppercase">{{ activeLang }}</span>
         </button>
         <ul cDropdownMenu>
-          <li><button cDropdownItem (click)="setLanguage('ro')"><svg [cIcon]="icons.ro" size="lg" class="me-2"></svg> RO</button></li>
-          <li><button cDropdownItem (click)="setLanguage('en')"><svg [cIcon]="icons.en" size="lg" class="me-2"></svg> EN</button></li>
-          <li><button cDropdownItem (click)="setLanguage('it')"><svg [cIcon]="icons.it" size="lg" class="me-2"></svg> IT</button></li>
-          <li><button cDropdownItem (click)="setLanguage('fr')"><svg [cIcon]="icons.fr" size="lg" class="me-2"></svg> FR</button></li>
-          <li><button cDropdownItem (click)="setLanguage('es')"><svg [cIcon]="icons.es" size="lg" class="me-2"></svg> ES</button></li>
-          <li><button cDropdownItem (click)="setLanguage('de')"><svg [cIcon]="icons.de" size="lg" class="me-2"></svg> DE</button></li>
-          <li><button cDropdownItem (click)="setLanguage('sv')"><svg [cIcon]="icons.sv" size="lg" class="me-2"></svg> SV</button></li>
+          <li><button cDropdownItem (click)="setLanguage('ro')"><span class="lang-flag me-2 cif-ro"></span> RO</button></li>
+          <li><button cDropdownItem (click)="setLanguage('en')"><span class="lang-flag me-2 cif-gb"></span> EN</button></li>
+          <li><button cDropdownItem (click)="setLanguage('it')"><span class="lang-flag me-2 cif-it"></span> IT</button></li>
+          <li><button cDropdownItem (click)="setLanguage('fr')"><span class="lang-flag me-2 cif-fr"></span> FR</button></li>
+          <li><button cDropdownItem (click)="setLanguage('es')"><span class="lang-flag me-2 cif-es"></span> ES</button></li>
+          <li><button cDropdownItem (click)="setLanguage('de')"><span class="lang-flag me-2 cif-de"></span> DE</button></li>
+          <li><button cDropdownItem (click)="setLanguage('sv')"><span class="lang-flag me-2 cif-se"></span> SV</button></li>
         </ul>
       </c-dropdown>
       <button cButton color="light" routerLink="/login" variant="outline">

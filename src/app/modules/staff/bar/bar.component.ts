@@ -30,7 +30,7 @@ import {
 import { BarService } from '../../../core/services/bar-service/bar.service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { OfflineDbService } from '../../../core/offline/offline-db';
-import { NotificationSoundService } from '../../../core/services/sound/notification-sound.service';
+import { NotificationSoundService, type NotificationSoundKind } from '../../../core/services/sound/notification-sound.service';
 
 type MarkKind = 'added' | 'updated' | 'deleted';
 type ItemMark = { kind: MarkKind; until: number };
@@ -77,6 +77,16 @@ export class BarComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private restaurantId = '';
   private hydrating = false;
+  soundEnabled = false;
+  soundMuted = false;
+  private get debugSoundsEnabled(): boolean {
+    try { return localStorage.getItem('debugSounds') === '1'; } catch { return false; }
+  }
+  private debugSound(...args: unknown[]): void {
+    if (!this.debugSoundsEnabled) return;
+    // eslint-disable-next-line no-console
+    console.debug('[BarSound]', ...args);
+  }
 
   tablesById: Record<string, TableDTO> = {};
   ordersByTableId: Record<string, BarOrder> = {};
@@ -88,8 +98,21 @@ export class BarComponent implements OnInit, OnDestroy {
   private marksByTableId: Record<string, Record<string, ItemMark>> = {};
   private clearMarkTimers: Record<string, ReturnType<typeof setTimeout>> = {};
   private readonly markMs = 90_000;
-  private pendingSoundKind: 'new' | 'updated' | null = null;
+  private pendingSoundKind: NotificationSoundKind | null = null;
   private pendingSoundTimer: ReturnType<typeof setTimeout> | null = null;
+  private seenServerOrderIds = new Set<string>();
+  private lastToastAtByKey: Record<string, number> = {};
+
+  private toastOnce(key: string, ms: number, fn: () => void): void {
+    const now = Date.now();
+    if (now - (this.lastToastAtByKey[key] ?? 0) < ms) return;
+    this.lastToastAtByKey[key] = now;
+    fn();
+  }
+
+  private tableLabel(tableId: string): string {
+    return this.tablesById[tableId]?.tableName ?? tableId;
+  }
 
   get orders(): BarOrder[] {
     return Object.values(this.ordersByTableId)
@@ -110,6 +133,8 @@ export class BarComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.sounds.armOnce();
+    this.soundEnabled = this.sounds.isUnlocked;
+    this.soundMuted = this.getSoundMuted();
     this.sse.events$
       .pipe(takeUntil(this.destroy$))
       .subscribe(ev => this.handleSseEvent(ev));
@@ -142,6 +167,30 @@ export class BarComponent implements OnInit, OnDestroy {
         await this.hydrateFromBackend(tables);
         await this.rebuildFromDexie();
       });
+  }
+
+  private getSoundMuted(): boolean {
+    try { return localStorage.getItem('barSoundMuted') === '1'; } catch { return false; }
+  }
+
+  private setSoundMuted(muted: boolean): void {
+    this.soundMuted = muted;
+    try { localStorage.setItem('barSoundMuted', muted ? '1' : '0'); } catch { /* ignore */ }
+  }
+
+  async toggleSound(): Promise<void> {
+    if (!this.soundEnabled) {
+      const ok = await this.sounds.unlockFromGesture();
+      this.soundEnabled = ok;
+      if (!ok) return;
+    }
+
+    if (this.soundMuted) {
+      this.setSoundMuted(false);
+      this.sounds.play('uiToggle');
+    } else {
+      this.setSoundMuted(true);
+    }
   }
 
   ngOnDestroy(): void {
@@ -244,46 +293,105 @@ export class BarComponent implements OnInit, OnDestroy {
   }
 
   private async applyOrderUpdated(payload: OrderUpdatedSSEPayload) {
-    const tableId = payload.TableId;
-    this.orderIdToTableId[payload.OrderId] = tableId;
+    const tableId =
+      (payload as unknown as { TableId?: string; tableId?: string }).TableId
+      ?? (payload as unknown as { tableId?: string }).tableId
+      ?? '';
+    const orderId =
+      (payload as unknown as { OrderId?: string; orderId?: string }).OrderId
+      ?? (payload as unknown as { orderId?: string }).orderId
+      ?? '';
+    const lastActionAt =
+      (payload as unknown as { LastActionAt?: string; lastActionAt?: string }).LastActionAt
+      ?? (payload as unknown as { lastActionAt?: string }).lastActionAt
+      ?? new Date().toISOString();
+
+    if (!tableId || !orderId) return;
+
+    this.orderIdToTableId[orderId] = tableId;
 
     const existing = await this.offlineDB.loadCart(tableId);
-    const nextCart: CartItem[] = (payload.Items ?? []).map(i => {
-      const mi = this.menuItemsById[i.MenuItemId];
+    const prevDrinks = this.filterDrinks(existing);
+    const rawItems = ((payload as unknown as { Items?: any[]; items?: any[] }).Items
+      ?? (payload as unknown as { items?: any[] }).items
+      ?? []) as any[];
+    const nextCart: CartItem[] = rawItems.map(i => {
+      const menuItemId: string = i?.MenuItemId ?? i?.menuItemId ?? '';
+      const orderItemId: string | undefined = i?.OrderItemId ?? i?.orderItemId;
+      const qty: number = i?.Quantity ?? i?.quantity ?? 0;
+      const mi = this.menuItemsById[menuItemId];
       if (mi) {
-        return { item: mi, quantity: i.Quantity, orderItemId: i.OrderItemId };
+        return { item: mi, quantity: qty, orderItemId };
       }
       return {
         item: {
-          menuItemId: i.MenuItemId,
+          menuItemId,
           menuItemName: '—',
           menuItemDescription: '',
           menuItemPriceAmount: 0,
-          menuItemPriceCurrency: (i as { OrderItemPriceCurrency?: string }).OrderItemPriceCurrency ?? 'EUR',
+          menuItemPriceCurrency: (i?.OrderItemPriceCurrency ?? i?.orderItemPriceCurrency ?? 'EUR'),
           menuItemIconUrl: undefined,
-          category: (i as { Category?: string }).Category ?? 'Unknown',
+          category: (i?.Category ?? i?.category ?? 'Unknown'),
         },
-        quantity: i.Quantity,
-        orderItemId: i.OrderItemId,
+        quantity: qty,
+        orderItemId,
       } satisfies CartItem;
     });
 
-    this.diffAndMark(tableId, this.filterDrinks(existing), this.filterDrinks(nextCart));
-    await this.offlineDB.saveCart(tableId, nextCart, payload.OrderId, true);
-    await this.rebuildFromDexie(tableId, payload.LastActionAt);
+    const nextDrinks = this.filterDrinks(nextCart);
+    const isServerOrderId = !!orderId && !orderId.startsWith('local-');
+    const isNewOrder = isServerOrderId && !this.seenServerOrderIds.has(orderId) && nextDrinks.length > 0;
+    if (isNewOrder && !this.hydrating && !document.hidden && !this.soundMuted) {
+      this.sounds.play('newOrder');
+    }
+    if (isNewOrder) {
+      const label = this.tableLabel(tableId);
+      this.toastOnce(`newOrder:${orderId}`, 2000, () => this.toast.success(`New order at table ${label}.`, 'New order', 3500));
+    } else {
+      const label = this.tableLabel(tableId);
+      this.toastOnce(`orderUpdated:${orderId}`, 1200, () => this.toast.info(`Order updated at table ${label}.`, 'Order updated', 2500));
+    }
+    if (isServerOrderId) this.seenServerOrderIds.add(orderId);
+    this.diffAndMark(tableId, prevDrinks, nextDrinks, isNewOrder);
+    await this.offlineDB.saveCart(tableId, nextCart, orderId, true);
+    await this.rebuildFromDexie(tableId, lastActionAt);
   }
 
   private async applyOrderItemAdded(payload: AddOrderItemResponse) {
-    const tableId = this.orderIdToTableId[payload.orderId];
+    const orderId = (payload as unknown as { orderId?: string; OrderId?: string }).orderId
+      ?? (payload as unknown as { OrderId?: string }).OrderId
+      ?? '';
+    const orderItemId = (payload as unknown as { orderItemId?: string; OrderItemId?: string }).orderItemId
+      ?? (payload as unknown as { OrderItemId?: string }).OrderItemId
+      ?? '';
+    const menuItemId = (payload as unknown as { menuItemId?: string; MenuItemId?: string }).menuItemId
+      ?? (payload as unknown as { MenuItemId?: string }).MenuItemId
+      ?? '';
+    const quantity = (payload as unknown as { quantity?: number; Quantity?: number }).quantity
+      ?? (payload as unknown as { Quantity?: number }).Quantity
+      ?? 0;
+
+    if (!orderId || !orderItemId || !menuItemId) return;
+
+    let tableId = this.orderIdToTableId[orderId];
+    if (!tableId) {
+      try {
+        const rec = await this.offlineDB.carts.where('orderId').equals(orderId).first();
+        tableId = rec?.tableId ?? '';
+        if (tableId) this.orderIdToTableId[orderId] = tableId;
+      } catch {
+        // ignore
+      }
+    }
     if (!tableId) return;
 
     const cart = await this.offlineDB.loadCart(tableId);
-    const mi = this.menuItemsById[payload.menuItemId];
+    const mi = this.menuItemsById[menuItemId];
     const category = mi?.category ?? 'Unknown';
 
     cart.push({
       item: mi ?? {
-        menuItemId: payload.menuItemId,
+        menuItemId,
         menuItemName: '—',
         menuItemDescription: '',
         menuItemPriceAmount: 0,
@@ -291,41 +399,117 @@ export class BarComponent implements OnInit, OnDestroy {
         menuItemIconUrl: undefined,
         category: 'Unknown',
       },
-      quantity: payload.quantity,
-      orderItemId: payload.orderItemId,
+      quantity,
+      orderItemId,
     });
 
     if (isDrinkCategory(category)) {
-      this.setMark(tableId, payload.orderItemId, 'added');
+      this.setMark(tableId, orderItemId, 'added');
+      const label = this.tableLabel(tableId);
+      const name = mi?.menuItemName ?? 'Item';
+      this.toastOnce(`itemAdded:${orderItemId}`, 1500, () => this.toast.info(`+ ${name} ×${quantity} (table ${label})`, 'New item', 2500));
     }
-    await this.offlineDB.saveCart(tableId, cart, payload.orderId, true);
+    await this.offlineDB.saveCart(tableId, cart, orderId, true);
   }
 
   private async applyOrderItemQtyUpdated(payload: UpdateOrderItemQuantityResponse) {
-    const tableId = this.orderIdToTableId[payload.orderId];
-    if (!tableId) return;
-    const cart = await this.offlineDB.loadCart(tableId);
-    const it = cart.find(c => c.orderItemId === payload.orderItemId);
-    if (!it) return;
-    it.quantity = payload.quantity;
-    if (isDrinkCategory(it.item.category)) {
-      this.setMark(tableId, payload.orderItemId, 'updated');
+    const orderId = (payload as unknown as { orderId?: string; OrderId?: string }).orderId
+      ?? (payload as unknown as { OrderId?: string }).OrderId
+      ?? '';
+    const orderItemId = (payload as unknown as { orderItemId?: string; OrderItemId?: string }).orderItemId
+      ?? (payload as unknown as { OrderItemId?: string }).OrderItemId
+      ?? '';
+    const quantity = (payload as unknown as { quantity?: number; Quantity?: number }).quantity
+      ?? (payload as unknown as { Quantity?: number }).Quantity
+      ?? 0;
+
+    if (!orderId || !orderItemId) {
+      this.debugSound('qtyUpdated: missing ids', { payload });
+      return;
     }
-    await this.offlineDB.saveCart(tableId, cart, payload.orderId, true);
+
+    let tableId = this.orderIdToTableId[orderId];
+    if (!tableId) {
+      try {
+        const rec = await this.offlineDB.carts.where('orderId').equals(orderId).first();
+        tableId = rec?.tableId ?? '';
+        if (tableId) this.orderIdToTableId[orderId] = tableId;
+      } catch {
+        // ignore
+      }
+    }
+    if (!tableId) {
+      this.debugSound('qtyUpdated: missing tableId (map+db)', { orderId, orderItemId, quantity });
+      return;
+    }
+    const cart = await this.offlineDB.loadCart(tableId);
+    const it = cart.find(c => c.orderItemId === orderItemId);
+    if (!it) {
+      this.debugSound('qtyUpdated: item not found in cart', {
+        tableId,
+        orderId,
+        orderItemId,
+        cartIds: cart.map(c => c.orderItemId),
+      });
+      return;
+    }
+    const prevQty = it.quantity;
+    it.quantity = quantity;
+    if (isDrinkCategory(it.item.category)) {
+      this.debugSound('qtyUpdated: mark+sound', { tableId, orderItemId, quantity });
+      this.setMark(tableId, orderItemId, 'updated');
+      const label = this.tableLabel(tableId);
+      const name = it.item.menuItemName ?? 'Item';
+      if (quantity > prevQty) {
+        this.toastOnce(`qtyUp:${orderItemId}`, 1200, () => this.toast.info(`↑ ${name}: ${prevQty} → ${quantity} (table ${label})`, 'Qty increased', 2500));
+      } else if (quantity < prevQty) {
+        this.toastOnce(`qtyDown:${orderItemId}`, 1200, () => this.toast.info(`↓ ${name}: ${prevQty} → ${quantity} (table ${label})`, 'Qty decreased', 2500));
+      }
+    } else {
+      this.debugSound('qtyUpdated: non-drink -> no sound', { category: it.item.category });
+    }
+    await this.offlineDB.saveCart(tableId, cart, orderId, true);
   }
 
   private async applyOrderItemDeleted(payload: DeleteOrderItemSSEPayload) {
-    const tableId = this.orderIdToTableId[payload.orderId];
+    const orderId = (payload as unknown as { orderId?: string; OrderId?: string }).orderId
+      ?? (payload as unknown as { OrderId?: string }).OrderId
+      ?? '';
+    const orderItemId = (payload as unknown as { orderItemId?: string; OrderItemId?: string }).orderItemId
+      ?? (payload as unknown as { OrderItemId?: string }).OrderItemId
+      ?? '';
+    if (!orderId || !orderItemId) return;
+
+    let tableId = this.orderIdToTableId[orderId];
+    if (!tableId) {
+      try {
+        const rec = await this.offlineDB.carts.where('orderId').equals(orderId).first();
+        tableId = rec?.tableId ?? '';
+        if (tableId) this.orderIdToTableId[orderId] = tableId;
+      } catch {
+        // ignore
+      }
+    }
     if (!tableId) return;
     const cart = await this.offlineDB.loadCart(tableId);
-    const idx = cart.findIndex(c => c.orderItemId === payload.orderItemId);
-    if (idx === -1) return;
+    const idx = cart.findIndex(c => c.orderItemId === orderItemId);
+    if (idx === -1) {
+      if (!this.hydrating && !document.hidden && !this.soundMuted) {
+        this.sounds.play('itemDeleted');
+      }
+      const label = this.tableLabel(tableId);
+      this.toastOnce(`itemDeleted:${orderItemId}`, 1500, () => this.toast.info(`Item removed (table ${label}).`, 'Item deleted', 2500));
+      return;
+    }
     const wasDrink = isDrinkCategory(cart[idx].item.category);
     if (wasDrink) {
-      this.setMark(tableId, payload.orderItemId, 'deleted');
+      this.setMark(tableId, orderItemId, 'deleted');
+      const label = this.tableLabel(tableId);
+      const name = cart[idx].item.menuItemName ?? 'Item';
+      this.toastOnce(`itemDeleted:${orderItemId}`, 1500, () => this.toast.info(`− ${name} (table ${label})`, 'Item deleted', 2500));
     }
     cart.splice(idx, 1);
-    await this.offlineDB.saveCart(tableId, cart, payload.orderId, true);
+    await this.offlineDB.saveCart(tableId, cart, orderId, true);
   }
 
   private async rebuildFromDexie(tableId?: string, lastActionAt?: string) {
@@ -337,6 +521,7 @@ export class BarComponent implements OnInit, OnDestroy {
         delete this.ordersByTableId[tableId];
         return;
       }
+      this.seenServerOrderIds.add(record.orderId);
       this.orderIdToTableId[record.orderId] = tableId;
 
       const mapped = this.mapCartToBarItems(tableId, record.items);
@@ -360,6 +545,7 @@ export class BarComponent implements OnInit, OnDestroy {
     for (const [tId, items] of Object.entries(carts)) {
       const record = await this.offlineDB.loadCartRecord(tId);
       if (!record?.orderId || record.orderId.startsWith('local-')) continue;
+      this.seenServerOrderIds.add(record.orderId);
       this.orderIdToTableId[record.orderId] = tId;
       const mapped = this.mapCartToBarItems(tId, items);
       if (!mapped.length) continue;
@@ -392,10 +578,10 @@ export class BarComponent implements OnInit, OnDestroy {
       });
   }
 
-  private setMark(tableId: string, itemId: string, kind: MarkKind) {
+  private setMark(tableId: string, itemId: string, kind: MarkKind, playSound: boolean = true) {
     const until = Date.now() + this.markMs;
     (this.marksByTableId[tableId] ??= {})[itemId] = { kind, until };
-    this.queueSound(kind);
+    if (playSound) this.queueSound(kind);
     const timerKey = `${tableId}:${itemId}`;
     if (this.clearMarkTimers[timerKey]) clearTimeout(this.clearMarkTimers[timerKey]);
     this.clearMarkTimers[timerKey] = setTimeout(() => {
@@ -407,9 +593,29 @@ export class BarComponent implements OnInit, OnDestroy {
   private queueSound(kind: MarkKind) {
     if (this.hydrating) return;
     if (document.hidden) return;
-    if (kind !== 'added' && kind !== 'updated') return;
+    if (this.soundMuted) return;
 
-    this.pendingSoundKind = (this.pendingSoundKind === 'new' || kind === 'added') ? 'new' : 'updated';
+    this.debugSound('queueSound', { kind, hydrating: this.hydrating, hidden: document.hidden, muted: this.soundMuted });
+
+    const mapped: NotificationSoundKind | null =
+      kind === 'added' ? 'itemAdded'
+        : kind === 'updated' ? 'qtyUpdated'
+          : kind === 'deleted' ? 'itemDeleted'
+            : null;
+    if (!mapped) return;
+
+    const priority: Record<NotificationSoundKind, number> = {
+      newOrder: 4,
+      itemDeleted: 3,
+      itemAdded: 2,
+      qtyUpdated: 1,
+      uiToggle: 0
+    };
+
+    this.pendingSoundKind =
+      (!this.pendingSoundKind || priority[mapped] >= priority[this.pendingSoundKind])
+        ? mapped
+        : this.pendingSoundKind;
     if (this.pendingSoundTimer) return;
 
     this.pendingSoundTimer = setTimeout(() => {
@@ -420,14 +626,14 @@ export class BarComponent implements OnInit, OnDestroy {
     }, 0);
   }
 
-  private diffAndMark(tableId: string, prev: CartItem[], next: CartItem[]) {
+  private diffAndMark(tableId: string, prev: CartItem[], next: CartItem[], suppressAddedSound: boolean) {
     const keyOf = (c: CartItem) => c.orderItemId ?? `menu:${c.item.menuItemId}`;
     const prevById = new Map(prev.map(p => [keyOf(p), p]));
     const nextById = new Map(next.map(n => [keyOf(n), n]));
 
     for (const [id, n] of nextById.entries()) {
       const p = prevById.get(id);
-      if (!p) this.setMark(tableId, id, 'added');
+      if (!p) this.setMark(tableId, id, 'added', !suppressAddedSound);
       else if (p.quantity !== n.quantity) this.setMark(tableId, id, 'updated');
     }
     for (const id of prevById.keys()) {
