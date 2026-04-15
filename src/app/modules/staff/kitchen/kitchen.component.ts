@@ -102,11 +102,25 @@ export class KitchenComponent implements OnInit, OnDestroy {
   private pendingSoundTimer: ReturnType<typeof setTimeout> | null = null;
   private seenServerOrderIds = new Set<string>();
   private lastToastAtByKey: Record<string, number> = {};
+  private readonly recentSseSequences: number[] = [];
+  private readonly recentSseSequenceSet = new Set<number>();
+  private readonly maxRecentSseSequences = 300;
+  private lastOrderUpdatedKeyByTableId: Record<string, string> = {};
+  private lastCartSnapshotByTableId: Record<string, CartItem[]> = {};
+  private get debugStaffToastsEnabled(): boolean {
+    try { return localStorage.getItem('debugStaffToasts') === '1'; } catch { return false; }
+  }
+  private debugToast(...args: unknown[]): void {
+    if (!this.debugStaffToastsEnabled) return;
+    // eslint-disable-next-line no-console
+    console.log('[KitchenToast]', ...args);
+  }
 
   private toastOnce(key: string, ms: number, fn: () => void): void {
     const now = Date.now();
     if (now - (this.lastToastAtByKey[key] ?? 0) < ms) return;
     this.lastToastAtByKey[key] = now;
+    this.debugToast('toastOnce', { key, ms });
     fn();
   }
 
@@ -213,7 +227,16 @@ export class KitchenComponent implements OnInit, OnDestroy {
     }
   }
 
-  private handleSseEvent({ EventType, Data }: SseEvent<any>) {
+  private handleSseEvent({ EventType, Data, Sequence }: SseEvent<any>) {
+    if (typeof Sequence === 'number' && Sequence > 0) {
+      if (this.recentSseSequenceSet.has(Sequence)) return;
+      this.recentSseSequenceSet.add(Sequence);
+      this.recentSseSequences.push(Sequence);
+      if (this.recentSseSequences.length > this.maxRecentSseSequences) {
+        const old = this.recentSseSequences.shift();
+        if (typeof old === 'number') this.recentSseSequenceSet.delete(old);
+      }
+    }
     switch (EventType) {
       case 'OrderUpdated': {
         const payload = Data as OrderUpdatedSSEPayload;
@@ -221,23 +244,23 @@ export class KitchenComponent implements OnInit, OnDestroy {
         break;
       }
       case 'OrderItemAdded': {
-        const payload = Data as AddOrderItemResponse;
-        void this.applyOrderItemAdded(payload);
+        // Intentionally ignored: we compute UI changes + granular toasts from OrderUpdated diffs.
         break;
       }
       case 'OrderItemQuantityUpdated': {
-        const payload = Data as UpdateOrderItemQuantityResponse;
-        void this.applyOrderItemQtyUpdated(payload);
+        // Intentionally ignored: we compute qty++/qty-- from OrderUpdated diffs.
         break;
       }
       case 'OrderItemDeleted': {
-        const payload = Data as DeleteOrderItemSSEPayload;
-        void this.applyOrderItemDeleted(payload);
+        // Intentionally ignored: we compute delete from OrderUpdated diffs.
         break;
       }
       case 'OrderClosedWithPayment': {
         const tableId = Data?.TableId;
-        if (tableId) delete this.ordersByTableId[tableId];
+        if (tableId) {
+          delete this.ordersByTableId[tableId];
+          delete this.lastCartSnapshotByTableId[tableId];
+        }
         break;
       }
       default:
@@ -292,7 +315,9 @@ export class KitchenComponent implements OnInit, OnDestroy {
   }
 
   private filterFood(items: CartItem[]): CartItem[] {
-    return items.filter(c => isFoodCategory(c.item.category));
+    // For notifications/diff: if category is unknown (e.g. menu cache not ready yet),
+    // still treat it as relevant so we don't miss toasts on some browsers.
+    return items.filter(c => isFoodCategory(c.item.category) || !c.item.category || c.item.category === 'Unknown');
   }
 
   private async applyOrderUpdated(payload: OrderUpdatedSSEPayload) {
@@ -311,9 +336,13 @@ export class KitchenComponent implements OnInit, OnDestroy {
 
     if (!tableId || !orderId) return;
 
+    const dedupeKey = `${orderId}:${lastActionAt}`;
+    if (this.lastOrderUpdatedKeyByTableId[tableId] === dedupeKey) return;
+    this.lastOrderUpdatedKeyByTableId[tableId] = dedupeKey;
+
     this.orderIdToTableId[orderId] = tableId;
 
-    const existing = await this.offlineDB.loadCart(tableId);
+    const existing = this.lastCartSnapshotByTableId[tableId] ?? [];
     const prevFood = this.filterFood(existing);
     const rawItems = ((payload as unknown as { Items?: any[]; items?: any[] }).Items
       ?? (payload as unknown as { items?: any[] }).items
@@ -344,19 +373,28 @@ export class KitchenComponent implements OnInit, OnDestroy {
     const nextFood = this.filterFood(nextCart);
     const isServerOrderId = !!orderId && !orderId.startsWith('local-');
     const isNewOrder = isServerOrderId && !this.seenServerOrderIds.has(orderId) && nextFood.length > 0;
+    this.debugToast('OrderUpdated', {
+      tableId,
+      orderId,
+      lastActionAt,
+      prevFoodLen: prevFood.length,
+      nextFoodLen: nextFood.length,
+      rawItemsLen: rawItems.length,
+      isNewOrder,
+    });
     if (isNewOrder && !this.hydrating && !document.hidden && !this.soundMuted) {
       this.sounds.play('newOrder');
     }
     if (isNewOrder) {
       const label = this.tableLabel(tableId);
-      this.toastOnce(`newOrder:${orderId}`, 2000, () => this.toast.success(`New order at table ${label}.`, 'New order', 3500));
-    } else {
-      const label = this.tableLabel(tableId);
-      // Avoid spamming when an OrderUpdated follows a more specific event (qty/add/delete).
-      this.toastOnce(`orderUpdated:${orderId}`, 1200, () => this.toast.info(`Order updated at table ${label}.`, 'Order updated', 2500));
+      this.toastOnce(`newOrder:${orderId}`, 2000, () => this.toast.sticky(`New order at table ${label}.`, 'New order', 'success'));
     }
     if (isServerOrderId) this.seenServerOrderIds.add(orderId);
     this.diffAndMark(tableId, prevFood, nextFood, isNewOrder);
+
+    // Update in-memory snapshot for next diffs/toasts (avoid Dexie race across tabs).
+    this.lastCartSnapshotByTableId[tableId] = nextCart;
+
     await this.offlineDB.saveCart(tableId, nextCart, orderId, true);
     await this.rebuildFromDexie(tableId, lastActionAt);
   }
@@ -408,9 +446,6 @@ export class KitchenComponent implements OnInit, OnDestroy {
 
     if (isFoodCategory((mi?.category ?? 'Unknown'))) {
       this.setMark(tableId, orderItemId, 'added');
-      const label = this.tableLabel(tableId);
-      const name = mi?.menuItemName ?? 'Item';
-      this.toastOnce(`itemAdded:${orderItemId}`, 1500, () => this.toast.info(`+ ${name} ×${quantity} (table ${label})`, 'New item', 2500));
     }
     await this.offlineDB.saveCart(tableId, cart, orderId, true);
   }
@@ -460,13 +495,6 @@ export class KitchenComponent implements OnInit, OnDestroy {
     it.quantity = quantity;
     this.debugSound('qtyUpdated: mark+sound', { tableId, orderItemId, quantity });
     this.setMark(tableId, orderItemId, 'updated');
-    const label = this.tableLabel(tableId);
-    const name = it.item.menuItemName ?? 'Item';
-    if (quantity > prevQty) {
-      this.toastOnce(`qtyUp:${orderItemId}`, 1200, () => this.toast.info(`↑ ${name}: ${prevQty} → ${quantity} (table ${label})`, 'Qty increased', 2500));
-    } else if (quantity < prevQty) {
-      this.toastOnce(`qtyDown:${orderItemId}`, 1200, () => this.toast.info(`↓ ${name}: ${prevQty} → ${quantity} (table ${label})`, 'Qty decreased', 2500));
-    }
     await this.offlineDB.saveCart(tableId, cart, orderId, true);
   }
 
@@ -498,16 +526,11 @@ export class KitchenComponent implements OnInit, OnDestroy {
       if (!this.hydrating && !document.hidden && !this.soundMuted) {
         this.sounds.play('itemDeleted');
       }
-      const label = this.tableLabel(tableId);
-      this.toastOnce(`itemDeleted:${orderItemId}`, 1500, () => this.toast.info(`Item removed (table ${label}).`, 'Item deleted', 2500));
       return;
     }
     const wasFood = isFoodCategory(cart[idx].item.category);
     if (wasFood) {
       this.setMark(tableId, orderItemId, 'deleted');
-      const label = this.tableLabel(tableId);
-      const name = cart[idx].item.menuItemName ?? 'Item';
-      this.toastOnce(`itemDeleted:${orderItemId}`, 1500, () => this.toast.info(`− ${name} (table ${label})`, 'Item deleted', 2500));
     }
     cart.splice(idx, 1);
     await this.offlineDB.saveCart(tableId, cart, orderId, true);
@@ -520,10 +543,12 @@ export class KitchenComponent implements OnInit, OnDestroy {
       const record = await this.offlineDB.loadCartRecord(tableId);
       if (!record?.orderId || record.orderId.startsWith('local-')) {
         delete this.ordersByTableId[tableId];
+        delete this.lastCartSnapshotByTableId[tableId];
         return;
       }
       this.seenServerOrderIds.add(record.orderId);
       this.orderIdToTableId[record.orderId] = tableId;
+      this.lastCartSnapshotByTableId[tableId] = record.items ?? [];
 
       const mapped = this.mapCartToKitchenItems(tableId, record.items);
       if (!mapped.length) {
@@ -548,6 +573,7 @@ export class KitchenComponent implements OnInit, OnDestroy {
       if (!record?.orderId || record.orderId.startsWith('local-')) continue;
       this.seenServerOrderIds.add(record.orderId);
       this.orderIdToTableId[record.orderId] = tId;
+      this.lastCartSnapshotByTableId[tId] = items ?? [];
       const mapped = this.mapCartToKitchenItems(tId, items);
       if (!mapped.length) continue;
       this.ordersByTableId[tId] = {
@@ -627,18 +653,55 @@ export class KitchenComponent implements OnInit, OnDestroy {
     }, 0);
   }
 
-  private diffAndMark(tableId: string, prev: CartItem[], next: CartItem[], suppressAddedSound: boolean) {
+  private diffAndMark(tableId: string, prev: CartItem[], next: CartItem[], isNewOrder: boolean) {
     const keyOf = (c: CartItem) => c.orderItemId ?? `menu:${c.item.menuItemId}`;
     const prevById = new Map(prev.map(p => [keyOf(p), p]));
     const nextById = new Map(next.map(n => [keyOf(n), n]));
 
+    this.debugToast('diffAndMark start', { tableId, prev: prev.length, next: next.length, isNewOrder });
+
     for (const [id, n] of nextById.entries()) {
       const p = prevById.get(id);
-      if (!p) this.setMark(tableId, id, 'added', !suppressAddedSound);
-      else if (p.quantity !== n.quantity) this.setMark(tableId, id, 'updated');
+      if (!p) {
+        this.setMark(tableId, id, 'added', !isNewOrder);
+        if (!isNewOrder) {
+          const label = this.tableLabel(tableId);
+          this.debugToast('diff added', { tableId, id, name: n.item.menuItemName, qty: n.quantity });
+          this.toastOnce(`itemAdded:${tableId}:${id}`, 1500, () =>
+            this.toast.sticky(`+ ${n.item.menuItemName} ×${n.quantity} (table ${label})`, 'New item', 'info')
+          );
+        }
+      } else if (p.quantity !== n.quantity) {
+        this.setMark(tableId, id, 'updated');
+        const label = this.tableLabel(tableId);
+        const prevQty = p.quantity;
+        const nextQty = n.quantity;
+        this.debugToast('diff qty', { tableId, id, name: n.item.menuItemName, prevQty, nextQty });
+        if (nextQty > prevQty) {
+          this.toastOnce(`qtyUp:${tableId}:${id}`, 1200, () =>
+            this.toast.info(`↑ ${n.item.menuItemName}: ${prevQty} → ${nextQty} (table ${label})`, 'Qty increased', 8000)
+          );
+        } else {
+          this.toastOnce(`qtyDown:${tableId}:${id}`, 1200, () =>
+            this.toast.info(`↓ ${n.item.menuItemName}: ${prevQty} → ${nextQty} (table ${label})`, 'Qty decreased', 8000)
+          );
+        }
+      }
     }
-    for (const id of prevById.keys()) {
-      if (!nextById.has(id)) this.setMark(tableId, id, 'deleted');
+    // Skip deletion detection when: new order (prev items belong to a different order)
+    // or next is empty (order close — not a real item deletion).
+    if (!isNewOrder && next.length > 0) {
+      for (const id of prevById.keys()) {
+        if (!nextById.has(id)) {
+          this.setMark(tableId, id, 'deleted');
+          const label = this.tableLabel(tableId);
+          const name = prevById.get(id)?.item.menuItemName ?? 'Item';
+          this.debugToast('diff deleted', { tableId, id, name });
+          this.toastOnce(`itemDeleted:${tableId}:${id}`, 1500, () =>
+            this.toast.sticky(`− ${name} (table ${label})`, 'Item deleted', 'warning')
+          );
+        }
+      }
     }
   }
 }

@@ -75,6 +75,9 @@ import { TranslocoPipe } from '@jsverse/transloco';
 export class ManageOrdersComponent implements OnInit, OnDestroy {
   icons = { cilBellExclamation };
   private destroy$ = new Subject<void>();
+  private readonly recentSseSequences: number[] = [];
+  private readonly recentSseSequenceSet = new Set<number>();
+  private readonly maxRecentSseSequences = 300;
   private restaurantId = '';
 
   waiterState: Record<string, WaiterCallState> = {};
@@ -731,8 +734,17 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   // ─── SSE HANDLER ─────────────────────────────────────────────────────────────
 
-  private async handleSseEvent({ EventType, Data, InitiatedBy }: SseEvent<any>): Promise<void> {
+  private async handleSseEvent({ EventType, Data, InitiatedBy, Sequence }: SseEvent<any>): Promise<void> {
     if (!EventType) return;
+    if (typeof Sequence === 'number' && Sequence > 0) {
+      if (this.recentSseSequenceSet.has(Sequence)) return;
+      this.recentSseSequenceSet.add(Sequence);
+      this.recentSseSequences.push(Sequence);
+      if (this.recentSseSequences.length > this.maxRecentSseSequences) {
+        const old = this.recentSseSequences.shift();
+        if (typeof old === 'number') this.recentSseSequenceSet.delete(old);
+      }
+    }
 
     switch (EventType) {
 

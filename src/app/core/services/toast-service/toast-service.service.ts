@@ -50,6 +50,16 @@ export class AppToastService {
     });
   }
 
+  sticky(message: string, title = 'Info', color: AppToast['color'] = 'info') {
+    this.pushToast({
+      id: crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2),
+      title,
+      message,
+      color,
+      autohide: false
+    });
+  }
+
   remove(id: string) {
     const list = this.current.filter(t => t.id !== id);
     this.toastsSubject.next(list);

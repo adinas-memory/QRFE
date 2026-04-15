@@ -18,6 +18,7 @@ import { ToastBaseComponent } from '../toast-base/toast-base.component';
         [autohide]="toast.autohide ?? true"
         [delay]="toast.delay"
         [visible]="true"
+        (visibleChange)="onDismiss($event, toast.id)"
       />
     </c-toaster>
   `
@@ -27,5 +28,9 @@ export class AppToastsComponent {
 
   trackById(_: number, toast: { id: string }) {
     return toast.id;
+  }
+
+  onDismiss(visible: boolean, id: string) {
+    if (!visible) this.toastService.remove(id);
   }
 }
