@@ -33,13 +33,21 @@
     "callWaiter": "Kellner rufen",
     "callWaiterConfirm": "Kellner an deinen Tisch rufen?",
     "called": "Der Kellner wurde gerufen.",
-    "close": "Schließen"
+    "close": "Schließen",
+    "myOrder": "Meine Bestellung",
+    "theme": "Thema",
+    "light": "Hell",
+    "dark": "Dunkel"
   },
   "staff": {
     "confirm": "Bestätigen",
     "reset": "Zurücksetzen",
     "resetConfirm": "Lokalen Warenkorb (Dexie) und Formularzustand für den aktuellen Tisch zurücksetzen?",
     "moveTo": "Verschieben nach"
+  },
+  "sidebar": {
+    "manage": "Verwaltung",
+    "reports": "Berichte"
   }
 }
 

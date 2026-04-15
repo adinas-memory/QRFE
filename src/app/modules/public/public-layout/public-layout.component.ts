@@ -1,32 +1,65 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, RouterOutlet } from '@angular/router';
-import { BadgeComponent, ButtonDirective, ContainerComponent, FooterComponent, NavbarBrandDirective, NavbarComponent } from '@coreui/angular';
+import {
+  BadgeComponent, ButtonDirective, ContainerComponent, FooterComponent,
+  NavbarBrandDirective, NavbarComponent,
+  DropdownComponent, DropdownDividerDirective, DropdownHeaderDirective,
+  DropdownItemDirective, DropdownMenuDirective, DropdownToggleDirective,
+} from '@coreui/angular';
+import { IconDirective } from '@coreui/icons-angular';
 import { MenuService } from '../../../core/services/menu-public/menu.service';
 import { MenuResponse, WaiterCallResponse } from '../../../core/models/menu/menuItem';
-import { NgIf } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { environment } from '../../../../environments/environment';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { LANG_STORAGE_KEY, type AppLang } from '../../../core/i18n/transloco.config';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-public-layout',
-  imports: [RouterOutlet, NgIf, BadgeComponent, FooterComponent,
-     ButtonDirective, ContainerComponent, NavbarBrandDirective, NavbarComponent],
+  imports: [
+    RouterOutlet,
+    BadgeComponent, FooterComponent, ButtonDirective, ContainerComponent,
+    NavbarBrandDirective, NavbarComponent, IconDirective, NgClass,
+    DropdownComponent, DropdownDividerDirective, DropdownHeaderDirective,
+    DropdownItemDirective, DropdownMenuDirective, DropdownToggleDirective,
+    TranslocoPipe,
+  ],
   standalone: true,
   templateUrl: './public-layout.component.html',
   styleUrl: './public-layout.component.scss'
 })
-export class PublicLayoutComponent implements OnInit {
+export class PublicLayoutComponent implements OnInit, OnDestroy {
   restaurantName = 'Restaurant';
   menuResponse!: MenuResponse;
   restaurantId = '';
   tableId = '';
   waiterCounterCall = 3;
+  waiterCalled = false;
   year = new Date().getFullYear();
   poweredBy = environment.poweredBy;
   frontendPubicUrl = environment.apiUrl;
+  theme: 'dark' | 'light' = 'dark';
 
-  constructor(private route: ActivatedRoute, private menuService: MenuService) { }
+  private destroy$ = new Subject<void>();
+
+  constructor(
+    private route: ActivatedRoute,
+    private menuService: MenuService,
+    private transloco: TranslocoService,
+  ) {}
+
+  viewOrder(): void {
+    console.log('=== VIEW ORDER ===');
+    console.log('Restaurant:', this.restaurantId);
+    console.log('Table:', this.tableId);
+    console.log('TODO: navigate to order view component');
+    console.log('==================');
+  }
 
   ngOnInit(): void {
+    this.theme = (localStorage.getItem('publicTheme') as 'dark' | 'light') || 'dark';
+
     this.route.firstChild?.data.subscribe(data => {
       const response = data['menuData'] as MenuResponse;
       this.restaurantName = response?.restaurantName ?? 'Restaurant';
@@ -35,11 +68,47 @@ export class PublicLayoutComponent implements OnInit {
       this.menuResponse = response;
       this.waiterCounterCall = response.waiterCallCount ?? 3;
     });
+
+    if (this.restaurantId || this.route.snapshot.paramMap.get('restaurantId')) {
+      const rid = this.restaurantId || this.route.snapshot.paramMap.get('restaurantId')!;
+      this.menuService.listenWaiterEvents(rid)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (ev) => {
+            if (ev.type === 'WaiterCall') {
+              this.waiterCalled = true;
+              setTimeout(() => this.waiterCalled = false, 4000);
+            }
+          },
+          error: (err) => console.warn('[PublicLayout] public SSE error', err)
+        });
+    }
   }
 
   callWaiter(): void {
-    this.menuService.callWaiter(this.restaurantId, this.tableId).subscribe((response: WaiterCallResponse) => {
-      this.waiterCounterCall = response.counterCalls;
-    })
+    if (!this.restaurantId || !this.tableId) return;
+    this.menuService.callWaiter(this.restaurantId, this.tableId).subscribe({
+      next: (response: WaiterCallResponse) => {
+        this.waiterCounterCall = response.counterCalls;
+        this.waiterCalled = true;
+        setTimeout(() => this.waiterCalled = false, 4000);
+      },
+      error: (err) => console.error('[PublicLayout] callWaiter error', err)
+    });
+  }
+
+  setTheme(t: 'dark' | 'light') {
+    this.theme = t;
+    localStorage.setItem('publicTheme', t);
+  }
+
+  setLanguage(l: AppLang) {
+    this.transloco.setActiveLang(l);
+    try { localStorage.setItem(LANG_STORAGE_KEY, l); } catch { /* ignore */ }
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

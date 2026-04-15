@@ -16,7 +16,6 @@
       class="p-3"
       [itemKey]="i"
     >
-      <!-- Accordion per category -->
       <c-accordion [flush]="true">
         <c-accordion-item
           #accordionItem="cAccordionItem"
@@ -29,7 +28,7 @@
               [collapsed]="!accordionItem.visible"
               cAccordionButton
             >
-              {{ cat }} Items
+              {{ menuName ? menuName + ' — ' : '' }}{{ cat }}
             </button>
           </ng-template>
 
@@ -55,9 +54,7 @@
                   </div>
                   <div class="d-flex align-items-center">
                     <img
-                      [src]="
-                        item.menuItemIconUrl + '?v=' + forceRefreshAfterUpdate
-                      "
+                      [src]="item.menuItemIconUrl + '?v=' + forceRefreshAfterUpdate"
                       [alt]="item.menuItemName"
                       width="50"
                       height="50"
@@ -74,36 +71,10 @@
     </c-tab-panel>
   </c-tabs-content>
 </c-tabs>
+
 <c-modal [(visible)]="imageModalVisible" alignment="center" size="lg">
   <c-modal-body>
     <img [src]="selectedImageUrl" [alt]="selectedImageName" class="img-fluid" />
   </c-modal-body>
-</c-modal>
-
-<button cButton color="primary" class="call-waiter-btn shadow" (click)="callWaiterModalVisible = true">
-  {{ 'client.callWaiter' | transloco }}
-</button>
-
-@if (waiterCalled) {
-  <div class="waiter-called-toast shadow-sm">
-    {{ 'client.called' | transloco }}
-  </div>
-}
-
-<c-modal [(visible)]="callWaiterModalVisible" alignment="center">
-  <c-modal-header>
-    <h5 cModalTitle>{{ 'client.callWaiter' | transloco }}</h5>
-  </c-modal-header>
-  <c-modal-body>
-    {{ 'client.callWaiterConfirm' | transloco }}
-  </c-modal-body>
-  <c-modal-footer>
-    <button cButton color="secondary" variant="outline" (click)="callWaiterModalVisible = false">
-      {{ 'client.close' | transloco }}
-    </button>
-    <button cButton color="primary" (click)="confirmCallWaiter()">
-      {{ 'client.callWaiter' | transloco }}
-    </button>
-  </c-modal-footer>
 </c-modal>
 </div>

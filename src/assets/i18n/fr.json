@@ -33,13 +33,21 @@
     "callWaiter": "Appeler le serveur",
     "callWaiterConfirm": "Appeler le serveur à votre table ?",
     "called": "Le serveur a été appelé.",
-    "close": "Fermer"
+    "close": "Fermer",
+    "myOrder": "Ma commande",
+    "theme": "Thème",
+    "light": "Clair",
+    "dark": "Sombre"
   },
   "staff": {
     "confirm": "Confirmer",
     "reset": "Réinitialiser",
     "resetConfirm": "Réinitialiser le panier local (Dexie) et l’état du formulaire pour la table courante ?",
     "moveTo": "Déplacer vers"
+  },
+  "sidebar": {
+    "manage": "Gestion",
+    "reports": "Rapports"
   }
 }
 

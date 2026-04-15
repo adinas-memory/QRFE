@@ -33,13 +33,21 @@
     "callWaiter": "Kalla på servitör",
     "callWaiterConfirm": "Kalla på servitören till ditt bord?",
     "called": "Servitören har kallats.",
-    "close": "Stäng"
+    "close": "Stäng",
+    "myOrder": "Min beställning",
+    "theme": "Tema",
+    "light": "Ljust",
+    "dark": "Mörkt"
   },
   "staff": {
     "confirm": "Bekräfta",
     "reset": "Återställ",
     "resetConfirm": "Återställ lokal kundvagn (Dexie) och formulärstatus för aktuellt bord?",
     "moveTo": "Flytta till"
+  },
+  "sidebar": {
+    "manage": "Hantera",
+    "reports": "Rapporter"
   }
 }
 

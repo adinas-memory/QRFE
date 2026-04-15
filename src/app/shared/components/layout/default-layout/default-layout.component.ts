@@ -1,4 +1,4 @@
-import { Component, OnInit, DestroyRef, inject } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject, computed } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { NgScrollbar } from 'ngx-scrollbar';
 import { IconSetService } from '@coreui/icons-angular';
@@ -6,6 +6,7 @@ import { IconDirective } from '@coreui/icons-angular';
 
 import {
   INavData,
+  ColorModeService,
   ContainerComponent,
   ShadowOnScrollDirective,
   SidebarBrandComponent,
@@ -23,6 +24,7 @@ import { AuthService } from '../../../../core/auth/auth.service';
 import { UserContextModel } from '../../../../core/models/userContextModel';
 import { TitleCasePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { TranslocoService } from '@jsverse/transloco';
 
 function isOverflown(element: HTMLElement) {
   return (
@@ -58,22 +60,38 @@ export class DefaultLayoutComponent implements OnInit {
   public navItems: INavData[] = [];
   restaurantName: string | any| null = null;
   private readonly destroyRef = inject(DestroyRef);
+  private readonly transloco = inject(TranslocoService);
 
+  readonly #colorModeService = inject(ColorModeService);
+  readonly #colorMode = this.#colorModeService.colorMode;
 
-  constructor(private auth: AuthService, public iconSet: IconSetService) {
+  readonly sidebarColorScheme = computed<'dark' | 'light'>(() => {
+    const mode = this.#colorMode();
+    if (mode === 'auto') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return mode as 'dark' | 'light';
+  });
 
-  }
+  private userRole = 'default';
+
+  constructor(private auth: AuthService, public iconSet: IconSetService) {}
 
   ngOnInit(): void {
-    const role = this.auth.getUserSnapshot()?.role ?? 'default';
-    this.navItems = this.getNavItemsForRole(role);
+    this.userRole = this.auth.getUserSnapshot()?.role ?? 'default';
+    this.navItems = this.getNavItemsForRole(this.userRole);
     this.restaurantName = this.auth.getRestaurantCtx()?.name ?? null;
 
-    // Keep header in sync across refresh / restoreSession / refresh-token.
     this.auth.user$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(user => {
         this.restaurantName = user?.restaurantName ?? this.auth.getRestaurantCtx()?.name ?? null;
+      });
+
+    this.transloco.langChanges$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.navItems = this.getNavItemsForRole(this.userRole);
       });
   }
 
@@ -130,6 +148,10 @@ export class DefaultLayoutComponent implements OnInit {
             iconComponent: { name: 'cil-list' }
           },
           {
+            title: true,
+            name: this.transloco.translate('sidebar.manage')
+          },
+          {
             name: 'Tables',
             url: '/manager/manage-tables',
             iconComponent: { name: 'cil-grid' }
@@ -148,7 +170,11 @@ export class DefaultLayoutComponent implements OnInit {
             name: 'QR Codes',
             url: '/manager/manage-qrs',
             iconComponent: { name: 'cil-qr-code' }
-          }
+          },
+          {
+            title: true,
+            name: this.transloco.translate('sidebar.reports')
+          },
         ];
       case 'gadmin':
         return [

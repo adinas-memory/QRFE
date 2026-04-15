@@ -33,13 +33,21 @@
     "callWaiter": "Chiama il cameriere",
     "callWaiterConfirm": "Chiamare il cameriere al tuo tavolo?",
     "called": "Il cameriere è stato chiamato.",
-    "close": "Chiudi"
+    "close": "Chiudi",
+    "myOrder": "Il mio ordine",
+    "theme": "Tema",
+    "light": "Chiaro",
+    "dark": "Scuro"
   },
   "staff": {
     "confirm": "Conferma",
     "reset": "Reset",
     "resetConfirm": "Resettare il carrello locale (Dexie) e lo stato del form per il tavolo corrente?",
     "moveTo": "Sposta a"
+  },
+  "sidebar": {
+    "manage": "Gestione",
+    "reports": "Report"
   }
 }
 

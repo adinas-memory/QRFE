@@ -33,13 +33,21 @@
     "callWaiter": "Call waiter",
     "callWaiterConfirm": "Call the waiter to your table?",
     "called": "Waiter has been called.",
-    "close": "Close"
+    "close": "Close",
+    "myOrder": "My order",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark"
   },
   "staff": {
     "confirm": "Confirm",
     "reset": "Reset",
     "resetConfirm": "Reset local cart (Dexie) and form state for current table?",
     "moveTo": "Move to"
+  },
+  "sidebar": {
+    "manage": "Manage",
+    "reports": "Reports"
   }
 }
 

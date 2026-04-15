@@ -33,13 +33,21 @@
     "callWaiter": "Cheamă ospătarul",
     "callWaiterConfirm": "Vrei să chemi ospătarul la masă?",
     "called": "Ospătarul a fost chemat.",
-    "close": "Închide"
+    "close": "Închide",
+    "myOrder": "Comanda mea",
+    "theme": "Temă",
+    "light": "Luminos",
+    "dark": "Întunecat"
   },
   "staff": {
     "confirm": "Confirmă",
     "reset": "Reset",
     "resetConfirm": "Resetezi cartul local (Dexie) și starea formularului pentru masa curentă?",
     "moveTo": "Mută la"
+  },
+  "sidebar": {
+    "manage": "Administrare",
+    "reports": "Rapoarte"
   }
 }
 

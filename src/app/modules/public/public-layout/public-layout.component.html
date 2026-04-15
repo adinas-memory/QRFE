@@ -1,24 +1,72 @@
-<div class="public-shell">
-  <c-navbar colorScheme="dark" class="public-topbar" color="dark">
-    <c-container fluid>
-      <a cNavbarBrand class="fw-semibold">{{ restaurantName }}</a>
-      <button
-        *ngIf="waiterCounterCall > 0"
-        cButton
-        color="light"
-        variant="outline"
-        (click)="callWaiter()"
-      >
-        Call Waiter
-        <c-badge color="primary" class="ms-2">{{ waiterCounterCall }}</c-badge>
-        <span class="visually-hidden"></span>
-      </button>
+<div class="public-shell" [attr.data-coreui-theme]="theme">
+  <c-navbar class="public-topbar" [colorScheme]="theme">
+    <c-container fluid class="d-flex align-items-center">
+      <a cNavbarBrand class="fw-semibold me-auto">{{ restaurantName }}</a>
+
+      <!-- Call Waiter — always visible -->
+      @if (waiterCounterCall > 0) {
+        <button
+          cButton
+          color="primary"
+          size="sm"
+          class="me-2 call-waiter-topbar"
+          (click)="callWaiter()"
+        >
+          {{ 'client.callWaiter' | transloco }}
+          <c-badge color="light" textColor="dark" class="ms-1">{{ waiterCounterCall }}</c-badge>
+        </button>
+      }
+
+      <!-- Burger dropdown -->
+      <c-dropdown alignment="end" variant="nav-item">
+        <button cButton [caret]="false" cDropdownToggle color="light" variant="ghost" size="sm" class="burger-toggle">
+          <svg cIcon name="cilMenu" size="lg"></svg>
+        </button>
+        <div cDropdownMenu class="burger-menu">
+          <!-- My Order (placeholder — route + component to be added) -->
+          <button cDropdownItem class="d-flex align-items-center" (click)="viewOrder()">
+            <svg cIcon name="cilCart" class="me-2" size="lg"></svg>
+            {{ 'client.myOrder' | transloco }}
+          </button>
+
+          <hr cDropdownDivider />
+
+          <!-- Theme toggle -->
+          <h6 cDropdownHeader class="small text-uppercase">{{ 'client.theme' | transloco }}</h6>
+          <button cDropdownItem class="d-flex align-items-center" [active]="theme === 'dark'" (click)="setTheme('dark')">
+            <svg cIcon name="cilMoon" class="me-2" size="lg"></svg>
+            {{ 'client.dark' | transloco }}
+          </button>
+          <button cDropdownItem class="d-flex align-items-center" [active]="theme === 'light'" (click)="setTheme('light')">
+            <svg cIcon name="cilSun" class="me-2" size="lg"></svg>
+            {{ 'client.light' | transloco }}
+          </button>
+
+          <hr cDropdownDivider />
+
+          <!-- Language picker -->
+          <h6 cDropdownHeader class="small text-uppercase">{{ 'landing.language' | transloco }}</h6>
+          <button cDropdownItem (click)="setLanguage('ro')"><span class="lang-flag me-2 cif-ro"></span> RO</button>
+          <button cDropdownItem (click)="setLanguage('en')"><span class="lang-flag me-2 cif-gb"></span> EN</button>
+          <button cDropdownItem (click)="setLanguage('it')"><span class="lang-flag me-2 cif-it"></span> IT</button>
+          <button cDropdownItem (click)="setLanguage('fr')"><span class="lang-flag me-2 cif-fr"></span> FR</button>
+          <button cDropdownItem (click)="setLanguage('es')"><span class="lang-flag me-2 cif-es"></span> ES</button>
+          <button cDropdownItem (click)="setLanguage('de')"><span class="lang-flag me-2 cif-de"></span> DE</button>
+          <button cDropdownItem (click)="setLanguage('sv')"><span class="lang-flag me-2 cif-se"></span> SV</button>
+        </div>
+      </c-dropdown>
     </c-container>
   </c-navbar>
 
   <c-container class="public-content">
     <router-outlet></router-outlet>
   </c-container>
+
+  @if (waiterCalled) {
+    <div class="waiter-called-toast shadow-sm">
+      {{ 'client.called' | transloco }}
+    </div>
+  }
 
   <c-footer class="public-footer">
     <div class="small">
