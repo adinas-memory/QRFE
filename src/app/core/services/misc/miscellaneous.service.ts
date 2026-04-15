@@ -24,13 +24,25 @@ export class MiscellaneousService {
 
   getLastActionTime(lastActionAt: string | null): string {
     if (!lastActionAt) return '—';
-    // console.log('Calculating last action time for:', lastActionAt);
-    const ts = new Date(lastActionAt).getTime();
-    const diff = Math.floor((Date.now() - ts) / 60000); // minute
 
-    if (diff <= 0) return 'now';
-    if (diff === 1) return '1 minute ago';
-    return `${diff} minutes ago`;
+    const ts = new Date(lastActionAt).getTime();
+    if (isNaN(ts) || ts < 946684800000) return '—'; // invalid or before year 2000
+
+    const diffMs = Date.now() - ts;
+    if (diffMs < 0) return 'now';
+
+    const mins = Math.floor(diffMs / 60_000);
+    if (mins === 0) return 'now';
+    if (mins === 1) return '1 minute ago';
+    if (mins < 60) return `${mins} minutes ago`;
+
+    const hours = Math.floor(mins / 60);
+    if (hours === 1) return '1 hour ago';
+    if (hours < 24) return `${hours} hours ago`;
+
+    const days = Math.floor(hours / 24);
+    if (days === 1) return '1 day ago';
+    return `${days} days ago`;
   }
 
 

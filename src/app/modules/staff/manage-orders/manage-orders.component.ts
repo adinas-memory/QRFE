@@ -637,6 +637,27 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.canvasVisible = false;
   }
 
+  printOrder() {
+    const tableId = this.currentTableId;
+    const table = this.tables.find(t => t.tableId === tableId);
+    const items = this.tableCarts[tableId] ?? [];
+    const subtotal = this.cartSubTotal;
+    const currency = this.cartCurrency ?? '';
+
+    console.log('=== PRINT ORDER ===');
+    console.log('Table:', table?.tableName ?? tableId);
+    console.log('Order ID:', this.currentOrderId ?? 'N/A');
+    console.log('Items:');
+    for (const ci of items) {
+      const lineTotal = ci.item.menuItemPriceAmount * ci.quantity;
+      console.log(
+        `  ${ci.item.menuItemName}  x${ci.quantity}  @ ${ci.item.menuItemPriceAmount} = ${lineTotal} ${currency}`
+      );
+    }
+    console.log(`TOTAL: ${subtotal} ${currency}`);
+    console.log('===================');
+  }
+
   requestResetCanvas() {
     this.resetConfirmVisible = true;
   }
@@ -652,7 +673,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     const tableId = this.currentTableId;
     const orderId = this.currentOrderId;
 
-    // Clear local state (Dexie + in-memory) for current table.
     await this.offlineDB.deleteCart(tableId);
     this.tableCarts[tableId] = [];
 
@@ -915,7 +935,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           }
 
           this.tableComputed[c.tableId] = this.ordersService.mapComputedDtoToComputed(
-            c, this.tables, this.waiterState, InitiatedBy
+            c, this.tables, this.waiterState, this.tableComputed[c.tableId]?.initiatedBy ?? ''
           );
         }
 
@@ -938,7 +958,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           const table = this.tables.find(t => t.tableId === c.tableId);
           if (!table) continue;
           this.tableComputed[c.tableId] = this.ordersService.mapComputedDtoToComputed(
-            c, this.tables, this.waiterState, InitiatedBy
+            c, this.tables, this.waiterState, this.tableComputed[c.tableId]?.initiatedBy ?? ''
           );
         }
         

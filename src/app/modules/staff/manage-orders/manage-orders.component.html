@@ -17,7 +17,7 @@
                   <h4>
                     Total:
                     {{ (tableComputed[table.tableId]?.total ?? 0) | number:'1.2-2' }}
-                    @if (tableComputed[table.tableId]?.currency && tableComputed[table.tableId]?.currency !== '—') {
+                    @if ((tableComputed[table.tableId]?.total ?? 0) > 0 && tableComputed[table.tableId]?.currency && tableComputed[table.tableId]?.currency !== '—') {
                       <span class="text-muted ms-1">{{ tableComputed[table.tableId].currency }}</span>
                     }
                   </h4>
@@ -74,7 +74,7 @@
                 <h4>
                   Total:
                   {{ (tableComputed[table.tableId]?.total ?? 0) | number:'1.2-2' }}
-                  @if (tableComputed[table.tableId]?.currency && tableComputed[table.tableId]?.currency !== '—') {
+                  @if ((tableComputed[table.tableId]?.total ?? 0) > 0 && tableComputed[table.tableId]?.currency && tableComputed[table.tableId]?.currency !== '—') {
                     <span class="text-muted ms-1">{{ tableComputed[table.tableId].currency }}</span>
                   }
                 </h4>
@@ -131,7 +131,7 @@
                 <h4>
                   Total:
                   {{ (tableComputed[table.tableId]?.total ?? 0) | number:'1.2-2' }}
-                  @if (tableComputed[table.tableId]?.currency && tableComputed[table.tableId]?.currency !== '—') {
+                  @if ((tableComputed[table.tableId]?.total ?? 0) > 0 && tableComputed[table.tableId]?.currency && tableComputed[table.tableId]?.currency !== '—') {
                     <span class="text-muted ms-1">{{ tableComputed[table.tableId].currency }}</span>
                   }
                 </h4>
@@ -181,7 +181,7 @@
   </c-tabs-content>
 </c-tabs>
 <!-- OFFCANVAS -->
-<c-offcanvas backdrop="static" class="offcanvas" placement="end" [visible]="canvasVisible"
+<c-offcanvas [backdrop]="true" class="offcanvas" placement="end" [visible]="canvasVisible"
   (visibleChange)="canvasVisible = $event">
   <div class="offcanvas-wrapper">
     <c-offcanvas-header class="offcanvas-header-fix">
@@ -295,14 +295,10 @@
 
       <hr>
 
-      <div class="d-flex gap-2" *ngIf="!orderIsConfirmed">
-        <button class="btn btn-primary flex-grow-1" (click)="confirmOrder()"
+      <div *ngIf="!orderIsConfirmed">
+        <button class="btn btn-primary w-100" (click)="confirmOrder()"
           [disabled]="selectedItems.length === 0 || !isOnline">
           {{ 'staff.confirm' | transloco }} – {{ cartSubTotal | currency: cartCurrency }}
-        </button>
-        <button class="btn btn-outline-danger" (click)="requestResetCanvas()"
-          [disabled]="selectedItems.length === 0">
-          {{ 'staff.reset' | transloco }}
         </button>
       </div>
 
@@ -313,10 +309,17 @@
             (click)="confirmCloseOrder()"> Close Order </button> </div>
       </div>
 
-      <button class="btn btn-warning w-100" *ngIf="orderIsConfirmed" (click)="closeOrder()"
-        [disabled]="selectedItems.length === 0">
-        Close Order – {{ cartSubTotal | currency: cartCurrency }}
-      </button>
+      <div class="d-flex gap-2" *ngIf="orderIsConfirmed">
+        <button class="btn btn-warning flex-grow-1" (click)="closeOrder()"
+          [disabled]="selectedItems.length === 0">
+          Close Order – {{ cartSubTotal | currency: cartCurrency }}
+        </button>
+        <button class="btn btn-outline-secondary" (click)="printOrder()"
+          [disabled]="selectedItems.length === 0">
+          <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
+          Print
+        </button>
+      </div>
 
     </div>
     <!-- END CART -->
