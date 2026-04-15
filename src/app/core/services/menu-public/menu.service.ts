@@ -2,6 +2,7 @@ import { Injectable, NgZone } from '@angular/core';
 import { environment } from '../../../../environments/environment';
 import { Observable } from 'rxjs';
 import { MenuResponse, WaiterCallResponse } from '../../models/menu/menuItem';
+import { OrderDTO } from '../../models/orderingModel';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 
@@ -25,6 +26,13 @@ export class MenuService {
       'X-Call-Waiter-Cookie': ''
     });
     return this.http.post<WaiterCallResponse>(`${this.apiUrl}/api/public/${restaurantId}/tables/${tableId}/call-waiter`, {}, { withCredentials: true });
+  }
+
+  getTableOrder(restaurantId: string, tableId: string): Observable<OrderDTO | null> {
+    return this.http.get<OrderDTO | null>(
+      `${this.apiUrl}/api/public/${restaurantId}/tables/${tableId}/orders`,
+      { withCredentials: true },
+    );
   }
 
   listenWaiterEvents(restaurantId: string): Observable<{ type: 'WaiterCall' | 'WaiterCallSnoozed'; data: any }> {

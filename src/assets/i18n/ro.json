@@ -35,6 +35,13 @@
     "called": "Ospătarul a fost chemat.",
     "close": "Închide",
     "myOrder": "Comanda mea",
+    "backToMenu": "Înapoi la meniu",
+    "noOrder": "Nicio comandă activă pe această masă.",
+    "noItems": "Comanda ta este goală.",
+    "orderError": "Nu s-a putut încărca comanda. Încearcă din nou.",
+    "retry": "Reîncearcă",
+    "items": "Produse",
+    "subtotal": "Subtotal",
     "theme": "Temă",
     "light": "Luminos",
     "dark": "Întunecat"

@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { ActivatedRoute, RouterOutlet } from '@angular/router';
+import { ActivatedRoute, Router, RouterOutlet } from '@angular/router';
 import {
   BadgeComponent, ButtonDirective, ContainerComponent, FooterComponent,
   NavbarBrandDirective, NavbarComponent,
@@ -45,16 +45,15 @@ export class PublicLayoutComponent implements OnInit, OnDestroy {
 
   constructor(
     private route: ActivatedRoute,
+    private router: Router,
     private menuService: MenuService,
     private transloco: TranslocoService,
   ) {}
 
   viewOrder(): void {
-    console.log('=== VIEW ORDER ===');
-    console.log('Restaurant:', this.restaurantId);
-    console.log('Table:', this.tableId);
-    console.log('TODO: navigate to order view component');
-    console.log('==================');
+    const rid = this.restaurantId || this.route.snapshot.paramMap.get('restaurantId');
+    const tid = this.tableId || this.route.snapshot.paramMap.get('tableId');
+    this.router.navigateByUrl(`/public/menu/${rid}/tables/${tid}/order`);
   }
 
   ngOnInit(): void {

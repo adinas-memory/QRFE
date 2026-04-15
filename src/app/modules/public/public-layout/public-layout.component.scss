@@ -4,6 +4,8 @@
 
 /* ── Dark theme (default) ── */
 .public-shell {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background:
     radial-gradient(1200px 600px at 20% 10%, rgba(13, 110, 253, 0.18), transparent 60%),
@@ -36,6 +38,7 @@
 }
 
 .public-content {
+  flex: 1;
   padding-top: 18px;
   padding-bottom: 24px;
 }
@@ -49,6 +52,22 @@
 [data-coreui-theme="light"] .public-footer {
   border-top: 1px solid rgba(0, 0, 0, 0.08);
   background: rgba(0, 0, 0, 0.03);
+}
+
+.restaurant-name {
+  text-transform: capitalize;
+  margin-left: 0.5rem;
+}
+
+.my-order-topbar {
+  white-space: nowrap;
+  margin-right: 0.75rem;
+  border: none !important;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+[data-coreui-theme="light"] .my-order-topbar {
+  color: #212529;
 }
 
 .call-waiter-topbar {

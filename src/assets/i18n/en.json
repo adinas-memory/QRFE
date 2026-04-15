@@ -35,6 +35,13 @@
     "called": "Waiter has been called.",
     "close": "Close",
     "myOrder": "My order",
+    "backToMenu": "Back to menu",
+    "noOrder": "No active order on this table.",
+    "noItems": "Your order is empty.",
+    "orderError": "Could not load order. Please try again.",
+    "retry": "Retry",
+    "items": "Items",
+    "subtotal": "Subtotal",
     "theme": "Theme",
     "light": "Light",
     "dark": "Dark"

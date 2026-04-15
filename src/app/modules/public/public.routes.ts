@@ -64,6 +64,12 @@ export const routes: Routes = [
               menuData: MenuResolver
             },
             data: { title: 'Restaurant Menu', public: true }
+          },
+          {
+            path: 'order',
+            loadComponent: () =>
+              import('./order/order.component').then(m => m.OrderComponent),
+            data: { title: 'My Order', public: true }
           }
         ]
       }

@@ -1,36 +1,13 @@
 <div class="public-shell" [attr.data-coreui-theme]="theme">
   <c-navbar class="public-topbar" [colorScheme]="theme">
     <c-container fluid class="d-flex align-items-center">
-      <a cNavbarBrand class="fw-semibold me-auto">{{ restaurantName }}</a>
 
-      <!-- Call Waiter — always visible -->
-      @if (waiterCounterCall > 0) {
-        <button
-          cButton
-          color="primary"
-          size="sm"
-          class="me-2 call-waiter-topbar"
-          (click)="callWaiter()"
-        >
-          {{ 'client.callWaiter' | transloco }}
-          <c-badge color="light" textColor="dark" class="ms-1">{{ waiterCounterCall }}</c-badge>
-        </button>
-      }
-
-      <!-- Burger dropdown -->
-      <c-dropdown alignment="end" variant="nav-item">
-        <button cButton [caret]="false" cDropdownToggle color="light" variant="ghost" size="sm" class="burger-toggle">
+      <!-- Burger dropdown (left) -->
+      <c-dropdown variant="nav-item">
+        <button cButton [caret]="false" cDropdownToggle color="light" variant="ghost" size="sm" class="burger-toggle me-2">
           <svg cIcon name="cilMenu" size="lg"></svg>
         </button>
         <div cDropdownMenu class="burger-menu">
-          <!-- My Order (placeholder — route + component to be added) -->
-          <button cDropdownItem class="d-flex align-items-center" (click)="viewOrder()">
-            <svg cIcon name="cilCart" class="me-2" size="lg"></svg>
-            {{ 'client.myOrder' | transloco }}
-          </button>
-
-          <hr cDropdownDivider />
-
           <!-- Theme toggle -->
           <h6 cDropdownHeader class="small text-uppercase">{{ 'client.theme' | transloco }}</h6>
           <button cDropdownItem class="d-flex align-items-center" [active]="theme === 'dark'" (click)="setTheme('dark')">
@@ -55,6 +32,37 @@
           <button cDropdownItem (click)="setLanguage('sv')"><span class="lang-flag me-2 cif-se"></span> SV</button>
         </div>
       </c-dropdown>
+
+      <!-- Restaurant name (center, takes remaining space) -->
+      <a cNavbarBrand class="fw-semibold me-auto restaurant-name">{{ restaurantName }}</a>
+
+      <!-- My Order (direct button) -->
+      <button
+        cButton
+        color="light"
+        variant="ghost"
+        size="sm"
+        class="my-order-topbar"
+        (click)="viewOrder()"
+      >
+        <svg cIcon name="cilCart" class="me-1"></svg>
+        {{ 'client.myOrder' | transloco }}
+      </button>
+
+      <!-- Call Waiter -->
+      @if (waiterCounterCall > 0) {
+        <button
+          cButton
+          color="primary"
+          size="sm"
+          class="call-waiter-topbar"
+          (click)="callWaiter()"
+        >
+          {{ 'client.callWaiter' | transloco }}
+          <c-badge color="light" textColor="dark" class="ms-1">{{ waiterCounterCall }}</c-badge>
+        </button>
+      }
+
     </c-container>
   </c-navbar>
 

@@ -35,6 +35,13 @@
     "called": "Der Kellner wurde gerufen.",
     "close": "Schließen",
     "myOrder": "Meine Bestellung",
+    "backToMenu": "Zurück zum Menü",
+    "noOrder": "Keine aktive Bestellung an diesem Tisch.",
+    "noItems": "Deine Bestellung ist leer.",
+    "orderError": "Bestellung konnte nicht geladen werden. Bitte erneut versuchen.",
+    "retry": "Erneut versuchen",
+    "items": "Artikel",
+    "subtotal": "Zwischensumme",
     "theme": "Thema",
     "light": "Hell",
     "dark": "Dunkel"

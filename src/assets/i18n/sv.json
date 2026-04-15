@@ -35,6 +35,13 @@
     "called": "Servitören har kallats.",
     "close": "Stäng",
     "myOrder": "Min beställning",
+    "backToMenu": "Tillbaka till menyn",
+    "noOrder": "Ingen aktiv beställning på detta bord.",
+    "noItems": "Din beställning är tom.",
+    "orderError": "Kunde inte ladda beställningen. Försök igen.",
+    "retry": "Försök igen",
+    "items": "Artiklar",
+    "subtotal": "Delsumma",
     "theme": "Tema",
     "light": "Ljust",
     "dark": "Mörkt"

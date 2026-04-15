@@ -35,6 +35,13 @@
     "called": "Il cameriere è stato chiamato.",
     "close": "Chiudi",
     "myOrder": "Il mio ordine",
+    "backToMenu": "Torna al menu",
+    "noOrder": "Nessun ordine attivo su questo tavolo.",
+    "noItems": "Il tuo ordine è vuoto.",
+    "orderError": "Impossibile caricare l'ordine. Riprova.",
+    "retry": "Riprova",
+    "items": "Articoli",
+    "subtotal": "Subtotale",
     "theme": "Tema",
     "light": "Chiaro",
     "dark": "Scuro"

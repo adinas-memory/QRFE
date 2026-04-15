@@ -35,6 +35,13 @@
     "called": "Le serveur a été appelé.",
     "close": "Fermer",
     "myOrder": "Ma commande",
+    "backToMenu": "Retour au menu",
+    "noOrder": "Aucune commande active sur cette table.",
+    "noItems": "Votre commande est vide.",
+    "orderError": "Impossible de charger la commande. Veuillez réessayer.",
+    "retry": "Réessayer",
+    "items": "Articles",
+    "subtotal": "Sous-total",
     "theme": "Thème",
     "light": "Clair",
     "dark": "Sombre"

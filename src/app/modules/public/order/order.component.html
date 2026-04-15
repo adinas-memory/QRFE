@@ -1,0 +1,76 @@
+<div class="order-page">
+
+  <!-- Back button -->
+  <button cButton color="link" class="back-btn px-0 mb-3" (click)="goBackToMenu()">
+    <svg cIcon name="cilArrowLeft" class="me-1"></svg>
+    {{ 'client.backToMenu' | transloco }}
+  </button>
+
+  <h5 class="fw-semibold mb-3">{{ 'client.myOrder' | transloco }}</h5>
+
+  <!-- Loading -->
+  @if (loading) {
+    <div class="text-center py-5">
+      <c-spinner color="primary"></c-spinner>
+    </div>
+  }
+
+  <!-- Error -->
+  @if (!loading && error) {
+    <div class="empty-state">
+      <p>{{ 'client.orderError' | transloco }}</p>
+      <button cButton color="primary" size="sm" (click)="loadOrder()">
+        {{ 'client.retry' | transloco }}
+      </button>
+    </div>
+  }
+
+  <!-- No order -->
+  @if (!loading && !error && !order) {
+    <div class="empty-state">
+      <svg cIcon name="cilCart" size="3xl" class="mb-2 empty-icon"></svg>
+      <p>{{ 'client.noOrder' | transloco }}</p>
+    </div>
+  }
+
+  <!-- Order with no items -->
+  @if (!loading && !error && order && validItems.length === 0) {
+    <div class="empty-state">
+      <svg cIcon name="cilCart" size="3xl" class="mb-2 empty-icon"></svg>
+      <p>{{ 'client.noItems' | transloco }}</p>
+    </div>
+  }
+
+  <!-- Order items -->
+  @if (!loading && !error && order && validItems.length > 0) {
+    <ul class="order-list">
+      @for (item of validItems; track item.orderItemId ?? item.menuItemId) {
+        <li class="order-item">
+          <div class="item-info">
+            <span class="item-name">{{ item.orderItemName }}</span>
+            <span class="item-qty">×{{ item.quantity }}</span>
+          </div>
+          <span class="item-price">
+            {{ (item.orderItemPriceAmount ?? 0) * item.quantity
+              | currency : item.orderItemPriceCurrency : 'symbol' : '1.2-2' }}
+          </span>
+        </li>
+      }
+    </ul>
+
+    <!-- Totals -->
+    <div class="order-footer">
+      <div class="d-flex justify-content-between">
+        <span class="text-muted">{{ 'client.items' | transloco }}</span>
+        <span>{{ itemCount }}</span>
+      </div>
+      @if (order.subTotal?.amount != null) {
+        <div class="d-flex justify-content-between fw-semibold mt-1 subtotal-row">
+          <span>{{ 'client.subtotal' | transloco }}</span>
+          <span>{{ order.subTotal!.amount | currency : order.subTotal!.currency : 'symbol' : '1.2-2' }}</span>
+        </div>
+      }
+    </div>
+  }
+
+</div>

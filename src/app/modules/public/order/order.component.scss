@@ -1,0 +1,89 @@
+.order-page {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.back-btn {
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  opacity: 0.7;
+}
+
+.empty-icon {
+  opacity: 0.4;
+}
+
+.order-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.item-info {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.item-name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-qty {
+  opacity: 0.6;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.item-price {
+  flex-shrink: 0;
+  margin-left: 1rem;
+  font-weight: 500;
+}
+
+.order-footer {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.subtotal-row {
+  font-size: 1.05rem;
+}
+
+/* ── Light theme ── */
+:host-context([data-coreui-theme="light"]) {
+  .order-item {
+    background: rgba(0, 0, 0, 0.02);
+    border-bottom-color: rgba(0, 0, 0, 0.06);
+  }
+
+  .order-footer {
+    background: rgba(0, 0, 0, 0.02);
+  }
+}

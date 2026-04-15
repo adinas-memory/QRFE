@@ -35,6 +35,13 @@
     "called": "Se ha llamado al camarero.",
     "close": "Cerrar",
     "myOrder": "Mi pedido",
+    "backToMenu": "Volver al menú",
+    "noOrder": "No hay pedido activo en esta mesa.",
+    "noItems": "Tu pedido está vacío.",
+    "orderError": "No se pudo cargar el pedido. Inténtalo de nuevo.",
+    "retry": "Reintentar",
+    "items": "Artículos",
+    "subtotal": "Subtotal",
     "theme": "Tema",
     "light": "Claro",
     "dark": "Oscuro"
