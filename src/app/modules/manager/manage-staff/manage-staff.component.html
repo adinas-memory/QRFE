@@ -1,1 +1,78 @@
-<p>manage-staff works!</p>
+<c-container class="px-4 py-3">
+  <c-row class="justify-content-center">
+    <c-col lg="8" md="10">
+      <c-card-group>
+        <c-card class="p-4">
+          <c-card-body>
+            <h1 class="h4 mb-1">{{ 'manageStaff.title' | transloco }}</h1>
+            <p class="text-body-secondary small mb-4">{{ 'manageStaff.subtitle' | transloco }}</p>
+
+            <form [formGroup]="staffForm" (ngSubmit)="onSubmit()" cForm>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label cLabel for="staffName">{{ 'manageStaff.name' | transloco }}</label>
+                  <input cFormControl id="staffName" type="text" formControlName="name" autocomplete="given-name" />
+                  @if (staffForm.get('name')?.invalid && staffForm.get('name')?.touched) {
+                    <div class="invalid-feedback d-block">{{ 'manageStaff.required' | transloco }}</div>
+                  }
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label cLabel for="staffSurname">{{ 'manageStaff.surname' | transloco }}</label>
+                  <input cFormControl id="staffSurname" type="text" formControlName="surname" autocomplete="family-name" />
+                  @if (staffForm.get('surname')?.invalid && staffForm.get('surname')?.touched) {
+                    <div class="invalid-feedback d-block">{{ 'manageStaff.required' | transloco }}</div>
+                  }
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label cLabel for="staffEmail">{{ 'manageStaff.email' | transloco }}</label>
+                <input cFormControl id="staffEmail" type="email" formControlName="email" autocomplete="email" />
+                @if (staffForm.get('email')?.errors?.['required'] && staffForm.get('email')?.touched) {
+                  <div class="invalid-feedback d-block">{{ 'manageStaff.required' | transloco }}</div>
+                }
+                @if (staffForm.get('email')?.errors?.['email'] && staffForm.get('email')?.touched) {
+                  <div class="invalid-feedback d-block">{{ 'manageStaff.emailInvalid' | transloco }}</div>
+                }
+              </div>
+
+              <div class="mb-3">
+                <label cLabel for="staffPhone">{{ 'manageStaff.phone' | transloco }}</label>
+                <input cFormControl id="staffPhone" type="tel" formControlName="phone" autocomplete="tel" />
+              </div>
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label cLabel for="staffPassword">{{ 'manageStaff.password' | transloco }}</label>
+                  <input cFormControl id="staffPassword" type="password" formControlName="password" autocomplete="new-password" />
+                  @if (staffForm.get('password')?.errors?.['pattern'] && staffForm.get('password')?.touched) {
+                    <div class="invalid-feedback d-block">{{ 'manageStaff.passwordRules' | transloco }}</div>
+                  }
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label cLabel for="staffConfirm">{{ 'manageStaff.confirmPassword' | transloco }}</label>
+                  <input cFormControl id="staffConfirm" type="password" formControlName="confirmPassword" autocomplete="new-password" />
+                  @if (staffForm.hasError('mismatch') && staffForm.get('confirmPassword')?.touched) {
+                    <div class="invalid-feedback d-block">{{ 'manageStaff.passwordMismatch' | transloco }}</div>
+                  }
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                cButton
+                color="primary"
+                class="mt-2"
+                [disabled]="submitting || staffForm.invalid"
+              >
+                {{ 'manageStaff.submit' | transloco }}
+              </button>
+            </form>
+          </c-card-body>
+        </c-card>
+      </c-card-group>
+    </c-col>
+  </c-row>
+</c-container>
+
+<c-toaster class="p-3" position="fixed" [placement]="placement" />

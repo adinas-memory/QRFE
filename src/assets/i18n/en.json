@@ -90,6 +90,24 @@
   "sidebar": {
     "manage": "Manage",
     "reports": "Reports"
+  },
+  "manageStaff": {
+    "title": "Add staff account",
+    "subtitle": "Create login credentials for an employee. They can use the app immediately; staff accounts do not require email verification.",
+    "name": "First name",
+    "surname": "Last name",
+    "email": "Email",
+    "phone": "Phone (optional)",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "submit": "Create staff user",
+    "required": "This field is required.",
+    "emailInvalid": "Enter a valid email address.",
+    "passwordRules": "Use at least 8 characters with upper and lower case, a digit, and one of: @$!%*?&",
+    "passwordMismatch": "Passwords do not match.",
+    "successTitle": "Staff created",
+    "successBody": "The new staff member can sign in with the email and password you set.",
+    "errorGeneric": "Could not create the staff user. Check the details or try again."
   }
 }
 

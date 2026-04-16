@@ -100,11 +100,6 @@ export class DefaultLayoutComponent implements OnInit {
       case 'staff':
         return [
           {
-            name: 'Dashboard',
-            url: '/staff/dashboard',
-            iconComponent: { name: 'cil-speedometer' }
-          },
-          {
             name: 'Kitchen',
             url: '/staff/kitchen',
             iconComponent: { name: 'cil-dinner' }
@@ -118,11 +113,6 @@ export class DefaultLayoutComponent implements OnInit {
             name: 'Orders',
             url: '/staff/orders',
             iconComponent: { name: 'cil-list' }
-          },
-          {
-            name: 'Tables',
-            url: '/staff/tables',
-            iconComponent: { name: 'cil-grid' }
           }
         ];
       case 'manager':

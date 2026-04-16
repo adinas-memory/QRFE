@@ -90,6 +90,24 @@
   "sidebar": {
     "manage": "Administrare",
     "reports": "Rapoarte"
+  },
+  "manageStaff": {
+    "title": "Adaugă cont staff",
+    "subtitle": "Creezi date de autentificare pentru un angajat. Poate folosi aplicația imediat; conturile staff nu necesită verificare prin email.",
+    "name": "Prenume",
+    "surname": "Nume",
+    "email": "Email",
+    "phone": "Telefon (opțional)",
+    "password": "Parolă",
+    "confirmPassword": "Confirmă parola",
+    "submit": "Creează utilizator staff",
+    "required": "Acest câmp este obligatoriu.",
+    "emailInvalid": "Introdu o adresă de email validă.",
+    "passwordRules": "Minim 8 caractere, cu majuscule și minuscule, o cifră și un caracter special din: @$!%*?&",
+    "passwordMismatch": "Parolele nu coincid.",
+    "successTitle": "Staff creat",
+    "successBody": "Noul membru staff se poate autentifica cu emailul și parola setate.",
+    "errorGeneric": "Nu s-a putut crea utilizatorul staff. Verifică datele sau încearcă din nou."
   }
 }
 

@@ -11,26 +11,24 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        redirectTo: 'dashboard',
+        redirectTo: 'kitchen',
         pathMatch: 'full'
       },
       {
         path: 'dashboard',
-        loadComponent: () =>
-          import('./dashboard/dashboard.component').then(m => m.DashboardComponent),
-        data: { title: 'Dashboard' }
+        redirectTo: 'kitchen',
+        pathMatch: 'full'
+      },
+      {
+        path: 'tables',
+        redirectTo: 'kitchen',
+        pathMatch: 'full'
       },
       {
         path: 'orders',
         loadComponent: () =>
-          import('./orders/orders.component').then(m => m.OrdersComponent),
+          import('./manage-orders/manage-orders.component').then(m => m.ManageOrdersComponent),
         data: { title: 'Orders' }
-      },
-      {
-        path: 'tables',
-        loadComponent: () =>
-          import('./tables/tables.component').then(m => m.TablesComponent),
-        data: { title: 'Tables' }
       },
       {
         path: 'kitchen',
