@@ -191,12 +191,19 @@ export class AuthService {
     );
   }
 
-  logout(): void {
-    this.http.post(`${this.apiUrl}/api/user/logout`, {}, { withCredentials: true })
-      .subscribe(_ => {
+  logout(): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/api/user/logout`, {}, { withCredentials: true }).pipe(
+      tap(() => {
         this.clearUser();
         this.clearRestaurantCtx();
-      });
+      }),
+      catchError(err => {
+        console.error('Logout error', err);
+        this.clearUser();
+        this.clearRestaurantCtx();
+        return of(undefined as unknown as void);
+      }),
+    );
   }
 
 

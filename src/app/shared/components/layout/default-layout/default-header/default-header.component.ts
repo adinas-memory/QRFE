@@ -1,6 +1,7 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, input } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from '../../../../../core/auth/auth.service';
 
 import {
   AvatarComponent,
@@ -32,6 +33,8 @@ import { IconDirective } from '@coreui/icons-angular';
 export class DefaultHeaderComponent extends HeaderComponent {
 
   readonly #colorModeService = inject(ColorModeService);
+  readonly #authService = inject(AuthService);
+  readonly #router = inject(Router);
   readonly colorMode = this.#colorModeService.colorMode;
 
   readonly colorModes = [
@@ -50,6 +53,12 @@ export class DefaultHeaderComponent extends HeaderComponent {
   }
 
   sidebarId = input('sidebar1');
+
+  onLogout(): void {
+    this.#authService.logout().subscribe(() => {
+      this.#router.navigate(['/login']);
+    });
+  }
 
   public newMessages = [
     {
