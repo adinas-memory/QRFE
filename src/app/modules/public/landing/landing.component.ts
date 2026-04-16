@@ -91,15 +91,37 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
     this.subscriptionService.setPendingPlan({
       priceId: card.priceId,
       restaurantType: card.restaurantType
-    });   
+    });
+
     const userRole = this.authService.getUserRole();
-    const pendingPlan = this.subscriptionService.getPendingPlan();
-    
-    if (!userRole && pendingPlan)  {
+    const isAuthed = this.authService.isAuthenticated();
+
+    // If we don't have a reliable role yet, treat as not authenticated
+    if (!isAuthed || !userRole) {
       this.router.navigate(['/register']);
-    } else {
-      this.router.navigate(['/login']);
+      return;
     }
+
+    if (userRole === 'default') {
+      this.router.navigate(['public/restaurant-setup']);
+      return;
+    }
+
+    // fallback: user is authenticated but not a subscribable role
+    if (userRole === 'staff') {
+      this.router.navigate(['/staff']);
+      return;
+    }
+    if (userRole === 'manager') {
+      this.router.navigate(['/manager']);
+      return;
+    }
+    if (userRole === 'gadmin') {
+      this.router.navigate(['/gadmin']);
+      return;
+    }
+
+    this.router.navigate(['/login']);
   }
 
   getLimit(type: string) {
