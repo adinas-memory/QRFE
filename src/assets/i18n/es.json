@@ -46,6 +46,39 @@
     "light": "Claro",
     "dark": "Oscuro"
   },
+  "forgotPassword": {
+    "title": "Restablecer contraseña",
+    "subtitle": "Introduce tu email y te enviaremos un enlace para restablecer tu contraseña.",
+    "emailPlaceholder": "Correo electrónico",
+    "submit": "Enviar enlace",
+    "backToLogin": "Volver al inicio de sesión",
+    "successTitle": "¡Email enviado!",
+    "successMessage": "Si existe una cuenta con ese correo, recibirás un enlace de restablecimiento en breve.",
+    "error": "Algo salió mal. Inténtalo de nuevo.",
+    "linkText": "¿Olvidaste tu contraseña?"
+  },
+  "verifyEmail": {
+    "title": "Verificación de email",
+    "verifying": "Verificando tu dirección de correo…",
+    "successTitle": "¡Email verificado!",
+    "successMessage": "Tu dirección de correo ha sido confirmada. Ahora puedes usar todas las funciones.",
+    "invalidToken": "Este enlace de verificación no es válido o ha expirado.",
+    "error": "La verificación falló. Inténtalo de nuevo o solicita un nuevo enlace.",
+    "backToLogin": "Volver al inicio de sesión"
+  },
+  "resetPassword": {
+    "title": "Establecer nueva contraseña",
+    "subtitle": "Elige una nueva contraseña para tu cuenta.",
+    "passwordPlaceholder": "Nueva contraseña",
+    "confirmPlaceholder": "Confirmar contraseña",
+    "submit": "Restablecer contraseña",
+    "backToLogin": "Volver al inicio de sesión",
+    "successTitle": "¡Contraseña cambiada!",
+    "successMessage": "Tu contraseña ha sido actualizada. Ahora puedes iniciar sesión con tu nueva contraseña.",
+    "invalidToken": "Este enlace de restablecimiento no es válido o ha expirado.",
+    "mismatch": "Las contraseñas no coinciden.",
+    "error": "Algo salió mal. Inténtalo de nuevo."
+  },
   "staff": {
     "confirm": "Confirmar",
     "reset": "Reset",

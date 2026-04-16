@@ -46,6 +46,39 @@
     "light": "Clair",
     "dark": "Sombre"
   },
+  "forgotPassword": {
+    "title": "Réinitialiser le mot de passe",
+    "subtitle": "Entrez votre email et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
+    "emailPlaceholder": "Adresse email",
+    "submit": "Envoyer le lien",
+    "backToLogin": "Retour à la connexion",
+    "successTitle": "Email envoyé !",
+    "successMessage": "Si un compte avec cette adresse email existe, vous recevrez un lien de réinitialisation sous peu.",
+    "error": "Une erreur est survenue. Veuillez réessayer.",
+    "linkText": "Mot de passe oublié ?"
+  },
+  "verifyEmail": {
+    "title": "Vérification de l'email",
+    "verifying": "Vérification de votre adresse email…",
+    "successTitle": "Email vérifié !",
+    "successMessage": "Votre adresse email a été confirmée. Vous pouvez maintenant utiliser toutes les fonctionnalités.",
+    "invalidToken": "Ce lien de vérification est invalide ou a expiré.",
+    "error": "La vérification a échoué. Veuillez réessayer ou demander un nouveau lien.",
+    "backToLogin": "Retour à la connexion"
+  },
+  "resetPassword": {
+    "title": "Définir un nouveau mot de passe",
+    "subtitle": "Choisissez un nouveau mot de passe pour votre compte.",
+    "passwordPlaceholder": "Nouveau mot de passe",
+    "confirmPlaceholder": "Confirmer le mot de passe",
+    "submit": "Réinitialiser le mot de passe",
+    "backToLogin": "Retour à la connexion",
+    "successTitle": "Mot de passe modifié !",
+    "successMessage": "Votre mot de passe a été mis à jour. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.",
+    "invalidToken": "Ce lien de réinitialisation est invalide ou a expiré.",
+    "mismatch": "Les mots de passe ne correspondent pas.",
+    "error": "Une erreur est survenue. Veuillez réessayer."
+  },
   "staff": {
     "confirm": "Confirmer",
     "reset": "Réinitialiser",

@@ -46,6 +46,39 @@
     "light": "Hell",
     "dark": "Dunkel"
   },
+  "forgotPassword": {
+    "title": "Passwort zurücksetzen",
+    "subtitle": "Gib deine E-Mail-Adresse ein und wir senden dir einen Link zum Zurücksetzen deines Passworts.",
+    "emailPlaceholder": "E-Mail-Adresse",
+    "submit": "Link senden",
+    "backToLogin": "Zurück zum Login",
+    "successTitle": "E-Mail gesendet!",
+    "successMessage": "Wenn ein Konto mit dieser E-Mail existiert, erhältst du in Kürze einen Link zum Zurücksetzen.",
+    "error": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+    "linkText": "Passwort vergessen?"
+  },
+  "verifyEmail": {
+    "title": "E-Mail-Verifizierung",
+    "verifying": "Deine E-Mail-Adresse wird verifiziert…",
+    "successTitle": "E-Mail verifiziert!",
+    "successMessage": "Deine E-Mail-Adresse wurde bestätigt. Du kannst jetzt alle Funktionen nutzen.",
+    "invalidToken": "Dieser Verifizierungslink ist ungültig oder abgelaufen.",
+    "error": "Die Verifizierung ist fehlgeschlagen. Bitte versuche es erneut oder fordere einen neuen Link an.",
+    "backToLogin": "Zurück zum Login"
+  },
+  "resetPassword": {
+    "title": "Neues Passwort festlegen",
+    "subtitle": "Wähle ein neues Passwort für dein Konto.",
+    "passwordPlaceholder": "Neues Passwort",
+    "confirmPlaceholder": "Passwort bestätigen",
+    "submit": "Passwort zurücksetzen",
+    "backToLogin": "Zurück zum Login",
+    "successTitle": "Passwort geändert!",
+    "successMessage": "Dein Passwort wurde aktualisiert. Du kannst dich jetzt mit deinem neuen Passwort anmelden.",
+    "invalidToken": "Dieser Zurücksetzungslink ist ungültig oder abgelaufen.",
+    "mismatch": "Die Passwörter stimmen nicht überein.",
+    "error": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+  },
   "staff": {
     "confirm": "Bestätigen",
     "reset": "Zurücksetzen",

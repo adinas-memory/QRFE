@@ -46,6 +46,39 @@
     "light": "Light",
     "dark": "Dark"
   },
+  "forgotPassword": {
+    "title": "Reset password",
+    "subtitle": "Enter your email and we'll send you a link to reset your password.",
+    "emailPlaceholder": "Email address",
+    "submit": "Send reset link",
+    "backToLogin": "Back to login",
+    "successTitle": "Email sent!",
+    "successMessage": "If an account with that email exists, you will receive a password reset link shortly.",
+    "error": "Something went wrong. Please try again.",
+    "linkText": "Forgot password?"
+  },
+  "verifyEmail": {
+    "title": "Email verification",
+    "verifying": "Verifying your email…",
+    "successTitle": "Email verified!",
+    "successMessage": "Your email address has been confirmed. You can now use all features.",
+    "invalidToken": "This verification link is invalid or has expired.",
+    "error": "Verification failed. Please try again or request a new link.",
+    "backToLogin": "Back to login"
+  },
+  "resetPassword": {
+    "title": "Set new password",
+    "subtitle": "Choose a new password for your account.",
+    "passwordPlaceholder": "New password",
+    "confirmPlaceholder": "Confirm password",
+    "submit": "Reset password",
+    "backToLogin": "Back to login",
+    "successTitle": "Password changed!",
+    "successMessage": "Your password has been updated. You can now log in with your new password.",
+    "invalidToken": "This reset link is invalid or has expired.",
+    "mismatch": "Passwords do not match.",
+    "error": "Something went wrong. Please try again."
+  },
   "staff": {
     "confirm": "Confirm",
     "reset": "Reset",

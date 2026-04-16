@@ -55,6 +55,38 @@ export class AuthService {
     });
   }
 
+  forgotPassword(email: string): Observable<void> {
+    return this.http.post<void>(
+      `${this.apiUrl}/api/user/forgot-password`,
+      { email },
+      { headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
+  resetPassword(token: string, newPassword: string): Observable<void> {
+    return this.http.post<void>(
+      `${this.apiUrl}/api/user/reset-password`,
+      { token, newPassword },
+      { headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
+  verifyEmail(token: string): Observable<void> {
+    return this.http.post<void>(
+      `${this.apiUrl}/api/user/verify-email`,
+      { token },
+      { headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
+  resendVerification(email: string): Observable<void> {
+    return this.http.post<void>(
+      `${this.apiUrl}/api/user/resend-verification`,
+      { email },
+      { headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
   // --- Session management ---
   setUser(user: UserContextModel): void {
     const wasLoggedOut = !this.userSubject.value;  // era delogat înainte?

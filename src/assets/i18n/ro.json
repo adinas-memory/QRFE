@@ -46,6 +46,39 @@
     "light": "Luminos",
     "dark": "Întunecat"
   },
+  "forgotPassword": {
+    "title": "Resetare parolă",
+    "subtitle": "Introdu adresa de email și îți vom trimite un link pentru resetarea parolei.",
+    "emailPlaceholder": "Adresa de email",
+    "submit": "Trimite link de resetare",
+    "backToLogin": "Înapoi la autentificare",
+    "successTitle": "Email trimis!",
+    "successMessage": "Dacă există un cont cu această adresă de email, vei primi un link de resetare în scurt timp.",
+    "error": "Ceva nu a mers bine. Te rugăm să încerci din nou.",
+    "linkText": "Ai uitat parola?"
+  },
+  "verifyEmail": {
+    "title": "Verificare email",
+    "verifying": "Se verifică adresa de email…",
+    "successTitle": "Email verificat!",
+    "successMessage": "Adresa ta de email a fost confirmată. Acum poți folosi toate funcțiile.",
+    "invalidToken": "Acest link de verificare este invalid sau a expirat.",
+    "error": "Verificarea a eșuat. Te rugăm să încerci din nou sau să soliciți un link nou.",
+    "backToLogin": "Înapoi la autentificare"
+  },
+  "resetPassword": {
+    "title": "Setează parola nouă",
+    "subtitle": "Alege o parolă nouă pentru contul tău.",
+    "passwordPlaceholder": "Parola nouă",
+    "confirmPlaceholder": "Confirmă parola",
+    "submit": "Resetează parola",
+    "backToLogin": "Înapoi la autentificare",
+    "successTitle": "Parola a fost schimbată!",
+    "successMessage": "Parola ta a fost actualizată. Te poți autentifica acum cu noua parolă.",
+    "invalidToken": "Acest link de resetare este invalid sau a expirat.",
+    "mismatch": "Parolele nu coincid.",
+    "error": "Ceva nu a mers bine. Te rugăm să încerci din nou."
+  },
   "staff": {
     "confirm": "Confirmă",
     "reset": "Reset",

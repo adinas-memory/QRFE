@@ -16,7 +16,8 @@ import {
   RowComponent,
   ToasterComponent
 } from '@coreui/angular';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { AuthService } from '../../../core/auth/auth.service';
 import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
 import { UserContextModel } from '../../../core/models/userContextModel';
@@ -30,7 +31,8 @@ import { PendingPlanModel } from '../../../core/models/pendingPlanModel';
   imports: [ContainerComponent, ReactiveFormsModule, ToasterComponent,
     RowComponent, ColComponent, CardComponent, CardBodyComponent,
     FormDirective, InputGroupComponent, InputGroupTextDirective,
-    IconDirective, FormControlDirective, ButtonDirective]
+    IconDirective, FormControlDirective, ButtonDirective,
+    RouterLink, TranslocoPipe]
 })
 export class RegisterComponent implements OnInit {
   public icons = { cilMobile };

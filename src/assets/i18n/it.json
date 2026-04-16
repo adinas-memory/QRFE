@@ -46,6 +46,39 @@
     "light": "Chiaro",
     "dark": "Scuro"
   },
+  "forgotPassword": {
+    "title": "Reimposta password",
+    "subtitle": "Inserisci la tua email e ti invieremo un link per reimpostare la password.",
+    "emailPlaceholder": "Indirizzo email",
+    "submit": "Invia link di reset",
+    "backToLogin": "Torna al login",
+    "successTitle": "Email inviata!",
+    "successMessage": "Se esiste un account con questa email, riceverai un link per reimpostare la password a breve.",
+    "error": "Qualcosa è andato storto. Riprova.",
+    "linkText": "Password dimenticata?"
+  },
+  "verifyEmail": {
+    "title": "Verifica email",
+    "verifying": "Verifica del tuo indirizzo email…",
+    "successTitle": "Email verificata!",
+    "successMessage": "Il tuo indirizzo email è stato confermato. Ora puoi utilizzare tutte le funzionalità.",
+    "invalidToken": "Questo link di verifica non è valido o è scaduto.",
+    "error": "Verifica fallita. Riprova o richiedi un nuovo link.",
+    "backToLogin": "Torna al login"
+  },
+  "resetPassword": {
+    "title": "Imposta nuova password",
+    "subtitle": "Scegli una nuova password per il tuo account.",
+    "passwordPlaceholder": "Nuova password",
+    "confirmPlaceholder": "Conferma password",
+    "submit": "Reimposta password",
+    "backToLogin": "Torna al login",
+    "successTitle": "Password cambiata!",
+    "successMessage": "La tua password è stata aggiornata. Ora puoi accedere con la nuova password.",
+    "invalidToken": "Questo link di reset non è valido o è scaduto.",
+    "mismatch": "Le password non coincidono.",
+    "error": "Qualcosa è andato storto. Riprova."
+  },
   "staff": {
     "confirm": "Conferma",
     "reset": "Reset",

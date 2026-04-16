@@ -46,6 +46,39 @@
     "light": "Ljust",
     "dark": "Mörkt"
   },
+  "forgotPassword": {
+    "title": "Återställ lösenord",
+    "subtitle": "Ange din e-post så skickar vi en länk för att återställa ditt lösenord.",
+    "emailPlaceholder": "E-postadress",
+    "submit": "Skicka återställningslänk",
+    "backToLogin": "Tillbaka till inloggning",
+    "successTitle": "E-post skickad!",
+    "successMessage": "Om ett konto med den e-postadressen finns får du snart en återställningslänk.",
+    "error": "Något gick fel. Försök igen.",
+    "linkText": "Glömt lösenord?"
+  },
+  "verifyEmail": {
+    "title": "E-postverifiering",
+    "verifying": "Verifierar din e-postadress…",
+    "successTitle": "E-post verifierad!",
+    "successMessage": "Din e-postadress har bekräftats. Du kan nu använda alla funktioner.",
+    "invalidToken": "Denna verifieringslänk är ogiltig eller har löpt ut.",
+    "error": "Verifieringen misslyckades. Försök igen eller begär en ny länk.",
+    "backToLogin": "Tillbaka till inloggning"
+  },
+  "resetPassword": {
+    "title": "Ange nytt lösenord",
+    "subtitle": "Välj ett nytt lösenord för ditt konto.",
+    "passwordPlaceholder": "Nytt lösenord",
+    "confirmPlaceholder": "Bekräfta lösenord",
+    "submit": "Återställ lösenord",
+    "backToLogin": "Tillbaka till inloggning",
+    "successTitle": "Lösenord ändrat!",
+    "successMessage": "Ditt lösenord har uppdaterats. Du kan nu logga in med ditt nya lösenord.",
+    "invalidToken": "Denna återställningslänk är ogiltig eller har löpt ut.",
+    "mismatch": "Lösenorden matchar inte.",
+    "error": "Något gick fel. Försök igen."
+  },
   "staff": {
     "confirm": "Bekräfta",
     "reset": "Återställ",

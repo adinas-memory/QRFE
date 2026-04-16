@@ -27,6 +27,24 @@ export const routes: Routes = [
         data: { title: 'Login', public: true }
       },
       {
+        path: 'forgot-password',
+        loadComponent: () =>
+          import('./forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent),
+        data: { title: 'Forgot Password', public: true }
+      },
+      {
+        path: 'reset-password',
+        loadComponent: () =>
+          import('./reset-password/reset-password.component').then(m => m.ResetPasswordComponent),
+        data: { title: 'Reset Password', public: true }
+      },
+      {
+        path: 'verify-email',
+        loadComponent: () =>
+          import('./verify-email/verify-email.component').then(m => m.VerifyEmailComponent),
+        data: { title: 'Verify Email', public: true }
+      },
+      {
         path: 'public/restaurant-setup',
         canActivate: [AuthGuard, RoleGuard],
         loadComponent: () =>

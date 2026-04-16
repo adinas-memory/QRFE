@@ -17,6 +17,7 @@ import {
   RowComponent
 } from '@coreui/angular';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
 import { UserContextModel } from '../../../core/models/userContextModel';
 
@@ -28,7 +29,8 @@ import { UserContextModel } from '../../../core/models/userContextModel';
   imports: [RouterLink, ContainerComponent, RowComponent, ColComponent,
     CardGroupComponent, CardComponent, CardBodyComponent, FormDirective,
     InputGroupComponent, InputGroupTextDirective, IconDirective,
-    FormControlDirective, ButtonDirective, NgStyle, ReactiveFormsModule]
+    FormControlDirective, ButtonDirective, NgStyle, ReactiveFormsModule,
+    TranslocoPipe]
 })
 export class LoginComponent implements OnInit, OnDestroy {
 

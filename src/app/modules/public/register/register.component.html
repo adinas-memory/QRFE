@@ -58,6 +58,12 @@
                 <button cButton color="info" variant="outline" type="submit">Create account</button>
                 <a cButton color="light" variant="outline" routerLink="/login">I already have an account</a>
               </div>
+
+              <div class="text-center mt-3">
+                <a routerLink="/forgot-password" class="small text-decoration-none text-muted">
+                  {{ 'forgotPassword.linkText' | transloco }}
+                </a>
+              </div>
             </form>
           </c-card-body>
         </c-card>
