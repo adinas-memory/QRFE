@@ -13,14 +13,21 @@
           <c-card-group class="mb-4">
             <c-card class="mb-3" [ngClass]="getTableCss(table, waiterState)">
               <c-row class="g-0">
-                <c-card-header>
-                  <h4>
+                <c-card-header class="d-flex justify-content-between align-items-center">
+                  <h4 class="mb-0">
                     Total:
                     {{ (tableComputed[table.tableId]?.total ?? 0) | number:'1.2-2' }}
                     @if ((tableComputed[table.tableId]?.total ?? 0) > 0 && tableComputed[table.tableId]?.currency && tableComputed[table.tableId]?.currency !== '—') {
                       <span class="text-muted ms-1">{{ tableComputed[table.tableId].currency }}</span>
                     }
                   </h4>
+                  @if (waiterState[table.tableId] === 'active') {
+                    <button cButton color="warning" size="sm" class="d-flex align-items-center gap-1"
+                      (click)="snoozeWaiterCall(table.tableId)">
+                      <svg [cIcon]="icons.cilBellExclamation" size="lg"></svg>
+                      {{ 'staff.snoozeWaiter' | transloco }}
+                    </button>
+                  }
                 </c-card-header>
                 <c-card-body cCol [md]="8">
                   <h5 cCardTitle>{{ table.tableName }}</h5>
@@ -48,9 +55,6 @@
                         Picked up
                       </button>
                     }
-                    @if (waiterState[table.tableId] === 'active') { <svg [cIcon]="icons.cilBellExclamation"
-                      size="xl"></svg> <button cButton color="warning" variant="ghost" size="sm"
-                      (click)="snoozeWaiterCall(table.tableId)"> Snooze </button> }
                   </p>
                 </c-card-body>
                 <footer>
@@ -70,14 +74,21 @@
         <c-col lg="6" xs="12" *ngFor="let table of openTables">
           <c-card class="mb-3" [ngClass]="getTableCss(table, waiterState)">
             <c-row class="g-0">
-              <c-card-header>
-                <h4>
+              <c-card-header class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
                   Total:
                   {{ (tableComputed[table.tableId]?.total ?? 0) | number:'1.2-2' }}
                   @if ((tableComputed[table.tableId]?.total ?? 0) > 0 && tableComputed[table.tableId]?.currency && tableComputed[table.tableId]?.currency !== '—') {
                     <span class="text-muted ms-1">{{ tableComputed[table.tableId].currency }}</span>
                   }
                 </h4>
+                @if (waiterState[table.tableId] === 'active') {
+                  <button cButton color="warning" size="sm" class="d-flex align-items-center gap-1"
+                    (click)="snoozeWaiterCall(table.tableId)">
+                    <svg [cIcon]="icons.cilBellExclamation" size="lg"></svg>
+                    {{ 'staff.snoozeWaiter' | transloco }}
+                  </button>
+                }
               </c-card-header>
               <c-card-body cCol [md]="8">
                 <h5 cCardTitle>{{ table.tableName }}</h5>
@@ -105,9 +116,6 @@
                       Picked up
                     </button>
                   }
-                  @if (waiterState[table.tableId] === 'active') { <svg [cIcon]="icons.cilBellExclamation"
-                    size="xl"></svg> <button cButton color="warning" variant="ghost" size="sm"
-                    (click)="snoozeWaiterCall(table.tableId)"> Snooze </button> }
                 </p>
               </c-card-body>
               <footer>
@@ -127,14 +135,21 @@
         <c-col lg="6" xs="12" *ngFor="let table of closedTables">
           <c-card class="mb-3" [ngClass]="getTableCss(table, waiterState)">
             <c-row class="g-0">
-              <c-card-header>
-                <h4>
+              <c-card-header class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
                   Total:
                   {{ (tableComputed[table.tableId]?.total ?? 0) | number:'1.2-2' }}
                   @if ((tableComputed[table.tableId]?.total ?? 0) > 0 && tableComputed[table.tableId]?.currency && tableComputed[table.tableId]?.currency !== '—') {
                     <span class="text-muted ms-1">{{ tableComputed[table.tableId].currency }}</span>
                   }
                 </h4>
+                @if (waiterState[table.tableId] === 'active') {
+                  <button cButton color="warning" size="sm" class="d-flex align-items-center gap-1"
+                    (click)="snoozeWaiterCall(table.tableId)">
+                    <svg [cIcon]="icons.cilBellExclamation" size="lg"></svg>
+                    {{ 'staff.snoozeWaiter' | transloco }}
+                  </button>
+                }
               </c-card-header>
               <c-card-body cCol [md]="8">
                 <h5 cCardTitle>{{ table.tableName }}</h5>
@@ -162,9 +177,6 @@
                       Picked up
                     </button>
                   }
-                  @if (waiterState[table.tableId] === 'active') { <svg [cIcon]="icons.cilBellExclamation"
-                    size="xl"></svg> <button cButton color="warning" variant="ghost" size="sm"
-                    (click)="snoozeWaiterCall(table.tableId)"> Snooze </button> }
                 </p>
               </c-card-body>
               <footer>

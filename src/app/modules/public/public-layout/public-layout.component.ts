@@ -59,6 +59,12 @@ export class PublicLayoutComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.theme = (localStorage.getItem('publicTheme') as 'dark' | 'light') || 'dark';
 
+    console.log('[PublicLayout] ngOnInit — firstChild:', !!this.route.firstChild);
+    console.log('[PublicLayout] route params (snapshot):', {
+      restaurantId: this.route.snapshot.paramMap.get('restaurantId'),
+      tableId: this.route.snapshot.paramMap.get('tableId'),
+    });
+
     this.route.firstChild?.data.subscribe(data => {
       const response = data['menuData'] as MenuResponse;
       this.restaurantName = response?.restaurantName ?? 'Restaurant';
@@ -66,14 +72,24 @@ export class PublicLayoutComponent implements OnInit, OnDestroy {
       this.tableId = this.route.snapshot.paramMap.get('tableId') ?? '';
       this.menuResponse = response;
       this.waiterCounterCall = response.waiterCallCount ?? 3;
+      console.log('[PublicLayout] firstChild data resolved:', {
+        restaurantId: this.restaurantId,
+        tableId: this.tableId,
+        waiterCounterCall: this.waiterCounterCall,
+        restaurantName: this.restaurantName,
+      });
     });
+
+    console.log('[PublicLayout] after subscribe — restaurantId:', this.restaurantId, 'tableId:', this.tableId);
 
     if (this.restaurantId || this.route.snapshot.paramMap.get('restaurantId')) {
       const rid = this.restaurantId || this.route.snapshot.paramMap.get('restaurantId')!;
+      console.log('[PublicLayout] opening public SSE for rid:', rid);
       this.menuService.listenWaiterEvents(rid)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (ev) => {
+            console.log('[PublicLayout] SSE event received:', ev);
             if (ev.type === 'WaiterCall') {
               this.waiterCalled = true;
               setTimeout(() => this.waiterCalled = false, 4000);
@@ -81,18 +97,28 @@ export class PublicLayoutComponent implements OnInit, OnDestroy {
           },
           error: (err) => console.warn('[PublicLayout] public SSE error', err)
         });
+    } else {
+      console.warn('[PublicLayout] SSE NOT opened — restaurantId is empty at this point');
     }
   }
 
   callWaiter(): void {
-    if (!this.restaurantId || !this.tableId) return;
+    console.log('[PublicLayout] callWaiter() invoked', {
+      restaurantId: this.restaurantId,
+      tableId: this.tableId,
+    });
+    if (!this.restaurantId || !this.tableId) {
+      console.warn('[PublicLayout] callWaiter ABORTED — missing restaurantId or tableId');
+      return;
+    }
     this.menuService.callWaiter(this.restaurantId, this.tableId).subscribe({
       next: (response: WaiterCallResponse) => {
+        console.log('[PublicLayout] callWaiter response:', JSON.stringify(response));
         this.waiterCounterCall = response.counterCalls;
         this.waiterCalled = true;
         setTimeout(() => this.waiterCalled = false, 4000);
       },
-      error: (err) => console.error('[PublicLayout] callWaiter error', err)
+      error: (err) => console.error('[PublicLayout] callWaiter HTTP error', err)
     });
   }
 

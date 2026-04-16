@@ -50,7 +50,8 @@
     "confirm": "Bekräfta",
     "reset": "Återställ",
     "resetConfirm": "Återställ lokal kundvagn (Dexie) och formulärstatus för aktuellt bord?",
-    "moveTo": "Flytta till"
+    "moveTo": "Flytta till",
+    "snoozeWaiter": "Åtgärdad"
   },
   "sidebar": {
     "manage": "Hantera",

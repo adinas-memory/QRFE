@@ -48,9 +48,8 @@ export class MiscellaneousService {
 
   getTableCss(table: TableDTO, waiterState: Record<string, WaiterCallState>): string {
     if (!table) return 'bg-secondary text-white';
-    if (waiterState[table.tableId] === WaiterCallState.Active) { return 'bg-warning text-dark'; }
-    if (waiterState[table.tableId] === WaiterCallState.Snoozed) { return 'bg-secondary text-white'; }
-    if (table.isTableOpen) { return 'bg-success text-white'; }
+    if (waiterState[table.tableId] === WaiterCallState.Active) return 'bg-warning text-dark';
+    if (table.isTableOpen) return 'bg-success text-white';
     return 'bg-danger text-white';
   }
 

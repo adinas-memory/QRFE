@@ -50,7 +50,8 @@
     "confirm": "Confirmar",
     "reset": "Reset",
     "resetConfirm": "¿Resetear el carrito local (Dexie) y el estado del formulario para la mesa actual?",
-    "moveTo": "Mover a"
+    "moveTo": "Mover a",
+    "snoozeWaiter": "Resuelto"
   },
   "sidebar": {
     "manage": "Gestión",

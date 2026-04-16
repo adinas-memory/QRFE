@@ -50,7 +50,8 @@
     "confirm": "Confirm",
     "reset": "Reset",
     "resetConfirm": "Reset local cart (Dexie) and form state for current table?",
-    "moveTo": "Move to"
+    "moveTo": "Move to",
+    "snoozeWaiter": "Dismiss"
   },
   "sidebar": {
     "manage": "Manage",

@@ -50,7 +50,8 @@
     "confirm": "Conferma",
     "reset": "Reset",
     "resetConfirm": "Resettare il carrello locale (Dexie) e lo stato del form per il tavolo corrente?",
-    "moveTo": "Sposta a"
+    "moveTo": "Sposta a",
+    "snoozeWaiter": "Risolto"
   },
   "sidebar": {
     "manage": "Gestione",

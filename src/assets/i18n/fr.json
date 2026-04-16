@@ -50,7 +50,8 @@
     "confirm": "Confirmer",
     "reset": "Réinitialiser",
     "resetConfirm": "Réinitialiser le panier local (Dexie) et l’état du formulaire pour la table courante ?",
-    "moveTo": "Déplacer vers"
+    "moveTo": "Déplacer vers",
+    "snoozeWaiter": "Résolu"
   },
   "sidebar": {
     "manage": "Gestion",

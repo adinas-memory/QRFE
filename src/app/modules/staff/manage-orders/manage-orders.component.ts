@@ -457,6 +457,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   snoozeWaiterCall(tableId: string): void {
+    this.waiterState[tableId] = WaiterCallState.Snoozed;
+    const table = this.tables.find(t => t.tableId === tableId);
+    if (table && this.tableComputed[tableId]) {
+      this.tableComputed[tableId].cssClass = this.miscService.getTableCss(table, this.waiterState);
+    }
     this.tablesService.snoozeWaiterCall(this.restaurantId, tableId)
       .pipe(take(1))
       .subscribe({ error: (err: unknown) => console.error('Error snoozing waiter call', err) });
@@ -755,6 +760,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   // ─── SSE HANDLER ─────────────────────────────────────────────────────────────
 
   private async handleSseEvent({ EventType, Data, InitiatedBy, Sequence }: SseEvent<any>): Promise<void> {
+    console.log('[ManageOrders][SSE] handleSseEvent:', { EventType, Sequence, InitiatedBy, Data });
     if (!EventType) return;
     if (typeof Sequence === 'number' && Sequence > 0) {
       if (this.recentSseSequenceSet.has(Sequence)) return;
@@ -821,10 +827,12 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       }
 
       case 'WaiterCall':
+        console.log('[ManageOrders][SSE] WaiterCall received!', { TableId: Data.TableId, Data });
         this.waiterState[Data.TableId] = WaiterCallState.Active;
         break;
 
       case 'WaiterCallSnoozed':
+        console.log('[ManageOrders][SSE] WaiterCallSnoozed received!', { TableId: Data.TableId, Data });
         this.waiterState[Data.TableId] = WaiterCallState.Snoozed;
         break;
 

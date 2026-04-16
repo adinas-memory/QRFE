@@ -1,9 +1,9 @@
 import { Injectable, NgZone } from '@angular/core';
 import { environment } from '../../../../environments/environment';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { MenuResponse, WaiterCallResponse } from '../../models/menu/menuItem';
 import { OrderDTO } from '../../models/orderingModel';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 
 
 
@@ -21,11 +21,8 @@ export class MenuService {
   }
 
   callWaiter(restaurantId: string, tableId: string): Observable<WaiterCallResponse> {
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
-      'X-Call-Waiter-Cookie': ''
-    });
-    return this.http.post<WaiterCallResponse>(`${this.apiUrl}/api/public/${restaurantId}/tables/${tableId}/call-waiter`, {}, { withCredentials: true });
+    const url = `${this.apiUrl}/api/public/${restaurantId}/tables/${tableId}/call-waiter`;    
+    return this.http.post<WaiterCallResponse>(url, {}, { withCredentials: true });
   }
 
   getTableOrder(restaurantId: string, tableId: string): Observable<OrderDTO | null> {

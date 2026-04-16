@@ -50,7 +50,8 @@
     "confirm": "Confirmă",
     "reset": "Reset",
     "resetConfirm": "Resetezi cartul local (Dexie) și starea formularului pentru masa curentă?",
-    "moveTo": "Mută la"
+    "moveTo": "Mută la",
+    "snoozeWaiter": "Rezolvat"
   },
   "sidebar": {
     "manage": "Administrare",
