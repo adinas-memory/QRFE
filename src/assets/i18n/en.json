@@ -21,7 +21,8 @@
     "success": {
       "title": "Payment confirmed",
       "body": "Thank you. You will be redirected to login in a few seconds.",
-      "cta": "Go to login"
+      "cta": "Go to login",
+      "provisioning": "Setting up your restaurant. Please wait..."
     },
     "failure": {
       "title": "Payment failed",

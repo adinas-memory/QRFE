@@ -21,7 +21,8 @@
     "success": {
       "title": "Paiement confirmé",
       "body": "Merci. Vous serez redirigé vers la connexion dans quelques secondes.",
-      "cta": "Aller à la connexion"
+      "cta": "Aller à la connexion",
+      "provisioning": "Configuration de votre restaurant. Veuillez patienter..."
     },
     "failure": {
       "title": "Paiement échoué",

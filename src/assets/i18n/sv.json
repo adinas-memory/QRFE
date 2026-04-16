@@ -21,7 +21,8 @@
     "success": {
       "title": "Betalning bekräftad",
       "body": "Tack. Du omdirigeras till inloggning om några sekunder.",
-      "cta": "Gå till inloggning"
+      "cta": "Gå till inloggning",
+      "provisioning": "Din restaurang konfigureras. Vänligen vänta..."
     },
     "failure": {
       "title": "Betalning misslyckades",

@@ -61,15 +61,11 @@ export class LoginComponent implements OnInit, OnDestroy {
           const pending = this.subscriptionService.getPendingPlan();
           const userRole = response.role
 
-          console.log('user role:', userRole);
-
-          if (userRole === 'default') {
+          if (userRole === 'default' && pending) {
+            this.router.navigate(['public/restaurant-setup']);
+          } else if (userRole === 'default') {
             this.router.navigate(['/']);
-
-          } else if (userRole === 'default' && pending) {
-            this.router.navigate(['public/restaurant-setup'])
-          }
-          else if (pending && !userRole) {
+          } else if (pending && !userRole) {
             this.router.navigate(['/register']);
           } else if (returnUrl) {
             this.router.navigateByUrl(returnUrl);
@@ -79,8 +75,9 @@ export class LoginComponent implements OnInit, OnDestroy {
             this.router.navigate(['/manager']);
           } else if (userRole === 'gadmin') {
             this.router.navigate(['/gadmin']);
+          } else {
+            this.router.navigate(['/register']);
           }
-          else { this.router.navigate(['/register']); }
         },
         error: (error) => {
           this.router.navigate(['/login']);

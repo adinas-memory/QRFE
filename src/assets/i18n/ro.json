@@ -21,7 +21,8 @@
     "success": {
       "title": "Plata a fost confirmată",
       "body": "Îți mulțumim. Vei fi redirecționat către login în câteva secunde.",
-      "cta": "Mergi la login"
+      "cta": "Mergi la login",
+      "provisioning": "Se configurează restaurantul tău. Te rugăm să aștepți..."
     },
     "failure": {
       "title": "Plata a eșuat",

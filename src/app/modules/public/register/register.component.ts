@@ -66,7 +66,8 @@ export class RegisterComponent implements OnInit {
         next: (response: UserContextModel) => {
           this.authService.setUser(response);
 
-          if (this.pendingSubscriptionPlan) {
+          const pendingNow = this.subscriptionService.getPendingPlan();
+          if (pendingNow) {
             this.router.navigate(['public/restaurant-setup']);
           } else {
             this.router.navigate(['/']);

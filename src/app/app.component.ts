@@ -32,7 +32,7 @@ import { AppToastsComponent } from '../app/shared/components/app-toast/app-toast
   imports: [RouterOutlet, SpinnerComponent, AppToastsComponent],
 })
 export class AppComponent implements OnInit {
-  title = 'CoreUI Angular Admin Template';
+  title = 'U.R.S.';
   private sseStarted = false;
   isOffline = false;
 

@@ -1,19 +1,29 @@
 <c-container class="py-5">
   <c-card class="mx-auto shadow-sm" style="max-width: 520px;">
     <c-card-body class="p-4">
-      <c-alert color="success" class="mb-3">
-        <div class="fw-semibold">{{ 'payment.success.title' | transloco }}</div>
-        <div class="small">{{ 'payment.success.body' | transloco }}</div>
-      </c-alert>
-
-      <div class="d-flex gap-2 align-items-center justify-content-between">
-        <a cButton color="primary" [routerLink]="['/login']">
-          {{ 'payment.success.cta' | transloco }}
-        </a>
-        <div class="text-muted small">
-          {{ secondsLeft }}s
+      @if (provisioning) {
+        <div class="text-center py-3">
+          <c-spinner color="primary" class="mb-3"></c-spinner>
+          <div class="fw-semibold">{{ 'payment.success.title' | transloco }}</div>
+          <div class="small text-muted mt-2">{{ 'payment.success.provisioning' | transloco }}</div>
         </div>
-      </div>
+      } @else {
+        <c-alert color="success" class="mb-3">
+          <div class="fw-semibold">{{ 'payment.success.title' | transloco }}</div>
+          <div class="small">{{ 'payment.success.body' | transloco }}</div>
+        </c-alert>
+
+        <div class="d-flex gap-2 align-items-center justify-content-between">
+          <a cButton color="primary" [routerLink]="['/login']">
+            {{ 'payment.success.cta' | transloco }}
+          </a>
+          @if (secondsLeft > 0) {
+            <div class="text-muted small">
+              {{ secondsLeft }}s
+            </div>
+          }
+        </div>
+      }
     </c-card-body>
   </c-card>
 </c-container>
