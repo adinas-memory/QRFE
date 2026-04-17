@@ -104,6 +104,7 @@ export class RestaurantSetupComponent implements OnInit {
         priceId: pending.priceId,
         restaurantType: pending.restaurantType,
         restaurantName: formValue.restaurantName,
+        restaurantCurrency: formValue.restaurantCurrency,
         address: formValue.address,
         city: formValue.city,
         country: formValue.country,
@@ -115,7 +116,7 @@ export class RestaurantSetupComponent implements OnInit {
 
       this.subscriptionService.subscribeToPlan(payload).subscribe({
         next: (response: { checkoutUrl: string }) => {
-          // Not sent to Stripe; applied on payment-success via PATCH .../admin/currency
+          // Also stored client-side so payment-success can PATCH if webhook timing fails
           this.subscriptionService.setPendingRestaurantCurrency(formValue.restaurantCurrency);
           this.subscriptionService.clearPendingPlan();
           // Redirect the browser to Stripe Checkout

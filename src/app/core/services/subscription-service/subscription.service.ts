@@ -61,8 +61,8 @@ export class SubscriptionService {
   }
 
   /**
-   * Operating currency chosen at restaurant setup (menu/orders). Stored before Stripe redirect;
-   * applied after payment via PATCH .../admin/currency (subscription billing stays on Stripe Price currency).
+   * Operating currency chosen at restaurant setup — also sent on POST /api/stripe/subscription (Stripe metadata → webhook).
+   * SessionStorage here backs payment-success PATCH if needed (subscription billing stays on Stripe Price currency).
    */
   private static readonly pendingRestaurantCurrencyKey = 'pendingRestaurantCurrency';
 
