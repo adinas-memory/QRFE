@@ -69,10 +69,10 @@
       <div class="text-muted">{{ 'landing.pricingSubtitle' | transloco }}</div>
     </div>
 
-    <c-row class="align-items-stretch mt-4">
+    <c-row class="align-items-stretch mt-4 pricing-cards-row gy-2 gx-3">
       @for (card of cards; track card.restaurantType) {
       <c-col [xs]="12" [md]="6" [lg]="4">
-        <c-card class="mb-4 h-100 pricing-card">
+        <c-card class="h-100 pricing-card">
           <c-card-header class="pricing-header">
             <div class="fw-semibold">{{ card.restaurantType }} restaurant</div>
           </c-card-header>

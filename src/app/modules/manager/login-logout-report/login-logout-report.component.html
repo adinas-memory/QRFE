@@ -1,0 +1,97 @@
+<c-container class="px-4 py-3">
+  <c-row class="mb-3">
+    <c-col>
+      <h2 class="mb-1">{{ 'loginLogoutReport.title' | transloco }}</h2>
+      <p class="text-body-secondary mb-0">{{ 'loginLogoutReport.subtitle' | transloco }}</p>
+    </c-col>
+  </c-row>
+
+  <c-card class="mb-4">
+    <c-card-header>
+      <strong>{{ 'loginLogoutReport.filters' | transloco }}</strong>
+    </c-card-header>
+    <c-card-body>
+      <c-row class="g-3 align-items-end">
+        <c-col xs="12" md="4">
+          <label cLabel for="llrStart">{{ 'loginLogoutReport.startDate' | transloco }}</label>
+          <input
+            cFormControl
+            id="llrStart"
+            type="date"
+            [(ngModel)]="startDate"
+            name="llrStart"
+            [disabled]="loading || !restaurantId"
+          />
+        </c-col>
+        <c-col xs="12" md="4">
+          <label cLabel for="llrEnd">{{ 'loginLogoutReport.endDate' | transloco }}</label>
+          <input
+            cFormControl
+            id="llrEnd"
+            type="date"
+            [(ngModel)]="endDate"
+            name="llrEnd"
+            [disabled]="loading || !restaurantId"
+          />
+        </c-col>
+        <c-col xs="12" md="4">
+          <button
+            cButton
+            color="primary"
+            type="button"
+            (click)="load()"
+            [disabled]="loading || !restaurantId"
+          >
+            @if (loading) {
+              {{ 'loginLogoutReport.loading' | transloco }}
+            } @else {
+              {{ 'loginLogoutReport.load' | transloco }}
+            }
+          </button>
+        </c-col>
+      </c-row>
+      @if (!restaurantId) {
+        <p class="text-warning mt-3 mb-0 small">{{ 'loginLogoutReport.noRestaurant' | transloco }}</p>
+      }
+    </c-card-body>
+  </c-card>
+
+  <c-card>
+    <c-card-body>
+      @if (loading) {
+        <p class="text-body-secondary mb-0">{{ 'loginLogoutReport.loading' | transloco }}</p>
+      } @else if (!rows.length) {
+        <p class="text-body-secondary mb-0">{{ 'loginLogoutReport.empty' | transloco }}</p>
+      } @else {
+        <div class="table-responsive">
+          <table cTable hover responsive class="mb-0">
+            <thead>
+              <tr>
+                <th scope="col">{{ 'loginLogoutReport.colWhen' | transloco }}</th>
+                <th scope="col">{{ 'loginLogoutReport.colEvent' | transloco }}</th>
+                <th scope="col">{{ 'loginLogoutReport.colUser' | transloco }}</th>
+                <th scope="col">{{ 'loginLogoutReport.colEmail' | transloco }}</th>
+                <th scope="col">{{ 'loginLogoutReport.colRole' | transloco }}</th>
+                <th scope="col">{{ 'loginLogoutReport.colIp' | transloco }}</th>
+                <th scope="col">{{ 'loginLogoutReport.colUa' | transloco }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of rows; track row.eventId) {
+                <tr>
+                  <td>{{ row.createdAtUtc | date: 'yyyy-MM-dd HH:mm' : 'UTC' }}</td>
+                  <td>{{ eventLabel(row.eventType) }}</td>
+                  <td>{{ row.name }} {{ row.surname }}</td>
+                  <td>{{ row.email }}</td>
+                  <td>{{ row.role }}</td>
+                  <td>{{ row.ip ?? '—' }}</td>
+                  <td class="text-break small">{{ row.userAgent ?? '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </c-card-body>
+  </c-card>
+</c-container>

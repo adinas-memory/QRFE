@@ -76,6 +76,13 @@
   color: #fff;
 }
 
+/** Extra vertical rhythm between stacked pricing cards on narrow viewports (~8px). */
+.pricing-cards-row {
+  @media (max-width: 991.98px) {
+    row-gap: 0.5rem;
+  }
+}
+
 .section-title {
   max-width: 720px;
 }

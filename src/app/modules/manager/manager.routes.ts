@@ -55,6 +55,20 @@ export const routes: Routes = [
         data: { title: 'QR Codes' }
       },
       {
+        path: 'reports/login-logout',
+        loadComponent: () =>
+          import('./login-logout-report/login-logout-report.component').then(
+            m => m.LoginLogoutReportComponent
+          ),
+        data: { title: 'Login & logout report' }
+      },
+      {
+        path: 'reports/sales',
+        loadComponent: () =>
+          import('./sales-reports/sales-reports.component').then(m => m.SalesReportsComponent),
+        data: { title: 'Sales & accounting reports' }
+      },
+      {
         path: 'settings',
         loadComponent: () =>
           import('./manager-settings/manager-settings.component').then(m => m.ManagerSettingsComponent),

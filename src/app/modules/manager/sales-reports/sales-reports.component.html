@@ -1,0 +1,192 @@
+<c-container class="px-4 py-3">
+  <c-row class="mb-3">
+    <c-col>
+      <h2 class="mb-1">{{ 'salesReports.title' | transloco }}</h2>
+      <p class="text-body-secondary mb-0">{{ 'salesReports.subtitle' | transloco }}</p>
+    </c-col>
+  </c-row>
+
+  <c-card class="mb-4">
+    <c-card-header>
+      <strong>{{ 'salesReports.filters' | transloco }}</strong>
+    </c-card-header>
+    <c-card-body>
+      <c-row class="g-3 align-items-end">
+        <c-col xs="12" md="3">
+          <label cLabel for="srStart">{{ 'salesReports.startDate' | transloco }}</label>
+          <input
+            cFormControl
+            id="srStart"
+            type="date"
+            [(ngModel)]="startDate"
+            name="srStart"
+            [disabled]="loading || !restaurantId"
+          />
+        </c-col>
+        <c-col xs="12" md="3">
+          <label cLabel for="srEnd">{{ 'salesReports.endDate' | transloco }}</label>
+          <input
+            cFormControl
+            id="srEnd"
+            type="date"
+            [(ngModel)]="endDate"
+            name="srEnd"
+            [disabled]="loading || !restaurantId"
+          />
+        </c-col>
+        <c-col xs="12" md="2">
+          <label cLabel for="srTop">{{ 'salesReports.topN' | transloco }}</label>
+          <input
+            cFormControl
+            id="srTop"
+            type="number"
+            min="1"
+            max="100"
+            [(ngModel)]="topN"
+            name="srTop"
+            [disabled]="loading || !restaurantId"
+          />
+        </c-col>
+        <c-col xs="12" md="4">
+          <button
+            cButton
+            color="primary"
+            type="button"
+            (click)="load()"
+            [disabled]="loading || !restaurantId"
+          >
+            @if (loading) {
+              {{ 'salesReports.loading' | transloco }}
+            } @else {
+              {{ 'salesReports.load' | transloco }}
+            }
+          </button>
+        </c-col>
+      </c-row>
+      @if (!restaurantId) {
+        <p class="text-warning mt-3 mb-0 small">{{ 'salesReports.noRestaurant' | transloco }}</p>
+      }
+    </c-card-body>
+  </c-card>
+
+  <c-card class="mb-4">
+    <c-card-header>
+      <strong>{{ 'salesReports.salesSummaryTitle' | transloco }}</strong>
+    </c-card-header>
+    <c-card-body>
+      @if (loading) {
+        <p class="text-body-secondary mb-0">{{ 'salesReports.loading' | transloco }}</p>
+      } @else if (!summary) {
+        <p class="text-body-secondary mb-0">{{ 'salesReports.empty' | transloco }}</p>
+      } @else if (!summary.orderCount && !summary.byCurrency.length) {
+        <p class="text-body-secondary mb-0">{{ 'salesReports.emptySales' | transloco }}</p>
+      } @else {
+        <p class="mb-3">
+          <strong>{{ 'salesReports.closedOrderCount' | transloco }}</strong>
+          {{ summary.orderCount }}
+        </p>
+        @if (summary.byCurrency.length) {
+          <div class="table-responsive">
+            <table cTable hover responsive class="mb-0">
+              <thead>
+                <tr>
+                  <th scope="col">{{ 'salesReports.colCurrency' | transloco }}</th>
+                  <th scope="col">{{ 'salesReports.colOrders' | transloco }}</th>
+                  <th scope="col">{{ 'salesReports.colTotal' | transloco }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of summary.byCurrency; track row.currency) {
+                  <tr>
+                    <td>{{ currencyLabel(row.currency) }}</td>
+                    <td>{{ row.orderCount }}</td>
+                    <td>{{ row.totalAmount | number: '1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+    </c-card-body>
+  </c-card>
+
+  <c-card class="mb-4">
+    <c-card-header>
+      <strong>{{ 'salesReports.topProductsTitle' | transloco }}</strong>
+    </c-card-header>
+    <c-card-body>
+      @if (loading) {
+        <p class="text-body-secondary mb-0">{{ 'salesReports.loading' | transloco }}</p>
+      } @else if (!topProducts.length) {
+        <p class="text-body-secondary mb-0">{{ 'salesReports.emptyTop' | transloco }}</p>
+      } @else {
+        <div class="table-responsive">
+          <table cTable hover responsive class="mb-0">
+            <thead>
+              <tr>
+                <th scope="col">{{ 'salesReports.colProduct' | transloco }}</th>
+                <th scope="col">{{ 'salesReports.colCurrency' | transloco }}</th>
+                <th scope="col">{{ 'salesReports.colQty' | transloco }}</th>
+                <th scope="col">{{ 'salesReports.colLineTotal' | transloco }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of topProducts; track $index) {
+                <tr>
+                  <td>{{ row.orderItemName }}</td>
+                  <td>{{ currencyLabel(row.currency) }}</td>
+                  <td>{{ row.totalQuantity | number: '1.0-3' }}</td>
+                  <td>{{ row.totalLineAmount | number: '1.2-2' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </c-card-body>
+  </c-card>
+
+  <c-card>
+    <c-card-header>
+      <strong>{{ 'salesReports.exportsTitle' | transloco }}</strong>
+    </c-card-header>
+    <c-card-body>
+      <p class="text-body-secondary small mb-3">{{ 'salesReports.exportsHint' | transloco }}</p>
+      <c-row class="g-2">
+        <c-col xs="12" sm="auto">
+          <button
+            cButton
+            color="secondary"
+            variant="outline"
+            type="button"
+            (click)="downloadOrders()"
+            [disabled]="downloadingOrders || downloadingLines || !restaurantId"
+          >
+            @if (downloadingOrders) {
+              {{ 'salesReports.downloading' | transloco }}
+            } @else {
+              {{ 'salesReports.exportOrders' | transloco }}
+            }
+          </button>
+        </c-col>
+        <c-col xs="12" sm="auto">
+          <button
+            cButton
+            color="secondary"
+            variant="outline"
+            type="button"
+            (click)="downloadLines()"
+            [disabled]="downloadingOrders || downloadingLines || !restaurantId"
+          >
+            @if (downloadingLines) {
+              {{ 'salesReports.downloading' | transloco }}
+            } @else {
+              {{ 'salesReports.exportLines' | transloco }}
+            }
+          </button>
+        </c-col>
+      </c-row>
+    </c-card-body>
+  </c-card>
+</c-container>

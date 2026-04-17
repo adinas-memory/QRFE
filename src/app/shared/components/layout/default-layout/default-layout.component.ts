@@ -20,12 +20,11 @@ import {
 
 import { DefaultFooterComponent, DefaultHeaderComponent } from './';
 import { FeedbackModalComponent } from '@app/shared/components/feedback/feedback-modal.component';
-import { navItems } from './_nav';
 import { AuthService } from '../../../../core/auth/auth.service';
-import { UserContextModel } from '../../../../core/models/userContextModel';
 import { TitleCasePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslocoService } from '@jsverse/transloco';
+import { catchError, of, switchMap } from 'rxjs';
 
 function isOverflown(element: HTMLElement) {
   return (
@@ -81,7 +80,6 @@ export class DefaultLayoutComponent implements OnInit {
 
   ngOnInit(): void {
     this.userRole = this.auth.getUserSnapshot()?.role ?? 'default';
-    this.navItems = this.getNavItemsForRole(this.userRole);
     this.restaurantName = this.auth.getRestaurantCtx()?.name ?? null;
 
     this.auth.user$
@@ -90,8 +88,20 @@ export class DefaultLayoutComponent implements OnInit {
         this.restaurantName = user?.restaurantName ?? this.auth.getRestaurantCtx()?.name ?? null;
       });
 
+    // Wait for translation files before translate(); avoids raw keys (e.g. sidebar.manage) on slow/async loads (Edge).
+    const afterLangReady$ = this.transloco.load(this.transloco.getActiveLang()).pipe(catchError(() => of(undefined)));
+
+    afterLangReady$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.navItems = this.getNavItemsForRole(this.userRole);
+    });
+
     this.transloco.langChanges$
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        switchMap(() =>
+          this.transloco.load(this.transloco.getActiveLang()).pipe(catchError(() => of(undefined)))
+        )
+      )
       .subscribe(() => {
         this.navItems = this.getNavItemsForRole(this.userRole);
       });
@@ -167,6 +177,16 @@ export class DefaultLayoutComponent implements OnInit {
             title: true,
             name: this.transloco.translate('sidebar.reports')
           },
+          {
+            name: this.transloco.translate('sidebar.loginLogoutReport'),
+            url: '/manager/reports/login-logout',
+            iconComponent: { name: 'cil-notes' }
+          },
+          {
+            name: this.transloco.translate('sidebar.salesReports'),
+            url: '/manager/reports/sales',
+            iconComponent: { name: 'cil-chart' }
+          }
         ];
       case 'gadmin':
         return [
