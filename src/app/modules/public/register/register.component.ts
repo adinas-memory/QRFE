@@ -68,7 +68,7 @@ export class RegisterComponent implements OnInit {
 
           const pendingNow = this.subscriptionService.getPendingPlan();
           if (pendingNow) {
-            this.router.navigate(['public/restaurant-setup']);
+            void this.router.navigateByUrl('/public/restaurant-setup');
           } else {
             this.router.navigate(['/']);
           }
