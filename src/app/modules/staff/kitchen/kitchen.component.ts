@@ -17,7 +17,6 @@ import {
 import { MenuItemServiceService } from '../../../core/services/menu-item-service/menu-item-service.service';
 import { MenuItem } from '../../../core/models/menu/menuItem';
 import { isFoodCategory } from '../../../core/models/menu/menu-item-category';
-import { OrdersService } from '../../../core/services/order-service/orders.service';
 import {
   ButtonDirective,
   CardBodyComponent,
@@ -137,7 +136,6 @@ export class KitchenComponent implements OnInit, OnDestroy {
     private auth: AuthService,
     private tablesService: TablesService,
     private menuItemService: MenuItemServiceService,
-    private ordersService: OrdersService,
     private sse: OrderSyncService,
     private kitchenApi: KitchenService,
     private toast: AppToastService,
@@ -269,39 +267,29 @@ export class KitchenComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Initial load should reflect server truth. We fetch open orders per table and
-   * write snapshots into Dexie; UI then derives from Dexie (single source of truth).
+   * Initial load should reflect server truth. `getAllWithFallback` already calls
+   * GET …/get-tables-status, which returns each table’s open order — no per-table
+   * list-open-order calls (avoids N duplicate HTTP requests on kitchen/bar entry).
    */
   private async hydrateFromBackend(tables: TableDTO[]): Promise<void> {
     if (!this.restaurantId) return;
 
     this.hydrating = true;
     try {
-      await this.runInBatches(tables, 6, async (t) => {
+      for (const t of tables) {
         const tableId = t.tableId;
-        if (!tableId) return;
+        if (!tableId) continue;
 
-        const order = await this.ordersService.listOpenOrderForTableWithFallback(this.restaurantId, tableId);
+        const order = t.order;
         if (!order?.orderId || order.orderId.startsWith('local-')) {
           await this.offlineDB.deleteCart(tableId);
-          return;
+          continue;
         }
 
         await this.offlineDB.saveOrderSnapshot(tableId, order);
-      });
+      }
     } finally {
       this.hydrating = false;
-    }
-  }
-
-  private async runInBatches<T>(
-    items: readonly T[],
-    batchSize: number,
-    worker: (item: T) => Promise<void>
-  ): Promise<void> {
-    for (let i = 0; i < items.length; i += batchSize) {
-      const batch = items.slice(i, i + batchSize);
-      await Promise.all(batch.map(worker));
     }
   }
 
