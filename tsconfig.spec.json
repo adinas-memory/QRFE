@@ -9,11 +9,12 @@
       "@angular/localize"
     ],
     "paths": {
-      "@docs-components/*": ["./src/components/*"]
+      "@docs-components/*": ["./src/components/*"],
+      "@app/*": ["./src/app/*"]
     }
   },
   "files": [
-    "src/test.ts",
+    "src/test.ts"
   ],
   "include": [
     "src/**/*.spec.ts",

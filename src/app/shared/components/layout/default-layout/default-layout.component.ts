@@ -19,6 +19,7 @@ import {
 } from '@coreui/angular';
 
 import { DefaultFooterComponent, DefaultHeaderComponent } from './';
+import { FeedbackModalComponent } from '@app/shared/components/feedback/feedback-modal.component';
 import { navItems } from './_nav';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { UserContextModel } from '../../../../core/models/userContextModel';
@@ -48,6 +49,7 @@ function isOverflown(element: HTMLElement) {
     ContainerComponent,
     DefaultFooterComponent,
     DefaultHeaderComponent,
+    FeedbackModalComponent,
     IconDirective,
     NgScrollbar,
     RouterOutlet,
