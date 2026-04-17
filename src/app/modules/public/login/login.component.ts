@@ -19,6 +19,8 @@ import {
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
+import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
+import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
 import { UserContextModel } from '../../../core/models/userContextModel';
 
 @Component({
@@ -40,7 +42,9 @@ export class LoginComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private fb: FormBuilder,
     private authService: AuthService,
-    private subscriptionService: SubscriptionService,) {
+    private subscriptionService: SubscriptionService,
+    private toast: AppToastService,
+    private misc: MiscellaneousService) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required],
@@ -79,9 +83,9 @@ export class LoginComponent implements OnInit, OnDestroy {
             this.router.navigate(['/register']);
           }
         },
-        error: (error) => {
-          this.router.navigate(['/login']);
+        error: (error: unknown) => {
           console.error('Login failed:', error);
+          this.toast.error(this.misc.getFirstErrorMessage(error), 'Login failed');
         }
       });
 

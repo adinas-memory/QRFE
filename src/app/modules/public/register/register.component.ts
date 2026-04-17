@@ -13,13 +13,14 @@ import {
   FormDirective,
   InputGroupComponent,
   InputGroupTextDirective,
-  RowComponent,
-  ToasterComponent
+  RowComponent
 } from '@coreui/angular';
 import { Router, RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { AuthService } from '../../../core/auth/auth.service';
 import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
+import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
+import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
 import { UserContextModel } from '../../../core/models/userContextModel';
 import { PendingPlanModel } from '../../../core/models/pendingPlanModel';
 
@@ -28,7 +29,7 @@ import { PendingPlanModel } from '../../../core/models/pendingPlanModel';
   templateUrl: './register.component.html',
   styleUrl: './register.component.scss',
   standalone: true,
-  imports: [ContainerComponent, ReactiveFormsModule, ToasterComponent,
+  imports: [ContainerComponent, ReactiveFormsModule,
     RowComponent, ColComponent, CardComponent, CardBodyComponent,
     FormDirective, InputGroupComponent, InputGroupTextDirective,
     IconDirective, FormControlDirective, ButtonDirective,
@@ -45,6 +46,8 @@ export class RegisterComponent implements OnInit {
     private router: Router,
     private authService: AuthService,
     private subscriptionService: SubscriptionService,
+    private toast: AppToastService,
+    private misc: MiscellaneousService,
     public iconSet: IconSetService
   ) {
     this.iconSet.icons = { cilMobile, cilLockLocked, cilUser };
@@ -74,9 +77,9 @@ export class RegisterComponent implements OnInit {
           }
 
         },
-        error: (error) => {
+        error: (error: unknown) => {
           console.error('Registration failed', error);
-          this.router.navigate(['register']);
+          this.toast.error(this.misc.getFirstErrorMessage(error), 'Registration failed');
         }
       });
     }

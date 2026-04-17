@@ -66,4 +66,34 @@ export class MiscellaneousService {
     }
   }
 
+  /** User-facing message from API error body (e.g. GlobalExceptionHandler JSON) or network failure. */
+  getFirstErrorMessage(err: unknown): string {
+    const http = err as { status?: number; statusText?: string; message?: string; error?: unknown };
+    if (http?.status === 0) {
+      return 'Network error — check your connection or try again.';
+    }
+    const p = this.parseApiError(err);
+    const list = p.errors;
+    if (Array.isArray(list) && list.length > 0) {
+      const first = list[0] as { message?: string; Message?: string };
+      const msg = first?.message ?? first?.Message;
+      if (msg && String(msg).trim()) {
+        return String(msg).trim();
+      }
+    }
+    if (p.details && typeof p.details === 'string' && p.details.trim() && p.details !== 'Server error') {
+      return p.details.trim();
+    }
+    if (http?.status === 409) {
+      return 'This action conflicts with the current state (e.g. email already registered).';
+    }
+    if (http?.status === 401 || http?.status === 403) {
+      return 'You are not allowed to perform this action. Sign in again if needed.';
+    }
+    if (http?.status && http.status >= 500) {
+      return 'Server error — please try again later.';
+    }
+    return 'Something went wrong. Please try again.';
+  }
+
 }

@@ -1,6 +1,41 @@
-import { HttpInterceptorFn } from '@angular/common/http';
+import { HttpInterceptorFn, HttpRequest, HttpErrorResponse, HttpContextToken } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { catchError, throwError } from 'rxjs';
+import { AppToastService } from '../services/toast-service/toast-service.service';
+import { MiscellaneousService } from '../services/misc/miscellaneous.service';
+
+/** Set on a request to skip the global error toast (handle in the caller). */
+export const SKIP_HTTP_ERROR_TOAST = new HttpContextToken<boolean>(() => false);
+
+function shouldSkipGlobalToast(req: HttpRequest<unknown>, err: HttpErrorResponse): boolean {
+  if (req.context.get(SKIP_HTTP_ERROR_TOAST)) {
+    return true;
+  }
+  const u = req.url;
+  if (u.includes('/api/user/login') || u.includes('/api/user/register')) {
+    return true;
+  }
+  if (u.includes('/api/user/refresh-token') || u.includes('/api/user/ping')) {
+    return true;
+  }
+  // Auth interceptor may retry; avoid noisy toast before refresh completes.
+  if (err.status === 401) {
+    return true;
+  }
+  return false;
+}
 
 export const loggingInterceptor: HttpInterceptorFn = (req, next) => {
-  // console.log('HTTP Request:', req.url);
-  return next(req);
+  const toast = inject(AppToastService);
+  const misc = inject(MiscellaneousService);
+
+  return next(req).pipe(
+    catchError((err: HttpErrorResponse) => {
+      if (!shouldSkipGlobalToast(req, err)) {
+        console.error('HTTP error', req.method, req.url, err);
+        toast.error(misc.getFirstErrorMessage(err), 'Request failed');
+      }
+      return throwError(() => err);
+    })
+  );
 };
