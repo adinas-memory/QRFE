@@ -7,14 +7,14 @@
       class="btn"
       toggle="visible"
       style="margin-inline-start: -14px;"
-      aria-label="Toggle sidebar navigation"
+      [attr.aria-label]="'header.toggleSidebar' | transloco"
     >
       <svg cIcon name="cilMenu" size="lg"></svg>
     </button>
     @if (showManagerAccountMenu()) {
       <c-header-nav class="d-none d-md-flex">
         <c-nav-item>
-          <a cNavLink routerLink="/manager/settings" routerLinkActive="active">Settings</a>
+          <a cNavLink routerLink="/manager/settings" routerLinkActive="active">{{ 'header.settings' | transloco }}</a>
         </c-nav-item>
       </c-header-nav>
     }
@@ -46,33 +46,33 @@
 
 <ng-template #userDropdown>
   <c-dropdown [popperOptions]="{ placement: 'bottom-start' }" variant="nav-item">
-    <button [caret]="false" cDropdownToggle class="py-0 pe-0" aria-label="Open user menu">
+    <button [caret]="false" cDropdownToggle class="py-0 pe-0" [attr.aria-label]="'header.openUserMenu' | transloco">
       <c-avatar
         shape="rounded-1"
         size="md"
         src="./assets/images/avatars/8.jpg"
         status="success"
         textColor="primary"
-        alt="User avatar"
+        [attr.alt]="'header.userAvatarAlt' | transloco"
       />
     </button>
     <ul cDropdownMenu class="pt-0 w-auto">
       <li>
         <h6 cDropdownHeader class="bg-body-secondary text-body-secondary fw-semibold py-2 rounded-top">
-          Account
+          {{ 'header.account' | transloco }}
         </h6>
       </li>
       @if (showManagerAccountMenu()) {
         <li>
           <a cDropdownItem routerLink="/manager/settings">
             <svg cIcon class="me-2" name="cilSettings"></svg>
-            Settings
+            {{ 'header.settings' | transloco }}
           </a>
         </li>
         <li>
           <a cDropdownItem routerLink="/manager/settings" fragment="payments">
             <svg cIcon class="me-2" name="cilCreditCard"></svg>
-            Payments
+            {{ 'header.payments' | transloco }}
           </a>
         </li>
         <li>
@@ -82,7 +82,7 @@
       <li>
         <a cDropdownItem (click)="onLogout()" style="cursor: pointer;">
           <svg cIcon class="me-2" name="cilAccountLogout"></svg>
-          Logout
+          {{ 'header.logout' | transloco }}
         </a>
       </li>
     </ul>
@@ -91,7 +91,7 @@
 
 <ng-template #themeDropdown>
   <c-dropdown alignment="end" variant="nav-item">
-    <button [caret]="false" cDropdownToggle aria-label="Open theme picker">
+    <button [caret]="false" cDropdownToggle [attr.aria-label]="'header.openThemePicker' | transloco">
       <svg cIcon [name]="icons()" size="lg"></svg>
     </button>
     <div cDropdownMenu>
@@ -103,7 +103,7 @@
           class="d-flex align-items-center"
         >
           <svg cIcon class="me-2" [name]="mode.icon" size="lg"></svg>
-          {{ mode.text }}
+          {{ themeLabel(mode.name) }}
         </button>
       }
     </div>

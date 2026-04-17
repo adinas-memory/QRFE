@@ -5,21 +5,21 @@
   scrollable
 >
   <c-modal-header>
-    <h5 cModalTitle>Send feedback</h5>
+    <h5 cModalTitle>{{ 'feedbackModal.title' | transloco }}</h5>
     <button
       type="button"
       class="btn-close"
-      aria-label="Close"
+      [attr.aria-label]="'feedbackModal.closeAria' | transloco"
       (click)="close()"
     ></button>
   </c-modal-header>
   <c-modal-body>
     <form [formGroup]="form" (ngSubmit)="submit()" id="feedbackForm">
       <p class="text-body-secondary small mb-3">
-        Report a bug or suggest an improvement (max 1000 characters). Your current page is included to help us reproduce issues.
+        {{ 'feedbackModal.intro' | transloco }}
       </p>
       <div class="mb-3">
-        <span class="form-label d-block">Type</span>
+        <span class="form-label d-block">{{ 'feedbackModal.type' | transloco }}</span>
         <c-form-check class="me-3 d-inline-block">
           <input
             cFormCheckInput
@@ -29,7 +29,7 @@
             id="fkBug"
             [value]="FeedbackKind.Bug"
           />
-          <label cFormCheckLabel for="fkBug">Bug</label>
+          <label cFormCheckLabel for="fkBug">{{ 'feedbackModal.bug' | transloco }}</label>
         </c-form-check>
         <c-form-check class="d-inline-block">
           <input
@@ -40,25 +40,25 @@
             id="fkImp"
             [value]="FeedbackKind.Improvement"
           />
-          <label cFormCheckLabel for="fkImp">Improvement</label>
+          <label cFormCheckLabel for="fkImp">{{ 'feedbackModal.improvement' | transloco }}</label>
         </c-form-check>
       </div>
       <div class="mb-2">
-        <label cLabel for="fbMsg">Message</label>
+        <label cLabel for="fbMsg">{{ 'feedbackModal.message' | transloco }}</label>
         <textarea
           cFormControl
           id="fbMsg"
           formControlName="message"
           rows="5"
           maxlength="1000"
-          placeholder="Describe what happened or what you would like…"
+          [placeholder]="'feedbackModal.placeholder' | transloco"
         ></textarea>
-        <div class="small text-body-secondary text-end">{{ remainingChars }} left</div>
+        <div class="small text-body-secondary text-end">{{ 'feedbackModal.charsLeft' | transloco: { count: remainingChars } }}</div>
       </div>
     </form>
   </c-modal-body>
   <c-modal-footer>
-    <button cButton color="secondary" variant="outline" type="button" (click)="close()">Cancel</button>
+    <button cButton color="secondary" variant="outline" type="button" (click)="close()">{{ 'feedbackModal.cancel' | transloco }}</button>
     <button
       cButton
       color="primary"
@@ -67,9 +67,9 @@
       [disabled]="submitting || form.invalid"
     >
       @if (submitting) {
-        Sending…
+        {{ 'feedbackModal.sending' | transloco }}
       } @else {
-        Send
+        {{ 'feedbackModal.send' | transloco }}
       }
     </button>
   </c-modal-footer>

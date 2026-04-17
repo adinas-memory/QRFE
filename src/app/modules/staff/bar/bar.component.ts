@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { DatePipe, NgClass, NgFor, NgIf } from '@angular/common';
 import { Subject, filter, take, takeUntil, firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -30,6 +30,7 @@ import { BarService } from '../../../core/services/bar-service/bar.service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { OfflineDbService } from '../../../core/offline/offline-db';
 import { NotificationSoundService, type NotificationSoundKind } from '../../../core/services/sound/notification-sound.service';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 type MarkKind = 'added' | 'updated' | 'deleted';
 type ItemMark = { kind: MarkKind; until: number };
@@ -70,9 +71,11 @@ type BarOrder = {
     NgIf,
     NgClass,
     DatePipe,
+    TranslocoPipe,
   ]
 })
 export class BarComponent implements OnInit, OnDestroy {
+  private readonly transloco = inject(TranslocoService);
   private destroy$ = new Subject<void>();
   private restaurantId = '';
   private hydrating = false;
@@ -215,10 +218,10 @@ export class BarComponent implements OnInit, OnDestroy {
     if (!this.restaurantId) return;
     try {
       await firstValueFrom(this.barApi.callWaiterForPickup(this.restaurantId, tableId));
-      this.toast.success('Waiter called for bar pickup.');
+      this.toast.success(this.transloco.translate('bar.toastWaiterOk'));
     } catch (err) {
       console.error('[Bar] callWaiterForPickup failed', err);
-      this.toast.error('Failed to call waiter.');
+      this.toast.error(this.transloco.translate('bar.toastWaiterFail'));
     }
   }
 
@@ -371,7 +374,13 @@ export class BarComponent implements OnInit, OnDestroy {
     }
     if (isNewOrder) {
       const label = this.tableLabel(tableId);
-      this.toastOnce(`newOrder:${orderId}`, 2000, () => this.toast.sticky(`New order at table ${label}.`, 'New order', 'success'));
+      this.toastOnce(`newOrder:${orderId}`, 2000, () =>
+        this.toast.sticky(
+          this.transloco.translate('bar.toastNewOrderBody', { table: label }),
+          this.transloco.translate('bar.toastNewOrderTitle'),
+          'success'
+        )
+      );
     }
     if (isServerOrderId) this.seenServerOrderIds.add(orderId);
     this.diffAndMark(tableId, prevDrinks, nextDrinks, isNewOrder);
@@ -654,7 +663,15 @@ export class BarComponent implements OnInit, OnDestroy {
           const label = this.tableLabel(tableId);
           this.debugToast('diff added', { tableId, id, name: n.item.menuItemName, qty: n.quantity });
           this.toastOnce(`itemAdded:${tableId}:${id}`, 1500, () =>
-            this.toast.sticky(`+ ${n.item.menuItemName} ×${n.quantity} (table ${label})`, 'New item', 'info')
+            this.toast.sticky(
+              this.transloco.translate('bar.toastNewItemBody', {
+                name: n.item.menuItemName,
+                qty: String(n.quantity),
+                table: label
+              }),
+              this.transloco.translate('bar.toastNewItemTitle'),
+              'info'
+            )
           );
         }
       } else if (p.quantity !== n.quantity) {
@@ -665,11 +682,29 @@ export class BarComponent implements OnInit, OnDestroy {
         this.debugToast('diff qty', { tableId, id, name: n.item.menuItemName, prevQty, nextQty });
         if (nextQty > prevQty) {
           this.toastOnce(`qtyUp:${tableId}:${id}`, 1200, () =>
-            this.toast.info(`↑ ${n.item.menuItemName}: ${prevQty} → ${nextQty} (table ${label})`, 'Qty increased', 8000)
+            this.toast.info(
+              this.transloco.translate('bar.toastQtyUpBody', {
+                name: n.item.menuItemName,
+                prev: String(prevQty),
+                next: String(nextQty),
+                table: label
+              }),
+              this.transloco.translate('bar.toastQtyUpTitle'),
+              8000
+            )
           );
         } else {
           this.toastOnce(`qtyDown:${tableId}:${id}`, 1200, () =>
-            this.toast.info(`↓ ${n.item.menuItemName}: ${prevQty} → ${nextQty} (table ${label})`, 'Qty decreased', 8000)
+            this.toast.info(
+              this.transloco.translate('bar.toastQtyDownBody', {
+                name: n.item.menuItemName,
+                prev: String(prevQty),
+                next: String(nextQty),
+                table: label
+              }),
+              this.transloco.translate('bar.toastQtyDownTitle'),
+              8000
+            )
           );
         }
       }
@@ -682,7 +717,11 @@ export class BarComponent implements OnInit, OnDestroy {
           const name = prevById.get(id)?.item.menuItemName ?? 'Item';
           this.debugToast('diff deleted', { tableId, id, name });
           this.toastOnce(`itemDeleted:${tableId}:${id}`, 1500, () =>
-            this.toast.sticky(`− ${name} (table ${label})`, 'Item deleted', 'warning')
+            this.toast.sticky(
+              this.transloco.translate('bar.toastItemDeletedBody', { name, table: label }),
+              this.transloco.translate('bar.toastItemDeletedTitle'),
+              'warning'
+            )
           );
         }
       }

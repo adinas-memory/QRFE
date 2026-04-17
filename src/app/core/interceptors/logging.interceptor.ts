@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 import { AppToastService } from '../services/toast-service/toast-service.service';
 import { MiscellaneousService } from '../services/misc/miscellaneous.service';
+import { TranslocoService } from '@jsverse/transloco';
 
 /** Set on a request to skip the global error toast (handle in the caller). */
 export const SKIP_HTTP_ERROR_TOAST = new HttpContextToken<boolean>(() => false);
@@ -28,12 +29,13 @@ function shouldSkipGlobalToast(req: HttpRequest<unknown>, err: HttpErrorResponse
 export const loggingInterceptor: HttpInterceptorFn = (req, next) => {
   const toast = inject(AppToastService);
   const misc = inject(MiscellaneousService);
+  const transloco = inject(TranslocoService);
 
   return next(req).pipe(
     catchError((err: HttpErrorResponse) => {
       if (!shouldSkipGlobalToast(req, err)) {
         console.error('HTTP error', req.method, req.url, err);
-        toast.error(misc.getFirstErrorMessage(err), 'Request failed');
+        toast.error(misc.getFirstErrorMessage(err), transloco.translate('common.requestFailed'));
       }
       return throwError(() => err);
     })

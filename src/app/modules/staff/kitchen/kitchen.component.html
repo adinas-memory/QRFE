@@ -2,7 +2,7 @@
   <c-col xs="12">
     <c-card class="mb-4">
       <c-card-header class="d-flex align-items-center justify-content-between">
-        <strong>Kitchen</strong>
+        <strong>{{ 'kitchen.title' | transloco }}</strong>
         <button
           cButton
           color="info"
@@ -11,26 +11,26 @@
           (click)="toggleSound()"
         >
           @if (!soundEnabled) {
-            Enable sound
+            {{ 'kitchen.enableSound' | transloco }}
           } @else if (soundMuted) {
-            Sound: OFF
+            {{ 'kitchen.soundOff' | transloco }}
           } @else {
-            Sound: ON
+            {{ 'kitchen.soundOn' | transloco }}
           }
         </button>
       </c-card-header>
       <c-card-body>
         <div *ngIf="orders.length === 0" class="text-muted">
-          No active food orders yet.
+          {{ 'kitchen.empty' | transloco }}
         </div>
 
         <table *ngIf="orders.length > 0" cTable hover bordered responsive>
           <thead>
             <tr>
               <th style="width: 64px;"></th>
-              <th style="width: 140px;">Table</th>
-              <th>Items</th>
-              <th style="width: 190px;">Last update</th>
+              <th style="width: 140px;">{{ 'kitchen.colTable' | transloco }}</th>
+              <th>{{ 'kitchen.colItems' | transloco }}</th>
+              <th style="width: 190px;">{{ 'kitchen.lastUpdate' | transloco }}</th>
               <th style="width: 170px;"></th>
             </tr>
           </thead>
@@ -52,14 +52,14 @@
                 {{ o.tableName }}
               </td>
               <td>
-                <span class="text-muted">{{ o.items.length }} items</span>
+                <span class="text-muted">{{ 'kitchen.itemsCount' | transloco: { count: o.items.length } }}</span>
               </td>
               <td class="text-muted small">
                 {{ o.lastActionAt | date:'short' }}
               </td>
               <td class="text-end">
                 <button cButton color="primary" variant="outline" size="sm" (click)="callWaiterForPickup(o.tableId)">
-                  Call waiter
+                  {{ 'kitchen.callWaiter' | transloco }}
                 </button>
               </td>
             </tr>
@@ -70,9 +70,9 @@
                   <table class="table table-sm mb-0">
                     <thead>
                       <tr>
-                        <th>Item</th>
-                        <th style="width: 90px;" class="text-end">Qty</th>
-                        <th style="width: 140px;">Category</th>
+                        <th>{{ 'kitchen.colItem' | transloco }}</th>
+                        <th style="width: 90px;" class="text-end">{{ 'kitchen.colQty' | transloco }}</th>
+                        <th style="width: 140px;">{{ 'kitchen.colCategory' | transloco }}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -100,4 +100,3 @@
     </c-card>
   </c-col>
 </c-row>
-

@@ -1,8 +1,8 @@
 <c-tabs [activeItemKey]="0">
   <c-tabs-list variant="pills">
-    <button cTab [itemKey]="0" class="ms-3">All</button>
-    <button cTab [itemKey]="1" class="ms-2">Free Tables</button>
-    <button cTab [itemKey]="2" class="ms-2">Occupied Tables</button>
+    <button cTab [itemKey]="0" class="ms-3">{{ 'manageOrders.tabAll' | transloco }}</button>
+    <button cTab [itemKey]="1" class="ms-2">{{ 'manageOrders.tabFree' | transloco }}</button>
+    <button cTab [itemKey]="2" class="ms-2">{{ 'manageOrders.tabOccupied' | transloco }}</button>
   </c-tabs-list>
 
   <!-- List Tables -->
@@ -15,7 +15,7 @@
               <c-row class="g-0">
                 <c-card-header class="d-flex justify-content-between align-items-center">
                   <h4 class="mb-0">
-                    Total:
+                    {{ 'manageOrders.total' | transloco }}
                     {{ (tableComputed[table.tableId]?.total ?? 0) | number:'1.2-2' }}
                     @if ((tableComputed[table.tableId]?.total ?? 0) > 0 && tableComputed[table.tableId]?.currency && tableComputed[table.tableId]?.currency !== '—') {
                       <span class="text-muted ms-1">{{ tableComputed[table.tableId].currency }}</span>
@@ -31,28 +31,28 @@
                 </c-card-header>
                 <c-card-body cCol [md]="8">
                   <h5 cCardTitle>{{ table.tableName }}</h5>
-                  <p cCardText> Items: {{ tableComputed[table.tableId]?.itemCount }} </p>
-                  <p cCardText> Last: {{ tableComputed[table.tableId]?.lastAddedItem || '—' }} </p>
-                  <p class="text-muted small"> Updated:
+                  <p cCardText> {{ 'manageOrders.itemsLabel' | transloco }} {{ tableComputed[table.tableId]?.itemCount }} </p>
+                  <p cCardText> {{ 'manageOrders.lastLabel' | transloco }} {{ tableComputed[table.tableId]?.lastAddedItem || '—' }} </p>
+                  <p class="text-muted small"> {{ 'manageOrders.updated' | transloco }}
                     {{ tableComputed[table.tableId]?.lastActionAt
                     ? getLastActionTime(tableComputed[table.tableId].lastActionAt)
                     : '—'
                     }}
                     <span *ngIf="tableComputed[table.tableId]?.initiatedBy">
-                      — by {{ tableComputed[table.tableId].initiatedBy }}
+                      — {{ 'manageOrders.by' | transloco }} {{ tableComputed[table.tableId].initiatedBy }}
                     </span>
                   </p>
                   <p cCardText>
                     @if (kitchenPickupRequested[table.tableId]) {
-                      <span class="badge bg-info me-2">Kitchen pickup</span>
+                      <span class="badge bg-info me-2">{{ 'manageOrders.kitchenPickup' | transloco }}</span>
                       <button cButton color="info" variant="ghost" size="sm" (click)="snoozeKitchenPickup(table.tableId)">
-                        Picked up
+                        {{ 'manageOrders.pickedUp' | transloco }}
                       </button>
                     }
                     @if (barPickupRequested[table.tableId]) {
-                      <span class="badge bg-primary me-2">Bar pickup</span>
+                      <span class="badge bg-primary me-2">{{ 'manageOrders.barPickup' | transloco }}</span>
                       <button cButton color="primary" variant="ghost" size="sm" (click)="snoozeBarPickup(table.tableId)">
-                        Picked up
+                        {{ 'manageOrders.pickedUp' | transloco }}
                       </button>
                     }
                   </p>
@@ -60,7 +60,7 @@
                 <footer>
                   <button cButton class="btn btn-primary float-end" [disabled]="!isOnline"
                     (click)="table.order ? seeOrder(table) : openTable(table)">
-                    {{ !table.isTableOpen ? 'See Order' : 'Open Table' }}
+                    {{ !table.isTableOpen ? ('manageOrders.seeOrder' | transloco) : ('manageOrders.openTable' | transloco) }}
                   </button>
                 </footer>
               </c-row>
@@ -76,7 +76,7 @@
             <c-row class="g-0">
               <c-card-header class="d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">
-                  Total:
+                  {{ 'manageOrders.total' | transloco }}
                   {{ (tableComputed[table.tableId]?.total ?? 0) | number:'1.2-2' }}
                   @if ((tableComputed[table.tableId]?.total ?? 0) > 0 && tableComputed[table.tableId]?.currency && tableComputed[table.tableId]?.currency !== '—') {
                     <span class="text-muted ms-1">{{ tableComputed[table.tableId].currency }}</span>
@@ -92,28 +92,28 @@
               </c-card-header>
               <c-card-body cCol [md]="8">
                 <h5 cCardTitle>{{ table.tableName }}</h5>
-                <p cCardText> Items: {{ tableComputed[table.tableId]?.itemCount }} </p>
-                <p cCardText> Last: {{ tableComputed[table.tableId]?.lastAddedItem || '—' }} </p>
-                <p class="text-muted small"> Updated:
+                <p cCardText> {{ 'manageOrders.itemsLabel' | transloco }} {{ tableComputed[table.tableId]?.itemCount }} </p>
+                <p cCardText> {{ 'manageOrders.lastLabel' | transloco }} {{ tableComputed[table.tableId]?.lastAddedItem || '—' }} </p>
+                <p class="text-muted small"> {{ 'manageOrders.updated' | transloco }}
                   {{ tableComputed[table.tableId]?.lastActionAt
                   ? getLastActionTime(tableComputed[table.tableId].lastActionAt)
                   : '—'
                   }}
                   <span *ngIf="tableComputed[table.tableId]?.initiatedBy">
-                    — by {{ tableComputed[table.tableId].initiatedBy }}
+                    — {{ 'manageOrders.by' | transloco }} {{ tableComputed[table.tableId].initiatedBy }}
                   </span>
                 </p>
                 <p cCardText>
                   @if (kitchenPickupRequested[table.tableId]) {
-                    <span class="badge bg-info me-2">Kitchen pickup</span>
+                    <span class="badge bg-info me-2">{{ 'manageOrders.kitchenPickup' | transloco }}</span>
                     <button cButton color="info" variant="ghost" size="sm" (click)="snoozeKitchenPickup(table.tableId)">
-                      Picked up
+                      {{ 'manageOrders.pickedUp' | transloco }}
                     </button>
                   }
                   @if (barPickupRequested[table.tableId]) {
-                    <span class="badge bg-primary me-2">Bar pickup</span>
+                    <span class="badge bg-primary me-2">{{ 'manageOrders.barPickup' | transloco }}</span>
                     <button cButton color="primary" variant="ghost" size="sm" (click)="snoozeBarPickup(table.tableId)">
-                      Picked up
+                      {{ 'manageOrders.pickedUp' | transloco }}
                     </button>
                   }
                 </p>
@@ -121,7 +121,7 @@
               <footer>
                 <button cButton class="btn btn-primary float-end"
                   (click)="table.order ? seeOrder(table) : openTable(table)">
-                  {{ !table.isTableOpen ? 'See Order' : 'Open Table' }}
+                  {{ !table.isTableOpen ? ('manageOrders.seeOrder' | transloco) : ('manageOrders.openTable' | transloco) }}
                 </button>
               </footer>
             </c-row>
@@ -137,7 +137,7 @@
             <c-row class="g-0">
               <c-card-header class="d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">
-                  Total:
+                  {{ 'manageOrders.total' | transloco }}
                   {{ (tableComputed[table.tableId]?.total ?? 0) | number:'1.2-2' }}
                   @if ((tableComputed[table.tableId]?.total ?? 0) > 0 && tableComputed[table.tableId]?.currency && tableComputed[table.tableId]?.currency !== '—') {
                     <span class="text-muted ms-1">{{ tableComputed[table.tableId].currency }}</span>
@@ -153,28 +153,28 @@
               </c-card-header>
               <c-card-body cCol [md]="8">
                 <h5 cCardTitle>{{ table.tableName }}</h5>
-                <p cCardText> Items: {{ tableComputed[table.tableId]?.itemCount }} </p>
-                <p cCardText> Last: {{ tableComputed[table.tableId]?.lastAddedItem || '—' }} </p>
-                <p class="text-muted small"> Updated:
+                <p cCardText> {{ 'manageOrders.itemsLabel' | transloco }} {{ tableComputed[table.tableId]?.itemCount }} </p>
+                <p cCardText> {{ 'manageOrders.lastLabel' | transloco }} {{ tableComputed[table.tableId]?.lastAddedItem || '—' }} </p>
+                <p class="text-muted small"> {{ 'manageOrders.updated' | transloco }}
                   {{ tableComputed[table.tableId]?.lastActionAt
                   ? getLastActionTime(tableComputed[table.tableId].lastActionAt)
                   : '—'
                   }}
                   <span *ngIf="tableComputed[table.tableId]?.initiatedBy">
-                    — by {{ tableComputed[table.tableId].initiatedBy }}
+                    — {{ 'manageOrders.by' | transloco }} {{ tableComputed[table.tableId].initiatedBy }}
                   </span>
                 </p>
                 <p cCardText>
                   @if (kitchenPickupRequested[table.tableId]) {
-                    <span class="badge bg-info me-2">Kitchen pickup</span>
+                    <span class="badge bg-info me-2">{{ 'manageOrders.kitchenPickup' | transloco }}</span>
                     <button cButton color="info" variant="ghost" size="sm" (click)="snoozeKitchenPickup(table.tableId)">
-                      Picked up
+                      {{ 'manageOrders.pickedUp' | transloco }}
                     </button>
                   }
                   @if (barPickupRequested[table.tableId]) {
-                    <span class="badge bg-primary me-2">Bar pickup</span>
+                    <span class="badge bg-primary me-2">{{ 'manageOrders.barPickup' | transloco }}</span>
                     <button cButton color="primary" variant="ghost" size="sm" (click)="snoozeBarPickup(table.tableId)">
-                      Picked up
+                      {{ 'manageOrders.pickedUp' | transloco }}
                     </button>
                   }
                 </p>
@@ -182,7 +182,7 @@
               <footer>
                 <button cButton class="btn btn-primary float-end"
                   (click)="table.order ? seeOrder(table) : openTable(table)">
-                  {{ !table.isTableOpen ? 'See Order' : 'Open Table' }}
+                  {{ !table.isTableOpen ? ('manageOrders.seeOrder' | transloco) : ('manageOrders.openTable' | transloco) }}
                 </button>
               </footer>
             </c-row>
@@ -315,21 +315,21 @@
       </div>
 
       <div *ngIf="showCloseConfirm" class="p-3 border rounded bg-light mb-2">
-        <p class="mb-2">Are you sure you want to close this order?</p>
+        <p class="mb-2">{{ 'manageOrders.closeOrderConfirm' | transloco }}</p>
         <div class="d-flex justify-content-end"> <button cButton color="secondary" class="me-2"
-            (click)="cancelCloseOrder()"> Cancel </button> <button cButton color="warning"
-            (click)="confirmCloseOrder()"> Close Order </button> </div>
+            (click)="cancelCloseOrder()"> {{ 'manageOrders.cancel' | transloco }} </button> <button cButton color="warning"
+            (click)="confirmCloseOrder()"> {{ 'manageOrders.closeOrder' | transloco }} </button> </div>
       </div>
 
       <div class="d-flex gap-2" *ngIf="orderIsConfirmed">
         <button class="btn btn-warning flex-grow-1" (click)="closeOrder()"
           [disabled]="selectedItems.length === 0">
-          Close Order – {{ cartSubTotal | currency: cartCurrency }}
+          {{ 'manageOrders.closeOrder' | transloco }} – {{ cartSubTotal | currency: cartCurrency }}
         </button>
         <button class="btn btn-outline-secondary" (click)="printOrder()"
           [disabled]="selectedItems.length === 0">
           <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
-          Print
+          {{ 'manageOrders.print' | transloco }}
         </button>
       </div>
 

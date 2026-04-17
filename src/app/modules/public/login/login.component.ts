@@ -17,7 +17,7 @@ import {
   RowComponent
 } from '@coreui/angular';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
@@ -44,7 +44,8 @@ export class LoginComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private subscriptionService: SubscriptionService,
     private toast: AppToastService,
-    private misc: MiscellaneousService) {
+    private misc: MiscellaneousService,
+    private transloco: TranslocoService) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required],
@@ -85,7 +86,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         },
         error: (error: unknown) => {
           console.error('Login failed:', error);
-          this.toast.error(this.misc.getFirstErrorMessage(error), 'Login failed');
+          this.toast.error(this.misc.getFirstErrorMessage(error), this.transloco.translate('common.loginFailed'));
         }
       });
 

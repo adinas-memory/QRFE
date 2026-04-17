@@ -16,7 +16,7 @@ import {
   RowComponent
 } from '@coreui/angular';
 import { Router, RouterLink } from '@angular/router';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { AuthService } from '../../../core/auth/auth.service';
 import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
@@ -48,6 +48,7 @@ export class RegisterComponent implements OnInit {
     private subscriptionService: SubscriptionService,
     private toast: AppToastService,
     private misc: MiscellaneousService,
+    private transloco: TranslocoService,
     public iconSet: IconSetService
   ) {
     this.iconSet.icons = { cilMobile, cilLockLocked, cilUser };
@@ -79,7 +80,7 @@ export class RegisterComponent implements OnInit {
         },
         error: (error: unknown) => {
           console.error('Registration failed', error);
-          this.toast.error(this.misc.getFirstErrorMessage(error), 'Registration failed');
+          this.toast.error(this.misc.getFirstErrorMessage(error), this.transloco.translate('common.registrationFailed'));
         }
       });
     }

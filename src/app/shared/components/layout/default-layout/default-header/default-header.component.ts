@@ -26,18 +26,20 @@ import {
 } from '@coreui/angular';
 
 import { IconDirective } from '@coreui/icons-angular';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 @Component({
   selector: 'app-default-header',
   standalone: true,
   templateUrl: './default-header.component.html',
-  imports: [ContainerComponent, HeaderTogglerDirective, SidebarToggleDirective, IconDirective, HeaderNavComponent, NavItemComponent, NavLinkDirective, RouterLink, RouterLinkActive, NgTemplateOutlet, BreadcrumbRouterComponent, DropdownComponent, DropdownToggleDirective, AvatarComponent, DropdownMenuDirective, DropdownHeaderDirective, DropdownItemDirective, BadgeComponent, DropdownDividerDirective, FeedbackLaunchComponent]
+  imports: [ContainerComponent, HeaderTogglerDirective, SidebarToggleDirective, IconDirective, HeaderNavComponent, NavItemComponent, NavLinkDirective, RouterLink, RouterLinkActive, NgTemplateOutlet, BreadcrumbRouterComponent, DropdownComponent, DropdownToggleDirective, AvatarComponent, DropdownMenuDirective, DropdownHeaderDirective, DropdownItemDirective, BadgeComponent, DropdownDividerDirective, FeedbackLaunchComponent, TranslocoPipe]
 })
 export class DefaultHeaderComponent extends HeaderComponent {
 
   readonly #colorModeService = inject(ColorModeService);
   readonly #authService = inject(AuthService);
   readonly #router = inject(Router);
+  readonly #transloco = inject(TranslocoService);
   readonly colorMode = this.#colorModeService.colorMode;
 
   /** Settings / Payments rows: only manager & global admin */
@@ -50,10 +52,20 @@ export class DefaultHeaderComponent extends HeaderComponent {
   });
 
   readonly colorModes = [
-    { name: 'light', text: 'Light', icon: 'cilSun' },
-    { name: 'dark', text: 'Dark', icon: 'cilMoon' },
-    { name: 'auto', text: 'Auto', icon: 'cilContrast' }
+    { name: 'light' as const, icon: 'cilSun' },
+    { name: 'dark' as const, icon: 'cilMoon' },
+    { name: 'auto' as const, icon: 'cilContrast' }
   ];
+
+  themeLabel(modeName: string): string {
+    const key =
+      modeName === 'light'
+        ? 'header.themeLight'
+        : modeName === 'dark'
+          ? 'header.themeDark'
+          : 'header.themeAuto';
+    return this.#transloco.translate(key);
+  }
 
   readonly icons = computed(() => {
     const currentMode = this.colorMode();

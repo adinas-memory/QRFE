@@ -19,6 +19,7 @@ import { FeedbackService } from '@app/core/services/feedback/feedback.service';
 import { FeedbackUiService } from '@app/core/services/feedback/feedback-ui.service';
 import { AppToastService } from '@app/core/services/toast-service/toast-service.service';
 import { MiscellaneousService } from '@app/core/services/misc/miscellaneous.service';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 /** Rendered at layout root (not inside the sticky header) so the backdrop does not block the dialog. */
 @Component({
@@ -37,7 +38,8 @@ import { MiscellaneousService } from '@app/core/services/misc/miscellaneous.serv
     FormControlDirective,
     FormCheckComponent,
     FormCheckInputDirective,
-    FormCheckLabelDirective
+    FormCheckLabelDirective,
+    TranslocoPipe
   ]
 })
 export class FeedbackModalComponent {
@@ -45,6 +47,7 @@ export class FeedbackModalComponent {
   private readonly feedback = inject(FeedbackService);
   private readonly toast = inject(AppToastService);
   private readonly misc = inject(MiscellaneousService);
+  private readonly transloco = inject(TranslocoService);
   private readonly fb = inject(FormBuilder);
   readonly ui = inject(FeedbackUiService);
 
@@ -81,7 +84,10 @@ export class FeedbackModalComponent {
       })
       .subscribe({
         next: () => {
-          this.toast.success('Thank you — your feedback was sent.', 'Feedback');
+          this.toast.success(
+            this.transloco.translate('feedbackModal.toastThanksBody'),
+            this.transloco.translate('feedbackModal.toastThanksTitle')
+          );
           this.form.reset({
             kind: FeedbackKind.Bug,
             message: ''
@@ -90,7 +96,10 @@ export class FeedbackModalComponent {
         },
         error: err => {
           this.submitting = false;
-          this.toast.error(this.misc.getFirstErrorMessage(err), 'Could not send feedback');
+          this.toast.error(
+            this.misc.getFirstErrorMessage(err),
+            this.transloco.translate('feedbackModal.toastErrorTitle')
+          );
         }
       });
   }

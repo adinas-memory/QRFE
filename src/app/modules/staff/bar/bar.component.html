@@ -2,7 +2,7 @@
   <c-col xs="12">
     <c-card class="mb-4">
       <c-card-header class="d-flex align-items-center justify-content-between">
-        <strong>Bar</strong>
+        <strong>{{ 'bar.title' | transloco }}</strong>
         <button
           cButton
           color="info"
@@ -11,26 +11,26 @@
           (click)="toggleSound()"
         >
           @if (!soundEnabled) {
-            Enable sound
+            {{ 'bar.enableSound' | transloco }}
           } @else if (soundMuted) {
-            Sound: OFF
+            {{ 'bar.soundOff' | transloco }}
           } @else {
-            Sound: ON
+            {{ 'bar.soundOn' | transloco }}
           }
         </button>
       </c-card-header>
       <c-card-body>
         <div *ngIf="orders.length === 0" class="text-muted">
-          No active drink orders yet.
+          {{ 'bar.empty' | transloco }}
         </div>
 
         <table *ngIf="orders.length > 0" cTable hover bordered responsive>
           <thead>
             <tr>
               <th style="width: 64px;"></th>
-              <th style="width: 140px;">Table</th>
-              <th>Items</th>
-              <th style="width: 190px;">Last update</th>
+              <th style="width: 140px;">{{ 'bar.colTable' | transloco }}</th>
+              <th>{{ 'bar.colItems' | transloco }}</th>
+              <th style="width: 190px;">{{ 'bar.lastUpdate' | transloco }}</th>
               <th style="width: 170px;"></th>
             </tr>
           </thead>
@@ -52,14 +52,14 @@
                 {{ o.tableName }}
               </td>
               <td>
-                <span class="text-muted">{{ o.items.length }} items</span>
+                <span class="text-muted">{{ 'bar.itemsCount' | transloco: { count: o.items.length } }}</span>
               </td>
               <td class="text-muted small">
                 {{ o.lastActionAt | date:'short' }}
               </td>
               <td class="text-end">
                 <button cButton color="primary" variant="outline" size="sm" (click)="callWaiterForPickup(o.tableId)">
-                  Call waiter
+                  {{ 'bar.callWaiter' | transloco }}
                 </button>
               </td>
             </tr>
@@ -70,9 +70,9 @@
                   <table class="table table-sm mb-0">
                     <thead>
                       <tr>
-                        <th>Item</th>
-                        <th style="width: 90px;" class="text-end">Qty</th>
-                        <th style="width: 140px;">Category</th>
+                        <th>{{ 'bar.colItem' | transloco }}</th>
+                        <th style="width: 90px;" class="text-end">{{ 'bar.colQty' | transloco }}</th>
+                        <th style="width: 140px;">{{ 'bar.colCategory' | transloco }}</th>
                       </tr>
                     </thead>
                     <tbody>

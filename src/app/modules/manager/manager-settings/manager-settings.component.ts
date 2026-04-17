@@ -18,6 +18,7 @@ import { SubscriptionService } from '../../../core/services/subscription-service
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { Currency } from '../../../core/models/restaurantTablesModel';
 import { Router } from '@angular/router';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 @Component({
   selector: 'app-manager-settings',
@@ -33,7 +34,8 @@ import { Router } from '@angular/router';
     ColComponent,
     FormLabelDirective,
     FormSelectDirective,
-    ButtonDirective
+    ButtonDirective,
+    TranslocoPipe
   ]
 })
 export class ManagerSettingsComponent implements OnInit {
@@ -56,7 +58,8 @@ export class ManagerSettingsComponent implements OnInit {
     private miscellaneousService: MiscellaneousService,
     private subscriptionService: SubscriptionService,
     private router: Router,
-    private toast: AppToastService
+    private toast: AppToastService,
+    private transloco: TranslocoService
   ) {}
 
   ngOnInit(): void {
@@ -97,21 +100,25 @@ export class ManagerSettingsComponent implements OnInit {
       .subscribe({
         next: () => {
           this.saving = false;
-          this.toast.success('Operating currency and menu prices currency updated.', 'Settings saved');
+          this.toast.success(
+            this.transloco.translate('restaurantSettings.toastSavedBody'),
+            this.transloco.translate('restaurantSettings.toastSavedTitle')
+          );
         },
         error: err => {
           console.error('Failed to update currency', err);
           this.saving = false;
-          this.toast.error(this.miscellaneousService.getFirstErrorMessage(err), 'Could not update currency');
+          this.toast.error(
+            this.miscellaneousService.getFirstErrorMessage(err),
+            this.transloco.translate('restaurantSettings.toastCurrencyErrorTitle')
+          );
         }
       });
   }
 
   confirmCancelSubscription(): void {
     if (
-      !confirm(
-        'Are you sure you want to cancel your subscription? You will lose access to manager features when the billing period ends (per Stripe).'
-      )
+      !confirm(this.transloco.translate('restaurantSettings.confirmCancelSubscription'))
     ) {
       return;
     }

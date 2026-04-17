@@ -112,17 +112,17 @@ export class DefaultLayoutComponent implements OnInit {
       case 'staff':
         return [
           {
-            name: 'Kitchen',
+            name: this.transloco.translate('nav.kitchen'),
             url: '/staff/kitchen',
             iconComponent: { name: 'cil-dinner' }
           },
           {
-            name: 'Bar',
+            name: this.transloco.translate('nav.bar'),
             url: '/staff/bar',
             iconComponent: { name: 'cil-drink-alcohol' }
           },
           {
-            name: 'Orders',
+            name: this.transloco.translate('nav.orders'),
             url: '/staff/orders',
             iconComponent: { name: 'cil-list' }
           }
@@ -130,22 +130,22 @@ export class DefaultLayoutComponent implements OnInit {
       case 'manager':
         return [
           {
-            name: 'Dashboard',
+            name: this.transloco.translate('nav.dashboard'),
             url: '/manager/dashboard',
             iconComponent: { name: 'cil-speedometer' }
           },
           {
-            name: 'Kitchen',
+            name: this.transloco.translate('nav.kitchen'),
             url: '/staff/kitchen',
             iconComponent: { name: 'cil-dinner' }
           },
           {
-            name: 'Bar',
+            name: this.transloco.translate('nav.bar'),
             url: '/staff/bar',
             iconComponent: { name: 'cil-drink-alcohol' }
           },
           {
-            name: 'Orders',
+            name: this.transloco.translate('nav.orders'),
             url: '/manager/manage-orders',
             iconComponent: { name: 'cil-list' }
           },
@@ -154,22 +154,22 @@ export class DefaultLayoutComponent implements OnInit {
             name: this.transloco.translate('sidebar.manage')
           },
           {
-            name: 'Tables',
+            name: this.transloco.translate('nav.tables'),
             url: '/manager/manage-tables',
             iconComponent: { name: 'cil-grid' }
           },
           {
-            name: 'Menu',
+            name: this.transloco.translate('nav.menu'),
             url: '/manager/manage-menu',
             iconComponent: { name: 'cil-restaurant' }
           },
           {
-            name: 'Staff',
+            name: this.transloco.translate('nav.staff'),
             url: '/manager/manage-staff',
             iconComponent: { name: 'cil-people' }
           },
           {
-            name: 'QR Codes',
+            name: this.transloco.translate('nav.qrCodes'),
             url: '/manager/manage-qrs',
             iconComponent: { name: 'cil-qr-code' }
           },
@@ -191,12 +191,12 @@ export class DefaultLayoutComponent implements OnInit {
       case 'gadmin':
         return [
           { 
-            name: 'Dashboard',
+            name: this.transloco.translate('nav.dashboard'),
             url: '/gadmin/dashboard',
             iconComponent: { name: 'cil-speedometer' }            
           },
           { 
-            name: 'Subscription Products', 
+            name: this.transloco.translate('nav.subscriptionProducts'), 
             url: '/gadmin/manage-subscription-products', 
             iconComponent: { name: 'cil3d' } 
           },          
