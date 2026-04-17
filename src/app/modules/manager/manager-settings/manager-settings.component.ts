@@ -15,6 +15,7 @@ import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth/auth.service';
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
 import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
+import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { Currency } from '../../../core/models/restaurantTablesModel';
 import { Router } from '@angular/router';
 
@@ -54,7 +55,8 @@ export class ManagerSettingsComponent implements OnInit {
     private authService: AuthService,
     private miscellaneousService: MiscellaneousService,
     private subscriptionService: SubscriptionService,
-    private router: Router
+    private router: Router,
+    private toast: AppToastService
   ) {}
 
   ngOnInit(): void {
@@ -95,10 +97,12 @@ export class ManagerSettingsComponent implements OnInit {
       .subscribe({
         next: () => {
           this.saving = false;
+          this.toast.success('Operating currency and menu prices currency updated.', 'Settings saved');
         },
         error: err => {
           console.error('Failed to update currency', err);
           this.saving = false;
+          this.toast.error(this.miscellaneousService.getFirstErrorMessage(err), 'Could not update currency');
         }
       });
   }
