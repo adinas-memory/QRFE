@@ -1,7 +1,10 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
-import { Subject, takeUntil, timer, switchMap, tap, catchError, of } from 'rxjs';
+import { Subject, takeUntil, timer, switchMap, tap, catchError, of, map } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
+import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
+import { environment } from '../../../../environments/environment';
 import { ContainerComponent, CardComponent, CardBodyComponent, ButtonDirective, AlertComponent, SpinnerComponent } from '@coreui/angular';
 import { TranslocoPipe } from '@jsverse/transloco';
 
@@ -18,10 +21,13 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
   private readonly maxPolls = 15;
   private pollCount = 0;
+  private readonly apiUrl = environment.apiUrl;
 
   constructor(
     private router: Router,
     private authService: AuthService,
+    private http: HttpClient,
+    private subscriptionService: SubscriptionService,
   ) {}
 
   ngOnInit(): void {
@@ -31,6 +37,29 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
         this.pollCount++;
         return this.authService.refreshUserContext().pipe(
           catchError(() => of(null)),
+          switchMap(user => {
+            if (!user?.restaurantId || user.role !== 'manager') {
+              return of(user);
+            }
+            const pending = this.subscriptionService.getPendingRestaurantCurrency();
+            if (!pending) {
+              return of(user);
+            }
+            return this.http.patch(
+              `${this.apiUrl}/api/restaurants/${user.restaurantId}/admin/currency`,
+              { currency: pending },
+              { withCredentials: true },
+            ).pipe(
+              map(() => {
+                this.subscriptionService.clearPendingRestaurantCurrency();
+                return user;
+              }),
+              catchError(err => {
+                console.warn('Could not apply operating currency after checkout', err);
+                return of(user);
+              }),
+            );
+          }),
         );
       }),
       tap(user => {

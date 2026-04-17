@@ -1,0 +1,77 @@
+<c-row class="justify-content-center">
+  <c-col xs="12" lg="8">
+    <c-card class="mb-4">
+      <c-card-header>
+        <strong>Restaurant settings</strong>
+      </c-card-header>
+      <c-card-body>
+        <p class="text-body-secondary small mb-3">
+          Operating currency for menu and orders. Subscription billing may use a different currency (Stripe).
+        </p>
+        @if (!restaurantId) {
+          <p class="text-warning">No restaurant is linked to this account; currency cannot be saved.</p>
+        }
+        <form [formGroup]="form" (ngSubmit)="saveCurrency()">
+          <div class="mb-3">
+            <label cLabel for="currency">Currency</label>
+            <select cSelect id="currency" formControlName="currency">
+              @for (c of currencyOptions; track c) {
+                <option [value]="c">{{ c }}</option>
+              }
+            </select>
+          </div>
+          <button
+            cButton
+            color="primary"
+            type="submit"
+            [disabled]="saving || !restaurantId || form.invalid"
+          >
+            @if (saving) {
+              Saving…
+            } @else {
+              Save currency
+            }
+          </button>
+        </form>
+      </c-card-body>
+    </c-card>
+
+    <c-card class="mb-4" id="payments">
+      <c-card-header>
+        <strong>Payments</strong>
+      </c-card-header>
+      <c-card-body>
+        <p class="text-body-secondary small mb-0">
+          Subscription charges are processed by Stripe. Invoices and receipts are available from Stripe and by email.
+        </p>
+      </c-card-body>
+    </c-card>
+
+    @if (isManager) {
+      <c-card>
+        <c-card-header>
+          <strong>Subscription</strong>
+        </c-card-header>
+        <c-card-body>
+          <p class="text-body-secondary small mb-3">
+            Cancel your Stripe subscription for this account. You will be signed out after cancellation succeeds.
+          </p>
+          <button
+            cButton
+            color="danger"
+            variant="outline"
+            type="button"
+            [disabled]="canceling"
+            (click)="confirmCancelSubscription()"
+          >
+            @if (canceling) {
+              Processing…
+            } @else {
+              Cancel subscription
+            }
+          </button>
+        </c-card-body>
+      </c-card>
+    }
+  </c-col>
+</c-row>

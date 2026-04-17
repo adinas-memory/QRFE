@@ -11,11 +11,13 @@
     >
       <svg cIcon name="cilMenu" size="lg"></svg>
     </button>
-    <c-header-nav class="d-none d-md-flex">
-      <c-nav-item>
-        <a cNavLink routerLink="/settings" routerLinkActive="active">Settings</a>
-      </c-nav-item>
-    </c-header-nav>
+    @if (showManagerAccountMenu()) {
+      <c-header-nav class="d-none d-md-flex">
+        <c-nav-item>
+          <a cNavLink routerLink="/manager/settings" routerLinkActive="active">Settings</a>
+        </c-nav-item>
+      </c-header-nav>
+    }
 
     <c-header-nav class="d-none d-md-flex ms-auto ">
     </c-header-nav>
@@ -59,21 +61,23 @@
           Account
         </h6>
       </li>
-      <li>
-        <a cDropdownItem routerLink="">
-          <svg cIcon class="me-2" name="cilSettings"></svg>
-          Settings
-        </a>
-      </li>
-      <li>
-        <a cDropdownItem routerLink="">
-          <svg cIcon class="me-2" name="cilCreditCard"></svg>
-          Payments  
-        </a>
-      </li>
-      <li>
-        <hr cDropdownDivider />
-      </li>
+      @if (showManagerAccountMenu()) {
+        <li>
+          <a cDropdownItem routerLink="/manager/settings">
+            <svg cIcon class="me-2" name="cilSettings"></svg>
+            Settings
+          </a>
+        </li>
+        <li>
+          <a cDropdownItem routerLink="/manager/settings" fragment="payments">
+            <svg cIcon class="me-2" name="cilCreditCard"></svg>
+            Payments
+          </a>
+        </li>
+        <li>
+          <hr cDropdownDivider />
+        </li>
+      }
       <li>
         <a cDropdownItem (click)="onLogout()" style="cursor: pointer;">
           <svg cIcon class="me-2" name="cilAccountLogout"></svg>

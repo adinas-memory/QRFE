@@ -60,9 +60,35 @@ export class SubscriptionService {
     sessionStorage.removeItem('pendingPlan');
   }
 
+  /**
+   * Operating currency chosen at restaurant setup (menu/orders). Stored before Stripe redirect;
+   * applied after payment via PATCH .../admin/currency (subscription billing stays on Stripe Price currency).
+   */
+  private static readonly pendingRestaurantCurrencyKey = 'pendingRestaurantCurrency';
+
+  setPendingRestaurantCurrency(isoCode: string): void {
+    sessionStorage.setItem(SubscriptionService.pendingRestaurantCurrencyKey, isoCode);
+  }
+
+  getPendingRestaurantCurrency(): string | null {
+    return sessionStorage.getItem(SubscriptionService.pendingRestaurantCurrencyKey);
+  }
+
+  clearPendingRestaurantCurrency(): void {
+    sessionStorage.removeItem(SubscriptionService.pendingRestaurantCurrencyKey);
+  }
+
   subscribeToPlan(payload: SubscriptionPayloadModel): Observable<any> {
     return this.http.post(`${this.apiUrl}/api/stripe/subscription`,
       payload, { withCredentials: true });
+  }
+
+  /** Cancel Stripe subscription for the logged-in manager (server loads IDs from DB). */
+  cancelSubscription(): Observable<unknown> {
+    return this.http.request('DELETE', `${this.apiUrl}/api/stripe/subscription`, {
+      body: {},
+      withCredentials: true
+    });
   }
 
 

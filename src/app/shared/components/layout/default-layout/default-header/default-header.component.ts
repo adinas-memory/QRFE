@@ -1,5 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, input } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../../../core/auth/auth.service';
 
@@ -36,6 +37,15 @@ export class DefaultHeaderComponent extends HeaderComponent {
   readonly #authService = inject(AuthService);
   readonly #router = inject(Router);
   readonly colorMode = this.#colorModeService.colorMode;
+
+  /** Settings / Payments rows: only manager & global admin */
+  readonly user = toSignal(this.#authService.user$, {
+    initialValue: this.#authService.getUserSnapshot()
+  });
+  readonly showManagerAccountMenu = computed(() => {
+    const r = this.user()?.role?.toLowerCase();
+    return r === 'manager' || r === 'gadmin';
+  });
 
   readonly colorModes = [
     { name: 'light', text: 'Light', icon: 'cilSun' },

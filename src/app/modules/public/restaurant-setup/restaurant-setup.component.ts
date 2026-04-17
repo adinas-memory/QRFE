@@ -19,6 +19,11 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { UserContextModel } from '../../../core/models/userContextModel';
 import { RouterLink } from '@angular/router';
 import { CardBodyComponent, CardComponent, RowComponent } from '@coreui/angular';
+import { Currency } from '../../../core/models/restaurantTablesModel';
+import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
+
+/** Fallback if GET /api/restaurants/currencies fails (same set as backend Currency enum). */
+const FALLBACK_OPERATING_CURRENCIES = Object.values(Currency) as string[];
 
 @Component({
   selector: 'app-restaurant-setup',
@@ -46,6 +51,8 @@ export class RestaurantSetupComponent implements OnInit {
 
   restaurantSetupForm: FormGroup<{
     restaurantName: FormControl<string>;
+    /** Display/pricing currency for the venue (applied after Stripe checkout; billing stays on subscription price). */
+    restaurantCurrency: FormControl<string>;
     address: FormControl<string>;
     city: FormControl<string>;
     country: FormControl<string>;
@@ -55,16 +62,20 @@ export class RestaurantSetupComponent implements OnInit {
     billingAddress: FormControl<string>;
   }>;
 
+  operatingCurrencyOptions: string[] = [...FALLBACK_OPERATING_CURRENCIES];
+
   private user: UserContextModel | null = null;
   private role: string | null = null;
 
   constructor(private fb: FormBuilder,
     private router: Router,
     private authService: AuthService,
-    private subscriptionService: SubscriptionService
+    private subscriptionService: SubscriptionService,
+    private miscellaneousService: MiscellaneousService
   ) {
     this.restaurantSetupForm = this.fb.group({
       restaurantName: this.fb.control('', { nonNullable: true }),
+      restaurantCurrency: this.fb.control('EUR', { nonNullable: true }),
       address: this.fb.control('', { nonNullable: true }),
       city: this.fb.control('', { nonNullable: true }),
       country: this.fb.control('', { nonNullable: true }),
@@ -104,6 +115,8 @@ export class RestaurantSetupComponent implements OnInit {
 
       this.subscriptionService.subscribeToPlan(payload).subscribe({
         next: (response: { checkoutUrl: string }) => {
+          // Not sent to Stripe; applied on payment-success via PATCH .../admin/currency
+          this.subscriptionService.setPendingRestaurantCurrency(formValue.restaurantCurrency);
           this.subscriptionService.clearPendingPlan();
           // Redirect the browser to Stripe Checkout
           window.location.href = response.checkoutUrl;
@@ -125,6 +138,19 @@ export class RestaurantSetupComponent implements OnInit {
     });
 
     this.role = this.authService.getUserRole();
+
+    this.miscellaneousService.getCurrencies().subscribe({
+      next: list => {
+        if (list?.length) {
+          this.operatingCurrencyOptions = list;
+          const current = this.restaurantSetupForm.get('restaurantCurrency')?.value;
+          if (current && !list.includes(current)) {
+            this.restaurantSetupForm.patchValue({ restaurantCurrency: list[0] });
+          }
+        }
+      },
+      error: err => console.warn('Using fallback currency list; GET /api/restaurants/currencies failed', err)
+    });
 
     this.restaurantSetupForm.get('checkAddress')?.valueChanges.subscribe(checked => {
       if (checked) {

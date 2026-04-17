@@ -13,6 +13,10 @@
             </div>
 
             <p class="text-muted mb-4">Complete your restaurant details before checkout.</p>
+            <p class="text-muted small mb-4">
+              Subscription is charged in the plan’s currency (e.g. EUR). Choose below the currency you use for menu
+              prices and orders in the app — it will be saved after payment.
+            </p>
 
             <form [formGroup]="restaurantSetupForm" (ngSubmit)="onSubmit()" cForm>
               <c-row class="g-3">
@@ -23,6 +27,14 @@
                 <c-col [xs]="12" [md]="6">
                   <label cLabel for="registrationNumber">Registration number</label>
                   <input formControlName="registrationNumber" cFormControl id="registrationNumber" />
+                </c-col>
+                <c-col [xs]="12" [md]="6">
+                  <label cLabel for="restaurantCurrency">Menu &amp; orders currency</label>
+                  <select formControlName="restaurantCurrency" cSelect id="restaurantCurrency">
+                    @for (c of operatingCurrencyOptions; track c) {
+                      <option [value]="c">{{ c }}</option>
+                    }
+                  </select>
                 </c-col>
                 <c-col [xs]="12" [md]="6">
                   <label cLabel for="city">City</label>

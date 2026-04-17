@@ -53,6 +53,12 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./manage-qrs/manage-qrs.component').then(m => m.ManageQrsComponent),
         data: { title: 'QR Codes' }
+      },
+      {
+        path: 'settings',
+        loadComponent: () =>
+          import('./manager-settings/manager-settings.component').then(m => m.ManagerSettingsComponent),
+        data: { title: 'Settings' }
       }
     ]
   }
