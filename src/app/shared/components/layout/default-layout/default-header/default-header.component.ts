@@ -3,6 +3,7 @@ import { Component, computed, inject, input } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '@app/core/auth/auth.service';
+import { LANG_STORAGE_KEY, APP_LANGS, type AppLang } from '@app/core/i18n/transloco.config';
 import { FeedbackLaunchComponent } from '@app/shared/components/feedback/feedback-launch.component';
 
 import {
@@ -27,11 +28,26 @@ import {
 
 import { IconDirective } from '@coreui/icons-angular';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { map, startWith } from 'rxjs';
+
+function flagClassForLang(id: AppLang): string {
+  const m: Record<AppLang, string> = {
+    ro: 'cif-ro',
+    en: 'cif-gb',
+    it: 'cif-it',
+    fr: 'cif-fr',
+    es: 'cif-es',
+    de: 'cif-de',
+    sv: 'cif-se',
+  };
+  return m[id];
+}
 
 @Component({
   selector: 'app-default-header',
   standalone: true,
   templateUrl: './default-header.component.html',
+  styleUrl: './default-header.component.scss',
   imports: [ContainerComponent, HeaderTogglerDirective, SidebarToggleDirective, IconDirective, HeaderNavComponent, NavItemComponent, NavLinkDirective, RouterLink, RouterLinkActive, NgTemplateOutlet, BreadcrumbRouterComponent, DropdownComponent, DropdownToggleDirective, AvatarComponent, DropdownMenuDirective, DropdownHeaderDirective, DropdownItemDirective, BadgeComponent, DropdownDividerDirective, FeedbackLaunchComponent, TranslocoPipe]
 })
 export class DefaultHeaderComponent extends HeaderComponent {
@@ -56,6 +72,29 @@ export class DefaultHeaderComponent extends HeaderComponent {
     { name: 'dark' as const, icon: 'cilMoon' },
     { name: 'auto' as const, icon: 'cilContrast' }
   ];
+
+  readonly langOptions = APP_LANGS.map((id: AppLang) => ({
+    id,
+    label: id.toUpperCase(),
+    flag: flagClassForLang(id),
+  }));
+
+  readonly activeLang = toSignal(
+    this.#transloco.langChanges$.pipe(
+      startWith(this.#transloco.getActiveLang()),
+      map(() => this.#transloco.getActiveLang() as AppLang),
+    ),
+    { initialValue: this.#transloco.getActiveLang() as AppLang },
+  );
+
+  setLanguage(lang: AppLang): void {
+    this.#transloco.setActiveLang(lang);
+    try {
+      localStorage.setItem(LANG_STORAGE_KEY, lang);
+    } catch {
+      /* ignore */
+    }
+  }
 
   themeLabel(modeName: string): string {
     const key =

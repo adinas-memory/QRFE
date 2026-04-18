@@ -23,6 +23,10 @@
     </c-header-nav>
 
     <c-header-nav class="ms-auto ms-md-0">
+      <ng-container *ngTemplateOutlet="languageDropdown" />
+      <div class="nav-item py-1">
+        <div class="vr h-100 mx-2 text-body text-opacity-75"></div>
+      </div>
       <app-feedback-launch />
       <div class="nav-item py-1">
         <div class="vr h-100 mx-2 text-body text-opacity-75"></div>
@@ -86,6 +90,28 @@
         </a>
       </li>
     </ul>
+  </c-dropdown>
+</ng-template>
+
+<ng-template #languageDropdown>
+  <c-dropdown alignment="end" variant="nav-item">
+    <button [caret]="false" cDropdownToggle [attr.aria-label]="'header.openLanguagePicker' | transloco">
+      <svg cIcon name="cilLanguage" size="lg"></svg>
+    </button>
+    <div cDropdownMenu>
+      <h6 cDropdownHeader class="small text-uppercase">{{ 'landing.language' | transloco }}</h6>
+      @for (opt of langOptions; track opt.id) {
+        <button
+          (click)="setLanguage(opt.id)"
+          [active]="activeLang() === opt.id"
+          cDropdownItem
+          class="d-flex align-items-center"
+        >
+          <span class="lang-flag me-2 {{ opt.flag }}"></span>
+          {{ opt.label }}
+        </button>
+      }
+    </div>
   </c-dropdown>
 </ng-template>
 

@@ -26,6 +26,11 @@ export const routes: Routes = [
         data: { title: 'Orders' }
       },
       {
+        path: 'reservations',
+        redirectTo: '/staff/bookings',
+        pathMatch: 'full'
+      },
+      {
         path: 'manage-tables',
         loadComponent: () =>
           import('./manage-tables/manage-tables.component').then(m => m.ManageTablesComponent),

@@ -112,6 +112,16 @@ export class DefaultLayoutComponent implements OnInit {
       case 'staff':
         return [
           {
+            name: this.transloco.translate('nav.dashboard'),
+            url: '/staff/dashboard',
+            iconComponent: { name: 'cil-speedometer' }
+          },
+          {
+            name: this.transloco.translate('nav.orders'),
+            url: '/staff/orders',
+            iconComponent: { name: 'cil-list' }
+          },
+          {
             name: this.transloco.translate('nav.kitchen'),
             url: '/staff/kitchen',
             iconComponent: { name: 'cil-dinner' }
@@ -122,9 +132,9 @@ export class DefaultLayoutComponent implements OnInit {
             iconComponent: { name: 'cil-drink-alcohol' }
           },
           {
-            name: this.transloco.translate('nav.orders'),
-            url: '/staff/orders',
-            iconComponent: { name: 'cil-list' }
+            name: this.transloco.translate('nav.bookings'),
+            url: '/staff/bookings',
+            iconComponent: { name: 'cilCalendar' }
           }
         ];
       case 'manager':
@@ -135,6 +145,11 @@ export class DefaultLayoutComponent implements OnInit {
             iconComponent: { name: 'cil-speedometer' }
           },
           {
+            name: this.transloco.translate('nav.orders'),
+            url: '/manager/manage-orders',
+            iconComponent: { name: 'cil-list' }
+          },
+          {
             name: this.transloco.translate('nav.kitchen'),
             url: '/staff/kitchen',
             iconComponent: { name: 'cil-dinner' }
@@ -145,9 +160,9 @@ export class DefaultLayoutComponent implements OnInit {
             iconComponent: { name: 'cil-drink-alcohol' }
           },
           {
-            name: this.transloco.translate('nav.orders'),
-            url: '/manager/manage-orders',
-            iconComponent: { name: 'cil-list' }
+            name: this.transloco.translate('nav.bookings'),
+            url: '/staff/bookings',
+            iconComponent: { name: 'cilCalendar' }
           },
           {
             title: true,
@@ -194,6 +209,11 @@ export class DefaultLayoutComponent implements OnInit {
             name: this.transloco.translate('nav.dashboard'),
             url: '/gadmin/dashboard',
             iconComponent: { name: 'cil-speedometer' }            
+          },
+          {
+            name: this.transloco.translate('nav.bookings'),
+            url: '/staff/bookings',
+            iconComponent: { name: 'cilCalendar' }
           },
           { 
             name: this.transloco.translate('nav.subscriptionProducts'), 

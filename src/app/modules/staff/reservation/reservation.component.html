@@ -1,0 +1,139 @@
+<c-container class="py-4">
+  <c-row class="justify-content-center">
+    <c-col lg="8" md="10">
+      <c-card class="mb-3">
+        <c-card-header>
+          <strong>{{ 'reservations.listTitle' | transloco }}</strong>
+          <button cButton color="secondary" size="sm" class="ms-2" type="button" (click)="refreshAll()">
+            {{ 'reservations.refresh' | transloco }}
+          </button>
+        </c-card-header>
+        <c-card-body>
+          @if (!restaurantId) {
+            <p class="text-danger mb-0">{{ 'reservations.missingRestaurant' | transloco }}</p>
+          } @else if (loadingList) {
+            <p class="text-body-secondary mb-0">{{ 'reservations.loading' | transloco }}</p>
+          } @else if (reservationsList.length === 0) {
+            <p class="text-body-secondary mb-0">{{ 'reservations.empty' | transloco }}</p>
+          } @else {
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>{{ 'reservations.colWhen' | transloco }}</th>
+                    <th>{{ 'reservations.colTable' | transloco }}</th>
+                    <th>{{ 'reservations.colName' | transloco }}</th>
+                    <th class="text-end">{{ 'reservations.colParty' | transloco }}</th>
+                    <th>{{ 'reservations.colStatus' | transloco }}</th>
+                    <th>{{ 'reservations.colBookedUntil' | transloco }}</th>
+                    <th style="width: 220px;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (r of reservationsList; track r.reservationId) {
+                    <tr>
+                      <td>{{ r.start | date:'short' }}</td>
+                      <td>{{ r.tableLabel }}</td>
+                      <td>
+                        <div class="fw-semibold">{{ r.customerName }}</div>
+                        <div class="text-body-secondary small">{{ r.phone }}</div>
+                      </td>
+                      <td class="text-end">{{ r.partySize }}</td>
+                      <td>{{ r.status }}</td>
+                      <td>{{ r.end | date:'HH:mm' }}</td>
+                      <td class="text-end">
+                        <button cButton color="primary" size="sm" type="button" (click)="selectForEdit(r)">
+                          {{ 'reservations.edit' | transloco }}
+                        </button>
+                        <button cButton color="danger" size="sm" class="ms-2" type="button" (click)="deleteReservation(r)">
+                          {{ 'reservations.delete' | transloco }}
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </c-card-body>
+      </c-card>
+
+      <c-card>
+        <c-card-header>
+          <strong>
+            {{ editing ? ('reservations.editTitle' | transloco) : ('reservations.title' | transloco) }}
+          </strong>
+          @if (restaurantId) {
+            <span class="text-body-secondary small ms-2">{{ restaurantId }}</span>
+          }
+        </c-card-header>
+        <c-card-body>
+          @if (!restaurantId) {
+            <p class="text-danger mb-0">{{ 'reservations.missingRestaurant' | transloco }}</p>
+          } @else {
+            @if (loadingTables) {
+              <p class="text-body-secondary small mb-3">{{ 'reservations.loadingTables' | transloco }}</p>
+            } @else if (tableOptions.length === 0) {
+              <p class="text-warning small mb-3">{{ 'reservations.emptyTables' | transloco }}</p>
+            }
+            <form [formGroup]="form" (ngSubmit)="submit()">
+              <div class="mb-3">
+                <label cLabel for="res-table">{{ 'reservations.table' | transloco }}</label>
+                <select cFormControl id="res-table" class="form-select" formControlName="tableId">
+                  <option value="">{{ 'reservations.tablePlaceholder' | transloco }}</option>
+                  @for (t of tableOptions; track t.tableId) {
+                    <option [value]="t.tableId">{{ t.label }}</option>
+                  }
+                </select>
+              </div>
+              <div class="mb-3">
+                <label cLabel for="res-name">{{ 'reservations.name' | transloco }}</label>
+                <input cFormControl id="res-name" type="text" formControlName="customerName" autocomplete="name" />
+              </div>
+              <div class="mb-3">
+                <label cLabel for="res-phone">{{ 'reservations.phone' | transloco }}</label>
+                <input cFormControl id="res-phone" type="tel" formControlName="phone" autocomplete="tel" />
+              </div>
+              <div class="mb-3">
+                <label cLabel for="res-party">{{ 'reservations.partySize' | transloco }}</label>
+                <input cFormControl id="res-party" type="number" min="1" max="100" formControlName="partySize" />
+              </div>
+              <div class="mb-3">
+                <label cLabel for="res-start">{{ 'reservations.dateTime' | transloco }}</label>
+                <input cFormControl id="res-start" type="datetime-local" formControlName="startLocal" />
+              </div>
+              <button cButton color="primary" type="submit" [disabled]="submitting">
+                {{
+                  submitting
+                    ? ('reservations.submitting' | transloco)
+                    : (editing ? ('reservations.save' | transloco) : ('reservations.submit' | transloco))
+                }}
+              </button>
+              @if (editing) {
+                <button cButton color="secondary" class="ms-2" type="button" (click)="cancelEdit()" [disabled]="submitting">
+                  {{ 'reservations.cancelEdit' | transloco }}
+                </button>
+              }
+            </form>
+          }
+
+          @if (bookingSuccess) {
+            <p class="text-success mt-3 mb-0">{{ 'reservations.success' | transloco }}</p>
+          }
+          @if (lastEventId) {
+            <p class="text-body-secondary small mt-1 mb-0">{{ 'reservations.eventIdLabel' | transloco }} {{ lastEventId }}</p>
+          }
+          @if (errorKey === 'missingRestaurant') {
+            <p class="text-danger mt-3 mb-0">{{ 'reservations.missingRestaurant' | transloco }}</p>
+          } @else if (errorKey === 'invalidDate') {
+            <p class="text-danger mt-3 mb-0">{{ 'reservations.invalidDate' | transloco }}</p>
+          } @else if (errorKey === 'generic') {
+            <p class="text-danger mt-3 mb-0">{{ 'reservations.errorGeneric' | transloco }}</p>
+          } @else if (error) {
+            <p class="text-danger mt-3 mb-0">{{ error }}</p>
+          }
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+</c-container>
