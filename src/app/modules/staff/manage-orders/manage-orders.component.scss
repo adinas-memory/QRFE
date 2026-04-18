@@ -71,6 +71,19 @@
   overflow-y: auto;
 }
 
+/* Cart forces light text on black; reset for confirm box so text stays readable. */
+.close-order-confirm {
+  background-color: #f8f9fa;
+  color: #212529;
+  border-color: rgba(0, 0, 0, 0.175) !important;
+}
+
+[data-coreui-theme="dark"] .close-order-confirm {
+  background-color: var(--cui-secondary-bg);
+  color: var(--cui-body-color);
+  border-color: var(--cui-border-color) !important;
+}
+
 // .offcanvas-title-fix {
 //   white-space: normal;
 //   line-height: 1.2;

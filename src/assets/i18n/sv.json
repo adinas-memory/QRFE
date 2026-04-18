@@ -17,6 +17,24 @@
     "subscribe": "Prenumerera",
     "language": "Språk"
   },
+  "dashboard": {
+    "kpiUsers": "Användare",
+    "kpiIncome": "Intäkter",
+    "kpiConversion": "Konverteringsgrad",
+    "kpiSessions": "Sessioner",
+    "kpiFootnote": "30 dagar jämfört med föregående 30 UTC-dagar. Användare: unika medarbetare med lyckad inloggning. Intäkter: stängda ordrar i restaurangens valuta. Konvertering: ordrar vs inloggningar (max 100%). Sessioner: lyckade inloggningar.",
+    "trafficTitle": "Trafik",
+    "trafficHint": "Stängda ordrar per UTC-dag eller -månad.",
+    "trafficDay": "Dag",
+    "trafficMonth": "Månad",
+    "trafficYear": "År",
+    "trafficSeriesOrders": "Stängda ordrar",
+    "trafficFooterOrders": "Stängda ordrar (period)",
+    "trafficFooterRevenue": "Intäkter (period)",
+    "trafficFooterLogins": "Personalinloggningar (period)",
+    "noRestaurant": "Inget restaurangkonto kopplat.",
+    "loadFailed": "Kunde inte ladda instrumentpanelen."
+  },
   "payment": {
     "success": {
       "title": "Betalning bekräftad",

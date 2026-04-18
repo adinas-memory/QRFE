@@ -1,122 +1,79 @@
 import { Injectable } from '@angular/core';
 import { ChartData, ChartDataset, ChartOptions, ChartType, PluginOptionsByType, ScaleOptions, TooltipLabelStyle } from 'chart.js';
+import { DashboardMetricsResponse } from '@app/core/models/dashboard-metrics.model';
 import { DeepPartial } from './utils';
 import { getStyle } from '@coreui/utils';
 
 export interface IChartProps {
   data?: ChartData;
-  labels?: any;
+  labels?: unknown;
   options?: ChartOptions;
-  colors?: any;
+  colors?: unknown;
   type: ChartType;
-  legend?: any;
+  legend?: unknown;
 
-  [propName: string]: any;
+  [propName: string]: unknown;
 }
 
 @Injectable({
   providedIn: 'any'
 })
 export class DashboardChartsData {
-  constructor() {
-    this.initMainChart();
-  }
+  /** Y-axis max derived from last applied traffic series (for theme refresh). */
+  private lastYMax = 10;
 
   public mainChart: IChartProps = { type: 'line' };
 
-  public random(min: number, max: number) {
-    return Math.floor(Math.random() * (max - min + 1) + min);
+  constructor() {
+    this.applyTrafficFromMetrics('Month', null, 'Orders');
   }
 
-  initMainChart(period: string = 'Month') {
-    const brandSuccess = getStyle('--cui-success') ?? '#4dbd74';
+  /**
+   * @param ordersLabel Translated label (e.g. closed orders).
+   */
+  applyTrafficFromMetrics(period: string, metrics: DashboardMetricsResponse | null, ordersLabel: string): void {
     const brandInfo = getStyle('--cui-info') ?? '#20a8d8';
-    const brandInfoBg = `rgba(${getStyle('--cui-info-rgb')}, .1)`
-    const brandDanger = getStyle('--cui-danger') ?? '#f86c6b';
-
-    // mainChart
-    this.mainChart['elements'] = period === 'Month' ? 12 : 27;
-    this.mainChart['Data1'] = [];
-    this.mainChart['Data2'] = [];
-    this.mainChart['Data3'] = [];
-
-    // generate random values for mainChart
-    for (let i = 0; i <= this.mainChart['elements']; i++) {
-      this.mainChart['Data1'].push(this.random(50, 240));
-      this.mainChart['Data2'].push(this.random(20, 160));
-      this.mainChart['Data3'].push(65);
-    }
+    const brandInfoBg = `rgba(${getStyle('--cui-info-rgb')}, .1)`;
 
     let labels: string[] = [];
-    if (period === 'Month') {
-      labels = [
-        'January',
-        'February',
-        'March',
-        'April',
-        'May',
-        'June',
-        'July',
-        'August',
-        'September',
-        'October',
-        'November',
-        'December'
-      ];
-    } else {
-      /* tslint:disable:max-line-length */
-      const week = [
-        'Monday',
-        'Tuesday',
-        'Wednesday',
-        'Thursday',
-        'Friday',
-        'Saturday',
-        'Sunday'
-      ];
-      labels = week.concat(week, week, week);
+    let ordersData: number[] = [];
+
+    if (metrics?.dailySeries?.length) {
+      const daily = [...metrics.dailySeries].sort((a, b) => a.date.localeCompare(b.date));
+      if (period === 'Day') {
+        const slice = daily.slice(-7);
+        labels = slice.map(d => shortWeekday(d.date));
+        ordersData = slice.map(d => d.closedOrders);
+      } else if (period === 'Month') {
+        const slice = daily.slice(-30);
+        labels = slice.map(d => shortDate(d.date));
+        ordersData = slice.map(d => d.closedOrders);
+      } else {
+        const monthly = [...(metrics.monthlySeries ?? [])].sort((a, b) =>
+          a.year === b.year ? a.month - b.month : a.year - b.year
+        );
+        labels = monthly.map(x => `${x.month}/${x.year}`);
+        ordersData = monthly.map(x => x.closedOrders);
+      }
     }
 
-    const colors = [
+    if (!ordersData.length) {
+      labels = ['—'];
+      ordersData = [0];
+    }
+
+    const maxOrders = Math.max(...ordersData, 0);
+    this.lastYMax = Math.max(10, Math.ceil(maxOrders * 1.15));
+
+    const datasets: ChartDataset[] = [
       {
-        // brandInfo
+        data: ordersData,
+        label: ordersLabel,
         backgroundColor: brandInfoBg,
         borderColor: brandInfo,
         pointHoverBackgroundColor: brandInfo,
         borderWidth: 2,
         fill: true
-      },
-      {
-        // brandSuccess
-        backgroundColor: 'transparent',
-        borderColor: brandSuccess || '#4dbd74',
-        pointHoverBackgroundColor: '#fff'
-      },
-      {
-        // brandDanger
-        backgroundColor: 'transparent',
-        borderColor: brandDanger || '#f86c6b',
-        pointHoverBackgroundColor: brandDanger,
-        borderWidth: 1,
-        borderDash: [8, 5]
-      }
-    ];
-
-    const datasets: ChartDataset[] = [
-      {
-        data: this.mainChart['Data1'],
-        label: 'Current',
-        ...colors[0]
-      },
-      {
-        data: this.mainChart['Data2'],
-        label: 'Previous',
-        ...colors[1]
-      },
-      {
-        data: this.mainChart['Data3'],
-        label: 'BEP',
-        ...colors[2]
       }
     ];
 
@@ -126,7 +83,8 @@ export class DashboardChartsData {
       },
       tooltip: {
         callbacks: {
-          labelColor: (context) => ({ backgroundColor: context.dataset.borderColor } as TooltipLabelStyle)
+          labelColor: (context: any) =>
+            ({ backgroundColor: context.dataset.borderColor } as TooltipLabelStyle)
         }
       }
     };
@@ -158,11 +116,13 @@ export class DashboardChartsData {
     };
   }
 
-  getScales() {
+   getScales(): ScaleOptions<any> {
     const colorBorderTranslucent = getStyle('--cui-border-color-translucent');
     const colorBody = getStyle('--cui-body-color');
+    const maxY = this.lastYMax;
+    const step = Math.max(1, Math.ceil(maxY / 5));
 
-    const scales: ScaleOptions<any> = {
+    return {
       x: {
         grid: {
           color: colorBorderTranslucent,
@@ -179,15 +139,24 @@ export class DashboardChartsData {
         grid: {
           color: colorBorderTranslucent
         },
-        max: 250,
+        max: maxY,
         beginAtZero: true,
         ticks: {
           color: colorBody,
-          maxTicksLimit: 5,
-          stepSize: Math.ceil(250 / 5)
+          maxTicksLimit: 6,
+          stepSize: step
         }
       }
     };
-    return scales;
   }
+}
+
+function shortWeekday(isoDate: string): string {
+  const d = new Date(isoDate + 'T12:00:00Z');
+  return d.toLocaleDateString(undefined, { weekday: 'short', timeZone: 'UTC' });
+}
+
+function shortDate(isoDate: string): string {
+  const d = new Date(isoDate + 'T12:00:00Z');
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
 }

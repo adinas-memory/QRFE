@@ -17,6 +17,24 @@
     "subscribe": "Abbonati",
     "language": "Lingua"
   },
+  "dashboard": {
+    "kpiUsers": "Utenti",
+    "kpiIncome": "Ricavi",
+    "kpiConversion": "Tasso di conversione",
+    "kpiSessions": "Sessioni",
+    "kpiFootnote": "Finestra 30 giorni vs 30 giorni UTC precedenti. Utenti: staff distinto con login. Ricavi: ordini chiusi nella valuta del ristorante. Conversione: ordini vs login (max 100%). Sessioni: login riusciti.",
+    "trafficTitle": "Traffico",
+    "trafficHint": "Ordini chiusi per giorno o mese UTC.",
+    "trafficDay": "Giorno",
+    "trafficMonth": "Mese",
+    "trafficYear": "Anno",
+    "trafficSeriesOrders": "Ordini chiusi",
+    "trafficFooterOrders": "Ordini chiusi (periodo)",
+    "trafficFooterRevenue": "Ricavi (periodo)",
+    "trafficFooterLogins": "Login staff (periodo)",
+    "noRestaurant": "Nessun ristorante associato all'account.",
+    "loadFailed": "Impossibile caricare la dashboard."
+  },
   "payment": {
     "success": {
       "title": "Pagamento confermato",

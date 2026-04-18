@@ -85,7 +85,12 @@
                         }"
                       >
                         <td class="fw-semibold">{{ it.name }}</td>
-                        <td class="text-end">{{ it.quantity }}</td>
+                        <td class="text-end">
+                          <div class="fw-semibold">{{ it.quantity }}</div>
+                          @if (it.opText) {
+                            <div class="text-muted small" style="font-weight: 600;">{{ it.opText }}</div>
+                          }
+                        </td>
                         <td class="text-muted">{{ it.category }}</td>
                       </tr>
                     </tbody>

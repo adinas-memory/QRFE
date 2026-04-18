@@ -1,165 +1,143 @@
-import { NgStyle } from '@angular/common';
-import { Component, DestroyRef, DOCUMENT, effect, inject, OnInit, Renderer2, signal, WritableSignal } from '@angular/core';
+import { CurrencyPipe, NgStyle } from '@angular/common';
+import { Component, computed, DestroyRef, DOCUMENT, effect, inject, OnInit, Renderer2, signal, WritableSignal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ChartOptions } from 'chart.js';
 import {
-  AvatarComponent,
+  AlertComponent,
   ButtonDirective,
   ButtonGroupComponent,
   CardBodyComponent,
   CardComponent,
   CardFooterComponent,
-  CardHeaderComponent,
   ColComponent,
   FormCheckLabelDirective,
-  GutterDirective,
-  ProgressComponent,
-  RowComponent,
-  TableDirective
+  RowComponent
 } from '@coreui/angular';
 import { ChartjsComponent } from '@coreui/angular-chartjs';
 import { IconDirective } from '@coreui/icons-angular';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
-import { WidgetsBrandComponent } from '../../../views/widgets/widgets-brand/widgets-brand.component';
-import { WidgetsDropdownComponent } from '../../../views/widgets/widgets-dropdown/widgets-dropdown.component';
+import { AuthService } from '@app/core/auth/auth.service';
+import { DashboardMetricsResponse } from '@app/core/models/dashboard-metrics.model';
+import { ReportingService } from '@app/core/services/reporting/reporting.service';
+
 import { DashboardChartsData, IChartProps } from './dashboard-charts-data';
-
-interface IUser {
-  name: string;
-  state: string;
-  registered: string;
-  country: string;
-  usage: number;
-  period: string;
-  payment: string;
-  activity: string;
-  avatar: string;
-  status: string;
-  color: string;
-}
+import { DashboardKpiStripComponent } from './dashboard-kpi-strip.component';
 
 @Component({
   templateUrl: 'dashboard.component.html',
   styleUrls: ['dashboard.component.scss'],
-  imports: [WidgetsDropdownComponent, CardComponent, CardBodyComponent, RowComponent, ColComponent, ButtonDirective, IconDirective, ReactiveFormsModule, ButtonGroupComponent, FormCheckLabelDirective, ChartjsComponent, NgStyle, CardFooterComponent, GutterDirective, ProgressComponent, WidgetsBrandComponent, CardHeaderComponent, TableDirective, AvatarComponent]
+  imports: [
+    CurrencyPipe,
+    DashboardKpiStripComponent,
+    AlertComponent,
+    CardComponent,
+    CardBodyComponent,
+    RowComponent,
+    ColComponent,
+    ButtonDirective,
+    IconDirective,
+    ReactiveFormsModule,
+    ButtonGroupComponent,
+    FormCheckLabelDirective,
+    ChartjsComponent,
+    NgStyle,
+    CardFooterComponent,
+    TranslocoPipe
+  ]
 })
 export class DashboardComponent implements OnInit {
-
-  readonly #destroyRef: DestroyRef = inject(DestroyRef);
+  readonly #destroyRef = inject(DestroyRef);
   readonly #document: Document = inject(DOCUMENT);
-  readonly #renderer: Renderer2 = inject(Renderer2);
-  readonly #chartsData: DashboardChartsData = inject(DashboardChartsData);
+  readonly #renderer = inject(Renderer2);
+  readonly #chartsData = inject(DashboardChartsData);
+  readonly #auth = inject(AuthService);
+  readonly #reporting = inject(ReportingService);
+  readonly #transloco = inject(TranslocoService);
 
-  public users: IUser[] = [
-    {
-      name: 'Yiorgos Avraamu',
-      state: 'New',
-      registered: 'Jan 1, 2021',
-      country: 'Us',
-      usage: 50,
-      period: 'Jun 11, 2021 - Jul 10, 2021',
-      payment: 'Mastercard',
-      activity: '10 sec ago',
-      avatar: './assets/images/avatars/1.jpg',
-      status: 'success',
-      color: 'success'
-    },
-    {
-      name: 'Avram Tarasios',
-      state: 'Recurring ',
-      registered: 'Jan 1, 2021',
-      country: 'Br',
-      usage: 10,
-      period: 'Jun 11, 2021 - Jul 10, 2021',
-      payment: 'Visa',
-      activity: '5 minutes ago',
-      avatar: './assets/images/avatars/2.jpg',
-      status: 'danger',
-      color: 'info'
-    },
-    {
-      name: 'Quintin Ed',
-      state: 'New',
-      registered: 'Jan 1, 2021',
-      country: 'In',
-      usage: 74,
-      period: 'Jun 11, 2021 - Jul 10, 2021',
-      payment: 'Stripe',
-      activity: '1 hour ago',
-      avatar: './assets/images/avatars/3.jpg',
-      status: 'warning',
-      color: 'warning'
-    },
-    {
-      name: 'Enéas Kwadwo',
-      state: 'Sleep',
-      registered: 'Jan 1, 2021',
-      country: 'Fr',
-      usage: 98,
-      period: 'Jun 11, 2021 - Jul 10, 2021',
-      payment: 'Paypal',
-      activity: 'Last month',
-      avatar: './assets/images/avatars/4.jpg',
-      status: 'secondary',
-      color: 'danger'
-    },
-    {
-      name: 'Agapetus Tadeáš',
-      state: 'New',
-      registered: 'Jan 1, 2021',
-      country: 'Es',
-      usage: 22,
-      period: 'Jun 11, 2021 - Jul 10, 2021',
-      payment: 'ApplePay',
-      activity: 'Last week',
-      avatar: './assets/images/avatars/5.jpg',
-      status: 'success',
-      color: 'primary'
-    },
-    {
-      name: 'Friderik Dávid',
-      state: 'New',
-      registered: 'Jan 1, 2021',
-      country: 'Pl',
-      usage: 43,
-      period: 'Jun 11, 2021 - Jul 10, 2021',
-      payment: 'Amex',
-      activity: 'Yesterday',
-      avatar: './assets/images/avatars/6.jpg',
-      status: 'info',
-      color: 'dark'
+  readonly metrics = signal<DashboardMetricsResponse | null>(null);
+  readonly loadError = signal<'noRestaurant' | 'requestFailed' | null>(null);
+  readonly loadingMetrics = signal(false);
+  readonly trafficPeriod = signal<string>('Month');
+
+  readonly trafficFooter = computed(() => {
+    const m = this.metrics();
+    const p = this.trafficPeriod();
+    if (!m) {
+      return null;
     }
-  ];
+    return summarizeTrafficWindow(m, p);
+  });
 
   public mainChart: IChartProps = { type: 'line' };
-  public mainChartRef: WritableSignal<any> = signal(undefined);
+  public mainChartRef: WritableSignal<unknown> = signal(undefined);
   #mainChartRefEffect = effect(() => {
     if (this.mainChartRef()) {
       this.setChartStyles();
     }
   });
-  public chart: Array<IChartProps> = [];
+
   public trafficRadioGroup = new FormGroup({
     trafficRadio: new FormControl('Month')
   });
 
   ngOnInit(): void {
-    this.initCharts();
+    this.trafficPeriod.set(this.trafficRadioGroup.value.trafficRadio ?? 'Month');
+    this.refreshChartFromMetrics();
     this.updateChartOnColorModeChange();
+    this.loadMetrics();
+  }
+
+  loadMetrics(): void {
+    const rid = this.#auth.getUserRestaurantId();
+    if (typeof rid !== 'string' || !rid) {
+      this.loadError.set('noRestaurant');
+      this.loadingMetrics.set(false);
+      this.refreshChartFromMetrics();
+      return;
+    }
+
+    this.loadError.set(null);
+    this.loadingMetrics.set(true);
+    this.#reporting
+      .getDashboardMetrics(rid)
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({
+        next: m => {
+          this.metrics.set(m);
+          this.loadingMetrics.set(false);
+          this.refreshChartFromMetrics();
+        },
+        error: () => {
+          this.loadingMetrics.set(false);
+          this.loadError.set('requestFailed');
+          this.metrics.set(null);
+          this.refreshChartFromMetrics();
+        }
+      });
+  }
+
+  refreshChartFromMetrics(): void {
+    const period = this.trafficRadioGroup.value.trafficRadio ?? 'Month';
+    const label = this.#transloco.translate('dashboard.trafficSeriesOrders');
+    this.#chartsData.applyTrafficFromMetrics(period, this.metrics(), label);
+    this.initCharts();
   }
 
   initCharts(): void {
-    this.mainChartRef()?.stop();
+    const ref = this.mainChartRef() as { stop?: () => void } | undefined;
+    ref?.stop?.();
     this.mainChart = this.#chartsData.mainChart;
   }
 
   setTrafficPeriod(value: string): void {
     this.trafficRadioGroup.setValue({ trafficRadio: value });
-    this.#chartsData.initMainChart(value);
-    this.initCharts();
+    this.trafficPeriod.set(value);
+    this.refreshChartFromMetrics();
   }
 
-  handleChartRef($chartRef: any) {
+  handleChartRef($chartRef: unknown) {
     if ($chartRef) {
       this.mainChartRef.set($chartRef);
     }
@@ -176,13 +154,32 @@ export class DashboardComponent implements OnInit {
   }
 
   setChartStyles() {
-    if (this.mainChartRef()) {
+    const ref = this.mainChartRef() as { options?: ChartOptions; update?: () => void } | undefined;
+    if (ref) {
       setTimeout(() => {
-        const options: ChartOptions = { ...this.mainChart.options };
+        const base = this.mainChart.options?.scales;
+        const prev = base && typeof base === 'object' ? base : {};
         const scales = this.#chartsData.getScales();
-        this.mainChartRef().options.scales = { ...options.scales, ...scales };
-        this.mainChartRef().update();
+        ref.options ??= {};
+        ref.options.scales = { ...prev, ...scales } as ChartOptions['scales'];
+        ref.update?.();
       });
     }
   }
+}
+
+function summarizeTrafficWindow(m: DashboardMetricsResponse, period: string) {
+  const cc = m.kpis.incomeCurrency;
+  const daily = [...m.dailySeries].sort((a, b) => a.date.localeCompare(b.date));
+  if (period === 'Year') {
+    const mo = m.monthlySeries ?? [];
+    const orders = mo.reduce((s, x) => s + x.closedOrders, 0);
+    const revenue = mo.reduce((s, x) => s + Number(x.revenue), 0);
+    return { orders, revenue, logins: null as number | null, currency: cc };
+  }
+  const slice = period === 'Day' ? daily.slice(-7) : daily.slice(-30);
+  const orders = slice.reduce((s, d) => s + d.closedOrders, 0);
+  const revenue = slice.reduce((s, d) => s + Number(d.revenue), 0);
+  const logins = slice.reduce((s, d) => s + d.loginEvents, 0);
+  return { orders, revenue, logins, currency: cc };
 }

@@ -1,0 +1,61 @@
+<c-row class="g-4">
+  <c-col sm="6" xl="3">
+    <c-widget-stat-a color="primary" [title]="'dashboard.kpiUsers' | transloco">
+      <ng-template cTemplateId="widgetValueTemplate" ngPreserveWhitespaces>
+        @if (loading()) {
+          <span class="placeholder col-6"></span>
+        } @else {
+          {{ vm().users }}
+          <span class="fw-normal text-body-secondary" style="font-size: 12px;">
+            ({{ vm().usersDelta | number: '1.0-1' }}%&nbsp;<svg cIcon [name]="deltaIconName(vm().usersDelta)" size="sm"></svg>)
+          </span>
+        }
+      </ng-template>
+    </c-widget-stat-a>
+  </c-col>
+  <c-col sm="6" xl="3">
+    <c-widget-stat-a color="info" [title]="'dashboard.kpiIncome' | transloco">
+      <ng-template cTemplateId="widgetValueTemplate" ngPreserveWhitespaces>
+        @if (loading()) {
+          <span class="placeholder col-8"></span>
+        } @else {
+          <span>{{ vm().income }}</span>
+          <span class="fw-normal text-body-secondary" style="font-size: 12px;">
+            ({{ vm().incomeDelta | number: '1.0-1' }}%&nbsp;<svg cIcon [name]="deltaIconName(vm().incomeDelta)" size="sm"></svg>)
+          </span>
+        }
+      </ng-template>
+    </c-widget-stat-a>
+  </c-col>
+  <c-col sm="6" xl="3">
+    <c-widget-stat-a color="warning" [title]="'dashboard.kpiConversion' | transloco">
+      <ng-template cTemplateId="widgetValueTemplate" ngPreserveWhitespaces>
+        @if (loading()) {
+          <span class="placeholder col-6"></span>
+        } @else {
+          <span>{{ vm().conversion }}</span>
+          <span class="fw-normal text-body-secondary" style="font-size: 12px;">
+            ({{ vm().conversionDelta | number: '1.0-1' }}%&nbsp;<svg cIcon [name]="deltaIconName(vm().conversionDelta)" size="sm"></svg>)
+          </span>
+        }
+      </ng-template>
+    </c-widget-stat-a>
+  </c-col>
+  <c-col sm="6" xl="3">
+    <c-widget-stat-a color="danger" [title]="'dashboard.kpiSessions' | transloco">
+      <ng-template cTemplateId="widgetValueTemplate" ngPreserveWhitespaces>
+        @if (loading()) {
+          <span class="placeholder col-6"></span>
+        } @else {
+          {{ vm().sessions }}
+          <span class="fw-normal text-body-secondary" style="font-size: 12px;">
+            ({{ vm().sessionsDelta | number: '1.0-1' }}%&nbsp;<svg cIcon [name]="deltaIconName(vm().sessionsDelta)" size="sm"></svg>)
+          </span>
+        }
+      </ng-template>
+    </c-widget-stat-a>
+  </c-col>
+</c-row>
+<p class="small text-body-secondary mb-0">
+  {{ 'dashboard.kpiFootnote' | transloco }}
+</p>

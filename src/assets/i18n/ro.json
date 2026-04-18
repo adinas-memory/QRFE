@@ -17,6 +17,24 @@
     "subscribe": "Abonează-te",
     "language": "Limbă"
   },
+  "dashboard": {
+    "kpiUsers": "Utilizatori",
+    "kpiIncome": "Venituri",
+    "kpiConversion": "Rată de conversie",
+    "kpiSessions": "Sesiuni",
+    "kpiFootnote": "Fereastră 30 zile vs 30 zile UTC anterioare. Utilizatori: staff distinct cu login reușit. Venituri: comenzi închise în moneda restaurantului. Conversie: comenzi închise vs logări staff (max 100%). Sesiuni: logări staff reușite.",
+    "trafficTitle": "Trafic",
+    "trafficHint": "Comenzi închise pe zi sau lună UTC (veniturile folosesc moneda restaurantului).",
+    "trafficDay": "Zi",
+    "trafficMonth": "Lună",
+    "trafficYear": "An",
+    "trafficSeriesOrders": "Comenzi închise",
+    "trafficFooterOrders": "Comenzi închise (perioadă)",
+    "trafficFooterRevenue": "Venit (perioadă)",
+    "trafficFooterLogins": "Logări staff (perioadă)",
+    "noRestaurant": "Contul nu este legat de un restaurant; indicatorii nu sunt disponibili.",
+    "loadFailed": "Nu s-au putut încărca datele dashboard. Încearcă din nou."
+  },
   "payment": {
     "success": {
       "title": "Plata a fost confirmată",

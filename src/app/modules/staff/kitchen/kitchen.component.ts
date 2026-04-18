@@ -43,6 +43,7 @@ type KitchenLineItem = {
   category: string;
   quantity: number;
   mark?: ItemMark;
+  opText?: string;
 };
 
 type KitchenOrder = {
@@ -99,6 +100,8 @@ export class KitchenComponent implements OnInit, OnDestroy {
 
   private marksByTableId: Record<string, Record<string, ItemMark>> = {};
   private clearMarkTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+  private lastOpTextByTableId: Record<string, Record<string, string>> = {};
+  private deletedShadowsByTableId: Record<string, Record<string, KitchenLineItem & { _until: number }>> = {};
   private readonly markMs = 90_000;
   private pendingSoundKind: NotificationSoundKind | null = null;
   private pendingSoundTimer: ReturnType<typeof setTimeout> | null = null;
@@ -492,6 +495,8 @@ export class KitchenComponent implements OnInit, OnDestroy {
     it.quantity = quantity;
     this.debugSound('qtyUpdated: mark+sound', { tableId, orderItemId, quantity });
     this.setMark(tableId, orderItemId, 'updated');
+    const arrow = quantity > prevQty ? '↑' : '↓';
+    this.setOpText(tableId, orderItemId, `${arrow} ${prevQty} → ${quantity}`);
     await this.offlineDB.saveCart(tableId, cart, orderId, true);
   }
 
@@ -528,6 +533,17 @@ export class KitchenComponent implements OnInit, OnDestroy {
     const wasFood = isFoodCategory(cart[idx].item.category);
     if (wasFood) {
       this.setMark(tableId, orderItemId, 'deleted');
+      this.setOpText(tableId, orderItemId, '× removed');
+      this.setDeletedShadow(tableId, orderItemId, {
+        id: orderItemId,
+        orderItemId,
+        menuItemId: cart[idx].item.menuItemId,
+        name: cart[idx].item.menuItemName,
+        category: cart[idx].item.category,
+        quantity: cart[idx].quantity,
+        mark: { kind: 'deleted', until: Date.now() + this.markMs },
+        opText: '× removed',
+      });
     }
     cart.splice(idx, 1);
     await this.offlineDB.saveCart(tableId, cart, orderId, true);
@@ -585,11 +601,12 @@ export class KitchenComponent implements OnInit, OnDestroy {
   }
 
   private mapCartToKitchenItems(tableId: string, cart: CartItem[]): KitchenLineItem[] {
-    return cart
+    const live = cart
       .filter(c => isFoodCategory(c.item.category))
       .map(c => {
         const id = c.orderItemId ?? `menu:${c.item.menuItemId}`;
         const mark = this.marksByTableId[tableId]?.[id];
+        const opText = this.lastOpTextByTableId[tableId]?.[id];
         return {
           id,
           orderItemId: c.orderItemId,
@@ -597,9 +614,17 @@ export class KitchenComponent implements OnInit, OnDestroy {
           name: c.item.menuItemName,
           category: c.item.category,
           quantity: c.quantity,
-          mark: mark && mark.until > Date.now() ? mark : undefined
+          mark: mark && mark.until > Date.now() ? mark : undefined,
+          opText: opText ?? undefined,
         };
       });
+
+    const liveIds = new Set(live.map(x => x.id));
+    const shadows = Object.values(this.deletedShadowsByTableId[tableId] ?? {})
+      .filter(s => s._until > Date.now() && !liveIds.has(s.id))
+      .map(({ _until, ...it }) => it);
+
+    return [...live, ...shadows];
   }
 
   private setMark(tableId: string, itemId: string, kind: MarkKind, playSound: boolean = true) {
@@ -612,6 +637,15 @@ export class KitchenComponent implements OnInit, OnDestroy {
       const m = this.marksByTableId[tableId]?.[itemId];
       if (m && m.until <= Date.now()) delete this.marksByTableId[tableId][itemId];
     }, this.markMs + 250);
+  }
+
+  private setOpText(tableId: string, itemId: string, text: string): void {
+    (this.lastOpTextByTableId[tableId] ??= {})[itemId] = text;
+  }
+
+  private setDeletedShadow(tableId: string, itemId: string, item: KitchenLineItem): void {
+    const until = Date.now() + this.markMs;
+    (this.deletedShadowsByTableId[tableId] ??= {})[itemId] = { ...item, _until: until };
   }
 
   private queueSound(kind: MarkKind) {
@@ -681,6 +715,8 @@ export class KitchenComponent implements OnInit, OnDestroy {
         const label = this.tableLabel(tableId);
         const prevQty = p.quantity;
         const nextQty = n.quantity;
+        const arrow = nextQty > prevQty ? '↑' : '↓';
+        this.setOpText(tableId, id, `${arrow} ${prevQty} → ${nextQty}`);
         this.debugToast('diff qty', { tableId, id, name: n.item.menuItemName, prevQty, nextQty });
         if (nextQty > prevQty) {
           this.toastOnce(`qtyUp:${tableId}:${id}`, 1200, () =>
@@ -718,7 +754,22 @@ export class KitchenComponent implements OnInit, OnDestroy {
         if (!nextById.has(id)) {
           this.setMark(tableId, id, 'deleted');
           const label = this.tableLabel(tableId);
-          const name = prevById.get(id)?.item.menuItemName ?? 'Item';
+          const prevItem = prevById.get(id);
+          const name = prevItem?.item.menuItemName ?? 'Item';
+          const qty = prevItem?.quantity ?? 0;
+          this.setOpText(tableId, id, '× removed');
+          if (prevItem) {
+            this.setDeletedShadow(tableId, id, {
+              id,
+              orderItemId: prevItem.orderItemId,
+              menuItemId: prevItem.item.menuItemId,
+              name: prevItem.item.menuItemName,
+              category: prevItem.item.category,
+              quantity: prevItem.quantity,
+              mark: { kind: 'deleted', until: Date.now() + this.markMs },
+              opText: '× removed',
+            });
+          }
           this.debugToast('diff deleted', { tableId, id, name });
           this.toastOnce(`itemDeleted:${tableId}:${id}`, 1500, () =>
             this.toast.sticky(

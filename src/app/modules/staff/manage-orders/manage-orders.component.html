@@ -314,8 +314,8 @@
         </button>
       </div>
 
-      <div *ngIf="showCloseConfirm" class="p-3 border rounded bg-light mb-2">
-        <p class="mb-2">{{ 'manageOrders.closeOrderConfirm' | transloco }}</p>
+      <div *ngIf="showCloseConfirm" class="close-order-confirm p-3 border rounded mb-2">
+        <p class="mb-2 fw-semibold">{{ 'manageOrders.closeOrderConfirm' | transloco }}</p>
         <div class="d-flex justify-content-end"> <button cButton color="secondary" class="me-2"
             (click)="cancelCloseOrder()"> {{ 'manageOrders.cancel' | transloco }} </button> <button cButton color="warning"
             (click)="confirmCloseOrder()"> {{ 'manageOrders.closeOrder' | transloco }} </button> </div>

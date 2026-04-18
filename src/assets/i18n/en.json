@@ -17,6 +17,24 @@
     "subscribe": "Subscribe",
     "language": "Language"
   },
+  "dashboard": {
+    "kpiUsers": "Users",
+    "kpiIncome": "Income",
+    "kpiConversion": "Conversion rate",
+    "kpiSessions": "Sessions",
+    "kpiFootnote": "30-day window vs prior 30 UTC days. Users: distinct staff with a successful login. Income: closed orders in your restaurant currency. Conversion: closed orders vs staff logins (max 100%). Sessions: successful staff logins.",
+    "trafficTitle": "Traffic",
+    "trafficHint": "Closed orders by UTC day or month (revenue uses your restaurant currency).",
+    "trafficDay": "Day",
+    "trafficMonth": "Month",
+    "trafficYear": "Year",
+    "trafficSeriesOrders": "Closed orders",
+    "trafficFooterOrders": "Closed orders (period)",
+    "trafficFooterRevenue": "Revenue (period)",
+    "trafficFooterLogins": "Staff logins (period)",
+    "noRestaurant": "Your account is not linked to a restaurant, so dashboard metrics are unavailable.",
+    "loadFailed": "Could not load dashboard metrics. Try again later."
+  },
   "payment": {
     "success": {
       "title": "Payment confirmed",

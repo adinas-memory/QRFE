@@ -253,7 +253,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   async addCartItem(item: MenuItem) {
-    if (document.hidden) return;
     const tableId = this.currentTableId;
     const record = await this.offlineDB.loadCartRecord(tableId);
     const orderId = record?.orderId ?? null;
@@ -347,7 +346,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   async decrementItem(sel: CartItem) {
-    if (document.hidden) return;
     const tableId = this.currentTableId;
     const record = await this.offlineDB.loadCartRecord(tableId);
     const cart = await this.offlineDB.loadCart(tableId);
@@ -365,26 +363,28 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.tableCarts[tableId] = [...cart];
     await this.offlineDB.saveCart(tableId, cart, orderId ?? undefined, true);
 
+    // Must enqueue DELETE/UPDATE before empty-cart close; otherwise the last removal never hits the API
+    // and CLOSE_ORDER runs while the DB still has that line (e.g. only first delete-order-item in Network).
+    const canSync =
+      !orderId?.startsWith('local-') && this.orderIsConfirmed && !!existing.orderItemId;
+    if (canSync) {
+      await this.offlineDB.addOfflineAction({
+        type: willDelete ? 'DELETE_ITEM' : 'UPDATE_QUANTITY',
+        restaurantId: this.restaurantId,
+        tableId,
+        orderId: orderId ?? undefined,
+        payload: { orderItemId: existing.orderItemId, menuItemId: existing.item.menuItemId, quantity: finalQuantity }
+      });
+      if (this.onlineStateService.isOnline) this.queueProcessor.triggerProcessing();
+    }
+
     if (this.orderIsConfirmed && cart.length === 0) {
       await this.freeTableAfterEmptyConfirmedCart(tableId, orderId ?? undefined);
       return;
     }
-
-    if (orderId?.startsWith('local-') || !this.orderIsConfirmed || !existing.orderItemId) return;
-
-    await this.offlineDB.addOfflineAction({
-      type: willDelete ? 'DELETE_ITEM' : 'UPDATE_QUANTITY',
-      restaurantId: this.restaurantId,
-      tableId,
-      orderId: orderId ?? undefined,
-      payload: { orderItemId: existing.orderItemId, menuItemId: existing.item.menuItemId, quantity: finalQuantity }
-    });
-
-    if (this.onlineStateService.isOnline) this.queueProcessor.triggerProcessing();
   }
 
   async removeItem(sel: CartItem) {
-    if (document.hidden) return;
     const tableId = this.currentTableId;
     const record = await this.offlineDB.loadCartRecord(tableId);
     const cart = await this.offlineDB.loadCart(tableId);
@@ -397,22 +397,23 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.tableCarts[tableId] = [...newCart];
     await this.offlineDB.saveCart(tableId, newCart, orderId ?? undefined, true);
 
+    const canDeleteOnServer =
+      !orderId?.startsWith('local-') && this.orderIsConfirmed && !!existing.orderItemId;
+    if (canDeleteOnServer) {
+      await this.offlineDB.addOfflineAction({
+        type: 'DELETE_ITEM',
+        restaurantId: this.restaurantId,
+        tableId,
+        orderId: orderId ?? undefined,
+        payload: { orderItemId: existing.orderItemId, menuItemId: existing.item.menuItemId }
+      });
+      if (this.onlineStateService.isOnline) this.queueProcessor.triggerProcessing();
+    }
+
     if (this.orderIsConfirmed && newCart.length === 0) {
       await this.freeTableAfterEmptyConfirmedCart(tableId, orderId ?? undefined);
       return;
     }
-
-    if (orderId?.startsWith('local-') || !this.orderIsConfirmed || !existing.orderItemId) return;
-
-    await this.offlineDB.addOfflineAction({
-      type: 'DELETE_ITEM',
-      restaurantId: this.restaurantId,
-      tableId,
-      orderId: orderId ?? undefined,
-      payload: { orderItemId: existing.orderItemId, menuItemId: existing.item.menuItemId }
-    });
-
-    if (this.onlineStateService.isOnline) this.queueProcessor.triggerProcessing();
   }
 
   async openTable(table: TableDTO) {

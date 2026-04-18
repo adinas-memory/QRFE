@@ -17,6 +17,24 @@
     "subscribe": "Suscribirse",
     "language": "Idioma"
   },
+  "dashboard": {
+    "kpiUsers": "Usuarios",
+    "kpiIncome": "Ingresos",
+    "kpiConversion": "Tasa de conversión",
+    "kpiSessions": "Sesiones",
+    "kpiFootnote": "Ventana de 30 días vs 30 días UTC anteriores. Usuarios: personal distinto con inicio de sesión. Ingresos: pedidos cerrados en la moneda del restaurante. Conversión: pedidos vs inicios de sesión (máx. 100%). Sesiones: inicios de sesión correctos.",
+    "trafficTitle": "Tráfico",
+    "trafficHint": "Pedidos cerrados por día o mes UTC.",
+    "trafficDay": "Día",
+    "trafficMonth": "Mes",
+    "trafficYear": "Año",
+    "trafficSeriesOrders": "Pedidos cerrados",
+    "trafficFooterOrders": "Pedidos cerrados (periodo)",
+    "trafficFooterRevenue": "Ingresos (periodo)",
+    "trafficFooterLogins": "Inicios de sesión (periodo)",
+    "noRestaurant": "La cuenta no está vinculada a un restaurante.",
+    "loadFailed": "No se pudieron cargar las métricas del panel."
+  },
   "payment": {
     "success": {
       "title": "Pago confirmado",

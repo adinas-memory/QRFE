@@ -17,6 +17,24 @@
     "subscribe": "Abonnieren",
     "language": "Sprache"
   },
+  "dashboard": {
+    "kpiUsers": "Benutzer",
+    "kpiIncome": "Einnahmen",
+    "kpiConversion": "Conversion-Rate",
+    "kpiSessions": "Sitzungen",
+    "kpiFootnote": "30 Tage vs. vorherige 30 UTC-Tage. Benutzer: eindeutige Mitarbeitende mit erfolgreichem Login. Einnahmen: abgeschlossene Bestellungen in Ihrer Restaurantwährung. Conversion: Bestellungen vs. Logins (max. 100%). Sitzungen: erfolgreiche Logins.",
+    "trafficTitle": "Traffic",
+    "trafficHint": "Abgeschlossene Bestellungen pro UTC-Tag oder -Monat.",
+    "trafficDay": "Tag",
+    "trafficMonth": "Monat",
+    "trafficYear": "Jahr",
+    "trafficSeriesOrders": "Abgeschlossene Bestellungen",
+    "trafficFooterOrders": "Bestellungen (Zeitraum)",
+    "trafficFooterRevenue": "Umsatz (Zeitraum)",
+    "trafficFooterLogins": "Mitarbeiter-Logins (Zeitraum)",
+    "noRestaurant": "Kein Restaurant verknüpft; Dashboard-Daten nicht verfügbar.",
+    "loadFailed": "Dashboard-Daten konnten nicht geladen werden."
+  },
   "payment": {
     "success": {
       "title": "Zahlung bestätigt",

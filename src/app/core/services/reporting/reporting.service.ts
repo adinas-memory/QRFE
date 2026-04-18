@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { DashboardMetricsResponse } from '../../models/dashboard-metrics.model';
 import { LoginLogoutReportResponse } from '../../models/login-logout-report.model';
 import { SalesSummaryReportResponse, TopProductRow } from '../../models/sales-report.model';
 
@@ -36,6 +37,17 @@ export class ReportingService {
     return this.http.get<SalesSummaryReportResponse>(
       `${this.apiUrl}/api/restaurants/${restaurantId}/admin/reports/sales-summary`,
       { withCredentials: true, params }
+    );
+  }
+
+  /**
+   * GET /api/restaurants/{restaurantId}/staff/dashboard/metrics
+   * KPIs: rolling 30 UTC days vs prior 30 days; series for charts.
+   */
+  getDashboardMetrics(restaurantId: string): Observable<DashboardMetricsResponse> {
+    return this.http.get<DashboardMetricsResponse>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/staff/dashboard/metrics`,
+      { withCredentials: true }
     );
   }
 

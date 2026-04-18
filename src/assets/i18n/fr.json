@@ -17,6 +17,24 @@
     "subscribe": "S’abonner",
     "language": "Langue"
   },
+  "dashboard": {
+    "kpiUsers": "Utilisateurs",
+    "kpiIncome": "Revenus",
+    "kpiConversion": "Taux de conversion",
+    "kpiSessions": "Sessions",
+    "kpiFootnote": "Fenêtre 30 jours vs 30 jours UTC précédents. Utilisateurs: personnel distinct connecté. Revenus: commandes clôturées dans la devise du restaurant. Conversion: commandes vs connexions (max 100%). Sessions: connexions réussies.",
+    "trafficTitle": "Trafic",
+    "trafficHint": "Commandes clôturées par jour ou mois UTC.",
+    "trafficDay": "Jour",
+    "trafficMonth": "Mois",
+    "trafficYear": "Année",
+    "trafficSeriesOrders": "Commandes clôturées",
+    "trafficFooterOrders": "Commandes (période)",
+    "trafficFooterRevenue": "Revenu (période)",
+    "trafficFooterLogins": "Connexions staff (période)",
+    "noRestaurant": "Aucun restaurant lié à ce compte.",
+    "loadFailed": "Impossible de charger le tableau de bord."
+  },
   "payment": {
     "success": {
       "title": "Paiement confirmé",
