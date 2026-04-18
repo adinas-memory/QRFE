@@ -28,11 +28,12 @@ import { CurrencyPipe, JsonPipe, NgClass } from '@angular/common';
 import { DropdownComponent, DropdownItemDirective, DropdownMenuDirective, DropdownToggleDirective } from '@coreui/angular';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { LANG_STORAGE_KEY, type AppLang } from '../../../core/i18n/transloco.config';
+import { FaqComponent } from '../faq/faq.component';
 
 @Component({
   selector: 'app-landing',
   standalone: true,
-  imports: [ContainerComponent,
+  imports: [FaqComponent, ContainerComponent,
     HeaderComponent, CurrencyPipe, JsonPipe,
     HeaderDividerComponent,
     HeaderTextComponent,

@@ -90,14 +90,12 @@ export class RestaurantSetupComponent implements OnInit {
 
   onSubmit() {
     const pending = this.subscriptionService.getPendingPlan();
-    console.log('Pending plan retrieved:', pending);
     if (!pending) return;
 
     if (!this.user) {
       this.router.navigate(['/login']);
     }
     else if (this.user && this.role === 'default') {
-      console.log('Navigating to restaurant setup for user:', this.user);
       const formValue = this.restaurantSetupForm.getRawValue(); // includes disabled fields
 
       const payload: SubscriptionPayloadModel = {

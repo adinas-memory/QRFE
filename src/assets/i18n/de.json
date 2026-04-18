@@ -336,6 +336,65 @@
     "cancel": "Abbrechen",
     "closeOrder": "Bestellung schließen",
     "print": "Drucken"
+  },
+  "faq": {
+    "navLink": "FAQ",
+    "backHome": "Zur Startseite",
+    "sectionTitle": "So funktioniert es",
+    "sectionSubtitle": "Technisches Verhalten: Saalplan, Offline-Modus und Gäste-Flows.",
+    "viewFull": "Alle Fragen",
+    "pageTitle": "Häufig gestellte Fragen",
+    "pageIntro": "Die Antworten basieren auf der Architektur von U.R.S.: SSE-Live-Events, Dexie-Offline-Warteschlange, JWT-Rollen und das öffentliche Gäste-Menü.",
+    "items": {
+      "waiterCallVisual": {
+        "q": "Warum wird ein Tisch im Bestellbildschirm gelb hervorgehoben?",
+        "a": "Wenn ein Gast im öffentlichen Menü „Kellner rufen“ tippt, sendet die API ein Echtzeit-Ereignis. Solange der Aufruf aktiv ist, nutzt die Tabellenzeile den Warnstil (gelb), damit das Team ihn sofort sieht. Snooze oder Auflösung aktualisieren die Markierung."
+      },
+      "tableColors": {
+        "q": "Was bedeuten die anderen Tischfarben?",
+        "a": "Grün: Tisch geöffnet ohne aktiven Kellneraufruf. Rot: geschlossen oder im aktuellen Modell belegt. Gelb: aktiver Kellneraufruf — die drei Zustände bleiben auf einen Blick erkennbar."
+      },
+      "kitchenBarSse": {
+        "q": "Woher weiß der Service, wann Speisen an der Küche oder an der Bar abgeholt werden sollen?",
+        "a": "Küchen- und Bar-Ansichten nutzen denselben Live-Stream wie die Bestellungen. Wenn Gerichte oder Getränke fertig sind oder das Personal eine Erinnerung verschiebt, sieht der Service das Signal und weiß, wann er am Pass oder an der Bar abholt — ohne die Seite neu zu laden."
+      },
+      "kitchenBarToastDismiss": {
+        "q": "Warum müssen Toasts für neue Bestellung oder gelöschtes Produkt in Küche und Bar manuell geschlossen werden?",
+        "a": "Diese Toasts bleiben sichtbar, bis jemand sie wegklickt: so stellen wir sicher, dass eine neue Bestellung oder die Absage eines Gerichts wirklich gesehen wurde. Toasts bei Mengenerhöhung oder -verringerung verschwinden nach kurzer Zeit von selbst — sie sind rein informativ."
+      },
+      "offlineOrders": {
+        "q": "Was passiert bei WLAN-Ausfall während einer Bestellung?",
+        "a": "Aktionen können lokal im Browser (IndexedDB/Dexie) gespeichert werden. Eine Hintergrundwarteschlange spielt sie nach Wiederherstellung der Verbindung ab und gleicht mit dem Server ab."
+      },
+      "realtimeSync": {
+        "q": "Wie bleiben Geräte synchron?",
+        "a": "Jede Sitzung öffnet einen server-sent-events-Kanal pro Restaurant. Nach dem Reconnect wendet ein Sync-Endpunkt den autoritativen Zustand an; ausstehende Offline-Arbeit wird sicher zusammengeführt."
+      },
+      "rolesAccess": {
+        "q": "Wer darf was sehen?",
+        "a": "Staff: Saal-Tools (Bestellungen, Küche, Bar, Reservierungen). Manager: zusätzlich Konfiguration, QR, Reports. Globaler Admin: mandantenübergreifend (z. B. Abo-Produkte). JWT-Rollen schützen jeden API-Aufruf."
+      },
+      "guestQrMenu": {
+        "q": "Wie öffnet ein Gast das Menü ohne Login?",
+        "a": "Der QR-Code der Tischkarte kodiert Restaurant und Tisch. Gäste nutzen das öffentliche Menü im Browser; Kellner rufen ohne Gast-Passwort. Das Personal bleibt in seinem geschützten Bereich angemeldet."
+      },
+      "dashboardReporting": {
+        "q": "Was zeigen Manager-Dashboards?",
+        "a": "KPIs und Diagramme fassen Umsatz aus abgeschlossenen Bestellungen, Logins und Verkehr in rollierenden UTC-Fenstern (z. B. 30 Tage vs. vorherige 30 Tage) in der Restaurantwährung zusammen."
+      },
+      "bookings": {
+        "q": "Gibt es Tischreservierungen?",
+        "a": "Ja; Staff- und Manager-Flows unterstützen Anzeige, Bearbeitung und Stornierung über dieselben authentifizierten APIs wie der Rest der App."
+      },
+      "languages": {
+        "q": "Gibt es mehrere Sprachen?",
+        "a": "Ja. Sprache über die Kopfzeile wählen; Übersetzungen liegen im Bundle. Öffentliche Seiten und Staff-UI nutzen die aktive Locale, wo Strings vorhanden sind."
+      },
+      "subscriptionStripe": {
+        "q": "Wie funktionieren Pläne und Abrechnung?",
+        "a": "Abostufen definieren Limits (Tische, Bars, Plätze). Checkout und Verlängerung laufen über Stripe; nach erfolgreicher Zahlung folgt das Restaurant-Onboarding, Manager verwalten Billing in den Einstellungen."
+      }
+    }
   }
 }
 

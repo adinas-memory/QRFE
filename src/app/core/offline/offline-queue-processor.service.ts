@@ -21,7 +21,6 @@ export class OfflineQueueProcessor {
     ) {
         this.authService.loggedIn$
             .subscribe(async () => {
-                console.log('[QUEUE] Re-login → trigger processing');
                 await this.recoverOrphanedCarts(); 
                 this.triggerProcessing();
             });
@@ -38,7 +37,6 @@ export class OfflineQueueProcessor {
                 debounceTime(500) // lasă interceptorul să se stabilizeze
             )
             .subscribe(async () => {
-                console.log('[QUEUE] Back online → trigger processing');
                 await this.recoverOrphanedCarts();
                 this.processQueue();
             });
@@ -120,7 +118,6 @@ export class OfflineQueueProcessor {
                 // ← FIX: după NEW_ORDER, Dexie are orderId-urile reale
                 // dar array-ul din memorie nu. Restart cu date proaspete.
                 if (action.type === 'NEW_ORDER' || action.type === 'INIT_ORDER_ITEMS_FINAL') {
-                    console.log('[QUEUE] NEW_ORDER done → restarting queue with fresh data');
                     this.triggerProcessing(); // debounced 350ms
                     return; // finally → processing = false
                 }
@@ -145,17 +142,13 @@ export class OfflineQueueProcessor {
 
 
     async processAction(action: OfflineAction): Promise<boolean> {
-        console.log('[QUEUE] Processing action:', action);
-
         // 1. Dacă acțiunea NU este NEW_ORDER și orderId este local → așteptăm NEW_ORDER
         if (action.type !== 'NEW_ORDER' && action.orderId?.startsWith('local-')) {
-            console.log('[QUEUE] Waiting for real orderId → skip:', action.type);
             return true;
         }
 
         // 2. Dacă suntem offline → stop
         if (!this.onlineStateService.isOnline) {
-            console.log(`[QUEUE] Offline → stop processing`);
             return false;
         }
 
@@ -166,8 +159,6 @@ export class OfflineQueueProcessor {
                 // NEW_ORDER → creează order real + trimite toate itemele
                 // -----------------------------------------------------
                 case 'NEW_ORDER': {
-                    console.log('[QUEUE] NEW_ORDER → calling backend newOrder()');
-
                     // 1. creăm order real
                     const res = await firstValueFrom(
                         this.ordersService.newOrder(
@@ -180,7 +171,6 @@ export class OfflineQueueProcessor {
                     const realOrderId = res.order.orderId;
 
                     // 2. înlocuim orderId local cu cel real
-                    console.log('[QUEUE] Replacing local orderId', action.orderId, '→', realOrderId);
                     await this.offlineDB.replaceOrderId(action.orderId!, realOrderId);
 
                     const record = await this.offlineDB.loadCartRecord(action.tableId);
@@ -190,7 +180,6 @@ export class OfflineQueueProcessor {
 
                     // 3. reconstruim starea finală a cart-ului
                     const finalCart = await this.offlineDB.loadCart(action.tableId);
-                    console.log('[QUEUE] Final cart from Dexie:', finalCart);
 
                     // 4. trimitem toate itemele la backend
                     const finalRes = await firstValueFrom(
@@ -236,8 +225,6 @@ export class OfflineQueueProcessor {
                 }
 
                 case 'INIT_ORDER_ITEMS_FINAL': {
-                    console.log('[QUEUE] INIT_ORDER_ITEMS_FINAL → sending full snapshot');
-
                     const res = await firstValueFrom(
                         this.ordersService.updateOrderItem(
                             action.restaurantId,
@@ -249,7 +236,6 @@ export class OfflineQueueProcessor {
                             }
                         )
                     );
-                    console.log('[QUEUE] Server response after INIT_ORDER_ITEMS_FINAL:', res.order.orderId);
                     await this.applyFinalOrderState(action.tableId, res.order.orderItems, res.order.orderId);
 
                     return true;
@@ -260,8 +246,6 @@ export class OfflineQueueProcessor {
                 // ADD / UPDATE / DELETE → doar intenții locale
                 // -----------------------------------------------------
                 case 'ADD_ITEM': {
-                    console.log('[QUEUE] ADD_ITEM → backend addOrderItem()', action.payload);
-
                     const res = await firstValueFrom(
                         this.ordersService.addOrderItem(
                             action.restaurantId,
@@ -277,7 +261,6 @@ export class OfflineQueueProcessor {
                     if (record) {
                         const item = record.items.find(i => i.item.menuItemId === action.payload.menuItemId);
                         if (item) {
-                            console.log('[QUEUE] Updating local cart with orderItemId:', res.orderItemId);
                             item.orderItemId = res.orderItemId; // <-- important
                         }
                         await this.offlineDB.saveCart(action.tableId, record.items, action.orderId!);
@@ -287,8 +270,6 @@ export class OfflineQueueProcessor {
                 }
 
                 case 'UPDATE_QUANTITY': {
-                    console.log('[QUEUE] UPDATE_QUANTITY → backend updateOrderItemQuantity()');
-
                     // Încearcă să recupereze orderItemId din Dexie dacă lipsește din payload
                     let orderItemId: string | null = action.payload.orderItemId ?? null;
 
@@ -371,7 +352,6 @@ export class OfflineQueueProcessor {
                         )
                     );
                     await this.offlineDB.deleteCart(action.tableId);
-                    console.log('[QUEUE] CLOSE_ORDER done');
                     return true;
             }
 
@@ -407,7 +387,6 @@ export class OfflineQueueProcessor {
             quantity: o.quantity,
             orderItemId: o.orderItemId
         }));
-        console.log('[QUEUE] Applying final order state to Dexie:', items);
         await this.offlineDB.saveCart(tableId, items, orderId);
     }
 

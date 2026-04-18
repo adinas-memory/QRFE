@@ -134,7 +134,6 @@ export class AuthService {
     if (raw) {
       try {
         const user = JSON.parse(raw) as UserContextModel;
-        console.log('[AuthService] Restoring user:', user);
         this.userSubject.next(user);
         localStorage.setItem('UserCtx', JSON.stringify(user));
         this.setRestaurantCtx();
@@ -162,9 +161,7 @@ export class AuthService {
         if (error.status === 401 && !isPublic) {
           return this.refreshUserContext().pipe(
             tap(user => {
-              if (user) {
-                console.log('Refresh credentials OK.');
-              } else {
+              if (!user) {
                 console.warn('Refresh credentials failed. Redirect @Login.');
               }
             })

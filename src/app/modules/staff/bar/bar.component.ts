@@ -109,20 +109,10 @@ export class BarComponent implements OnInit, OnDestroy {
   private readonly maxRecentSseSequences = 300;
   private lastOrderUpdatedKeyByTableId: Record<string, string> = {};
   private lastCartSnapshotByTableId: Record<string, CartItem[]> = {};
-  private get debugStaffToastsEnabled(): boolean {
-    try { return localStorage.getItem('debugStaffToasts') === '1'; } catch { return false; }
-  }
-  private debugToast(...args: unknown[]): void {
-    if (!this.debugStaffToastsEnabled) return;
-    // eslint-disable-next-line no-console
-    console.log('[BarToast]', ...args);
-  }
-
   private toastOnce(key: string, ms: number, fn: () => void): void {
     const now = Date.now();
     if (now - (this.lastToastAtByKey[key] ?? 0) < ms) return;
     this.lastToastAtByKey[key] = now;
-    this.debugToast('toastOnce', { key, ms });
     fn();
   }
 
@@ -360,15 +350,6 @@ export class BarComponent implements OnInit, OnDestroy {
     const nextDrinks = this.filterDrinks(nextCart);
     const isServerOrderId = !!orderId && !orderId.startsWith('local-');
     const isNewOrder = isServerOrderId && !this.seenServerOrderIds.has(orderId) && nextDrinks.length > 0;
-    this.debugToast('OrderUpdated', {
-      tableId,
-      orderId,
-      lastActionAt,
-      prevDrinksLen: prevDrinks.length,
-      nextDrinksLen: nextDrinks.length,
-      rawItemsLen: rawItems.length,
-      isNewOrder,
-    });
     if (isNewOrder && !this.hydrating && !document.hidden && !this.soundMuted) {
       this.sounds.play('newOrder');
     }
@@ -653,15 +634,12 @@ export class BarComponent implements OnInit, OnDestroy {
     const prevById = new Map(prev.map(p => [keyOf(p), p]));
     const nextById = new Map(next.map(n => [keyOf(n), n]));
 
-    this.debugToast('diffAndMark start', { tableId, prev: prev.length, next: next.length, isNewOrder });
-
     for (const [id, n] of nextById.entries()) {
       const p = prevById.get(id);
       if (!p) {
         this.setMark(tableId, id, 'added', !isNewOrder);
         if (!isNewOrder) {
           const label = this.tableLabel(tableId);
-          this.debugToast('diff added', { tableId, id, name: n.item.menuItemName, qty: n.quantity });
           this.toastOnce(`itemAdded:${tableId}:${id}`, 1500, () =>
             this.toast.sticky(
               this.transloco.translate('bar.toastNewItemBody', {
@@ -679,7 +657,6 @@ export class BarComponent implements OnInit, OnDestroy {
         const label = this.tableLabel(tableId);
         const prevQty = p.quantity;
         const nextQty = n.quantity;
-        this.debugToast('diff qty', { tableId, id, name: n.item.menuItemName, prevQty, nextQty });
         if (nextQty > prevQty) {
           this.toastOnce(`qtyUp:${tableId}:${id}`, 1200, () =>
             this.toast.info(
@@ -715,7 +692,6 @@ export class BarComponent implements OnInit, OnDestroy {
           this.setMark(tableId, id, 'deleted');
           const label = this.tableLabel(tableId);
           const name = prevById.get(id)?.item.menuItemName ?? 'Item';
-          this.debugToast('diff deleted', { tableId, id, name });
           this.toastOnce(`itemDeleted:${tableId}:${id}`, 1500, () =>
             this.toast.sticky(
               this.transloco.translate('bar.toastItemDeletedBody', { name, table: label }),

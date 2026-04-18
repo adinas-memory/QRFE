@@ -48,9 +48,6 @@ export class ManageQrsComponent {
       next: (response: any) => {
         if ('qRsUrl' in response && Array.isArray(response.qRsUrl)) {
           this.qrCodes = response.qRsUrl;
-          console.log('=== QR TABLE URLs ===');
-          this.qrCodes.forEach(qr => console.log(qr));
-          console.log('=====================');
         } else {
           console.warn('qRsUrl not found in response');
         }

@@ -103,8 +103,6 @@ export class AppComponent implements OnInit {
         this.#authService.restoreSession().subscribe(() => {
           this.#authService.pingSession(false).subscribe();
         });
-      } else {
-        console.log('Public route detected, skipping pingSession.');
       }
     });
   }

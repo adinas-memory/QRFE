@@ -15,6 +15,12 @@ export const routes: Routes = [
         data: { title: 'Welcome', public: true }
       },
       {
+        path: 'faq',
+        loadComponent: () =>
+          import('./faq/faq.component').then(m => m.FaqComponent),
+        data: { title: 'FAQ', public: true }
+      },
+      {
         path: 'register',
         loadComponent: () =>
           import('./register/register.component').then(m => m.RegisterComponent),

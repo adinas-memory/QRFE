@@ -82,7 +82,6 @@ export class ManageTablesComponent implements OnInit, OnDestroy {
       this.appToast.error(`You can only add ${this.remaining} more table(s).`);
 
       this.activeTab = '0';
-      console.log('this.activeTab:', this.activeTab);
       return;
     }
 
@@ -104,7 +103,6 @@ export class ManageTablesComponent implements OnInit, OnDestroy {
 
 
   loadTables(): void {
-    console.log("restaurantId:", this.restaurantId);
     this.tablesService.getAll(this.restaurantId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -154,7 +152,6 @@ export class ManageTablesComponent implements OnInit, OnDestroy {
           this.loadTables();
           this.closeEditModal();
           this.activeTab = '0';
-          console.log('this.activeTab:', this.activeTab);
         },
         error: (err) => this.appToast.error(`Error: ${err?.Message} Failed to update table`)
       });

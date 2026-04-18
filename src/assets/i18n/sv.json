@@ -336,6 +336,65 @@
     "cancel": "Avbryt",
     "closeOrder": "Stäng beställning",
     "print": "Skriv ut"
+  },
+  "faq": {
+    "navLink": "FAQ",
+    "backHome": "Till startsidan",
+    "sectionTitle": "Så funkar det",
+    "sectionSubtitle": "Verkligt beteende: salongsplan, offlineläge och gästflöden.",
+    "viewFull": "Alla frågor",
+    "pageTitle": "Vanliga frågor",
+    "pageIntro": "Svaren speglar hur U.R.S. är byggt: SSE i realtid, Dexie-offlinekö, JWT-roller och publik gästmeny.",
+    "items": {
+      "waiterCallVisual": {
+        "q": "Varför blir ett bord gult i orderlistan?",
+        "a": "När en gäst trycker på «Kalla servitör» i den publika menyn skickar API:t en realtidshändelse. Medan samtalet är aktivt använder raden varningsstilen (gult). Snooze eller åtgärd uppdaterar markeringen."
+      },
+      "tableColors": {
+        "q": "Vad betyder de andra färgerna?",
+        "a": "Grönt: öppet bord utan aktiv servitörsignal. Rött: stängt eller upptaget enligt nuvarande modell. Gult: aktiv servitörsignal."
+      },
+      "kitchenBarSse": {
+        "q": "Hur vet servitören när mat eller dryck ska hämtas från kök eller bar?",
+        "a": "Kök- och barskärmarna delar samma liveflöde som orderlistan. När rätter eller drycker är klara eller personalen skjuter upp en påminnelse ser servitören signalen och vet när hen ska hämta vid passet eller baren utan att ladda om sidan."
+      },
+      "kitchenBarToastDismiss": {
+        "q": "Varför måste toastar för ny order eller borttagen produkt stängas manuellt i kök och bar?",
+        "a": "De ligger kvar tills någon stänger dem: så är det med flit så att personalen verkligen sett en ny order eller att en rätt inte längre ska tillagas. Toastar för ökad eller minskad kvantitet försvinner av sig själva efter en stund — de är bara informativa."
+      },
+      "offlineOrders": {
+        "q": "Vad händer om Wi‑Fi faller under en order?",
+        "a": "Åtgärder kan sparas lokalt (IndexedDB). En kö spelar upp dem när anslutningen återkommer och avstämmer mot servern."
+      },
+      "realtimeSync": {
+        "q": "Hur hålls enheter synkade?",
+        "a": "Varje session öppnar en server-sent events-kanal per restaurang. Efter återanslutning tillämpar ett sync-endpoint auktoritativt tillstånd och slår ihop väntande offlinejobb."
+      },
+      "rolesAccess": {
+        "q": "Vem ser vad?",
+        "a": "Personal: golvsystem. Chef: även konfiguration, QR och rapporter. Global admin: flernätsverktyg (t.ex. prenumerationsprodukter). JWT-roller skyddar varje API-anrop."
+      },
+      "guestQrMenu": {
+        "q": "Hur öppnar en gäst menyn utan konto?",
+        "a": "QR-koden kodar restaurang och bord. Den publika menyn öppnas i webbläsaren; att kalla servitör kräver inget gästlösenord. Personalen förblir inloggad i sin yta."
+      },
+      "dashboardReporting": {
+        "q": "Vad visar chefspaneler?",
+        "a": "KPI och diagram sammanställer intäkter från stängda ordrar, inloggningar och trafik i rullande UTC-fönster (t.ex. 30 dagar mot föregående 30), i restaurangens valuta."
+      },
+      "bookings": {
+        "q": "Finns bordsbokning?",
+        "a": "Ja: personal-/chefslister för att visa, ändra eller avboka via samma autentiserade API:er."
+      },
+      "languages": {
+        "q": "Fler språk i gränssnittet?",
+        "a": "Ja: välj språk i sidhuvudet; översättningar finns i bundle. Publika sidor och personal-UI följer aktiv locale."
+      },
+      "subscriptionStripe": {
+        "q": "Hur fungerar planer och fakturering?",
+        "a": "Nivåer sätter gränser (bord, barer, platser). Betalning och förnyelse går via Stripe; efter lyckad betalning följer onboarding; chefer hanterar fakturering i inställningar."
+      }
+    }
   }
 }
 

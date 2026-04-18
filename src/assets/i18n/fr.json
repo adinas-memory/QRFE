@@ -336,6 +336,65 @@
     "cancel": "Annuler",
     "closeOrder": "Fermer la commande",
     "print": "Imprimer"
+  },
+  "faq": {
+    "navLink": "FAQ",
+    "backHome": "Retour à l’accueil",
+    "sectionTitle": "Fonctionnement",
+    "sectionSubtitle": "Comportement réel : plan de salle, mode hors ligne et parcours invité.",
+    "viewFull": "FAQ complète",
+    "pageTitle": "Questions fréquentes",
+    "pageIntro": "Ces réponses reflètent la conception d’U.R.S. : événements SSE temps réel, file hors ligne Dexie, rôles JWT et menu public invité.",
+    "items": {
+      "waiterCallVisual": {
+        "q": "Pourquoi une table devient jaune sur l’écran des commandes ?",
+        "a": "Lorsqu’un invité appelle le serveur depuis le menu public, l’API envoie un événement temps réel. Tant que l’appel est actif, la ligne utilise le style d’avertissement (jaune). Reporter ou traiter met à jour la mise en évidence."
+      },
+      "tableColors": {
+        "q": "Que signifient les autres couleurs ?",
+        "a": "Vert : table ouverte sans appel serveur actif. Rouge : fermée ou occupée selon le modèle actuel. Jaune : appel serveur actif — trois états lisibles d’un coup d’œil."
+      },
+      "kitchenBarSse": {
+        "q": "Comment le serveur sait-il quand récupérer les plats en cuisine ou au bar ?",
+        "a": "Les écrans Cuisine et Bar partagent le même flux temps réel que les commandes. Quand les plats ou boissons sont prêts, ou qu’une relance est reportée, le serveur voit le signal et sait quand passer en cuisine ou au bar sans recharger la page."
+      },
+      "kitchenBarToastDismiss": {
+        "q": "Pourquoi les toasts « nouvelle commande » ou « produit supprimé » doivent-ils être fermés manuellement en cuisine et au bar ?",
+        "a": "Ils restent affichés jusqu’à fermeture volontaire : nous voulons être sûrs qu’une nouvelle commande ou l’annulation d’un plat a bien été vue. Les toasts d’augmentation ou de diminution de quantité disparaissent seuls après un court délai — ils sont informatifs."
+      },
+      "offlineOrders": {
+        "q": "Et si le Wi‑Fi tombe pendant une commande ?",
+        "a": "Les actions peuvent être stockées localement (IndexedDB). Une file rejoue les opérations au retour en ligne puis se réconcilie avec le serveur."
+      },
+      "realtimeSync": {
+        "q": "Comment les appareils restent-ils synchronisés ?",
+        "a": "Chaque session ouvre un canal server-sent events par restaurant. Après reconnexion, un endpoint de sync réapplique l’état de référence et fusionne le travail hors ligne en attente."
+      },
+      "rolesAccess": {
+        "q": "Qui voit quoi ?",
+        "a": "Staff : outils de salle. Manager : configuration, QR, rapports en plus. Admin global : outils multi-restaurants (ex. produits d’abonnement). Les rôles JWT protègent chaque appel API."
+      },
+      "guestQrMenu": {
+        "q": "Comment un invité ouvre le menu sans compte ?",
+        "a": "Le QR encode restaurant et table. Le menu public s’ouvre dans le navigateur ; appeler le serveur ne nécessite pas de mot de passe invité. Le personnel reste authentifié dans son espace."
+      },
+      "dashboardReporting": {
+        "q": "Que montrent les tableaux de bord manager ?",
+        "a": "Indicateurs et graphiques agrègent chiffre d’affaires des commandes clôturées, connexions et trafic sur fenêtres UTC glissantes (ex. 30 jours vs 30 jours précédents), dans la devise du restaurant."
+      },
+      "bookings": {
+        "q": "Y a-t-il des réservations ?",
+        "a": "Oui : flux staff/manager pour lister, modifier ou annuler via les mêmes API authentifiées."
+      },
+      "languages": {
+        "q": "Plusieurs langues dans l’interface ?",
+        "a": "Oui : choix dans l’en-tête ; les traductions sont dans le bundle. Pages publiques et interface staff respectent la locale active."
+      },
+      "subscriptionStripe": {
+        "q": "Comment fonctionnent les offres et la facturation ?",
+        "a": "Les paliers définissent des limites (tables, bars, places). Paiement et renouvellement passent par Stripe ; après paiement, onboarding restaurant ; les managers gèrent la facturation dans les paramètres."
+      }
+    }
   }
 }
 

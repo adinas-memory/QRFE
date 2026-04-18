@@ -1,0 +1,52 @@
+<section
+  class="faq"
+  [attr.id]="embedded() ? 'faq' : null"
+  [class.faq--embedded]="embedded()"
+  [class.faq--page]="!embedded()"
+>
+  <c-container [fluid]="embedded()" class="py-5">
+    @if (!embedded()) {
+      <p class="mb-3">
+        <a cButton color="secondary" variant="outline" routerLink="/" class="border-0 px-0 shadow-none text-decoration-none">
+          ← {{ 'faq.backHome' | transloco }}
+        </a>
+      </p>
+    }
+
+    <div class="faq-head">
+      <h2 class="faq-title">{{ (embedded() ? 'faq.sectionTitle' : 'faq.pageTitle') | transloco }}</h2>
+      <p class="faq-intro text-muted mb-0">{{ (embedded() ? 'faq.sectionSubtitle' : 'faq.pageIntro') | transloco }}</p>
+    </div>
+
+    <c-accordion [flush]="true" class="faq-accordion mt-4">
+      @for (id of visibleItemIds(); track id) {
+        <c-accordion-item #acc="cAccordionItem" [visible]="false">
+          <ng-template cTemplateId="accordionHeaderTemplate">
+            <button
+              type="button"
+              (click)="acc.toggleItem()"
+              [collapsed]="!acc.visible"
+              cAccordionButton
+              class="text-start"
+            >
+              {{ ('faq.items.' + id + '.q') | transloco }}
+            </button>
+          </ng-template>
+          <ng-template cTemplateId="accordionBodyTemplate">
+            <div class="accordion-body faq-answer">
+              {{ ('faq.items.' + id + '.a') | transloco }}
+            </div>
+          </ng-template>
+        </c-accordion-item>
+      }
+    </c-accordion>
+
+    @if (compact()) {
+      <div class="mt-4 d-flex justify-content-center">
+        <a cButton color="info" variant="outline" routerLink="/faq">
+          {{ 'faq.viewFull' | transloco }}
+        </a>
+      </div>
+    }
+  </c-container>
+</section>

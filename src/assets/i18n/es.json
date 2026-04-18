@@ -336,6 +336,65 @@
     "cancel": "Cancelar",
     "closeOrder": "Cerrar pedido",
     "print": "Imprimir"
+  },
+  "faq": {
+    "navLink": "FAQ",
+    "backHome": "Volver al inicio",
+    "sectionTitle": "Cómo funciona",
+    "sectionSubtitle": "Comportamiento real: plano de sala, modo sin conexión y flujo de invitados.",
+    "viewFull": "Ver todas las preguntas",
+    "pageTitle": "Preguntas frecuentes",
+    "pageIntro": "Las respuestas reflejan cómo está construido U.R.S.: SSE en vivo, cola offline Dexie, roles JWT y menú público para invitados.",
+    "items": {
+      "waiterCallVisual": {
+        "q": "¿Por qué una mesa se muestra en amarillo en el panel de pedidos?",
+        "a": "Cuando un invitado pulsa «Llamar al camarero» en el menú público, la API envía un evento en tiempo real. Mientras la llamada esté activa, la fila usa el estilo de aviso (amarillo). Posponer o resolver actualiza el resaltado."
+      },
+      "tableColors": {
+        "q": "¿Qué significan los demás colores de mesa?",
+        "a": "Verde: mesa abierta sin llamada activa al camarero. Roja: cerrada u ocupada según el modelo actual. Amarilla: llamada al camarero activa."
+      },
+      "kitchenBarSse": {
+        "q": "¿Cómo sabe el camarero cuándo recoger platos en cocina o en bar?",
+        "a": "Las pantallas de cocina y bar comparten el mismo flujo en vivo que los pedidos. Cuando los platos o bebidas están listos o el personal pospone un aviso, el camarero ve la señal y sabe cuándo recoger en paso de cocina o en bar sin recargar la página."
+      },
+      "kitchenBarToastDismiss": {
+        "q": "¿Por qué los avisos de pedido nuevo o producto eliminado hay que cerrarlos a mano en cocina y bar?",
+        "a": "Esas notificaciones permanecen hasta que alguien las cierra: está pensado así para asegurar que el equipo vio el pedido nuevo o que un plato ya no debe prepararse. Los avisos de subir o bajar cantidad desaparecen solos al cabo de un momento — son informativos."
+      },
+      "offlineOrders": {
+        "q": "¿Qué pasa si falla el Wi‑Fi mientras tomo un pedido?",
+        "a": "Las acciones pueden guardarse localmente (IndexedDB). Una cola las reproduce al volver la conexión y reconcilia con el servidor."
+      },
+      "realtimeSync": {
+        "q": "¿Cómo se mantienen sincronizados los dispositivos?",
+        "a": "Cada sesión abre un canal server-sent events por restaurante. Tras reconectar, un endpoint de sincronización reaplica el estado autoritativo y fusiona trabajo offline pendiente."
+      },
+      "rolesAccess": {
+        "q": "¿Quién ve qué?",
+        "a": "Staff: operación de sala. Manager: además configuración, QR e informes. Admin global: herramientas multi-restaurante (p. ej. productos de suscripción). Los roles JWT protegen cada llamada API."
+      },
+      "guestQrMenu": {
+        "q": "¿Cómo abre un invitado el menú sin cuenta?",
+        "a": "El QR codifica restaurante y mesa. El menú público se abre en el navegador; llamar al camarero no requiere contraseña de invitado. El personal sigue autenticado en su área."
+      },
+      "dashboardReporting": {
+        "q": "¿Qué muestran los paneles del manager?",
+        "a": "KPI y gráficos agregan ingresos de pedidos cerrados, inicios de sesión y tráfico en ventanas UTC móviles (p. ej. 30 días vs 30 anteriores), en la moneda del restaurante."
+      },
+      "bookings": {
+        "q": "¿Hay reservas de mesa?",
+        "a": "Sí: flujos de staff/manager para listar, editar o cancelar usando las mismas API autenticadas."
+      },
+      "languages": {
+        "q": "¿Hay varios idiomas en la interfaz?",
+        "a": "Sí: elige el idioma en la cabecera; las traducciones van en el bundle. Las páginas públicas y la UI de staff respetan el idioma activo."
+      },
+      "subscriptionStripe": {
+        "q": "¿Cómo funcionan los planes y el cobro?",
+        "a": "Los niveles definen límites (mesas, bares, plazas). El pago y la renovación pasan por Stripe; tras un pago correcto sigue el onboarding del restaurante; los managers gestionan facturación en ajustes."
+      }
+    }
   }
 }
 

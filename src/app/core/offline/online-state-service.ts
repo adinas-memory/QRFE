@@ -51,7 +51,6 @@ export class OnlineStateService {
 
     // ← Crucial: indiferent de force, nu pornim un al doilea fetch
     if (this.heartbeatInProgress) {
-      console.log('[Heartbeat] Already in progress → skip');
       return;
     }
 

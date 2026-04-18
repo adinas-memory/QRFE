@@ -354,6 +354,65 @@
     "cancel": "Cancel",
     "closeOrder": "Close order",
     "print": "Print"
+  },
+  "faq": {
+    "navLink": "FAQ",
+    "backHome": "Back to home",
+    "sectionTitle": "How it works",
+    "sectionSubtitle": "Real behaviour of the floor plan, offline mode, and guest flows — not marketing fluff.",
+    "viewFull": "Full FAQ",
+    "pageTitle": "Frequently asked questions",
+    "pageIntro": "Answers below reflect how U.R.S. is built: SSE live updates, Dexie offline queue, role guards, and the public guest menu.",
+    "items": {
+      "waiterCallVisual": {
+        "q": "Why does a table turn yellow on the staff orders screen?",
+        "a": "When a guest taps “Call waiter” on the public menu, the API pushes a real-time event to your restaurant. While that call is active, the table row uses a warning (yellow) style so floor staff can spot it quickly. Snooze or resolve flows update the highlight."
+      },
+      "tableColors": {
+        "q": "What do the other table colours mean?",
+        "a": "Green means the table is open without an active waiter call. Red indicates a closed or occupied table in the current model. Yellow is reserved for an active waiter request, so the three states stay easy to scan at a glance."
+      },
+      "kitchenBarSse": {
+        "q": "How does the waiter know when to pick up food from the kitchen or the bar?",
+        "a": "Kitchen and Bar screens share the same live event stream as the orders view. When dishes or drinks are ready—or staff snooze a reminder—waiters see those signals so they know when to collect from the pass or bar station without refreshing the page."
+      },
+      "kitchenBarToastDismiss": {
+        "q": "Why must new-order and item-deleted toasts be closed manually on Kitchen and Bar?",
+        "a": "Those toasts stay until someone dismisses them on purpose: we want to be sure staff noticed a brand-new order or that a dish should no longer be prepared. Toasts for quantity up or quantity down clear by themselves after a short time—they are informational and do not need acknowledgment."
+      },
+      "offlineOrders": {
+        "q": "What happens if Wi‑Fi drops while I am taking an order?",
+        "a": "Staff actions can be stored locally in the browser (IndexedDB via Dexie). A background queue replays them when the connection returns, then reconciles with the server snapshot so you do not lose carts or line items mid-service."
+      },
+      "realtimeSync": {
+        "q": "How do devices stay in sync?",
+        "a": "Each signed-in session opens a server-sent events channel scoped to your restaurant. After reconnect, a sync endpoint reapplies the authoritative table/order state, and the UI merges any pending offline work safely."
+      },
+      "rolesAccess": {
+        "q": "Who can see what?",
+        "a": "Staff accounts focus on floor tools (orders, kitchen, bar, bookings). Managers additionally configure tables, menus, QR codes, and reports. Global administrators operate cross-tenant tools such as subscription products. JWT roles enforce these boundaries on every API call."
+      },
+      "guestQrMenu": {
+        "q": "How does a guest open the menu without logging in?",
+        "a": "Each table QR encodes your restaurant and table identifiers. Guests get the public menu and ordering experience in the browser, while staff remain authenticated in their own area. No guest password is required for browsing or calling the waiter from that link."
+      },
+      "dashboardReporting": {
+        "q": "What do manager dashboards show?",
+        "a": "KPI cards and charts aggregate closed-order revenue, staff logins, and traffic views over rolling UTC windows so you can compare the last 30 days with the previous 30. Figures respect your restaurant currency."
+      },
+      "bookings": {
+        "q": "Are table reservations supported?",
+        "a": "Bookings/reservations are available in the staff and manager flows so you can list, edit, or cancel holds alongside service. They use the same authenticated APIs as the rest of the product."
+      },
+      "languages": {
+        "q": "Can the interface speak multiple languages?",
+        "a": "Yes. Choose a language from the header; translations ship with the web app bundle. Guest-facing pages and staff chrome both honour the active locale where strings exist."
+      },
+      "subscriptionStripe": {
+        "q": "How do plans and billing work?",
+        "a": "Subscription tiers define limits such as tables, bars, and seats. Checkout and renewals run through Stripe; successful payment triggers the restaurant onboarding path, while managers can manage billing details from their settings when enabled."
+      }
+    }
   }
 }
 

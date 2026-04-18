@@ -336,6 +336,65 @@
     "cancel": "Annulla",
     "closeOrder": "Chiudi ordine",
     "print": "Stampa"
+  },
+  "faq": {
+    "navLink": "FAQ",
+    "backHome": "Torna alla home",
+    "sectionTitle": "Come funziona",
+    "sectionSubtitle": "Comportamento reale: sala, offline e flusso ospiti.",
+    "viewFull": "Tutte le domande",
+    "pageTitle": "Domande frequenti",
+    "pageIntro": "Le risposte riflettono l’architettura di U.R.S.: eventi SSE in tempo reale, coda offline Dexie, ruoli JWT e menu pubblico per gli ospiti.",
+    "items": {
+      "waiterCallVisual": {
+        "q": "Perché un tavolo diventa giallo nella schermata ordini?",
+        "a": "Quando un ospite tocca «Chiama il cameriere» dal menu pubblico, l’API invia un evento in tempo reale. Finché la chiamata è attiva, la riga usa lo stile di avviso (giallo). Posporre o risolvere aggiorna l’evidenziazione."
+      },
+      "tableColors": {
+        "q": "Cosa significano gli altri colori?",
+        "a": "Verde: tavolo aperto senza chiamata cameriere attiva. Rosso: chiuso o occupato nel modello corrente. Giallo: chiamata cameriere attiva."
+      },
+      "kitchenBarSse": {
+        "q": "Come fa il cameriere a sapere quando ritirare i piatti in cucina o al bar?",
+        "a": "Le schermate Cucina e Bar condividono lo stesso flusso live degli ordini. Quando i piatti o le bevande sono pronti o lo staff pospone un promemoria, il cameriere vede il segnale e sa quando passare in cucina o al banco senza ricaricare la pagina."
+      },
+      "kitchenBarToastDismiss": {
+        "q": "Perché i toast per nuovo ordine o prodotto eliminato vanno chiusi manualmente in cucina e al bar?",
+        "a": "Restano finché qualcuno non li chiude: è voluto così per essere sicuri che siano stati visti un ordine nuovo o la cancellazione di una preparazione. I toast per aumento o diminuzione quantità scompaiono da soli dopo poco — sono solo informativi."
+      },
+      "offlineOrders": {
+        "q": "E se il Wi‑Fi cade mentre prendo un ordine?",
+        "a": "Le azioni possono essere salvate in locale (IndexedDB). Una coda le riapplica al ritorno online e si riconcilia con il server."
+      },
+      "realtimeSync": {
+        "q": "Come restano sincronizzati i dispositivi?",
+        "a": "Ogni sessione apre un canale server-sent events per ristorante. Dopo la riconnessione, un endpoint di sync riapplica lo stato autoritativo e unisce il lavoro offline in sospeso."
+      },
+      "rolesAccess": {
+        "q": "Chi vede cosa?",
+        "a": "Staff: strumenti di sala. Manager: anche configurazione, QR e report. Admin globale: strumenti multi-tenant (es. prodotti abbonamento). I ruoli JWT proteggono ogni chiamata API."
+      },
+      "guestQrMenu": {
+        "q": "Come apre un ospite il menu senza account?",
+        "a": "Il QR codifica ristorante e tavolo. Il menu pubblico si apre nel browser; chiamare il cameriere non richiede password ospite. Il personale resta autenticato nella propria area."
+      },
+      "dashboardReporting": {
+        "q": "Cosa mostrano le dashboard manager?",
+        "a": "KPI e grafici aggregano ricavi da ordini chiusi, login e traffico su finestre UTC mobili (es. 30 giorni vs 30 precedenti), nella valuta del ristorante."
+      },
+      "bookings": {
+        "q": "Ci sono prenotazioni tavolo?",
+        "a": "Sì: flussi staff/manager per elencare, modificare o annullare con le stesse API autenticate."
+      },
+      "languages": {
+        "q": "L’interfaccia è multilingua?",
+        "a": "Sì: scegli la lingua dall’header; le traduzioni sono nel bundle. Pagine pubbliche e UI staff rispettano la locale attiva."
+      },
+      "subscriptionStripe": {
+        "q": "Come funzionano piani e fatturazione?",
+        "a": "I livelli definiscono limiti (tavoli, bar, posti). Pagamento e rinnovo passano da Stripe; dopo il pagamento segue l’onboarding; i manager gestiscono la fatturazione dalle impostazioni."
+      }
+    }
   }
 }
 

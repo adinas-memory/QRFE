@@ -19,7 +19,6 @@ export class OrderSyncService {
   private controller: AbortController | null = null;
   private lastRestaurantId: string | null = null;
   private pendingOpenRestaurantId: string | null = null;
-  private connectionSeq = 0;
   private connectedRestaurantId: string | null = null;
   private readonly tabId = crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
   /**
@@ -69,7 +68,6 @@ export class OrderSyncService {
       if (!document.hidden) {
         const rid = this.pendingOpenRestaurantId ?? this.lastRestaurantId;
         if (rid && !this.controller) {
-          console.log('[SSE][internal] tab visible -> opening connection');
           this.openConnection(rid);
         }
       }
@@ -122,17 +120,13 @@ export class OrderSyncService {
   private openConnection(restaurantId: string) {
     // already connected to the same restaurant
     if (this.controller && this.connectedRestaurantId === restaurantId) {
-      console.log('[SSE][internal] openConnection skipped (already connected)', { restaurantId });
       return;
     }
     if (document.hidden) {
-      console.log('[SSE][internal] Tab hidden → defer openConnection');
       this.pendingOpenRestaurantId = restaurantId;
       return;
     }
     this.pendingOpenRestaurantId = null;
-    const connId = ++this.connectionSeq;
-    console.log('[SSE][internal] openConnection start', { connId, restaurantId });
     // ensure single controller/connection (switching restaurants)
     if (this.controller) this.close();
     this.controller = new AbortController();
@@ -161,14 +155,11 @@ export class OrderSyncService {
         if (!contentType?.startsWith(EventStreamContentType)) {
           throw new Error(`SSE expected ${EventStreamContentType}, got: ${contentType ?? 'none'}`);
         }
-        console.log('[SSE][internal] open', { url, status: response.status });
         this.onlineStateService.setOnline();
 
         // Hybrid reconnect: apply authoritative snapshot + watermark
         try {
-          console.log('[SSE][internal] calling /api/sync', { restaurantId });
           await this.syncRestaurantState(restaurantId);
-          console.log('[SSE][internal] /api/sync applied', { restaurantId, watermarkSequence: this.watermarkSequence });
         } catch (e) {
           console.warn('[SSE][internal] /api/sync failed (continuing live SSE only)', e);
         }
@@ -212,7 +203,6 @@ export class OrderSyncService {
           if (!EventType && (typeof msg.data === 'string') && msg.data.trim() === '') return;
 
           const sse: SseEvent<any> = { EventType, Data, Sequence, RestaurantId, InitiatedBy };
-          console.log('[SSE][internal] message', { eventFromServer: msg.event, EventType, Sequence, RestaurantId, InitiatedBy, Data, raw });
 
           if (Sequence && Sequence <= this.watermarkSequence) {
             // already included in last /api/sync snapshot or previously applied
@@ -252,7 +242,6 @@ export class OrderSyncService {
 
   private async syncRestaurantState(restaurantId: string): Promise<void> {
     const url = `${this.apiUrl.replace(/\/$/, '')}/api/sync?restaurantId=${encodeURIComponent(restaurantId)}`;
-    console.log('[SYNC] GET', url);
     const res = await fetch(url, { method: 'GET', credentials: 'include' });
     if (!res.ok) throw new Error(`Sync failed: HTTP ${res.status}`);
     const json = await res.json() as any;
@@ -266,7 +255,6 @@ export class OrderSyncService {
     }
 
     const tables = (json?.Tables ?? json?.tables ?? []) as any[];
-    console.log('[SYNC] snapshot received', { restaurantId, tablesCount: tables.length, watermark });
     await this.offlineDB.applySyncSnapshot(tables as any);
   }
 
@@ -285,7 +273,6 @@ export class OrderSyncService {
 
   private handleSseError(restaurantId: string, err: any) {
     if (document.hidden) {
-      console.log('[SSE] Tab hidden → skip handleSseError');
       return;
     }
     // If already refreshing, do nothing (we'll reconnect after refresh completes)
@@ -323,7 +310,6 @@ export class OrderSyncService {
         console.warn(`[OrderSync] refresh failed, scheduling reconnect attempt ${this.reconnectAttempts} in ${delay}ms`);
         timer(delay).pipe(take(1)).subscribe(() => {
           if (document.hidden) {
-            console.log('[SSE] Tab hidden → skip scheduled reconnect');
             return;
           }
           // attempt to reopen; this will again trigger refresh flow if needed

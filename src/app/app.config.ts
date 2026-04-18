@@ -19,6 +19,7 @@ import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { loggingInterceptor } from './core/interceptors/logging.interceptor';
 import { provideServiceWorker } from '@angular/service-worker';
 import { provideTransloco, TranslocoService } from '@jsverse/transloco';
+import { firstValueFrom } from 'rxjs';
 import { TranslocoHttpLoader } from './core/i18n/transloco-loader';
 import { LANG_STORAGE_KEY, DEFAULT_LANG, translocoConfig, type AppLang, APP_LANGS } from './core/i18n/transloco.config';
 
@@ -26,8 +27,9 @@ export function initAuth(authService: AuthService) {
   return () => authService.restoreSession().toPromise();
 }
 
+/** Ensures `/assets/i18n/{lang}.json` is loaded before the app renders; avoids Transloco "Missing translation" races. */
 function initLanguage(transloco: TranslocoService) {
-  return () => {
+  return async () => {
     let lang: AppLang = DEFAULT_LANG;
     try {
       const stored = localStorage.getItem(LANG_STORAGE_KEY);
@@ -38,6 +40,11 @@ function initLanguage(transloco: TranslocoService) {
       // ignore
     }
     transloco.setActiveLang(lang);
+    await firstValueFrom(transloco.load(lang));
+    const fallback = transloco.config.fallbackLang as AppLang | undefined;
+    if (fallback && fallback !== lang) {
+      await firstValueFrom(transloco.load(fallback));
+    }
   };
 }
 

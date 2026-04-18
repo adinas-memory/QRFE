@@ -1,5 +1,4 @@
 // ─── IMPORTS ──────────────────────────────────────────────────────────────────
-import { ButtonsComponent } from '../../../views/buttons/buttons/buttons.component';
 import { FormsModule } from '@angular/forms';
 import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import Fuse from 'fuse.js';
@@ -52,7 +51,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
     ColComponent, NgFor, NgIf, TableDirective,
     CardBodyComponent, CurrencyPipe, DecimalPipe, JsonPipe,
     CardComponent, CardGroupComponent, CardHeaderComponent,
-    CardFooterComponent, ButtonsComponent, ButtonDirective,
+    CardFooterComponent, ButtonDirective,
     CardImgDirective, BadgeComponent, ButtonCloseDirective,
     CardTextDirective, CardTitleDirective, ColComponent,
     ColDirective, NgStyle, IconDirective, RouterLink,
@@ -643,26 +642,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.canvasVisible = false;
   }
 
-  printOrder() {
-    const tableId = this.currentTableId;
-    const table = this.tables.find(t => t.tableId === tableId);
-    const items = this.tableCarts[tableId] ?? [];
-    const subtotal = this.cartSubTotal;
-    const currency = this.cartCurrency ?? '';
-
-    console.log('=== PRINT ORDER ===');
-    console.log('Table:', table?.tableName ?? tableId);
-    console.log('Order ID:', this.currentOrderId ?? 'N/A');
-    console.log('Items:');
-    for (const ci of items) {
-      const lineTotal = ci.item.menuItemPriceAmount * ci.quantity;
-      console.log(
-        `  ${ci.item.menuItemName}  x${ci.quantity}  @ ${ci.item.menuItemPriceAmount} = ${lineTotal} ${currency}`
-      );
-    }
-    console.log(`TOTAL: ${subtotal} ${currency}`);
-    console.log('===================');
-  }
+  printOrder() {}
 
   requestResetCanvas() {
     this.resetConfirmVisible = true;
@@ -761,7 +741,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   // ─── SSE HANDLER ─────────────────────────────────────────────────────────────
 
   private async handleSseEvent({ EventType, Data, InitiatedBy, Sequence }: SseEvent<any>): Promise<void> {
-    console.log('[ManageOrders][SSE] handleSseEvent:', { EventType, Sequence, InitiatedBy, Data });
     if (!EventType) return;
     if (typeof Sequence === 'number' && Sequence > 0) {
       if (this.recentSseSequenceSet.has(Sequence)) return;
@@ -778,7 +757,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       case 'KitchenWaiterCall': {
         const tableId = Data?.TableId;
         if (tableId) {
-          console.log('[ManageOrders][SSE] KitchenWaiterCall', Data);
           this.kitchenPickupRequested[tableId] = true;
           this.appToast.info(`Kitchen requests pickup at table ${this.tables.find(t => t.tableId === tableId)?.tableName ?? tableId}`);
           if (this.kitchenPickupTimers[tableId]) clearTimeout(this.kitchenPickupTimers[tableId]);
@@ -792,7 +770,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       case 'KitchenWaiterCallSnoozed': {
         const tableId = Data?.TableId;
         if (tableId) {
-          console.log('[ManageOrders][SSE] KitchenWaiterCallSnoozed', Data);
           delete this.kitchenPickupRequested[tableId];
           if (this.kitchenPickupTimers[tableId]) {
             clearTimeout(this.kitchenPickupTimers[tableId]);
@@ -828,12 +805,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       }
 
       case 'WaiterCall':
-        console.log('[ManageOrders][SSE] WaiterCall received!', { TableId: Data.TableId, Data });
         this.waiterState[Data.TableId] = WaiterCallState.Active;
         break;
 
       case 'WaiterCallSnoozed':
-        console.log('[ManageOrders][SSE] WaiterCallSnoozed received!', { TableId: Data.TableId, Data });
         this.waiterState[Data.TableId] = WaiterCallState.Snoozed;
         break;
 

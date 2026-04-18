@@ -130,9 +130,6 @@ export class ManageSubscriptionProductsComponent implements OnInit, OnDestroy {
 
     const payload = this.editForm.value;
 
-    // aici vei apela endpointul de update
-    console.log('UPDATE PRODUCT', payload);
-
     this.addToast('Product Updated', payload.restaurantType, 'success');
     this.editModalVisible = false;
     this.loadProducts();

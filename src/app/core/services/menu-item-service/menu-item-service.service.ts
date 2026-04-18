@@ -65,11 +65,9 @@ async getAllWithFallback(
 
   try {
     const response = await firstValueFrom(this.getAll(restaurantId));
-    console.log('[MenuItemService] Fetched menu from backend', response);
 
     // backend-ul trimite UN SINGUR obiect, nu array
     const menuItems = response.menu.menuItems;
-    console.log('[MenuItemService] Extracted menu items', menuItems);
 
     await this.offlineDB.cacheMenu(menuItems);
 

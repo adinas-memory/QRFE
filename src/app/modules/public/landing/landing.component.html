@@ -21,6 +21,9 @@
           <li><button cDropdownItem (click)="setLanguage('sv')"><span class="lang-flag me-2 cif-se"></span> SV</button></li>
         </ul>
       </c-dropdown>
+      <a cButton color="light" routerLink="/faq" variant="outline" class="me-2">
+        {{ 'faq.navLink' | transloco }}
+      </a>
       <button cButton color="light" routerLink="/login" variant="outline">
         {{ 'landing.ctaSecondary' | transloco }}
       </button>
@@ -40,6 +43,9 @@
           <div class="d-flex flex-wrap gap-2 mt-4">
             <a cButton color="info" variant="outline" class="px-4" href="#pricing">
               {{ 'landing.ctaPrimary' | transloco }}
+            </a>
+            <a cButton color="light" variant="outline" class="px-4" routerLink="/" fragment="faq">
+              {{ 'faq.navLink' | transloco }}
             </a>
             <a cButton color="light" variant="outline" class="px-4" routerLink="/login">
               {{ 'landing.ctaSecondary' | transloco }}
@@ -61,6 +67,8 @@
     </c-row>
   </c-container>
 </section>
+
+<app-faq [compact]="true" [embedded]="true" />
 
 <section id="pricing" class="pricing">
   <c-container class="py-5">

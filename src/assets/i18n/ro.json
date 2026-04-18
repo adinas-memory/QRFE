@@ -354,6 +354,65 @@
     "cancel": "Anulează",
     "closeOrder": "Închide comanda",
     "print": "Printează"
+  },
+  "faq": {
+    "navLink": "Întrebări",
+    "backHome": "Înapoi la pagina principală",
+    "sectionTitle": "Cum funcționează",
+    "sectionSubtitle": "Comportament real în sală, mod offline și fluxuri pentru oaspeți — nu text de marketing.",
+    "viewFull": "Toate întrebările",
+    "pageTitle": "Întrebări frecvente",
+    "pageIntro": "Răspunsurile reflectă cum e construit U.R.S.: evenimente SSE live, coadă offline Dexie, roluri JWT și meniul public pentru oaspeți.",
+    "items": {
+      "waiterCallVisual": {
+        "q": "De ce masa se colorează în galben pe ecranul de comenzi?",
+        "a": "Când oaspetele apasă „Cheamă ospătarul” din meniul public, backend-ul trimite un eveniment în timp real pentru restaurant. Cât timp apelul e activ, rândul mesei folosește stilul „warning” (galben) ca echipa să-l vadă rapid. Amânarea sau rezolvarea actualizează evidențierea."
+      },
+      "tableColors": {
+        "q": "Ce înseamnă celelalte culori la mese?",
+        "a": "Verde: masă deschisă fără apel de ospătar activ. Roșu: masă închisă sau ocupată în modelul curent. Galben: apel ospătar activ — cele trei stări rămân ușor de scanat."
+      },
+      "kitchenBarSse": {
+        "q": "Cum știe ospătarul când să ridice preparatele de la bucătărie sau de la bar?",
+        "a": "Ecranele Bucătărie și Bar folosesc același flux de evenimente live ca și comenzile. Când preparatele sunt gata sau personalul amână un reminder, ospătarul vede semnalul și știe când să ridice de la pass sau de la bar, fără să reîmprospăteze pagina."
+      },
+      "kitchenBarToastDismiss": {
+        "q": "De ce toasturile pentru comandă nouă sau ștergere produs trebuie închise manual la Bucătărie și Bar?",
+        "a": "Aceste notificări rămân până le închide cineva din echipă: au fost lăsate expres așa ca să ne asigurăm că personalul a văzut comanda nouă sau anularea preparării unui produs. Toasturile pentru creștere sau scădere de cantitate dispar singure după un scurt interval — sunt informative și nu cer confirmare."
+      },
+      "offlineOrders": {
+        "q": "Ce se întâmplă dacă cade Wi‑Fi-ul în timp ce iau comanda?",
+        "a": "Acțiunile pot fi stocate local în browser (IndexedDB). O coadă retrimite operațiile când revine conexiunea, apoi se reconciliază cu snapshot-ul serverului ca să nu pierzi coșul sau linii."
+      },
+      "realtimeSync": {
+        "q": "Cum rămân dispozitivele sincronizate?",
+        "a": "Fiecare sesiune deschide un canal server-sent events pe restaurant. După reconectare, un endpoint de sync reaplică starea autoritară, iar UI mergează orice lucru offline în așteptare."
+      },
+      "rolesAccess": {
+        "q": "Cine vede ce?",
+        "a": "Staff: unelte de sală (comenzi, bucătărie, bar, rezervări). Manager: și configurare mese, meniu, QR, rapoarte. Administrator global: unelte între tenanți (ex. produse abonament). Rolurile JWT sunt verificate la fiecare apel API."
+      },
+      "guestQrMenu": {
+        "q": "Cum deschide oaspețele meniul fără cont?",
+        "a": "QR-ul mesei codifică restaurantul și masa. Oaspeții au meniul public în browser, fără parolă pentru navigare sau apel ospătar; staff-ul rămâne autentificat în zona lui."
+      },
+      "dashboardReporting": {
+        "q": "Ce arată dashboard-urile pentru manager?",
+        "a": "KPI-uri și grafice agregă venit din comenzi închise, logări staff și trafic pe ferestre UTC rulante (ex. 30 zile vs 30 zile anterioare), în moneda restaurantului."
+      },
+      "bookings": {
+        "q": "Există rezervări de mese?",
+        "a": "Da, fluxurile staff/manager permit listare, editare și anulare rezervări, folosind aceleași API-uri autentificate ca restul aplicației."
+      },
+      "languages": {
+        "q": "Există mai multe limbi în interfață?",
+        "a": "Da. Alege limba din header; traducerile sunt în bundle. Paginile publice și chrome-ul staff respectă locale-ul activ unde există stringuri."
+      },
+      "subscriptionStripe": {
+        "q": "Cum funcționează pachetele și plata?",
+        "a": "Nivelurile de abonament definesc limite (mese, baruri, locuri). Plata și reînnoirea trec prin Stripe; după plată reușită urmează onboarding-ul restaurantului, iar managerii pot gestiona facturarea din setări când e activat."
+      }
+    }
   }
 }
 

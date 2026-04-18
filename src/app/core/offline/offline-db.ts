@@ -125,7 +125,6 @@ export class OfflineDbService {
     }
 
     async addOfflineAction(action: Omit<OfflineAction, 'id' | 'timestamp' | 'status'>) {
-        console.log('[DB] Queuing action:', action);
         await this.db.queue.add({
             ...action,
             timestamp: Date.now(),
@@ -135,7 +134,6 @@ export class OfflineDbService {
 
     async getPendingActions(): Promise<OfflineAction[]> {
         const actions = await this.db.queue.where('status').equals('pending').toArray();
-        console.log('[DB] Pending actions:', actions);
         return actions;
     }
 
@@ -171,7 +169,6 @@ export class OfflineDbService {
 
         for (const a of actions) {
             if (a.orderId === orderId) {
-                console.log('[DB] deleteActionsForOrder:', orderId);
                 await this.db.queue.delete(a.id!);
             }
         }
@@ -182,7 +179,6 @@ export class OfflineDbService {
 
         for (const a of actions) {
             if (a.orderId === oldId) {
-                console.log('[DB] replaceOrderId:', oldId, '→', newId);
                 await this.db.queue.update(a.id!, { orderId: newId });
             }
         }
@@ -227,7 +223,6 @@ export class OfflineDbService {
      * Server state wins; local offline queue will be replayed separately.
      */
     async applySyncSnapshot(tables: TableDTO[]): Promise<void> {
-        console.log('[SYNC][DB] apply snapshot', { tablesCount: tables?.length ?? 0 });
         await this.saveTables(tables);
         const availability = this.buildAvailabilityMapFromTables(tables);
         await this.saveTablesStatus(availability);
