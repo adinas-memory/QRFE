@@ -346,6 +346,30 @@
     "pageTitle": "Questions fréquentes",
     "pageIntro": "Ces réponses reflètent la conception d’U.R.S. : événements SSE temps réel, file hors ligne Dexie, rôles JWT et menu public invité.",
     "items": {
+      "pwaSupportedBrowsers": {
+        "q": "Quels navigateurs conviennent le mieux à U.R.S. ?",
+        "a": "Le produit est une PWA (Progressive Web App) et fonctionne de façon fiable surtout avec Google Chrome et Microsoft Edge. Firefox n’est pas pris en charge. Safari n’a pas été testé. Certaines fonctions dépendent de capacités du navigateur disponibles de façon cohérente uniquement sur Chrome et Edge."
+      },
+      "settingsCurrencyBeforeUse": {
+        "q": "Que faut-il configurer avant un service réel ?",
+        "a": "Avant le service en conditions réelles, ouvrez Paramètres et choisissez la devise du restaurant pour menus et commandes. Vous ne pouvez pas changer la devise tant qu’une table a encore une commande ouverte—clôturez d’abord ces commandes."
+      },
+      "byodStaffDevices": {
+        "q": "Le personnel peut-il utiliser ses propres téléphones ou tablettes ?",
+        "a": "Oui. Les équipes peuvent adopter le BYOD (Bring Your Own Device) et utiliser du matériel personnel pour les flux staff ou manager, conformément aux politiques de sécurité et d’usage de votre organisation."
+      },
+      "qrSignedSecurity": {
+        "q": "Les codes QR des tables sont-ils sûrs ?",
+        "a": "Les charges utiles QR sont signées numériquement et ne peuvent pas être usurpées facilement. Cela n’élimine pas les abus—par exemple des commandes fantômes ou quelqu’un qui photographie le code et commande à distance (la plateforme limite aussi à environ 100 appels par IP). Si un QR a été compromis, régénérez les codes et remplacez les impressions sur les tables."
+      },
+      "bookingsSlotDuration": {
+        "q": "Combien de temps dure une réservation et peut-on les chevaucher ?",
+        "a": "Par défaut chaque réservation utilise un créneau de 90 minutes. Nous travaillons sur des durées configurables par restaurant. La même table ne peut pas avoir de réservations qui se chevauchent sur le même intervalle."
+      },
+      "guestOrderItemList": {
+        "q": "Les clients peuvent-ils voir ce qui a été commandé ?",
+        "a": "Oui. Depuis le menu public ils peuvent ouvrir « Ma commande » et voir la liste des lignes pour leur table—noms, quantités et prix—comme sur l’écran commande invité."
+      },
       "waiterCallVisual": {
         "q": "Pourquoi une table devient jaune sur l’écran des commandes ?",
         "a": "Lorsqu’un invité appelle le serveur depuis le menu public, l’API envoie un événement temps réel. Tant que l’appel est actif, la ligne utilise le style d’avertissement (jaune). Reporter ou traiter met à jour la mise en évidence."

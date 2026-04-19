@@ -12,6 +12,12 @@ import { TranslocoPipe } from '@jsverse/transloco';
 
 /** FAQ entries must match `faq.items.<id>` in i18n JSON. */
 const FAQ_ITEM_IDS = [
+  'pwaSupportedBrowsers',
+  'settingsCurrencyBeforeUse',
+  'byodStaffDevices',
+  'qrSignedSecurity',
+  'bookingsSlotDuration',
+  'guestOrderItemList',
   'waiterCallVisual',
   'tableColors',
   'kitchenBarSse',

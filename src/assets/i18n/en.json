@@ -364,6 +364,30 @@
     "pageTitle": "Frequently asked questions",
     "pageIntro": "Answers below reflect how U.R.S. is built: SSE live updates, Dexie offline queue, role guards, and the public guest menu.",
     "items": {
+      "pwaSupportedBrowsers": {
+        "q": "Which browsers work best with U.R.S.?",
+        "a": "The product is a Progressive Web App (PWA) and works most reliably in Google Chrome and Microsoft Edge. Firefox is not supported. Safari has not been tested. Several capabilities depend on browser features that are only consistently available in Chrome and Edge."
+      },
+      "settingsCurrencyBeforeUse": {
+        "q": "What must I set up before using the app for real service?",
+        "a": "Before you operate live, open Settings and choose the currency your restaurant will use for menus and orders. You cannot change currency while any table still has an open order—finish or close those orders first."
+      },
+      "byodStaffDevices": {
+        "q": "Can restaurant staff use their own phones or tablets?",
+        "a": "Yes. Teams may follow a BYOD (Bring Your Own Device) approach and use personal hardware for staff or manager workflows, alongside your organisation’s own security and acceptable-use policies."
+      },
+      "qrSignedSecurity": {
+        "q": "How secure are the table QR codes?",
+        "a": "QR payloads are digitally signed so they cannot be impersonated or forged trivially. That still does not eliminate abuse—for example ghost orders or someone photographing a code and ordering remotely (the platform also rate-limits roughly 100 calls per IP). If a QR may have been leaked or abused, regenerate the codes and replace the physical prints on tables."
+      },
+      "bookingsSlotDuration": {
+        "q": "How long is a reservation, and can bookings overlap?",
+        "a": "By default each reservation uses a 90-minute slot. We are working on per-restaurant custom durations. The same table cannot have overlapping bookings within the same interval."
+      },
+      "guestOrderItemList": {
+        "q": "Can guests see what has been ordered?",
+        "a": "Yes. On the public menu guests can open “My order” to see the list of line items for their table—names, quantities, and prices—as shown on the guest order screen."
+      },
       "waiterCallVisual": {
         "q": "Why does a table turn yellow on the staff orders screen?",
         "a": "When a guest taps “Call waiter” on the public menu, the API pushes a real-time event to your restaurant. While that call is active, the table row uses a warning (yellow) style so floor staff can spot it quickly. Snooze or resolve flows update the highlight."

@@ -346,6 +346,30 @@
     "pageTitle": "Preguntas frecuentes",
     "pageIntro": "Las respuestas reflejan cómo está construido U.R.S.: SSE en vivo, cola offline Dexie, roles JWT y menú público para invitados.",
     "items": {
+      "pwaSupportedBrowsers": {
+        "q": "¿Qué navegadores funcionan mejor con U.R.S.?",
+        "a": "El producto es una PWA (Progressive Web App) y es más fiable en Google Chrome y Microsoft Edge. Firefox no está soportado. Safari no se ha probado. Algunas funciones dependen de capacidades del navegador que solo están disponibles de forma consistente en Chrome y Edge."
+      },
+      "settingsCurrencyBeforeUse": {
+        "q": "¿Qué debo configurar antes de usar la app en servicio real?",
+        "a": "Antes del servicio en vivo, abre Ajustes y elige la moneda del restaurante para menús y pedidos. No puedes cambiar la moneda si alguna mesa tiene un pedido abierto—cierra primero esos pedidos."
+      },
+      "byodStaffDevices": {
+        "q": "¿El personal puede usar sus propios teléfonos o tabletas?",
+        "a": "Sí. Los equipos pueden adoptar BYOD (Bring Your Own Device) y usar hardware personal para flujos de staff o manager, según las políticas de seguridad y uso de tu organización."
+      },
+      "qrSignedSecurity": {
+        "q": "¿Qué tan seguros son los códigos QR de las mesas?",
+        "a": "Las cargas útiles QR están firmadas digitalmente y no pueden suplantarse fácilmente. Eso no elimina abusos—por ejemplo pedidos fantasma o alguien que fotografíe el código y pida a distancia (la plataforma también limita a unas 100 llamadas por IP). Si un QR pudo verse comprometido, regenera los códigos y sustituye las impresiones físicas en las mesas."
+      },
+      "bookingsSlotDuration": {
+        "q": "¿Cuánto dura una reserva y pueden solaparse?",
+        "a": "Por defecto cada reserva usa un intervalo de 90 minutos. Estamos trabajando en duraciones configurables por restaurante. La misma mesa no puede tener reservas solapadas en el mismo intervalo."
+      },
+      "guestOrderItemList": {
+        "q": "¿Los comensales pueden ver lo que se ha pedido?",
+        "a": "Sí. Desde el menú público pueden abrir «Mi pedido» y ver la lista de líneas de su mesa—nombres, cantidades y precios—como en la pantalla de pedido del invitado."
+      },
       "waiterCallVisual": {
         "q": "¿Por qué una mesa se muestra en amarillo en el panel de pedidos?",
         "a": "Cuando un invitado pulsa «Llamar al camarero» en el menú público, la API envía un evento en tiempo real. Mientras la llamada esté activa, la fila usa el estilo de aviso (amarillo). Posponer o resolver actualiza el resaltado."

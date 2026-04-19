@@ -364,6 +364,30 @@
     "pageTitle": "Întrebări frecvente",
     "pageIntro": "Răspunsurile reflectă cum e construit U.R.S.: evenimente SSE live, coadă offline Dexie, roluri JWT și meniul public pentru oaspeți.",
     "items": {
+      "pwaSupportedBrowsers": {
+        "q": "Ce browsere funcționează cel mai bine cu U.R.S.?",
+        "a": "Aplicația este o PWA (Progressive Web App) și este stabilă în Google Chrome și Microsoft Edge. Firefox nu este suportat. Safari nu a fost testat. Unele funcții depind de capabilități de browser prezente în mod consecvent doar în Chrome și Edge."
+      },
+      "settingsCurrencyBeforeUse": {
+        "q": "Ce trebuie configurat înainte de folosirea efectivă?",
+        "a": "Înainte de serviciu live, deschide Setări și alege moneda în care va opera restaurantul pentru meniu și comenzi. Nu poți schimba moneda dacă există comenzi deschise pe vreo masă—închide sau finalizează mai întâi acele comenzi."
+      },
+      "byodStaffDevices": {
+        "q": "Personalul poate folosi propriile telefoane sau tablete?",
+        "a": "Da. Echipele pot adopta BYOD (Bring Your Own Device) și pot folosi dispozitive personale pentru fluxurile staff sau manager, respectând politicile organizației privind securitatea și utilizarea acceptabilă."
+      },
+      "qrSignedSecurity": {
+        "q": "Cât de sigure sunt codurile QR de pe mese?",
+        "a": "Payload-urile QR sunt semnate digital și nu pot fi impersonate sau falsificate trivial. Asta nu elimină abuzurile—de exemplu comenzi fantomă sau cineva care fotografiază codul și comandă de la distanță (platforma limitează și la ~100 apeluri / IP). Dacă un QR a fost compromis, regenerează codurile și înlocuiește printurile fizice pe mese."
+      },
+      "bookingsSlotDuration": {
+        "q": "Cât durează o rezervare și se pot suprapune?",
+        "a": "Implicit fiecare rezervare folosește un interval de 90 de minute. Lucrăm la durate configurabile per restaurant. Aceeași masă nu poate avea rezervări suprapuse în același interval."
+      },
+      "guestOrderItemList": {
+        "q": "Oaspeții pot vedea ce s-a comandat?",
+        "a": "Da. Din meniul public pot deschide „Comanda mea” și văd lista de poziții pentru masa lor—denumiri, cantități și prețuri—conform ecranului public de comandă."
+      },
       "waiterCallVisual": {
         "q": "De ce masa se colorează în galben pe ecranul de comenzi?",
         "a": "Când oaspetele apasă „Cheamă ospătarul” din meniul public, backend-ul trimite un eveniment în timp real pentru restaurant. Cât timp apelul e activ, rândul mesei folosește stilul „warning” (galben) ca echipa să-l vadă rapid. Amânarea sau rezolvarea actualizează evidențierea."

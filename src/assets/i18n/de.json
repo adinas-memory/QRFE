@@ -346,6 +346,30 @@
     "pageTitle": "Häufig gestellte Fragen",
     "pageIntro": "Die Antworten basieren auf der Architektur von U.R.S.: SSE-Live-Events, Dexie-Offline-Warteschlange, JWT-Rollen und das öffentliche Gäste-Menü.",
     "items": {
+      "pwaSupportedBrowsers": {
+        "q": "Welche Browser funktionieren mit U.R.S. am besten?",
+        "a": "Das Produkt ist eine PWA (Progressive Web App) und läuft am zuverlässigsten in Google Chrome und Microsoft Edge. Firefox wird nicht unterstützt. Safari wurde nicht getestet. Einige Funktionen hängen von Browser-Fähigkeiten ab, die nur in Chrome und Edge konsistent verfügbar sind."
+      },
+      "settingsCurrencyBeforeUse": {
+        "q": "Was muss ich vor dem echten Betrieb einrichten?",
+        "a": "Bevor Sie live arbeiten, öffnen Sie die Einstellungen und wählen Sie die Währung Ihres Restaurants für Speisekarte und Bestellungen. Sie können die Währung nicht ändern, solange an einem Tisch noch eine offene Bestellung besteht—schließen Sie diese zuerst ab."
+      },
+      "byodStaffDevices": {
+        "q": "Darf das Personal eigene Telefone oder Tablets nutzen?",
+        "a": "Ja. Teams können BYOD (Bring Your Own Device) nutzen und private Geräte für Staff- oder Manager-Workflows einsetzen – im Rahmen Ihrer Sicherheits- und Nutzungsrichtlinien."
+      },
+      "qrSignedSecurity": {
+        "q": "Wie sicher sind die Tisch-QR-Codes?",
+        "a": "QR-Nutzdaten sind digital signiert und lassen sich nicht trivial fälschen. Das schließt Missbrauch nicht aus—z. B. Geisterbestellungen oder jemand fotografiert den Code und bestellt aus der Ferne (die Plattform begrenzt zudem auf etwa 100 Aufrufe pro IP). Wenn ein QR kompromittiert sein könnte, generieren Sie Codes neu und ersetzen Sie die Ausdrucke auf den Tischen."
+      },
+      "bookingsSlotDuration": {
+        "q": "Wie lange dauert eine Reservierung und dürfen sie sich überschneiden?",
+        "a": "Standardmäßig nutzt jede Reservierung ein 90-Minuten-Fenster. Wir arbeiten an anpassbaren Dauern pro Restaurant. Derselbe Tisch darf im selben Zeitraum keine überlappenden Reservierungen haben."
+      },
+      "guestOrderItemList": {
+        "q": "Können Gäste sehen, was bestellt wurde?",
+        "a": "Ja. Über das öffentliche Menü können sie „Meine Bestellung“ öffnen und die Positionen für ihren Tisch sehen—Namen, Mengen und Preise—wie auf dem öffentlichen Bestellbildschirm."
+      },
       "waiterCallVisual": {
         "q": "Warum wird ein Tisch im Bestellbildschirm gelb hervorgehoben?",
         "a": "Wenn ein Gast im öffentlichen Menü „Kellner rufen“ tippt, sendet die API ein Echtzeit-Ereignis. Solange der Aufruf aktiv ist, nutzt die Tabellenzeile den Warnstil (gelb), damit das Team ihn sofort sieht. Snooze oder Auflösung aktualisieren die Markierung."

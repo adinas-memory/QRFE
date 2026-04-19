@@ -1,110 +1,148 @@
-<c-header>
-  <c-container fluid>
-    <c-header-brand [routerLink]>
-      <div class="brand">
-        <h1 class="brand-title"><i>{{ 'landing.brand' | transloco }}</i></h1>
-      </div>
-    </c-header-brand>
-    <c-header-nav class="ms-auto align-items-center">
-      <c-dropdown class="me-3">
-        <button cButton cDropdownToggle color="light" variant="outline" class="d-flex align-items-center gap-2">
-          <span class="lang-flag" [ngClass]="'cif-' + activeLang"></span>
-          <span class="text-uppercase">{{ activeLang }}</span>
-        </button>
-        <ul cDropdownMenu>
-          <li><button cDropdownItem (click)="setLanguage('ro')"><span class="lang-flag me-2 cif-ro"></span> RO</button></li>
-          <li><button cDropdownItem (click)="setLanguage('en')"><span class="lang-flag me-2 cif-gb"></span> EN</button></li>
-          <li><button cDropdownItem (click)="setLanguage('it')"><span class="lang-flag me-2 cif-it"></span> IT</button></li>
-          <li><button cDropdownItem (click)="setLanguage('fr')"><span class="lang-flag me-2 cif-fr"></span> FR</button></li>
-          <li><button cDropdownItem (click)="setLanguage('es')"><span class="lang-flag me-2 cif-es"></span> ES</button></li>
-          <li><button cDropdownItem (click)="setLanguage('de')"><span class="lang-flag me-2 cif-de"></span> DE</button></li>
-          <li><button cDropdownItem (click)="setLanguage('sv')"><span class="lang-flag me-2 cif-se"></span> SV</button></li>
-        </ul>
-      </c-dropdown>
-      <a cButton color="light" routerLink="/faq" variant="outline" class="me-2">
-        {{ 'faq.navLink' | transloco }}
-      </a>
-      <button cButton color="light" routerLink="/login" variant="outline">
-        {{ 'landing.ctaSecondary' | transloco }}
-      </button>
-    </c-header-nav>
-  </c-container>
-  <c-header-divider />
-</c-header>
-
-<section class="hero">
-  <c-container class="py-5">
-    <c-row class="align-items-center gy-4">
-      <c-col [xs]="12" [lg]="6">
-        <div class="hero-copy">
-          <div class="hero-kicker">{{ 'landing.headline' | transloco }}</div>
-          <h2 class="hero-title">{{ 'landing.headline' | transloco }}</h2>
-          <p class="hero-subtitle">{{ 'landing.subheadline' | transloco }}</p>
-          <div class="d-flex flex-wrap gap-2 mt-4">
-            <a cButton color="info" variant="outline" class="px-4" href="#pricing">
-              {{ 'landing.ctaPrimary' | transloco }}
-            </a>
-            <a cButton color="light" variant="outline" class="px-4" routerLink="/" fragment="faq">
-              {{ 'faq.navLink' | transloco }}
-            </a>
-            <a cButton color="light" variant="outline" class="px-4" routerLink="/login">
-              {{ 'landing.ctaSecondary' | transloco }}
-            </a>
-          </div>
+<div class="landing-shell" [attr.data-coreui-theme]="theme">
+  <c-header class="landing-header">
+    <c-container fluid>
+      <c-header-brand [routerLink]>
+        <div class="brand">
+          <h1 class="brand-title"><i>{{ 'landing.brand' | transloco }}</i></h1>
         </div>
-      </c-col>
-      <c-col [xs]="12" [lg]="6">
-        <div class="hero-panel shadow-sm">
-          <div class="hero-panel-title">{{ 'landing.featuresTitle' | transloco }}</div>
-          <ul class="hero-features">
-            <li>{{ 'landing.features.realtime' | transloco }}</li>
-            <li>{{ 'landing.features.offline' | transloco }}</li>
-            <li>{{ 'landing.features.staff' | transloco }}</li>
-            <li>{{ 'landing.features.security' | transloco }}</li>
+      </c-header-brand>
+      <c-header-nav class="ms-auto align-items-center">
+        <div class="me-2 d-flex align-items-center landing-feedback-wrap">
+          <app-feedback-launch [allowAnonymous]="true" />
+        </div>
+        <c-dropdown class="me-3">
+          <button cButton cDropdownToggle [color]="outlineBtnColor" variant="outline" class="d-flex align-items-center gap-2 landing-header-btn">
+            <span class="lang-flag" [ngClass]="activeLangFlagClass"></span>
+            <span class="text-uppercase">{{ activeLang }}</span>
+          </button>
+          <ul cDropdownMenu>
+            <li><button cDropdownItem (click)="setLanguage('ro')"><span class="lang-flag me-2 cif-ro"></span> RO</button></li>
+            <li><button cDropdownItem (click)="setLanguage('en')"><span class="lang-flag me-2 cif-gb"></span> EN</button></li>
+            <li><button cDropdownItem (click)="setLanguage('it')"><span class="lang-flag me-2 cif-it"></span> IT</button></li>
+            <li><button cDropdownItem (click)="setLanguage('fr')"><span class="lang-flag me-2 cif-fr"></span> FR</button></li>
+            <li><button cDropdownItem (click)="setLanguage('es')"><span class="lang-flag me-2 cif-es"></span> ES</button></li>
+            <li><button cDropdownItem (click)="setLanguage('de')"><span class="lang-flag me-2 cif-de"></span> DE</button></li>
+            <li><button cDropdownItem (click)="setLanguage('sv')"><span class="lang-flag me-2 cif-se"></span> SV</button></li>
           </ul>
-        </div>
-      </c-col>
-    </c-row>
-  </c-container>
-</section>
+        </c-dropdown>
+        <c-dropdown class="me-3">
+          <button cButton cDropdownToggle [color]="outlineBtnColor" variant="outline" class="d-flex align-items-center gap-2 px-2 landing-header-btn" [attr.aria-label]="'client.theme' | transloco">
+            @if (theme === 'dark') {
+              <svg cIcon name="cilMoon" size="lg"></svg>
+            } @else {
+              <svg cIcon name="cilSun" size="lg"></svg>
+            }
+          </button>
+          <ul cDropdownMenu>
+            <li>
+              <button cDropdownItem class="d-flex align-items-center" [class.active]="theme === 'dark'" (click)="setTheme('dark')">
+                <svg cIcon name="cilMoon" class="me-2" size="lg"></svg>
+                {{ 'client.dark' | transloco }}
+              </button>
+            </li>
+            <li>
+              <button cDropdownItem class="d-flex align-items-center" [class.active]="theme === 'light'" (click)="setTheme('light')">
+                <svg cIcon name="cilSun" class="me-2" size="lg"></svg>
+                {{ 'client.light' | transloco }}
+              </button>
+            </li>
+          </ul>
+        </c-dropdown>
+        <button cButton [color]="outlineBtnColor" routerLink="/login" variant="outline" class="landing-header-btn">
+          {{ 'landing.ctaSecondary' | transloco }}
+        </button>
+      </c-header-nav>
+    </c-container>
+    <c-header-divider />
+  </c-header>
 
-<app-faq [compact]="true" [embedded]="true" />
-
-<section id="pricing" class="pricing">
-  <c-container class="py-5">
-    <div class="section-title">
-      <h3 class="mb-1">{{ 'landing.pricingTitle' | transloco }}</h3>
-      <div class="text-muted">{{ 'landing.pricingSubtitle' | transloco }}</div>
-    </div>
-
-    <c-row class="align-items-stretch mt-4 pricing-cards-row gy-2 gx-3">
-      @for (card of cards; track card.restaurantType) {
-      <c-col [xs]="12" [md]="6" [lg]="4">
-        <c-card class="h-100 pricing-card">
-          <c-card-header class="pricing-header">
-            <div class="fw-semibold">{{ card.restaurantType }} restaurant</div>
-          </c-card-header>
-          <c-card-body class="pricing-body">
-            <div class="price">
-              <span class="price-amount">{{ card.priceAmount | currency : card.priceCurrency }}</span>
-              <span class="price-period">/ month</span>
+  <main class="landing-main">
+    <section class="hero">
+      <c-container class="py-5">
+        <c-row class="align-items-center gy-4">
+          <c-col [xs]="12" [lg]="6">
+            <div class="hero-copy">
+              <div class="hero-kicker">{{ 'landing.headline' | transloco }}</div>
+              <h2 class="hero-title">{{ 'landing.headline' | transloco }}</h2>
+              <p class="hero-subtitle">{{ 'landing.subheadline' | transloco }}</p>
+              <div class="d-flex flex-wrap gap-2 mt-4">
+                <a cButton color="info" variant="outline" class="px-4" href="#pricing">
+                  {{ 'landing.ctaPrimary' | transloco }}
+                </a>
+                <a cButton [color]="outlineBtnColor" variant="outline" class="px-4 landing-hero-btn" routerLink="/" fragment="faq">
+                  {{ 'faq.navLink' | transloco }}
+                </a>
+              </div>
             </div>
-            @let limit = getLimit(card.restaurantType);
-            <ul class="pricing-list">
-              <li>Max tables: {{ limit?.maxTables }}</li>
-              <li>Max bars: {{ limit?.maxBars }}</li>
-              <li>Max bar seats: {{ limit?.maxBarSeats }}</li>
-            </ul>
-            <div class="text-muted small">{{ card.description }}</div>
-          </c-card-body>
-          <c-card-footer class="text-center">
-            <button cButton color="info" variant="outline" class="w-100" (click)="handleCardClick(card)">
-              {{ 'landing.subscribe' | transloco }}
-            </button>
-          </c-card-footer>
-        </c-card>
-      </c-col>
-      }
-    </c-row>
-  </c-container>
-</section>
+          </c-col>
+          <c-col [xs]="12" [lg]="6">
+            <div class="hero-panel shadow-sm">
+              <div class="hero-panel-title">{{ 'landing.featuresTitle' | transloco }}</div>
+              <ul class="hero-features">
+                <li>{{ 'landing.features.realtime' | transloco }}</li>
+                <li>{{ 'landing.features.offline' | transloco }}</li>
+                <li>{{ 'landing.features.staff' | transloco }}</li>
+                <li>{{ 'landing.features.security' | transloco }}</li>
+              </ul>
+            </div>
+          </c-col>
+        </c-row>
+      </c-container>
+    </section>
+
+    <app-faq [compact]="true" [embedded]="true" />
+
+    <section id="pricing" class="pricing">
+      <c-container class="py-5">
+        <div class="section-title">
+          <h3 class="mb-1">{{ 'landing.pricingTitle' | transloco }}</h3>
+          <div class="text-muted">{{ 'landing.pricingSubtitle' | transloco }}</div>
+        </div>
+
+        <c-row class="align-items-stretch mt-4 pricing-cards-row gy-2 gx-3">
+          @for (card of cards; track card.restaurantType) {
+          <c-col [xs]="12" [md]="6" [lg]="4">
+            <c-card class="h-100 pricing-card">
+              <c-card-header class="pricing-header">
+                <div class="fw-semibold">{{ card.restaurantType }} restaurant</div>
+              </c-card-header>
+              <c-card-body class="pricing-body">
+                <div class="price">
+                  <span class="price-amount">{{ card.priceAmount | currency : card.priceCurrency }}</span>
+                  <span class="price-period">/ month</span>
+                </div>
+                @let limit = getLimit(card.restaurantType);
+                <ul class="pricing-list">
+                  <li>Max tables: {{ limit?.maxTables }}</li>
+                  <li>Max bars: {{ limit?.maxBars }}</li>
+                  <li>Max bar seats: {{ limit?.maxBarSeats }}</li>
+                </ul>
+                <div class="text-muted small">{{ card.description }}</div>
+              </c-card-body>
+              <c-card-footer class="text-center">
+                <button cButton color="info" variant="outline" class="w-100" (click)="handleCardClick(card)">
+                  {{ 'landing.subscribe' | transloco }}
+                </button>
+              </c-card-footer>
+            </c-card>
+          </c-col>
+          }
+        </c-row>
+      </c-container>
+    </section>
+  </main>
+
+  <c-footer class="landing-footer">
+    <c-container fluid class="d-flex flex-wrap align-items-center gap-2 py-3">
+      <div class="small">
+        <span>{{ year }} - &copy; Universal Restaurant System</span>
+      </div>
+      <div class="ms-md-auto small">
+        <span>Powered by </span>
+        <a [href]="frontendPublicUrl" target="_blank" rel="noopener noreferrer">{{ poweredBy }}</a>
+      </div>
+    </c-container>
+  </c-footer>
+
+  <app-feedback-modal />
+</div>

@@ -51,3 +51,31 @@
 .faq :deep(.accordion-body) {
   background: rgba(0, 0, 0, 0.2);
 }
+
+:host-context(.landing-shell[data-coreui-theme='light']) .faq.faq--embedded {
+  background: #c8ced6;
+  color: #1a1d21;
+}
+
+:host-context(.landing-shell[data-coreui-theme='light']) .faq.faq--embedded .faq-intro {
+  color: #5c636a !important;
+}
+
+:host-context(.landing-shell[data-coreui-theme='light']) .faq.faq--embedded .faq-accordion {
+  --cui-accordion-btn-color: #1a1d21;
+  --cui-accordion-bg: rgba(255, 255, 255, 0.72);
+  --cui-accordion-border-color: rgba(0, 0, 0, 0.12);
+}
+
+:host-context(.landing-shell[data-coreui-theme='light']) .faq.faq--embedded .faq-answer {
+  color: rgba(26, 29, 33, 0.9);
+}
+
+:host-context(.landing-shell[data-coreui-theme='light']) .faq.faq--embedded :deep(.accordion-button:not(.collapsed)) {
+  background: rgba(0, 0, 0, 0.07);
+  color: #1a1d21;
+}
+
+:host-context(.landing-shell[data-coreui-theme='light']) .faq.faq--embedded :deep(.accordion-body) {
+  background: rgba(255, 255, 255, 0.55);
+}

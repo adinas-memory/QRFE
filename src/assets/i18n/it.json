@@ -346,6 +346,30 @@
     "pageTitle": "Domande frequenti",
     "pageIntro": "Le risposte riflettono l’architettura di U.R.S.: eventi SSE in tempo reale, coda offline Dexie, ruoli JWT e menu pubblico per gli ospiti.",
     "items": {
+      "pwaSupportedBrowsers": {
+        "q": "Quali browser funzionano meglio con U.R.S.?",
+        "a": "Il prodotto è una PWA (Progressive Web App) ed è più affidabile con Google Chrome e Microsoft Edge. Firefox non è supportato. Safari non è stato testato. Alcune funzioni dipendono da capacità del browser disponibili in modo coerente solo in Chrome e Edge."
+      },
+      "settingsCurrencyBeforeUse": {
+        "q": "Cosa va configurato prima di usare l’app in servizio reale?",
+        "a": "Prima del servizio effettivo, apri Impostazioni e scegli la valuta del ristorante per menu e ordini. Non puoi cambiare valuta se esiste ancora un ordine aperto su un tavolo—chiudi prima quegli ordini."
+      },
+      "byodStaffDevices": {
+        "q": "Il personale può usare telefoni o tablet propri?",
+        "a": "Sì. È possibile adottare BYOD (Bring Your Own Device) e usare dispositivi personali per i flussi staff o manager, nel rispetto delle policy aziendali su sicurezza e uso accettabile."
+      },
+      "qrSignedSecurity": {
+        "q": "Quanto sono sicuri i codici QR sui tavoli?",
+        "a": "I payload QR sono firmati digitalmente e non possono essere impersonati facilmente. Ciò non elimina abusi—ad esempio ordini fantasma o qualcuno che fotografa il codice e ordina da remoto (la piattaforma limita anche a circa 100 chiamate per IP). Se un QR è stato compromesso, rigenera i codici e sostituisci le stampe fisiche."
+      },
+      "bookingsSlotDuration": {
+        "q": "Quanto dura una prenotazione e possono sovrapporsi?",
+        "a": "Di default ogni prenotazione usa una fascia di 90 minuti. Stiamo lavorando su durate configurabili per ristorante. Lo stesso tavolo non può avere prenotazioni sovrapposte nello stesso intervallo."
+      },
+      "guestOrderItemList": {
+        "q": "Gli ospiti possono vedere cosa è stato ordinato?",
+        "a": "Sì. Dal menu pubblico possono aprire «Il mio ordine» e vedere l’elenco delle righe per il loro tavolo—nomi, quantità e prezzi—come nello schermo ordine ospite."
+      },
       "waiterCallVisual": {
         "q": "Perché un tavolo diventa giallo nella schermata ordini?",
         "a": "Quando un ospite tocca «Chiama il cameriere» dal menu pubblico, l’API invia un evento in tempo reale. Finché la chiamata è attiva, la riga usa lo stile di avviso (giallo). Posporre o risolvere aggiorna l’evidenziazione."

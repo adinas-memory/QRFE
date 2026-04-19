@@ -346,6 +346,30 @@
     "pageTitle": "Vanliga frågor",
     "pageIntro": "Svaren speglar hur U.R.S. är byggt: SSE i realtid, Dexie-offlinekö, JWT-roller och publik gästmeny.",
     "items": {
+      "pwaSupportedBrowsers": {
+        "q": "Vilka webbläsare fungerar bäst med U.R.S.?",
+        "a": "Produkten är en PWA (Progressive Web App) och fungerar mest tillförlitligt i Google Chrome och Microsoft Edge. Firefox stöds inte. Safari har inte testats. Vissa funktioner bygger på webbläsarfunktioner som bara finns konsekvent i Chrome och Edge."
+      },
+      "settingsCurrencyBeforeUse": {
+        "q": "Vad måste jag ställa in innan riktig drift?",
+        "a": "Innan ni kör på riktigt: öppna Inställningar och välj restaurangens valuta för meny och beställningar. Du kan inte byta valuta medan något bord fortfarande har en öppen beställning—stäng dessa först."
+      },
+      "byodStaffDevices": {
+        "q": "Kan personal använda egna telefoner eller surfplattor?",
+        "a": "Ja. Team kan använda BYOD (Bring Your Own Device) och privata enheter för personal- eller chef-flöden, i enlighet med er säkerhets- och användarpolicy."
+      },
+      "qrSignedSecurity": {
+        "q": "Hur säkra är bords-QR-koderna?",
+        "a": "QR-data är digitalt signerad och kan inte enkelt förfalskas. Det tar inte bort missbruk—t.ex. spökordrar eller någon som fotar koden och beställer på distans (plattformen begränsar också till cirka 100 anrop per IP). Om en QR kan ha läckts: generera nya koder och byt ut utskrifterna på borden."
+      },
+      "bookingsSlotDuration": {
+        "q": "Hur länge gäller en bokning och får de överlappa?",
+        "a": "Som standard använder varje bokning ett 90-minutersfönster. Vi arbetar med anpassningsbar längd per restaurang. Samma bord kan inte ha överlappande bokningar inom samma intervall."
+      },
+      "guestOrderItemList": {
+        "q": "Kan gäster se vad som beställts?",
+        "a": "Ja. Från den offentliga menyn kan de öppna ”Min beställning” och se radlistan för sitt bord—namn, antal och priser—som på gästens beställningsskärm."
+      },
       "waiterCallVisual": {
         "q": "Varför blir ett bord gult i orderlistan?",
         "a": "När en gäst trycker på «Kalla servitör» i den publika menyn skickar API:t en realtidshändelse. Medan samtalet är aktivt använder raden varningsstilen (gult). Snooze eller åtgärd uppdaterar markeringen."

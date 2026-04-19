@@ -29,6 +29,11 @@ import { DropdownComponent, DropdownItemDirective, DropdownMenuDirective, Dropdo
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { LANG_STORAGE_KEY, type AppLang } from '../../../core/i18n/transloco.config';
 import { FaqComponent } from '../faq/faq.component';
+import { environment } from '../../../../environments/environment';
+import { FooterComponent } from '@coreui/angular';
+import { IconDirective } from '@coreui/icons-angular';
+import { FeedbackLaunchComponent } from '@app/shared/components/feedback/feedback-launch.component';
+import { FeedbackModalComponent } from '@app/shared/components/feedback/feedback-modal.component';
 
 @Component({
   selector: 'app-landing',
@@ -53,7 +58,11 @@ import { FaqComponent } from '../faq/faq.component';
     DropdownMenuDirective,
     DropdownToggleDirective,
     TranslocoPipe,
-    NgClass
+    NgClass,
+    FooterComponent,
+    IconDirective,
+    FeedbackLaunchComponent,
+    FeedbackModalComponent,
   ],
   styleUrls: ['./landing.component.scss'],
   templateUrl: './landing.component.html'
@@ -68,6 +77,10 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
   cardBorderColor: string = 'light';
   cardBackgroundColor: string = '#2b81d6ff';
 
+  theme: 'dark' | 'light' = 'dark';
+  readonly year = new Date().getFullYear();
+  readonly poweredBy = environment.poweredBy;
+  readonly frontendPublicUrl = environment.apiUrl;
 
   constructor(
     private authService: AuthService,
@@ -82,11 +95,37 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
     return (l === 'ro' || l === 'en' || l === 'it' || l === 'fr' || l === 'es' || l === 'de' || l === 'sv') ? l : 'ro';
   }
 
+  /** CoreUI Icons flag sprites: locale `en` uses `cif-gb`, not `cif-en`. */
+  private readonly langFlagClass: Record<AppLang, string> = {
+    ro: 'cif-ro',
+    en: 'cif-gb',
+    it: 'cif-it',
+    fr: 'cif-fr',
+    es: 'cif-es',
+    de: 'cif-de',
+    sv: 'cif-se',
+  };
+
+  get activeLangFlagClass(): string {
+    return this.langFlagClass[this.activeLang];
+  }
+
+  /** Outline buttons: light-on-dark in dark theme, dark-on-light in light theme (CoreUI `color`). */
+  get outlineBtnColor(): 'light' | 'dark' {
+    return this.theme === 'light' ? 'dark' : 'light';
+  }
+
   setLanguage(l: AppLang) {
     this.transloco.setActiveLang(l);
     try { localStorage.setItem(LANG_STORAGE_KEY, l); } catch { /* ignore */ }
   }
 
+  setTheme(t: 'dark' | 'light'): void {
+    this.theme = t;
+    try {
+      localStorage.setItem('publicTheme', t);
+    } catch { /* ignore */ }
+  }
 
   handleCardClick(card: SubscriptionProductModel): void {
     this.subscriptionService.setPendingPlan({
@@ -132,6 +171,8 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
 
 
   ngOnInit(): void {
+    this.theme = (localStorage.getItem('publicTheme') as 'dark' | 'light') || 'dark';
+
     combineLatest([
       this.subscriptionService.getProducts(),
       this.subscriptionService.getProductsLimits()
