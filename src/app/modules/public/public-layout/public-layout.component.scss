@@ -66,6 +66,13 @@
   color: rgba(255, 255, 255, 0.85);
 }
 
+.my-order-badge {
+  font-size: 0.65rem;
+  min-width: 1.15rem;
+  padding: 0.2em 0.45em;
+  vertical-align: middle;
+}
+
 [data-coreui-theme="light"] .my-order-topbar {
   color: #212529;
 }

@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { ActivatedRoute, Router, RouterOutlet } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import {
   BadgeComponent, ButtonDirective, ContainerComponent, FooterComponent,
   NavbarBrandDirective, NavbarComponent,
@@ -7,13 +7,29 @@ import {
   DropdownItemDirective, DropdownMenuDirective, DropdownToggleDirective,
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
-import { MenuService } from '../../../core/services/menu-public/menu.service';
+import { MenuService, PublicRestaurantSseEvent } from '../../../core/services/menu-public/menu.service';
 import { MenuResponse, WaiterCallResponse } from '../../../core/models/menu/menuItem';
+import { OrderDTO } from '../../../core/models/orderingModel';
 import { NgClass } from '@angular/common';
 import { environment } from '../../../../environments/environment';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { LANG_STORAGE_KEY, type AppLang } from '../../../core/i18n/transloco.config';
-import { Subject, takeUntil } from 'rxjs';
+import {
+  BehaviorSubject,
+  Subject,
+  catchError,
+  combineLatest,
+  distinctUntilChanged,
+  EMPTY,
+  filter,
+  fromEvent,
+  map,
+  of,
+  switchMap,
+  takeUntil,
+  tap,
+  timer,
+} from 'rxjs';
 
 @Component({
   selector: 'app-public-layout',
@@ -36,12 +52,15 @@ export class PublicLayoutComponent implements OnInit, OnDestroy {
   tableId = '';
   waiterCounterCall = 3;
   waiterCalled = false;
+  /** Total ordered quantity for this table; drives the “My order” badge. */
+  orderLineQuantityTotal = 0;
   year = new Date().getFullYear();
   poweredBy = environment.poweredBy;
   frontendPubicUrl = environment.apiUrl;
   theme: 'dark' | 'light' = 'dark';
 
   private destroy$ = new Subject<void>();
+  private readonly tabVisible$ = new BehaviorSubject(document.visibilityState === 'visible');
 
   constructor(
     private route: ActivatedRoute,
@@ -59,30 +78,128 @@ export class PublicLayoutComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.theme = (localStorage.getItem('publicTheme') as 'dark' | 'light') || 'dark';
 
+    fromEvent(document, 'visibilitychange')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.tabVisible$.next(document.visibilityState === 'visible'));
+
     this.route.firstChild?.data.subscribe(data => {
       const response = data['menuData'] as MenuResponse;
-      this.restaurantName = response?.restaurantName ?? 'Restaurant';
-      this.restaurantId = this.route.snapshot.paramMap.get('restaurantId') ?? '';
-      this.tableId = this.route.snapshot.paramMap.get('tableId') ?? '';
-      this.menuResponse = response;
-      this.waiterCounterCall = response.waiterCallCount ?? 3;
+      if (response) {
+        this.restaurantName = response.restaurantName ?? this.restaurantName;
+        this.menuResponse = response;
+        this.waiterCounterCall = response.waiterCallCount ?? this.waiterCounterCall;
+      }
     });
 
-    if (this.restaurantId || this.route.snapshot.paramMap.get('restaurantId')) {
-      const rid = this.restaurantId || this.route.snapshot.paramMap.get('restaurantId')!;
-      this.menuService.listenWaiterEvents(rid)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: (ev) => {
-            if (ev.type === 'WaiterCall') {
-              this.waiterCalled = true;
-              setTimeout(() => this.waiterCalled = false, 4000);
-            }
-          },
-          error: (err) => console.warn('[PublicLayout] public SSE error', err)
-        });
-    } else {
-      console.warn('[PublicLayout] SSE NOT opened — restaurantId is empty at this point');
+    const params$ = this.route.paramMap.pipe(
+      map(pm => ({
+        rid: pm.get('restaurantId') ?? '',
+        tid: pm.get('tableId') ?? '',
+      })),
+      distinctUntilChanged((a, b) => a.rid === b.rid && a.tid === b.tid),
+    );
+
+    combineLatest([params$, this.tabVisible$])
+      .pipe(
+        switchMap(([{ rid, tid }, visible]) => {
+          this.restaurantId = rid;
+          this.tableId = tid;
+          if (!rid || !tid) {
+            this.orderLineQuantityTotal = 0;
+            return EMPTY;
+          }
+          if (visible) {
+            this.refreshOrderBadge();
+          }
+          if (!visible) {
+            return EMPTY;
+          }
+          return this.menuService.listenPublicRestaurantSse(rid).pipe(
+            tap(ev => this.handlePublicSse(ev, tid)),
+            catchError(err => {
+              console.warn('[PublicLayout] public SSE error', err);
+              return EMPTY;
+            }),
+          );
+        }),
+        takeUntil(this.destroy$),
+      )
+      .subscribe();
+
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        takeUntil(this.destroy$),
+      )
+      .subscribe(() => {
+        if (this.restaurantId && this.tableId) {
+          this.refreshOrderBadge();
+        }
+      });
+
+    // Staff add/remove lines use internal-only SSE; poll lightly while the tab is visible.
+    timer(35_000, 50_000)
+      .pipe(
+        takeUntil(this.destroy$),
+        filter(() => document.visibilityState === 'visible'),
+        filter(() => !!this.restaurantId && !!this.tableId),
+        switchMap(() =>
+          this.menuService.getTableOrder(this.restaurantId, this.tableId).pipe(catchError(() => of(null))),
+        ),
+      )
+      .subscribe(order => this.applyOrderBadgeCount(order));
+  }
+
+  private refreshOrderBadge(): void {
+    if (!this.restaurantId || !this.tableId) {
+      this.orderLineQuantityTotal = 0;
+      return;
+    }
+    this.menuService
+      .getTableOrder(this.restaurantId, this.tableId)
+      .pipe(
+        takeUntil(this.destroy$),
+        catchError(() => of(null)),
+      )
+      .subscribe(order => this.applyOrderBadgeCount(order));
+  }
+
+  private applyOrderBadgeCount(order: OrderDTO | null): void {
+    this.orderLineQuantityTotal = PublicLayoutComponent.countOrderLineQuantity(order);
+  }
+
+  private static countOrderLineQuantity(order: OrderDTO | null): number {
+    const items = order?.orderItems?.filter((i): i is NonNullable<typeof i> => !!i) ?? [];
+    return items.reduce((sum, i) => sum + (i.quantity ?? 0), 0);
+  }
+
+  /**
+   * Backend sends `data: JsonSerializer.Serialize(SseEvent<T>)` — table id is on the inner `data` object.
+   */
+  private tableIdFromSseMessage(raw: unknown): string {
+    const o = raw as Record<string, unknown> | null;
+    if (!o) return '';
+    const inner = o['data'] as Record<string, unknown> | undefined;
+    const tid = inner?.['tableId'] ?? o['tableId'];
+    return tid != null ? String(tid).toLowerCase() : '';
+  }
+
+  private handlePublicSse(ev: PublicRestaurantSseEvent, currentTableId: string): void {
+    const cur = String(currentTableId).toLowerCase();
+    const tableId = this.tableIdFromSseMessage(ev.data);
+
+    if (ev.type === 'WaiterCall' || ev.type === 'WaiterCallSnoozed') {
+      if (tableId && cur && tableId === cur) {
+        this.waiterCalled = true;
+        setTimeout(() => (this.waiterCalled = false), 4000);
+      }
+      return;
+    }
+
+    if (ev.type === 'NewOrderPublic') {
+      if (tableId && cur && tableId === cur) {
+        this.refreshOrderBadge();
+      }
     }
   }
 

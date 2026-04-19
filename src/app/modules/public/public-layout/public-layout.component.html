@@ -42,11 +42,14 @@
         color="light"
         variant="ghost"
         size="sm"
-        class="my-order-topbar"
+        class="my-order-topbar position-relative"
         (click)="viewOrder()"
       >
         <svg cIcon name="cilCart" class="me-1"></svg>
         {{ 'client.myOrder' | transloco }}
+        @if (orderLineQuantityTotal > 0) {
+          <c-badge color="danger" class="ms-1 my-order-badge">{{ orderLineQuantityTotal }}</c-badge>
+        }
       </button>
 
       <!-- Call Waiter -->

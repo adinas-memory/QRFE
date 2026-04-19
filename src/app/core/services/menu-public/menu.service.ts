@@ -1,9 +1,15 @@
 import { Injectable, NgZone } from '@angular/core';
 import { environment } from '../../../../environments/environment';
-import { Observable, tap } from 'rxjs';
+import { Observable } from 'rxjs';
 import { MenuResponse, WaiterCallResponse } from '../../models/menu/menuItem';
 import { OrderDTO } from '../../models/orderingModel';
 import { HttpClient } from '@angular/common/http';
+
+/** Events delivered on `/sse/public/restaurant/{restaurantId}` (see backend `SseAudience.Public`). */
+export type PublicRestaurantSseEvent =
+  | { type: 'WaiterCall'; data: unknown }
+  | { type: 'WaiterCallSnoozed'; data: unknown }
+  | { type: 'NewOrderPublic'; data: unknown };
 
 
 
@@ -32,7 +38,11 @@ export class MenuService {
     );
   }
 
-  listenWaiterEvents(restaurantId: string): Observable<{ type: 'WaiterCall' | 'WaiterCallSnoozed'; data: any }> {
+  /**
+   * Server-sent events for anonymous guests (waiter call + new empty order broadcast).
+   * Teardown closes the `EventSource` (call when leaving the page or pausing while the tab is hidden).
+   */
+  listenPublicRestaurantSse(restaurantId: string): Observable<PublicRestaurantSseEvent> {
     return new Observable(observer => {
       const src = new EventSource(`${this.apiUrl}/sse/public/restaurant/${restaurantId}`);
 
@@ -42,9 +52,13 @@ export class MenuService {
       const onSnoozed = (ev: MessageEvent) => {
         this.ngZone.run(() => observer.next({ type: 'WaiterCallSnoozed', data: JSON.parse(ev.data) }));
       };
+      const onNewOrderPublic = (ev: MessageEvent) => {
+        this.ngZone.run(() => observer.next({ type: 'NewOrderPublic', data: JSON.parse(ev.data) }));
+      };
 
-      src.addEventListener('WaiterCall', onCall as any);
-      src.addEventListener('WaiterCallSnoozed', onSnoozed as any);
+      src.addEventListener('WaiterCall', onCall as EventListener);
+      src.addEventListener('WaiterCallSnoozed', onSnoozed as EventListener);
+      src.addEventListener('NewOrderPublicEvent', onNewOrderPublic as EventListener);
 
       src.onerror = (error) => {
         this.ngZone.run(() => observer.error(error));
