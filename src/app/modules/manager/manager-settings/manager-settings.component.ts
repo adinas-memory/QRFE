@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { DatePipe } from '@angular/common';
 import {
   ButtonDirective,
   CardBodyComponent,
@@ -20,6 +21,14 @@ import { Currency } from '../../../core/models/restaurantTablesModel';
 import { Router } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
+export interface PrinterAgentEnrollmentCodeRow {
+  id: string;
+  createdAtUtc: string;
+  expiresAtUtc: string;
+  usesRemaining: number;
+  revoked: boolean;
+}
+
 @Component({
   selector: 'app-manager-settings',
   standalone: true,
@@ -27,6 +36,7 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
   styleUrl: './manager-settings.component.scss',
   imports: [
     ReactiveFormsModule,
+    DatePipe,
     CardComponent,
     CardHeaderComponent,
     CardBodyComponent,
@@ -51,6 +61,11 @@ export class ManagerSettingsComponent implements OnInit {
   saving = false;
   canceling = false;
 
+  enrollmentCodes: PrinterAgentEnrollmentCodeRow[] = [];
+  loadingEnrollmentCodes = false;
+  generatingEnrollmentCode = false;
+  lastGeneratedCode: string | null = null;
+
   constructor(
     private fb: FormBuilder,
     private http: HttpClient,
@@ -73,6 +88,7 @@ export class ManagerSettingsComponent implements OnInit {
         /* keep fallback */
       }
     });
+    this.loadEnrollmentCodes();
   }
 
   get isManager(): boolean {
@@ -111,6 +127,93 @@ export class ManagerSettingsComponent implements OnInit {
           this.toast.error(
             this.miscellaneousService.getFirstErrorMessage(err),
             this.transloco.translate('restaurantSettings.toastCurrencyErrorTitle')
+          );
+        }
+      });
+  }
+
+  loadEnrollmentCodes(): void {
+    const rid = this.restaurantId;
+    if (!rid) {
+      return;
+    }
+    this.loadingEnrollmentCodes = true;
+    this.http
+      .get<PrinterAgentEnrollmentCodeRow[]>(
+        `${this.apiUrl}/api/restaurants/${rid}/admin/printer-agent/enrollment-codes`,
+        { withCredentials: true }
+      )
+      .subscribe({
+        next: rows => {
+          this.enrollmentCodes = rows ?? [];
+          this.loadingEnrollmentCodes = false;
+        },
+        error: err => {
+          console.error('Failed to load enrollment codes', err);
+          this.loadingEnrollmentCodes = false;
+          this.toast.error(
+            this.miscellaneousService.getFirstErrorMessage(err),
+            this.transloco.translate('restaurantSettings.printerAgentEnrollment.loadError')
+          );
+        }
+      });
+  }
+
+  generateEnrollmentCode(): void {
+    const rid = this.restaurantId;
+    if (!rid) {
+      return;
+    }
+    this.generatingEnrollmentCode = true;
+    this.lastGeneratedCode = null;
+    this.http
+      .post<{ code: string; id: string; expiresAtUtc: string }>(
+        `${this.apiUrl}/api/restaurants/${rid}/admin/printer-agent/enrollment-codes`,
+        { expiresInDays: 14, usesRemaining: 1 },
+        { withCredentials: true }
+      )
+      .subscribe({
+        next: res => {
+          this.generatingEnrollmentCode = false;
+          this.lastGeneratedCode = res.code;
+          this.loadEnrollmentCodes();
+          this.toast.success(
+            this.transloco.translate('restaurantSettings.printerAgentEnrollment.toastGeneratedBody'),
+            this.transloco.translate('restaurantSettings.printerAgentEnrollment.toastGeneratedTitle')
+          );
+        },
+        error: err => {
+          console.error('Failed to generate enrollment code', err);
+          this.generatingEnrollmentCode = false;
+          this.toast.error(
+            this.miscellaneousService.getFirstErrorMessage(err),
+            this.transloco.translate('restaurantSettings.printerAgentEnrollment.generateError')
+          );
+        }
+      });
+  }
+
+  revokeEnrollmentCode(codeId: string): void {
+    if (!confirm(this.transloco.translate('restaurantSettings.printerAgentEnrollment.revokeConfirm'))) {
+      return;
+    }
+    const rid = this.restaurantId;
+    if (!rid) {
+      return;
+    }
+    this.http
+      .delete(`${this.apiUrl}/api/restaurants/${rid}/admin/printer-agent/enrollment-codes/${codeId}`, {
+        withCredentials: true
+      })
+      .subscribe({
+        next: () => {
+          this.loadEnrollmentCodes();
+        },
+        error: err => {
+          console.error('Failed to revoke enrollment code', err);
+          this.toast.error(
+            this.miscellaneousService.getFirstErrorMessage(err),
+            this.transloco.translate('restaurantSettings.printerAgentEnrollment.revokeError')
           );
         }
       });

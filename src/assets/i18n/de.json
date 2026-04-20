@@ -299,7 +299,29 @@
     "toastSavedBody": "Betriebswährung und Menüpreis-Währung aktualisiert.",
     "toastSavedTitle": "Einstellungen gespeichert",
     "toastCurrencyErrorTitle": "Währung konnte nicht aktualisiert werden",
-    "confirmCancelSubscription": "Abonnement wirklich kündigen? Manager-Funktionen enden am Ende der Abrechnungsperiode (Stripe)."
+    "confirmCancelSubscription": "Abonnement wirklich kündigen? Manager-Funktionen enden am Ende der Abrechnungsperiode (Stripe).",
+    "printerAgentEnrollment": {
+      "title": "Printer agent setup",
+      "hint": "Generate a 5-character code for the printer agent on first run. Each code can be used a limited number of times until it expires.",
+      "generate": "Generate new code",
+      "generating": "Generating…",
+      "loading": "Loading codes…",
+      "lastCodeLabel": "New code (copy now — it will not be shown again):",
+      "copyHint": "Store this code securely. Anyone with it can enroll an agent for your restaurant.",
+      "tableCreated": "Created",
+      "tableExpires": "Expires",
+      "tableUses": "Uses left",
+      "tableRevoked": "Revoked",
+      "revoke": "Revoke",
+      "loadError": "Could not load enrollment codes",
+      "generateError": "Could not generate code",
+      "revokeError": "Could not revoke code",
+      "yes": "Yes",
+      "revokeConfirm": "Revoke this enrollment code? Already enrolled agents keep working.",
+      "noCodes": "No enrollment codes yet.",
+      "toastGeneratedTitle": "Code created",
+      "toastGeneratedBody": "Copy the code now; it cannot be retrieved later."
+    }
   },
   "feedbackModal": {
     "title": "Feedback senden",

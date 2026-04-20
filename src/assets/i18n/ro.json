@@ -317,7 +317,29 @@
     "toastSavedBody": "Moneda operațională și cea a prețurilor din meniu au fost actualizate.",
     "toastSavedTitle": "Setări salvate",
     "toastCurrencyErrorTitle": "Nu s-a putut actualiza moneda",
-    "confirmCancelSubscription": "Sigur vrei să anulezi abonamentul? Vei pierde accesul la funcțiile de manager la sfârșitul perioadei de facturare (conform Stripe)."
+    "confirmCancelSubscription": "Sigur vrei să anulezi abonamentul? Vei pierde accesul la funcțiile de manager la sfârșitul perioadei de facturare (conform Stripe).",
+    "printerAgentEnrollment": {
+      "title": "Agent imprimantă",
+      "hint": "Generează un cod din 5 caractere pentru agentul de imprimantă la prima rulare. Fiecare cod poate fi folosit de un număr limitat de ori până la expirare.",
+      "generate": "Generează cod nou",
+      "generating": "Se generează…",
+      "loading": "Se încarcă codurile…",
+      "lastCodeLabel": "Cod nou (copiază acum — nu va mai fi afișat):",
+      "copyHint": "Păstrează codul în siguranță. Oricine îl are poate înrola un agent pentru restaurantul tău.",
+      "tableCreated": "Creat",
+      "tableExpires": "Expiră",
+      "tableUses": "Utilizări rămase",
+      "tableRevoked": "Revocat",
+      "revoke": "Revocă",
+      "loadError": "Nu s-au putut încărca codurile",
+      "generateError": "Nu s-a putut genera codul",
+      "revokeError": "Nu s-a putut revoca codul",
+      "yes": "Da",
+      "revokeConfirm": "Revoci acest cod? Agenții deja înrolați continuă să funcționeze.",
+      "noCodes": "Încă nu există coduri de înrolare.",
+      "toastGeneratedTitle": "Cod creat",
+      "toastGeneratedBody": "Copiază codul acum; nu poate fi recuperat ulterior."
+    }
   },
   "feedbackModal": {
     "title": "Trimite feedback",

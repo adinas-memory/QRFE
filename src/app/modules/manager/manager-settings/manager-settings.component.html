@@ -36,6 +36,90 @@
       </c-card-body>
     </c-card>
 
+    <c-card class="mb-4" id="printer-agent">
+      <c-card-header>
+        <strong>{{ 'restaurantSettings.printerAgentEnrollment.title' | transloco }}</strong>
+      </c-card-header>
+      <c-card-body>
+        <p class="text-body-secondary small mb-3">
+          {{ 'restaurantSettings.printerAgentEnrollment.hint' | transloco }}
+        </p>
+        @if (!restaurantId) {
+          <p class="text-warning">{{ 'restaurantSettings.noRestaurant' | transloco }}</p>
+        } @else {
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <button
+              cButton
+              color="primary"
+              type="button"
+              [disabled]="generatingEnrollmentCode"
+              (click)="generateEnrollmentCode()"
+            >
+              @if (generatingEnrollmentCode) {
+                {{ 'restaurantSettings.printerAgentEnrollment.generating' | transloco }}
+              } @else {
+                {{ 'restaurantSettings.printerAgentEnrollment.generate' | transloco }}
+              }
+            </button>
+          </div>
+          @if (lastGeneratedCode) {
+            <div class="alert alert-warning small mb-3" role="status">
+              <div class="fw-semibold mb-1">
+                {{ 'restaurantSettings.printerAgentEnrollment.lastCodeLabel' | transloco }}
+              </div>
+              <code class="fs-5 user-select-all">{{ lastGeneratedCode }}</code>
+              <div class="mt-1 text-body-secondary">
+                {{ 'restaurantSettings.printerAgentEnrollment.copyHint' | transloco }}
+              </div>
+            </div>
+          }
+          @if (loadingEnrollmentCodes) {
+            <p class="text-body-secondary small mb-0">{{ 'restaurantSettings.printerAgentEnrollment.loading' | transloco }}</p>
+          } @else if (enrollmentCodes.length === 0) {
+            <p class="text-body-secondary small mb-0">{{ 'restaurantSettings.printerAgentEnrollment.noCodes' | transloco }}</p>
+          } @else {
+            <div class="table-responsive">
+              <table class="table table-sm table-striped align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>{{ 'restaurantSettings.printerAgentEnrollment.tableCreated' | transloco }}</th>
+                    <th>{{ 'restaurantSettings.printerAgentEnrollment.tableExpires' | transloco }}</th>
+                    <th>{{ 'restaurantSettings.printerAgentEnrollment.tableUses' | transloco }}</th>
+                    <th>{{ 'restaurantSettings.printerAgentEnrollment.tableRevoked' | transloco }}</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of enrollmentCodes; track row.id) {
+                    <tr>
+                      <td>{{ row.createdAtUtc | date: 'short' }}</td>
+                      <td>{{ row.expiresAtUtc | date: 'short' }}</td>
+                      <td>{{ row.usesRemaining }}</td>
+                      <td>{{ row.revoked ? ('restaurantSettings.printerAgentEnrollment.yes' | transloco) : '—' }}</td>
+                      <td class="text-end">
+                        @if (!row.revoked) {
+                          <button
+                            cButton
+                            color="secondary"
+                            variant="outline"
+                            size="sm"
+                            type="button"
+                            (click)="revokeEnrollmentCode(row.id)"
+                          >
+                            {{ 'restaurantSettings.printerAgentEnrollment.revoke' | transloco }}
+                          </button>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+      </c-card-body>
+    </c-card>
+
     <c-card class="mb-4" id="payments">
       <c-card-header>
         <strong>{{ 'restaurantSettings.paymentsTitle' | transloco }}</strong>
