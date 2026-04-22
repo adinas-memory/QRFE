@@ -320,7 +320,7 @@
     "confirmCancelSubscription": "Are you sure you want to cancel your subscription? You will lose access to manager features when the billing period ends (per Stripe).",
     "printerAgentEnrollment": {
       "title": "Printer agent setup",
-      "hint": "Generate a 5-character code for the printer agent on first run. Each code can be used a limited number of times until it expires.",
+      "hint": "Generate a 10-character code for the printer agent on first run. Each code can be used a limited number of times until it expires.",
       "generate": "Generate new code",
       "generating": "Generating…",
       "loading": "Loading codes…",
