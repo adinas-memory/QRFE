@@ -125,9 +125,57 @@
         <strong>{{ 'restaurantSettings.paymentsTitle' | transloco }}</strong>
       </c-card-header>
       <c-card-body>
-        <p class="text-body-secondary small mb-0">
+        <p class="text-body-secondary small mb-3">
           {{ 'restaurantSettings.paymentsBody' | transloco }}
         </p>
+
+        @if (!restaurantId) {
+          <p class="text-warning mb-0">{{ 'restaurantSettings.noRestaurant' | transloco }}</p>
+        } @else {
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+            <button
+              cButton
+              color="primary"
+              type="button"
+              [disabled]="stripeConnectLoading"
+              (click)="connectStripe()"
+            >
+              {{ 'restaurantSettings.paymentsConnectStripe' | transloco }}
+            </button>
+
+            <button
+              cButton
+              color="secondary"
+              variant="outline"
+              type="button"
+              [disabled]="stripeConnectLoading"
+              (click)="loadStripeConnectStatus()"
+            >
+              {{ 'restaurantSettings.paymentsRefreshStatus' | transloco }}
+            </button>
+          </div>
+
+          @if (stripeConnectLoading) {
+            <p class="text-body-secondary small mb-0">{{ 'restaurantSettings.paymentsLoading' | transloco }}</p>
+          } @else {
+            <div class="small">
+              <div>
+                <span class="text-body-secondary">{{ 'restaurantSettings.paymentsStripeStatus' | transloco }}:</span>
+                <span class="ms-1 fw-semibold">{{ stripeConnectStatus ?? '—' }}</span>
+              </div>
+              <div class="mt-1">
+                <span class="text-body-secondary">{{ 'restaurantSettings.paymentsStripeAccount' | transloco }}:</span>
+                <span class="ms-1 font-monospace">{{ stripeConnectedAccountId ?? '—' }}</span>
+              </div>
+              <div class="mt-2 text-body-secondary">
+                {{ 'restaurantSettings.paymentsStripeFlags' | transloco }}:
+                <span class="ms-1">{{ stripeChargesEnabled ? 'charges_enabled' : 'charges_disabled' }}</span>,
+                <span class="ms-1">{{ stripePayoutsEnabled ? 'payouts_enabled' : 'payouts_disabled' }}</span>,
+                <span class="ms-1">{{ stripeDetailsSubmitted ? 'details_submitted' : 'details_missing' }}</span>
+              </div>
+            </div>
+          }
+        }
       </c-card-body>
     </c-card>
 

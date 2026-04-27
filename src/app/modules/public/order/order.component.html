@@ -70,6 +70,16 @@
           <span>{{ order.subTotal!.amount | currency : order.subTotal!.currency : 'symbol' : '1.2-2' }}</span>
         </div>
       }
+
+      <div class="mt-3">
+        <button cButton color="primary" class="w-100" type="button" [disabled]="paying" (click)="payByCard()">
+          @if (paying) {
+            {{ 'client.processingPayment' | transloco }}
+          } @else {
+            {{ 'client.payByCard' | transloco }}
+          }
+        </button>
+      </div>
     </div>
   }
 

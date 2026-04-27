@@ -7,6 +7,8 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { Subject, takeUntil } from 'rxjs';
 import { MenuService } from '../../../core/services/menu-public/menu.service';
 import { OrderDTO, OrderItemDTO } from '../../../core/models/orderingModel';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-order',
@@ -23,15 +25,18 @@ export class OrderComponent implements OnInit, OnDestroy {
   order: OrderDTO | null = null;
   loading = true;
   error = false;
+  paying = false;
 
   private restaurantId = '';
   private tableId = '';
+  private readonly apiUrl = environment.apiUrl;
   private destroy$ = new Subject<void>();
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private menuService: MenuService,
+    private http: HttpClient,
   ) {}
 
   get validItems(): OrderItemDTO[] {
@@ -64,6 +69,31 @@ export class OrderComponent implements OnInit, OnDestroy {
           this.error = true;
           this.loading = false;
         },
+      });
+  }
+
+  payByCard(): void {
+    if (!this.order?.orderId || !this.restaurantId) return;
+
+    this.paying = true;
+    this.http
+      .post<{ checkoutUrl: string }>(
+        `${this.apiUrl}/api/payments/checkout-session`,
+        { restaurantId: this.restaurantId, orderId: this.order.orderId },
+        { withCredentials: true }
+      )
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: res => {
+          this.paying = false;
+          if (res?.checkoutUrl) {
+            window.location.href = res.checkoutUrl;
+          }
+        },
+        error: err => {
+          console.error('Failed to start card payment', err);
+          this.paying = false;
+        }
       });
   }
 

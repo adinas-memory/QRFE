@@ -66,6 +66,13 @@ export class ManagerSettingsComponent implements OnInit {
   generatingEnrollmentCode = false;
   lastGeneratedCode: string | null = null;
 
+  stripeConnectLoading = false;
+  stripeConnectStatus: string | null = null;
+  stripeConnectedAccountId: string | null = null;
+  stripeChargesEnabled = false;
+  stripePayoutsEnabled = false;
+  stripeDetailsSubmitted = false;
+
   constructor(
     private fb: FormBuilder,
     private http: HttpClient,
@@ -89,6 +96,7 @@ export class ManagerSettingsComponent implements OnInit {
       }
     });
     this.loadEnrollmentCodes();
+    this.loadStripeConnectStatus();
   }
 
   get isManager(): boolean {
@@ -98,6 +106,47 @@ export class ManagerSettingsComponent implements OnInit {
   get restaurantId(): string | null {
     const id = this.authService.getUserRestaurantId();
     return typeof id === 'string' ? id : Array.isArray(id) ? id[0] ?? null : null;
+  }
+
+  loadStripeConnectStatus(): void {
+    const rid = this.restaurantId;
+    if (!rid) return;
+
+    this.stripeConnectLoading = true;
+    this.http
+      .get<{
+        restaurantId: string;
+        stripeConnectStatus: string;
+        stripeConnectedAccountId: string | null;
+        stripeChargesEnabled: boolean;
+        stripePayoutsEnabled: boolean;
+        stripeDetailsSubmitted: boolean;
+      }>(`${this.apiUrl}/api/stripe-connect/status?restaurantId=${encodeURIComponent(rid)}`, { withCredentials: true })
+      .subscribe({
+        next: res => {
+          this.stripeConnectStatus = res?.stripeConnectStatus ?? null;
+          this.stripeConnectedAccountId = res?.stripeConnectedAccountId ?? null;
+          this.stripeChargesEnabled = !!res?.stripeChargesEnabled;
+          this.stripePayoutsEnabled = !!res?.stripePayoutsEnabled;
+          this.stripeDetailsSubmitted = !!res?.stripeDetailsSubmitted;
+          this.stripeConnectLoading = false;
+        },
+        error: err => {
+          console.error('Failed to load Stripe Connect status', err);
+          this.stripeConnectLoading = false;
+          this.toast.error(
+            this.miscellaneousService.getFirstErrorMessage(err),
+            this.transloco.translate('restaurantSettings.paymentsStripeConnectErrorTitle')
+          );
+        }
+      });
+  }
+
+  connectStripe(): void {
+    const rid = this.restaurantId;
+    if (!rid) return;
+    // Redirect to backend which redirects to Stripe OAuth.
+    window.location.href = `${this.apiUrl}/api/stripe-connect/authorize?restaurantId=${encodeURIComponent(rid)}`;
   }
 
   saveCurrency(): void {
