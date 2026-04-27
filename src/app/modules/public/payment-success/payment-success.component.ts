@@ -31,6 +31,10 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H7',location:'payment-success.component.ts:ngOnInit:entry',message:'PaymentSuccessComponent init',data:{url:typeof window!=='undefined'?window.location.href:null,hasSessionIdParam:typeof window!=='undefined'?new URLSearchParams(window.location.search).has('session_id'):null},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
     timer(0, 2000).pipe(
       takeUntil(this.destroy$),
       switchMap(() => {
@@ -38,6 +42,9 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
         return this.authService.refreshUserContext().pipe(
           catchError(() => of(null)),
           switchMap(user => {
+            // #region agent log
+            fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H7',location:'payment-success.component.ts:ngOnInit:poll',message:'Polled refreshUserContext',data:{pollCount:this.pollCount,hasUser:!!user,role:user?.role??null,hasRestaurantId:!!user?.restaurantId},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
             if (!user?.restaurantId || user.role !== 'manager') {
               return of(user);
             }
@@ -63,6 +70,9 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
         );
       }),
       tap(user => {
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H7',location:'payment-success.component.ts:ngOnInit:tap',message:'Tap executed',data:{pollCount:this.pollCount,role:user?.role??null,willRedirectToLogin:!!(user&&user.role==='manager')||this.pollCount>=this.maxPolls},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         if (user && user.role === 'manager') {
           this.provisioning = false;
           this.secondsLeft = 3;
