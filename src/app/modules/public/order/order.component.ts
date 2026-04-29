@@ -76,6 +76,9 @@ export class OrderComponent implements OnInit, OnDestroy {
     if (!this.order?.orderId || !this.restaurantId) return;
 
     this.paying = true;
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H_checkout',location:'order.component.ts:payByCard',message:'starting diner checkout session',data:{restaurantId:this.restaurantId,tableId:this.tableId,orderId:this.order.orderId},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     this.http
       .post<{ checkoutUrl: string }>(
         `${this.apiUrl}/api/payments/checkout-session`,
@@ -87,6 +90,9 @@ export class OrderComponent implements OnInit, OnDestroy {
         next: res => {
           this.paying = false;
           if (res?.checkoutUrl) {
+            // #region agent log
+            fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H_checkout',location:'order.component.ts:payByCard:redirect',message:'redirecting browser to Stripe checkoutUrl',data:{hasCheckoutUrl:true},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
             window.location.href = res.checkoutUrl;
           }
         },

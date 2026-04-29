@@ -86,6 +86,9 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
           const interval = setInterval(() => this.secondsLeft = Math.max(0, this.secondsLeft - 1), 1000);
           setTimeout(() => {
             clearInterval(interval);
+            // #region agent log
+            fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H_mgrRedirect',location:'payment-success.component.ts:managerRedirect',message:'redirecting to /login after manager provisioning',data:{pollCount:this.pollCount},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
             this.authService.clearUser();
             this.router.navigate(['/login']);
           }, 3000);
@@ -96,6 +99,9 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
           const interval = setInterval(() => this.secondsLeft = Math.max(0, this.secondsLeft - 1), 1000);
           setTimeout(() => {
             clearInterval(interval);
+            // #region agent log
+            fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H_timeoutRedirect',location:'payment-success.component.ts:timeoutRedirect',message:'redirecting to /login after timeout (non-manager)',data:{pollCount:this.pollCount,maxPolls:this.maxPolls,role:user?.role??null,restaurantId:user?.restaurantId??null},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
             this.authService.clearUser();
             this.router.navigate(['/login']);
           }, 3000);
