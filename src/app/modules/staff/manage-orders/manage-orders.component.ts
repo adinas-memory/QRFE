@@ -42,7 +42,7 @@ import { OnlineStateService } from '../../../core/offline/online-state-service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { KitchenService } from '../../../core/services/kitchen-service/kitchen.service';
 import { BarService } from '../../../core/services/bar-service/bar.service';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 @Component({
   selector: 'app-manage-orders',
@@ -137,7 +137,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     private onlineStateService: OnlineStateService,
     private queueProcessor: OfflineQueueProcessor,
     private appToast: AppToastService,
+    private transloco: TranslocoService,
   ) {}
+
+  formatInitiatedBy(raw: string): string {
+    const v = (raw ?? '').trim().toLowerCase();
+    if (!v) return '';
+    if (v === 'stripe') return this.transloco.translate('manageOrders.byCardPayment');
+    return raw;
+  }
 
   // ─── GETTERS ──────────────────────────────────────────────────────────────────
 
@@ -842,6 +850,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         const tableId = payload.TableId;
         const cart = await this.offlineDB.loadCart(tableId);
 
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'feature',hypothesisId:'H_overwrite',location:'manage-orders.component.ts:OrderUpdated',message:'OrderUpdated received; overwrites initiatedBy',data:{tableId,initiatedBy:InitiatedBy||null,hadExisting:!!this.tableComputed?.[tableId]},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion agent log
+
         for (const sseItem of payload.Items) {
           const localItem = cart.find(ci => ci.item.menuItemId === sseItem.MenuItemId);
           if (localItem) localItem.orderItemId = sseItem.OrderItemId;
@@ -858,7 +870,24 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       case 'OrderClosedWithPayment': {
         const tableId = Data.TableId;
         await this.offlineDB.deleteCart(tableId);
-        delete this.tableComputed[tableId];
+        // Persist "updated by" until the next order overwrites it.
+        const existing = this.tableComputed[tableId];
+        const table = this.tables.find(t => t.tableId === tableId);
+        this.tableComputed[tableId] = {
+          lastActionAt: Data.ClosedAt ?? existing?.lastActionAt ?? new Date().toISOString(),
+          lastAddedItem: '—',
+          total: 0,
+          currency: existing?.currency ?? '',
+          itemCount: 0,
+          cssClass: existing?.cssClass ?? this.miscService.getTableCss(table!, this.waiterState),
+          initiatedBy: InitiatedBy || 'stripe',
+        };
+        this.ordersService.saveComputed(this.tableComputed);
+
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'feature',hypothesisId:'H_persist',location:'manage-orders.component.ts:OrderClosedWithPayment',message:'OrderClosedWithPayment persisted initiatedBy',data:{tableId,initiatedBy:this.tableComputed?.[tableId]?.initiatedBy||null,lastActionAt:this.tableComputed?.[tableId]?.lastActionAt||null},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion agent log
+
         delete this.kitchenPickupRequested[tableId];
         delete this.barPickupRequested[tableId];
         // FIX BUG 3: markTableAsOpen curăță și order → buildAvailabilityMap returnează corect true

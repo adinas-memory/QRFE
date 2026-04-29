@@ -39,7 +39,7 @@
                     : '—'
                     }}
                     <span *ngIf="tableComputed[table.tableId]?.initiatedBy">
-                      — {{ 'manageOrders.by' | transloco }} {{ tableComputed[table.tableId].initiatedBy }}
+                      — {{ 'manageOrders.by' | transloco }} {{ formatInitiatedBy(tableComputed[table.tableId].initiatedBy) }}
                     </span>
                   </p>
                   <p cCardText>
@@ -100,7 +100,7 @@
                   : '—'
                   }}
                   <span *ngIf="tableComputed[table.tableId]?.initiatedBy">
-                    — {{ 'manageOrders.by' | transloco }} {{ tableComputed[table.tableId].initiatedBy }}
+                    — {{ 'manageOrders.by' | transloco }} {{ formatInitiatedBy(tableComputed[table.tableId].initiatedBy) }}
                   </span>
                 </p>
                 <p cCardText>
@@ -161,7 +161,7 @@
                   : '—'
                   }}
                   <span *ngIf="tableComputed[table.tableId]?.initiatedBy">
-                    — {{ 'manageOrders.by' | transloco }} {{ tableComputed[table.tableId].initiatedBy }}
+                    — {{ 'manageOrders.by' | transloco }} {{ formatInitiatedBy(tableComputed[table.tableId].initiatedBy) }}
                   </span>
                 </p>
                 <p cCardText>
