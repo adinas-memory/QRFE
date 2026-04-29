@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Router, RouterLink } from '@angular/router';
-import { Subject, takeUntil, timer, switchMap, tap, catchError, of, map } from 'rxjs';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Subject, takeUntil, timer, switchMap, tap, catchError, of, map, take } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
 import { environment } from '../../../../environments/environment';
@@ -22,8 +22,12 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
   private readonly maxPolls = 15;
   private pollCount = 0;
   private readonly apiUrl = environment.apiUrl;
+  flow: 'subscription' | 'order' | 'unknown' = 'unknown';
+  restaurantId: string | null = null;
+  tableId: string | null = null;
 
   constructor(
+    private route: ActivatedRoute,
     private router: Router,
     private authService: AuthService,
     private http: HttpClient,
@@ -34,7 +38,25 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
     // #region agent log
     fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H1',location:'payment-success.component.ts:ngOnInit',message:'payment success init',data:{url:typeof window!=='undefined'?window.location.href:null},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
-    timer(0, 2000).pipe(
+    this.route.queryParamMap.pipe(take(1)).subscribe(q => {
+      const f = (q.get('flow') ?? '').toLowerCase();
+      this.flow = (f === 'subscription' || f === 'order') ? (f as any) : 'unknown';
+      this.restaurantId = q.get('restaurantId');
+      this.tableId = q.get('tableId');
+
+      // #region agent log
+      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H_flow',location:'payment-success.component.ts:flow',message:'payment-success flow parsed',data:{flow:this.flow,hasRestaurantId:!!this.restaurantId,hasTableId:!!this.tableId},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+
+      if (this.flow === 'order' && this.restaurantId && this.tableId) {
+        // Diner/table checkout: do not poll refresh-token and never redirect to login.
+        this.provisioning = false;
+        this.secondsLeft = 0;
+        return;
+      }
+
+      // Default: subscription provisioning flow (poll refresh-token until manager role, then redirect to login).
+      timer(0, 2000).pipe(
       takeUntil(this.destroy$),
       switchMap(() => {
         this.pollCount++;
@@ -109,6 +131,7 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
         }
       }),
     ).subscribe();
+    });
   }
 
   ngOnDestroy(): void {

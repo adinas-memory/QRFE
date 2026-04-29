@@ -14,9 +14,15 @@
         </c-alert>
 
         <div class="d-flex gap-2 align-items-center justify-content-between">
-          <a cButton color="primary" [routerLink]="['/login']">
-            {{ 'payment.success.cta' | transloco }}
-          </a>
+          @if (flow === 'order' && restaurantId && tableId) {
+            <a cButton color="primary" [routerLink]="['/public/menu', restaurantId, 'tables', tableId, 'order']" i18n>
+              Back to order
+            </a>
+          } @else {
+            <a cButton color="primary" [routerLink]="['/login']">
+              {{ 'payment.success.cta' | transloco }}
+            </a>
+          }
           @if (secondsLeft > 0) {
             <div class="text-muted small">
               {{ secondsLeft }}s
