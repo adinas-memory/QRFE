@@ -71,27 +71,29 @@
         </div>
       }
 
-      <div class="mt-3">
-        <button
-          cButton
-          color="primary"
-          class="w-100"
-          type="button"
-          [disabled]="paying || !!order?.closedAt || order?.isOrderOpen === false"
-          (click)="payByCard()"
-        >
-          @if (paying) {
-            {{ 'client.processingPayment' | transloco }}
-          } @else {
-            {{ 'client.payByCard' | transloco }}
+      @if (cardPaymentsAvailable === true) {
+        <div class="mt-3">
+          <button
+            cButton
+            color="primary"
+            class="w-100"
+            type="button"
+            [disabled]="paying || !!order?.closedAt || order?.isOrderOpen === false"
+            (click)="payByCard()"
+          >
+            @if (paying) {
+              {{ 'client.processingPayment' | transloco }}
+            } @else {
+              {{ 'client.payByCard' | transloco }}
+            }
+          </button>
+          @if (!!order?.closedAt || order?.isOrderOpen === false) {
+            <div class="text-muted small mt-2" i18n>
+              This order is already closed.
+            </div>
           }
-        </button>
-        @if (!!order?.closedAt || order?.isOrderOpen === false) {
-          <div class="text-muted small mt-2" i18n>
-            This order is already closed.
-          </div>
-        }
-      </div>
+        </div>
+      }
     </div>
   }
 

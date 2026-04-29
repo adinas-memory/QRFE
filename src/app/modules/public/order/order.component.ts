@@ -12,6 +12,7 @@ import { environment } from '../../../../environments/environment';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
 import { TranslocoService } from '@jsverse/transloco';
+import { catchError, of } from 'rxjs';
 
 @Component({
   selector: 'app-order',
@@ -29,6 +30,7 @@ export class OrderComponent implements OnInit, OnDestroy {
   loading = true;
   error = false;
   paying = false;
+  cardPaymentsAvailable: boolean | null = null;
 
   private restaurantId = '';
   private tableId = '';
@@ -57,6 +59,23 @@ export class OrderComponent implements OnInit, OnDestroy {
     this.restaurantId = this.route.parent?.snapshot.paramMap.get('restaurantId') ?? '';
     this.tableId = this.route.parent?.snapshot.paramMap.get('tableId') ?? '';
     this.loadOrder();
+    this.loadCardPaymentsStatus();
+  }
+
+  loadCardPaymentsStatus(): void {
+    if (!this.restaurantId) return;
+    this.http.get<{
+      available: boolean;
+      stripeChargesEnabled: boolean;
+      stripePayoutsEnabled: boolean;
+      stripeDetailsSubmitted: boolean;
+    }>(`${this.apiUrl}/api/public/${this.restaurantId}/payments/status`, { withCredentials: true })
+      .pipe(
+        catchError(() => of(null))
+      )
+      .subscribe(res => {
+        this.cardPaymentsAvailable = res?.available ?? null;
+      });
   }
 
   loadOrder(): void {
