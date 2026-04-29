@@ -9,6 +9,9 @@ import { MenuService } from '../../../core/services/menu-public/menu.service';
 import { OrderDTO, OrderItemDTO } from '../../../core/models/orderingModel';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
+import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
+import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
+import { TranslocoService } from '@jsverse/transloco';
 
 @Component({
   selector: 'app-order',
@@ -37,6 +40,9 @@ export class OrderComponent implements OnInit, OnDestroy {
     private router: Router,
     private menuService: MenuService,
     private http: HttpClient,
+    private toast: AppToastService,
+    private misc: MiscellaneousService,
+    private transloco: TranslocoService,
   ) {}
 
   get validItems(): OrderItemDTO[] {
@@ -98,6 +104,14 @@ export class OrderComponent implements OnInit, OnDestroy {
         },
         error: err => {
           console.error('Failed to start card payment', err);
+          const raw = this.misc.getFirstErrorMessage(err);
+          const msg = /onboarding pending/i.test(raw)
+            ? this.transloco.translate('client.cardPaymentsPendingBody')
+            : raw;
+          const title = /onboarding pending/i.test(raw)
+            ? this.transloco.translate('client.cardPaymentsPendingTitle')
+            : this.transloco.translate('payment.failure.title');
+          this.toast.error(msg, title);
           this.paying = false;
         }
       });

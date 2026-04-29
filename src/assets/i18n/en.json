@@ -63,6 +63,8 @@
     "subtotal": "Subtotal",
     "payByCard": "Pay by card",
     "processingPayment": "Redirecting to payment…",
+    "cardPaymentsPendingTitle": "Card payments not available yet",
+    "cardPaymentsPendingBody": "This restaurant still needs to finish Stripe onboarding. Please ask staff for another payment method.",
     "theme": "Theme",
     "light": "Light",
     "dark": "Dark"

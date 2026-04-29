@@ -162,6 +162,9 @@
               <div>
                 <span class="text-body-secondary">{{ 'restaurantSettings.paymentsStripeStatus' | transloco }}:</span>
                 <span class="ms-1 fw-semibold">{{ stripeConnectStatus ?? '—' }}</span>
+                @if ((stripeConnectStatus ?? '').toLowerCase() === 'pending') {
+                  <span class="ms-2 badge bg-warning text-dark" i18n>Onboarding pending</span>
+                }
               </div>
               <div class="mt-1">
                 <span class="text-body-secondary">{{ 'restaurantSettings.paymentsStripeAccount' | transloco }}:</span>
@@ -173,6 +176,11 @@
                 <span class="ms-1">{{ stripePayoutsEnabled ? 'payouts_enabled' : 'payouts_disabled' }}</span>,
                 <span class="ms-1">{{ stripeDetailsSubmitted ? 'details_submitted' : 'details_missing' }}</span>
               </div>
+              @if (!stripeChargesEnabled) {
+                <div class="mt-2 text-warning" i18n>
+                  Card payments will be available after Stripe onboarding is completed.
+                </div>
+              }
             </div>
           }
         }

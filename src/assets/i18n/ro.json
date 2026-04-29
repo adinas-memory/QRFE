@@ -63,6 +63,8 @@
     "subtotal": "Subtotal",
     "payByCard": "Plătește cu cardul",
     "processingPayment": "Se redirecționează către plată…",
+    "cardPaymentsPendingTitle": "Plățile cu cardul nu sunt disponibile încă",
+    "cardPaymentsPendingBody": "Restaurantul trebuie să finalizeze înrolarea Stripe. Te rugăm să ceri personalului o altă metodă de plată.",
     "theme": "Temă",
     "light": "Luminos",
     "dark": "Întunecat"
