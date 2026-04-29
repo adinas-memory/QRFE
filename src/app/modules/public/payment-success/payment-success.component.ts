@@ -31,13 +31,31 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H1',location:'payment-success.component.ts:ngOnInit',message:'payment success init',data:{url:typeof window!=='undefined'?window.location.href:null},timestamp:Date.now()})}).catch(()=>{});
+    console.warn('DBG909afb payment-success init', { url: typeof window !== 'undefined' ? window.location.href : null });
+    // #endregion
     timer(0, 2000).pipe(
       takeUntil(this.destroy$),
       switchMap(() => {
         this.pollCount++;
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H2',location:'payment-success.component.ts:pollTick',message:'poll tick',data:{pollCount:this.pollCount,maxPolls:this.maxPolls},timestamp:Date.now()})}).catch(()=>{});
+        console.warn('DBG909afb payment-success poll', { pollCount: this.pollCount, maxPolls: this.maxPolls });
+        // #endregion
         return this.authService.refreshUserContext().pipe(
-          catchError(() => of(null)),
+          catchError((err) => {
+            // #region agent log
+            fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H3',location:'payment-success.component.ts:refreshCatch',message:'refreshUserContext errored in payment-success pipeline',data:{pollCount:this.pollCount,status:err?.status??null},timestamp:Date.now()})}).catch(()=>{});
+            console.warn('DBG909afb payment-success refresh pipeline catch', { pollCount: this.pollCount, status: err?.status ?? null });
+            // #endregion
+            return of(null);
+          }),
           switchMap(user => {
+            // #region agent log
+            fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H1',location:'payment-success.component.ts:afterRefresh',message:'refresh result received',data:{pollCount:this.pollCount,hasUser:!!user,role:user?.role??null,restaurantId:user?.restaurantId??null},timestamp:Date.now()})}).catch(()=>{});
+            console.warn('DBG909afb payment-success refresh result', { pollCount: this.pollCount, hasUser: !!user, role: user?.role ?? null, restaurantId: user?.restaurantId ?? null });
+            // #endregion
             if (!user?.restaurantId || user.role !== 'manager') {
               return of(user);
             }
@@ -63,6 +81,10 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
         );
       }),
       tap(user => {
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H4',location:'payment-success.component.ts:tap',message:'tap branch check',data:{pollCount:this.pollCount,hasUser:!!user,role:user?.role??null,willManagerBranch:!!(user&&user.role==='manager'),willTimeoutBranch:this.pollCount>=this.maxPolls},timestamp:Date.now()})}).catch(()=>{});
+        console.warn('DBG909afb payment-success tap', { pollCount: this.pollCount, hasUser: !!user, role: user?.role ?? null, willManagerBranch: !!(user && user.role === 'manager'), willTimeoutBranch: this.pollCount >= this.maxPolls });
+        // #endregion
         if (user && user.role === 'manager') {
           this.provisioning = false;
           this.secondsLeft = 3;
