@@ -4,6 +4,7 @@ import { QrCodesService } from './../../../core/services/qr-service/qr-codes.ser
 import { Component } from '@angular/core';
 import { QRCodeComponent } from 'angularx-qrcode';
 import { NgFor } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import {
   ContainerComponent, ButtonDirective, CardBodyComponent, RowComponent, ColComponent,
   CardComponent, CardImgDirective, CardTextDirective, CardTitleDirective, Tabs2Module,
@@ -15,7 +16,7 @@ import { AppToastService } from '../../../core/services/toast-service/toast-serv
   selector: 'app-manage-qrs',
   imports: [NgFor, QRCodeComponent, ContainerComponent, CardComponent,
     CardImgDirective, CardBodyComponent, CardTitleDirective, CardTextDirective,
-    ButtonDirective, RowComponent, ColComponent, Tabs2Module, TabContentComponent,],
+    ButtonDirective, RowComponent, ColComponent, Tabs2Module, TabContentComponent, RouterLink,],
   standalone: true,
   templateUrl: './manage-qrs.component.html'
 })

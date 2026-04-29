@@ -5,6 +5,9 @@
   <button cButton color="warning" (click)="renewQrCodes()" class="ms-2" i18n>
     Renew QR Codes
   </button>
+  <a cButton color="info" [routerLink]="['/manager/manage-qrs-links']" class="ms-2" i18n>
+    See QRs as links
+  </a>
 </div>
 
 <c-container fluid class="mt-3">

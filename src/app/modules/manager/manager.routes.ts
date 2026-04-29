@@ -60,6 +60,12 @@ export const routes: Routes = [
         data: { title: 'QR Codes' }
       },
       {
+        path: 'manage-qrs-links',
+        loadComponent: () =>
+          import('./manage-qrs-links/manage-qrs-links.component').then(m => m.ManageQrsLinksComponent),
+        data: { title: 'QR Links' }
+      },
+      {
         path: 'reports/login-logout',
         loadComponent: () =>
           import('./login-logout-report/login-logout-report.component').then(
