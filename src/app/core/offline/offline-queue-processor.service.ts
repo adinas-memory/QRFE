@@ -5,6 +5,7 @@ import { debounceTime, distinctUntilChanged, filter, firstValueFrom, Subject } f
 import { CartItem, OrderItemDTO } from "../models/orderingModel";
 import { OnlineStateService } from "./online-state-service";
 import { AuthService } from "../auth/auth.service";
+import { AppToastService } from "../services/toast-service/toast-service.service";
 
 @Injectable({ providedIn: 'root' })
 export class OfflineQueueProcessor {
@@ -17,7 +18,8 @@ export class OfflineQueueProcessor {
         private offlineDB: OfflineDbService,
         private ordersService: OrdersService,
         private onlineStateService: OnlineStateService,
-        private authService: AuthService
+        private authService: AuthService,
+        private toast: AppToastService
     ) {
         this.authService.loggedIn$
             .subscribe(async () => {
@@ -358,6 +360,17 @@ export class OfflineQueueProcessor {
             return true;
 
         } catch (err: any) {
+            const status = err?.status ?? err?.error?.status ?? null;
+            if (status === 409) {
+                const msg =
+                    err?.error?.errors?.[0]?.message
+                    ?? err?.error?.message
+                    ?? 'This order is currently being paid by the client. Please wait for the payment to complete.';
+                this.toast.warning(msg, 'Order locked for payment');
+                // keep action pending; we'll retry after payment completes
+                return false;
+            }
+
             console.error('[QUEUE] Error processing action:', err);
             await this.offlineDB.markActionError(action.id!);
             return false;
