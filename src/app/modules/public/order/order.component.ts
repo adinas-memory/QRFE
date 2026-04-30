@@ -12,7 +12,7 @@ import { environment } from '../../../../environments/environment';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
 import { TranslocoService } from '@jsverse/transloco';
-import { catchError, filter, fromEvent, of, switchMap, timer } from 'rxjs';
+import { catchError, filter, of, timer } from 'rxjs';
 
 @Component({
   selector: 'app-order',
@@ -31,10 +31,7 @@ export class OrderComponent implements OnInit, OnDestroy {
   error = false;
   paying = false;
   cardPaymentsAvailable: boolean | null = null;
-  private readonly tabVisible$ = fromEvent(document, 'visibilitychange').pipe(
-    // document.visibilityState is 'visible' | 'hidden'
-    switchMap(() => of(document.visibilityState === 'visible')),
-  );
+  private lastOrderSig: string | null = null;
 
   private restaurantId = '';
   private tableId = '';
@@ -72,7 +69,7 @@ export class OrderComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$),
         filter(() => document.visibilityState === 'visible'),
       )
-      .subscribe(() => this.loadOrder());
+      .subscribe(() => this.loadOrder({ silent: true, reason: 'poll' }));
   }
 
   loadCardPaymentsStatus(): void {
@@ -91,23 +88,51 @@ export class OrderComponent implements OnInit, OnDestroy {
       });
   }
 
-  loadOrder(): void {
+  loadOrder(opts?: { silent?: boolean; reason?: string }): void {
     if (!this.restaurantId || !this.tableId) return;
-    this.loading = true;
-    this.error = false;
+    const silent = !!opts?.silent;
+    if (!silent) {
+      this.loading = true;
+      this.error = false;
+    }
+
+    // #region agent log (debug-a9d52a)
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a9d52a'},body:JSON.stringify({sessionId:'a9d52a',runId:'ui',hypothesisId:'F1',location:'order.component.ts:loadOrder:start',message:'loadOrder called',data:{silent,reason:opts?.reason??'manual',hasOrder:!!this.order,loading:this.loading},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
 
     this.menuService.getTableOrder(this.restaurantId, this.tableId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (order) => {
-          this.order = order;
-          this.loading = false;
+          const sig = OrderComponent.orderSig(order);
+          const changed = sig !== this.lastOrderSig;
+          if (changed) {
+            this.order = order;
+            this.lastOrderSig = sig;
+          }
+          if (!silent) this.loading = false;
+
+          // #region agent log (debug-a9d52a)
+          fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a9d52a'},body:JSON.stringify({sessionId:'a9d52a',runId:'ui',hypothesisId:'F2',location:'order.component.ts:loadOrder:next',message:'loadOrder result applied',data:{silent,changed,sigLen:sig.length,itemCount:(order?.orderItems??[]).reduce((s:any,i:any)=>s+(i?.quantity??0),0)},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
         },
         error: () => {
-          this.error = true;
-          this.loading = false;
+          // Silent refresh should not flicker the UI into an error state.
+          if (!silent) {
+            this.error = true;
+            this.loading = false;
+          }
         },
       });
+  }
+
+  private static orderSig(order: OrderDTO | null): string {
+    const items = order?.orderItems?.filter((i): i is NonNullable<typeof i> => !!i) ?? [];
+    // stable, minimal signature to detect meaningful visual changes
+    return items
+      .map(i => `${i.orderItemId ?? i.menuItemId ?? ''}:${i.quantity ?? 0}`)
+      .sort()
+      .join('|');
   }
 
   payByCard(): void {
