@@ -139,6 +139,10 @@
     "eventLogin": "Sign in",
     "eventLogout": "Sign out"
   },
+  "manageOrders": {
+    "orderLockedForPaymentTitle": "Order locked for payment",
+    "orderLockedForPaymentBody": "A client is currently paying for this order. Please wait for the payment to complete before editing items."
+  },
   "salesReports": {
     "title": "Sales & accounting reports",
     "subtitle": "Closed orders only. Dates are UTC calendar days (inclusive), matching the API.",

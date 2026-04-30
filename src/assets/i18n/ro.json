@@ -139,6 +139,10 @@
     "eventLogin": "Autentificare",
     "eventLogout": "Deconectare"
   },
+  "manageOrders": {
+    "orderLockedForPaymentTitle": "Comandă blocată pentru plată",
+    "orderLockedForPaymentBody": "Clientul plătește acum această comandă. Te rugăm să aștepți confirmarea plății înainte să mai modifici produsele."
+  },
   "salesReports": {
     "title": "Rapoarte vânzări și contabilitate",
     "subtitle": "Doar comenzi închise. Datele sunt zile UTC (inclusiv), ca în API.",

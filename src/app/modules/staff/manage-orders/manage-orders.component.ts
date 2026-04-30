@@ -124,6 +124,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     initiatedBy: string;
   }> = {};
 
+  /** When present, staff mutations are frozen (client is paying). */
+  paymentLockedByTable: Record<string, { orderId: string; expiresAtUtc?: string }> = {};
+
   constructor(
     private tablesService: TablesService,
     private menuItemService: MenuItemServiceService,
@@ -145,6 +148,16 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     if (!v) return '';
     if (v === 'stripe') return this.transloco.translate('manageOrders.byCardPayment');
     return raw;
+  }
+
+  private isPaymentLockedForCurrentTable(): boolean {
+    const tableId = this.currentTableId;
+    if (!tableId) return false;
+    const lock = this.paymentLockedByTable[tableId];
+    if (!lock) return false;
+    // Only lock the active order context.
+    if (!this.currentOrderId) return false;
+    return lock.orderId === this.currentOrderId;
   }
 
   private sseField<T = unknown>(obj: any, pascal: string, camel: string): T | undefined {
@@ -266,6 +279,13 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   async addCartItem(item: MenuItem) {
     const tableId = this.currentTableId;
+    if (this.isPaymentLockedForCurrentTable()) {
+      this.appToast.warning(
+        this.transloco.translate('manageOrders.orderLockedForPaymentBody'),
+        this.transloco.translate('manageOrders.orderLockedForPaymentTitle'),
+      );
+      return;
+    }
     const record = await this.offlineDB.loadCartRecord(tableId);
     const orderId = record?.orderId ?? null;
     const cart = record?.items ?? [];
@@ -359,6 +379,13 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   async decrementItem(sel: CartItem) {
     const tableId = this.currentTableId;
+    if (this.isPaymentLockedForCurrentTable()) {
+      this.appToast.warning(
+        this.transloco.translate('manageOrders.orderLockedForPaymentBody'),
+        this.transloco.translate('manageOrders.orderLockedForPaymentTitle'),
+      );
+      return;
+    }
     const record = await this.offlineDB.loadCartRecord(tableId);
     const cart = await this.offlineDB.loadCart(tableId);
     const orderId = record?.orderId ?? null;
@@ -398,6 +425,13 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   async removeItem(sel: CartItem) {
     const tableId = this.currentTableId;
+    if (this.isPaymentLockedForCurrentTable()) {
+      this.appToast.warning(
+        this.transloco.translate('manageOrders.orderLockedForPaymentBody'),
+        this.transloco.translate('manageOrders.orderLockedForPaymentTitle'),
+      );
+      return;
+    }
     const record = await this.offlineDB.loadCartRecord(tableId);
     const cart = await this.offlineDB.loadCart(tableId);
     const orderId = record?.orderId ?? null;
@@ -868,9 +902,32 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         break;
       }
 
+      case 'OrderPaymentLocked': {
+        const tableId = this.sseField<string>(Data, 'TableId', 'tableId');
+        const orderId = this.sseField<string>(Data, 'OrderId', 'orderId');
+        if (tableId && orderId) {
+          this.paymentLockedByTable[tableId] = {
+            orderId,
+            expiresAtUtc: this.sseField<string>(Data, 'ExpiresAtUtc', 'expiresAtUtc'),
+          };
+          this.appToast.warning(
+            this.transloco.translate('manageOrders.orderLockedForPaymentBody'),
+            this.transloco.translate('manageOrders.orderLockedForPaymentTitle'),
+          );
+        }
+        break;
+      }
+
+      case 'OrderPaymentUnlocked': {
+        const tableId = this.sseField<string>(Data, 'TableId', 'tableId');
+        if (tableId) delete this.paymentLockedByTable[tableId];
+        break;
+      }
+
       case 'OrderClosedWithPayment': {
         const tableId = this.sseField<string>(Data, 'TableId', 'tableId');
         if (!tableId) break;
+        delete this.paymentLockedByTable[tableId];
         await this.offlineDB.deleteCart(tableId);
         // Persist "updated by" until the next order overwrites it.
         const existing = this.tableComputed[tableId];
