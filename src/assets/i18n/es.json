@@ -74,7 +74,12 @@
       "reports": "Informes del manager",
       "bookings": "Reservas",
       "realtimeUpdates": "Actualizaciones en tiempo real (SSE)",
-      "offlineFirst": "Offline-first (cola Dexie)"
+      "offlineFirst": "Offline-first (cola Dexie)",
+      "kitchenBarScreens": "Pantallas de Cocina y Bar",
+      "paymentLock": "Bloqueo de cambios durante el pago",
+      "menuUnavailable": "Marcar productos no disponibles",
+      "multilanguageUI": "Interfaz multilingüe",
+      "sseTablesLive": "Actualizaciones en vivo de mesas y pedidos (SSE)"
     }
   },
   "client": {
@@ -472,6 +477,10 @@
       "languages": {
         "q": "¿Hay varios idiomas en la interfaz?",
         "a": "Sí: elige el idioma en la cabecera; las traducciones van en el bundle. Las páginas públicas y la UI de staff respetan el idioma activo."
+      },
+      "orderEditsBlockedDuringPayment": {
+        "q": "¿Por qué no se pueden añadir o modificar items mientras el cliente paga con tarjeta?",
+        "a": "Cuando el cliente inicia el checkout con tarjeta, el pedido se bloquea para evitar totales inconsistentes. El staff no puede añadir items ni cambiar cantidades hasta que el pago termine o se cancele el checkout."
       },
       "subscriptionStripe": {
         "q": "¿Cómo funcionan los planes y el cobro?",

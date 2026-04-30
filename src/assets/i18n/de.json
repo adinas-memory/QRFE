@@ -74,7 +74,12 @@
       "reports": "Manager-Reports",
       "bookings": "Reservierungen",
       "realtimeUpdates": "Echtzeit-Updates (SSE)",
-      "offlineFirst": "Offline-first (Dexie-Queue)"
+      "offlineFirst": "Offline-first (Dexie-Queue)",
+      "kitchenBarScreens": "Küche- & Bar-Ansichten",
+      "paymentLock": "Zahlungssperre während Checkout",
+      "menuUnavailable": "Menüartikel als nicht verfügbar markieren",
+      "multilanguageUI": "Mehrsprachige UI",
+      "sseTablesLive": "Live-Updates für Tische & Bestellungen (SSE)"
     }
   },
   "client": {
@@ -472,6 +477,10 @@
       "languages": {
         "q": "Gibt es mehrere Sprachen?",
         "a": "Ja. Sprache über die Kopfzeile wählen; Übersetzungen liegen im Bundle. Öffentliche Seiten und Staff-UI nutzen die aktive Locale, wo Strings vorhanden sind."
+      },
+      "orderEditsBlockedDuringPayment": {
+        "q": "Warum kann man keine Positionen hinzufügen oder ändern, während der Gast mit Karte bezahlt?",
+        "a": "Sobald der Gast den Karten-Checkout startet, wird die Bestellung gesperrt, um inkonsistente Summen zu vermeiden. Das Personal kann keine Artikel hinzufügen oder Mengen ändern, bis die Zahlung abgeschlossen ist oder der Checkout abgebrochen wird."
       },
       "subscriptionStripe": {
         "q": "Wie funktionieren Pläne und Abrechnung?",

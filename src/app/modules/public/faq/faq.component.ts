@@ -27,6 +27,7 @@ const FAQ_ITEM_IDS = [
   'realtimeSync',
   'rolesAccess',
   'guestQrMenu',
+  'orderEditsBlockedDuringPayment',
   'moveOrderConstraints',
   'dashboardReporting',
   'bookings',

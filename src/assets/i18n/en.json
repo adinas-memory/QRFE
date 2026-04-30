@@ -74,7 +74,12 @@
       "reports": "Manager reports",
       "bookings": "Bookings / reservations",
       "realtimeUpdates": "Real-time updates (SSE)",
-      "offlineFirst": "Offline-first (Dexie queue)"
+      "offlineFirst": "Offline-first (Dexie queue)",
+      "kitchenBarScreens": "Kitchen & Bar screens",
+      "paymentLock": "Payment lock during checkout",
+      "menuUnavailable": "Mark menu items unavailable",
+      "multilanguageUI": "Multi-language UI",
+      "sseTablesLive": "Live table & order updates (SSE)"
     }
   },
   "client": {
@@ -506,6 +511,10 @@
       "languages": {
         "q": "Can the interface speak multiple languages?",
         "a": "Yes. Choose a language from the header; translations ship with the web app bundle. Guest-facing pages and staff chrome both honour the active locale where strings exist."
+      },
+      "orderEditsBlockedDuringPayment": {
+        "q": "Why can't we add or modify items while the guest is paying by card?",
+        "a": "When a guest starts card checkout, the order is locked to prevent inconsistent totals. Staff can't add items or change quantities until the payment finishes or the checkout is cancelled."
       },
       "subscriptionStripe": {
         "q": "How do plans and billing work?",

@@ -74,7 +74,12 @@
       "reports": "Report manager",
       "bookings": "Prenotazioni",
       "realtimeUpdates": "Aggiornamenti in tempo reale (SSE)",
-      "offlineFirst": "Offline-first (coda Dexie)"
+      "offlineFirst": "Offline-first (coda Dexie)",
+      "kitchenBarScreens": "Schermate Cucina & Bar",
+      "paymentLock": "Blocco modifiche durante il pagamento",
+      "menuUnavailable": "Segnare articoli non disponibili",
+      "multilanguageUI": "Interfaccia multilingue",
+      "sseTablesLive": "Aggiornamenti live tavoli & ordini (SSE)"
     }
   },
   "client": {
@@ -472,6 +477,10 @@
       "languages": {
         "q": "L’interfaccia è multilingua?",
         "a": "Sì: scegli la lingua dall’header; le traduzioni sono nel bundle. Pagine pubbliche e UI staff rispettano la locale attiva."
+      },
+      "orderEditsBlockedDuringPayment": {
+        "q": "Perché non si possono aggiungere o modificare articoli mentre l’ospite sta pagando con carta?",
+        "a": "Quando l’ospite avvia il checkout con carta, l’ordine viene bloccato per evitare totali incoerenti. Lo staff non può aggiungere articoli o modificare quantità finché il pagamento non termina o il checkout non viene annullato."
       },
       "subscriptionStripe": {
         "q": "Come funzionano piani e fatturazione?",

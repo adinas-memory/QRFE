@@ -74,7 +74,12 @@
       "reports": "Manager-rapporter",
       "bookings": "Bokningar",
       "realtimeUpdates": "Realtidsuppdateringar (SSE)",
-      "offlineFirst": "Offline-first (Dexie-kö)"
+      "offlineFirst": "Offline-first (Dexie-kö)",
+      "kitchenBarScreens": "Kök- och barskärmar",
+      "paymentLock": "Låsning under betalning",
+      "menuUnavailable": "Markera artiklar som ej tillgängliga",
+      "multilanguageUI": "Flerspråkigt gränssnitt",
+      "sseTablesLive": "Live-uppdateringar för bord och ordrar (SSE)"
     }
   },
   "client": {
@@ -472,6 +477,10 @@
       "languages": {
         "q": "Fler språk i gränssnittet?",
         "a": "Ja: välj språk i sidhuvudet; översättningar finns i bundle. Publika sidor och personal-UI följer aktiv locale."
+      },
+      "orderEditsBlockedDuringPayment": {
+        "q": "Varför kan vi inte lägga till eller ändra artiklar medan gästen betalar med kort?",
+        "a": "När gästen startar kort-checkout låses ordern för att undvika inkonsekventa totalsummor. Personalen kan inte lägga till artiklar eller ändra kvantiteter förrän betalningen är klar eller checkouten avbryts."
       },
       "subscriptionStripe": {
         "q": "Hur fungerar planer och fakturering?",

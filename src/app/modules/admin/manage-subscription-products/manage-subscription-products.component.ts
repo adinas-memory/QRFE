@@ -48,6 +48,11 @@ export class ManageSubscriptionProductsComponent implements OnInit, OnDestroy {
     'pricing.features.bookings',
     'pricing.features.realtimeUpdates',
     'pricing.features.offlineFirst',
+    'pricing.features.kitchenBarScreens',
+    'pricing.features.paymentLock',
+    'pricing.features.menuUnavailable',
+    'pricing.features.multilanguageUI',
+    'pricing.features.sseTablesLive',
   ] as const;
 
 

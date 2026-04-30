@@ -197,7 +197,12 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
       'pricing.features.reports',
       'pricing.features.bookings',
       'pricing.features.realtimeUpdates',
-      'pricing.features.offlineFirst'
+      'pricing.features.offlineFirst',
+      'pricing.features.kitchenBarScreens',
+      'pricing.features.paymentLock',
+      'pricing.features.menuUnavailable',
+      'pricing.features.multilanguageUI',
+      'pricing.features.sseTablesLive'
     ];
   }
 
@@ -218,7 +223,12 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
     ])
       .pipe(takeUntil(this.destroy$))
       .subscribe(([products, limits]) => {
-        this.cards = products;
+        const order: Record<string, number> = { small: 0, medium: 1, large: 2 };
+        this.cards = [...products].sort((a, b) => {
+          const av = order[(a.restaurantType ?? '').toLowerCase()] ?? 99;
+          const bv = order[(b.restaurantType ?? '').toLowerCase()] ?? 99;
+          return av - bv;
+        });
         this.productLimits = limits;
       });
   }

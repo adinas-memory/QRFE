@@ -74,7 +74,12 @@
       "reports": "Rapports manager",
       "bookings": "Réservations",
       "realtimeUpdates": "Mises à jour en temps réel (SSE)",
-      "offlineFirst": "Offline-first (file Dexie)"
+      "offlineFirst": "Offline-first (file Dexie)",
+      "kitchenBarScreens": "Écrans Cuisine & Bar",
+      "paymentLock": "Verrouillage pendant le paiement",
+      "menuUnavailable": "Marquer des articles indisponibles",
+      "multilanguageUI": "Interface multilingue",
+      "sseTablesLive": "Mises à jour en direct tables & commandes (SSE)"
     }
   },
   "client": {
@@ -472,6 +477,10 @@
       "languages": {
         "q": "Plusieurs langues dans l’interface ?",
         "a": "Oui : choix dans l’en-tête ; les traductions sont dans le bundle. Pages publiques et interface staff respectent la locale active."
+      },
+      "orderEditsBlockedDuringPayment": {
+        "q": "Pourquoi ne peut-on pas ajouter ou modifier des articles pendant que le client paie par carte ?",
+        "a": "Quand le client démarre le checkout carte, la commande est verrouillée pour éviter des totaux incohérents. Le staff ne peut pas ajouter d’articles ni modifier les quantités tant que le paiement n’est pas terminé ou que le checkout n’est pas annulé."
       },
       "subscriptionStripe": {
         "q": "Comment fonctionnent les offres et la facturation ?",

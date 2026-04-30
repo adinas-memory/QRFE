@@ -74,7 +74,12 @@
       "reports": "Rapoarte pentru manager",
       "bookings": "Rezervări",
       "realtimeUpdates": "Update-uri în timp real (SSE)",
-      "offlineFirst": "Offline-first (coadă Dexie)"
+      "offlineFirst": "Offline-first (coadă Dexie)",
+      "kitchenBarScreens": "Ecrane Bucătărie & Bar",
+      "paymentLock": "Blocare modificări în timpul plății",
+      "menuUnavailable": "Marcare produse indisponibile",
+      "multilanguageUI": "Interfață multilingvă",
+      "sseTablesLive": "Update-uri live mese & comenzi (SSE)"
     }
   },
   "client": {
@@ -499,6 +504,10 @@
         "q": "Ce arată dashboard-urile pentru manager?",
         "a": "KPI-uri și grafice agregă venit din comenzi închise, logări staff și trafic pe ferestre UTC rulante (ex. 30 zile vs 30 zile anterioare), în moneda restaurantului."
       },
+      "orderEditsBlockedDuringPayment": {
+        "q": "De ce nu pot fi adăugate sau modificate produse cât timp oaspetele plătește cu cardul?",
+        "a": "Când oaspetele începe checkout-ul cu cardul, comanda este blocată ca să evităm totaluri inconsistente. Personalul nu poate adăuga produse sau modifica cantități până când plata se finalizează sau checkout-ul este anulat."
+      },
       "bookings": {
         "q": "Există rezervări de mese?",
         "a": "Da, fluxurile staff/manager permit listare, editare și anulare rezervări, folosind aceleași API-uri autentificate ca restul aplicației."
@@ -509,7 +518,7 @@
       },
       "subscriptionStripe": {
         "q": "Cum funcționează pachetele și plata?",
-        "a": "Nivelurile de abonament definesc limite (mese, baruri, locuri). Plata și reînnoirea trec prin Stripe; după plată reușită urmează onboarding-ul restaurantului, iar managerii pot gestiona facturarea din setări când e activat."
+        "a": "Nivelurile de abonament definesc ca limite numărul de mese. Plata și reînnoirea trec prin Stripe; după plată reușită urmează onboarding-ul restaurantului, iar managerii pot gestiona facturarea din setări când e activat."
       }
     }
   }
