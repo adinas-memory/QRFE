@@ -65,6 +65,16 @@
       }
     }
   },
+  "pricing": {
+    "maxTables": "Max. Tische",
+    "features": {
+      "cardPayments": "Kartenzahlung (Gäste)",
+      "reports": "Manager-Reports",
+      "bookings": "Reservierungen",
+      "realtimeUpdates": "Echtzeit-Updates (SSE)",
+      "offlineFirst": "Offline-first (Dexie-Queue)"
+    }
+  },
   "client": {
     "callWaiter": "Kellner rufen",
     "callWaiterConfirm": "Kellner an deinen Tisch rufen?",
@@ -409,6 +419,10 @@
         "q": "Können Gäste sehen, was bestellt wurde?",
         "a": "Ja. Über das öffentliche Menü können sie „Meine Bestellung“ öffnen und die Positionen für ihren Tisch sehen—Namen, Mengen und Preise—wie auf dem öffentlichen Bestellbildschirm."
       },
+      "confirmedOrderAddItems": {
+        "q": "Können nach Bestätigung einer Bestellung noch Artikel hinzugefügt werden?",
+        "a": "Ja. Auch nach der Bestätigung kann das Personal weiterhin Artikel hinzufügen oder Mengen ändern (online oder über die Offline-Warteschlange)."
+      },
       "waiterCallVisual": {
         "q": "Warum wird ein Tisch im Bestellbildschirm gelb hervorgehoben?",
         "a": "Wenn ein Gast im öffentlichen Menü „Kellner rufen“ tippt, sendet die API ein Echtzeit-Ereignis. Solange der Aufruf aktiv ist, nutzt die Tabellenzeile den Warnstil (gelb), damit das Team ihn sofort sieht. Snooze oder Auflösung aktualisieren die Markierung."
@@ -440,6 +454,10 @@
       "guestQrMenu": {
         "q": "Wie öffnet ein Gast das Menü ohne Login?",
         "a": "Der QR-Code der Tischkarte kodiert Restaurant und Tisch. Gäste nutzen das öffentliche Menü im Browser; Kellner rufen ohne Gast-Passwort. Das Personal bleibt in seinem geschützten Bereich angemeldet."
+      },
+      "moveOrderConstraints": {
+        "q": "Wann kann eine Bestellung an einen anderen Tisch verschoben werden?",
+        "a": "Eine Bestellung kann nur verschoben werden, wenn sie bereits bestätigt ist, und nur auf einen freien Ziel-Tisch (ohne offene Bestellung)."
       },
       "dashboardReporting": {
         "q": "Was zeigen Manager-Dashboards?",

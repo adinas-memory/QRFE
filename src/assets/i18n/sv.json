@@ -65,6 +65,16 @@
       }
     }
   },
+  "pricing": {
+    "maxTables": "Max bord",
+    "features": {
+      "cardPayments": "Kortbetalning (gäster)",
+      "reports": "Manager-rapporter",
+      "bookings": "Bokningar",
+      "realtimeUpdates": "Realtidsuppdateringar (SSE)",
+      "offlineFirst": "Offline-first (Dexie-kö)"
+    }
+  },
   "client": {
     "callWaiter": "Kalla på servitör",
     "callWaiterConfirm": "Kalla på servitören till ditt bord?",
@@ -409,6 +419,10 @@
         "q": "Kan gäster se vad som beställts?",
         "a": "Ja. Från den offentliga menyn kan de öppna ”Min beställning” och se radlistan för sitt bord—namn, antal och priser—som på gästens beställningsskärm."
       },
+      "confirmedOrderAddItems": {
+        "q": "Efter att en beställning bekräftats, kan personal fortfarande lägga till artiklar?",
+        "a": "Ja. Även efter bekräftelse kan personal fortsätta lägga till eller uppdatera artiklar (online eller via offlinekön)."
+      },
       "waiterCallVisual": {
         "q": "Varför blir ett bord gult i orderlistan?",
         "a": "När en gäst trycker på «Kalla servitör» i den publika menyn skickar API:t en realtidshändelse. Medan samtalet är aktivt använder raden varningsstilen (gult). Snooze eller åtgärd uppdaterar markeringen."
@@ -440,6 +454,10 @@
       "guestQrMenu": {
         "q": "Hur öppnar en gäst menyn utan konto?",
         "a": "QR-koden kodar restaurang och bord. Den publika menyn öppnas i webbläsaren; att kalla servitör kräver inget gästlösenord. Personalen förblir inloggad i sin yta."
+      },
+      "moveOrderConstraints": {
+        "q": "När kan en beställning flyttas till ett annat bord?",
+        "a": "En beställning kan flyttas endast när den redan är bekräftad och endast till ett målbord som är ledigt (ingen öppen beställning)."
       },
       "dashboardReporting": {
         "q": "Vad visar chefspaneler?",

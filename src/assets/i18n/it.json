@@ -65,6 +65,16 @@
       }
     }
   },
+  "pricing": {
+    "maxTables": "Max tavoli",
+    "features": {
+      "cardPayments": "Pagamenti con carta (clienti)",
+      "reports": "Report manager",
+      "bookings": "Prenotazioni",
+      "realtimeUpdates": "Aggiornamenti in tempo reale (SSE)",
+      "offlineFirst": "Offline-first (coda Dexie)"
+    }
+  },
   "client": {
     "callWaiter": "Chiama il cameriere",
     "callWaiterConfirm": "Chiamare il cameriere al tuo tavolo?",
@@ -409,6 +419,10 @@
         "q": "Gli ospiti possono vedere cosa è stato ordinato?",
         "a": "Sì. Dal menu pubblico possono aprire «Il mio ordine» e vedere l’elenco delle righe per il loro tavolo—nomi, quantità e prezzi—come nello schermo ordine ospite."
       },
+      "confirmedOrderAddItems": {
+        "q": "Dopo la conferma di un ordine, si possono ancora aggiungere articoli?",
+        "a": "Sì. Anche dopo la conferma, lo staff può continuare ad aggiungere o aggiornare articoli (online o tramite coda offline)."
+      },
       "waiterCallVisual": {
         "q": "Perché un tavolo diventa giallo nella schermata ordini?",
         "a": "Quando un ospite tocca «Chiama il cameriere» dal menu pubblico, l’API invia un evento in tempo reale. Finché la chiamata è attiva, la riga usa lo stile di avviso (giallo). Posporre o risolvere aggiorna l’evidenziazione."
@@ -440,6 +454,10 @@
       "guestQrMenu": {
         "q": "Come apre un ospite il menu senza account?",
         "a": "Il QR codifica ristorante e tavolo. Il menu pubblico si apre nel browser; chiamare il cameriere non richiede password ospite. Il personale resta autenticato nella propria area."
+      },
+      "moveOrderConstraints": {
+        "q": "Quando un ordine può essere spostato su un altro tavolo?",
+        "a": "Un ordine può essere spostato solo quando è già confermato e solo verso un tavolo di destinazione libero (senza ordine aperto)."
       },
       "dashboardReporting": {
         "q": "Cosa mostrano le dashboard manager?",

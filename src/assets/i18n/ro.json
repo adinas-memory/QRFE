@@ -65,6 +65,16 @@
       }
     }
   },
+  "pricing": {
+    "maxTables": "Max mese",
+    "features": {
+      "cardPayments": "Plăți cu cardul (clienți)",
+      "reports": "Rapoarte pentru manager",
+      "bookings": "Rezervări",
+      "realtimeUpdates": "Update-uri în timp real (SSE)",
+      "offlineFirst": "Offline-first (coadă Dexie)"
+    }
+  },
   "client": {
     "callWaiter": "Cheamă ospătarul",
     "callWaiterConfirm": "Vrei să chemi ospătarul la masă?",
@@ -443,6 +453,10 @@
         "q": "Oaspeții pot vedea ce s-a comandat?",
         "a": "Da. Din meniul public pot deschide „Comanda mea” și văd lista de poziții pentru masa lor—denumiri, cantități și prețuri—conform ecranului public de comandă."
       },
+      "confirmedOrderAddItems": {
+        "q": "După ce o comandă este confirmată, mai pot fi adăugate produse?",
+        "a": "Da. Chiar și după confirmare, personalul poate adăuga sau modifica produse (online sau prin coada offline)."
+      },
       "waiterCallVisual": {
         "q": "De ce masa se colorează în galben pe ecranul de comenzi?",
         "a": "Când oaspetele apasă „Cheamă ospătarul” din meniul public, backend-ul trimite un eveniment în timp real pentru restaurant. Cât timp apelul e activ, rândul mesei folosește stilul „warning” (galben) ca echipa să-l vadă rapid. Amânarea sau rezolvarea actualizează evidențierea."
@@ -474,6 +488,10 @@
       "guestQrMenu": {
         "q": "Cum deschide oaspețele meniul fără cont?",
         "a": "QR-ul mesei codifică restaurantul și masa. Oaspeții au meniul public în browser, fără parolă pentru navigare sau apel ospătar; staff-ul rămâne autentificat în zona lui."
+      },
+      "moveOrderConstraints": {
+        "q": "Când poate fi mutată o comandă pe altă masă?",
+        "a": "O comandă poate fi mutată doar dacă este deja confirmată și doar către o masă liberă (fără comandă deschisă)."
       },
       "dashboardReporting": {
         "q": "Ce arată dashboard-urile pentru manager?",

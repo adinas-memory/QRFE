@@ -113,11 +113,14 @@
                 </div>
                 @let limit = getLimit(card.restaurantType);
                 <ul class="pricing-list">
-                  <li>Max tables: {{ limit?.maxTables }}</li>
-                  <li>Max bars: {{ limit?.maxBars }}</li>
-                  <li>Max bar seats: {{ limit?.maxBarSeats }}</li>
+                  <li>{{ 'pricing.maxTables' | transloco }}: {{ limit?.maxTables }}</li>
                 </ul>
-                <div class="text-muted small">{{ card.description }}</div>
+                <ul class="pricing-list mt-3">
+                  @for (k of getFeatureKeys(card); track k) {
+                    <li>{{ featureLabel(k) }}</li>
+                  }
+                </ul>
+                <div class="text-muted small mt-2">{{ card.description }}</div>
               </c-card-body>
               <c-card-footer class="text-center">
                 <button cButton color="info" variant="outline" class="w-100" (click)="handleCardClick(card)">

@@ -1,7 +1,8 @@
 import { Component, OnInit, OnDestroy, viewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { NgFor, NgIf } from '@angular/common';
+import { CurrencyPipe, NgFor, NgIf } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { TranslocoPipe } from '@jsverse/transloco';
 import {
   Tabs2Module, ModalComponent, ModalBodyComponent, ModalHeaderComponent,
   ModalFooterComponent, ModalTitleDirective, ButtonDirective, ButtonCloseDirective,
@@ -21,11 +22,12 @@ import { VenueSizeConfigList } from '../../../core/models/venueSizeConfigModel';
   selector: 'app-subscription-products',
   standalone: true,
   imports: [
-    NgFor, NgIf, ReactiveFormsModule,
+    NgFor, NgIf, CurrencyPipe, ReactiveFormsModule,
     Tabs2Module, ModalComponent, ModalBodyComponent, ModalHeaderComponent, RouterLink,
     ModalFooterComponent, ModalTitleDirective, ButtonDirective, ButtonCloseDirective,
     FormControlDirective, FormLabelDirective, ToasterComponent, TemplateIdDirective,
-    DropdownComponent, DropdownItemDirective, DropdownMenuDirective, DropdownToggleDirective
+    DropdownComponent, DropdownItemDirective, DropdownMenuDirective, DropdownToggleDirective,
+    TranslocoPipe
   ],
   templateUrl: './manage-subscription-products.component.html'
 })
@@ -34,9 +36,17 @@ export class ManageSubscriptionProductsComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   products: SubscriptionProductModel[] = [];
-  selectedProduct: CreateSubscriptionProductModel | null = null;
+  selectedProduct: SubscriptionProductModel | null = null;
   restaurantTypes: VenueSizeConfigList = [];
   currencies: string[] = [];
+
+  readonly featureKeys = [
+    'pricing.features.cardPayments',
+    'pricing.features.reports',
+    'pricing.features.bookings',
+    'pricing.features.realtimeUpdates',
+    'pricing.features.offlineFirst',
+  ] as const;
 
 
   addForm: FormGroup;
@@ -119,20 +129,64 @@ export class ManageSubscriptionProductsComponent implements OnInit, OnDestroy {
       });
   }
 
-  onEdit(product: CreateSubscriptionProductModel): void {
+  onEdit(product: SubscriptionProductModel): void {
     this.selectedProduct = product;
-    this.editForm.patchValue(product);
+    this.editForm.patchValue({
+      restaurantType: product.restaurantType,
+      description: product.description,
+      features: product.features,
+      priceAmount: product.priceAmount,
+      priceCurrency: product.priceCurrency,
+      subscriptionInterval: product.subscriptionInterval || 'month',
+      usageType: 'licensed'
+    });
     this.editModalVisible = true;
   }
 
   onSaveEdit(): void {
     if (!this.selectedProduct) return;
+    if (this.editForm.invalid) return;
 
     const payload = this.editForm.value;
 
-    this.addToast('Product Updated', payload.restaurantType, 'success');
-    this.editModalVisible = false;
-    this.loadProducts();
+    this.subscriptionService.updateProduct(payload)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.addToast('Product Updated', `${payload.restaurantType}`, 'success');
+          this.editModalVisible = false;
+          this.selectedProduct = null;
+          this.loadProducts();
+        },
+        error: (err) => {
+          this.addToast('Error', err?.Message ?? 'Failed to update product', 'danger');
+        }
+      });
+  }
+
+  parseFeatureKeys(raw: string | null | undefined): string[] {
+    const s = (raw ?? '').trim();
+    if (!s) return [];
+    try {
+      const parsed = JSON.parse(s);
+      if (Array.isArray(parsed)) return parsed.filter(x => typeof x === 'string');
+    } catch { /* ignore */ }
+    return [];
+  }
+
+  setFeaturesFromKeys(keys: string[], form: FormGroup): void {
+    form.get('features')?.setValue(JSON.stringify(keys));
+  }
+
+  toggleFeatureKey(key: string, form: FormGroup): void {
+    const current = new Set(this.parseFeatureKeys(form.get('features')?.value));
+    if (current.has(key)) current.delete(key);
+    else current.add(key);
+    this.setFeaturesFromKeys([...current], form);
+  }
+
+  hasFeatureKey(key: string, form: FormGroup): boolean {
+    return this.parseFeatureKeys(form.get('features')?.value).includes(key);
   }
 
   addToast(title: string, message: string, color: string) {

@@ -8,12 +8,19 @@
   <c-tabs-content>
     <c-tab-panel class="p-3" [itemKey]="0">
       <ul class="list-group">
-        <li *ngFor="let p of products" class="list-group-item d-flex justify-content-between">
-          <div>
-            <strong>{{ p.restaurantType }}</strong>
-            <div class="text-muted small">{{ p.description }}</div>
+        <li *ngFor="let p of products" class="list-group-item d-flex justify-content-between align-items-start">
+          <div class="me-3">
+            <div class="d-flex align-items-center gap-2">
+              <strong class="text-uppercase">{{ p.restaurantType }}</strong>
+              <span class="text-muted small">{{ p.priceAmount | currency : p.priceCurrency }}</span>
+            </div>
+            <div class="text-muted small mt-1">{{ p.description }}</div>
+
+            <ul class="small mt-2 mb-0">
+              <li *ngFor="let k of parseFeatureKeys(p.features)">{{ k | transloco }}</li>
+            </ul>
           </div>
-          <!-- <button class="btn btn-sm btn-outline-primary" (click)="onEdit(p)">Edit</button> -->
+          <button class="btn btn-sm btn-outline-primary" type="button" (click)="onEdit(p)">Edit</button>
         </li>
       </ul>
     </c-tab-panel>
@@ -67,7 +74,20 @@
 
           <div class="col-md-12 mb-3">
             <label cLabel>Features</label>
-            <textarea cFormControl formControlName="features"></textarea>
+            <div class="d-flex flex-wrap gap-2">
+              <button
+                *ngFor="let k of featureKeys"
+                type="button"
+                class="btn btn-sm"
+                [class.btn-outline-secondary]="!hasFeatureKey(k, addForm)"
+                [class.btn-secondary]="hasFeatureKey(k, addForm)"
+                (click)="toggleFeatureKey(k, addForm)"
+              >
+                {{ k | transloco }}
+              </button>
+            </div>
+            <div class="form-text mt-2">Stored as JSON array of Transloco keys.</div>
+            <textarea cFormControl formControlName="features" class="mt-2" rows="2"></textarea>
           </div>
 
           <div class="col-md-4 mb-3">
@@ -104,13 +124,25 @@
   <c-modal-body>
     <form [formGroup]="editForm" cForm>
       <label cLabel>Restaurant Type</label>
-      <input cFormControl formControlName="restaurantType" />
+      <input cFormControl formControlName="restaurantType" readonly />
 
       <label cLabel>Description</label>
       <textarea cFormControl formControlName="description"></textarea>
 
       <label cLabel>Features</label>
-      <textarea cFormControl formControlName="features"></textarea>
+      <div class="d-flex flex-wrap gap-2 mb-2">
+        <button
+          *ngFor="let k of featureKeys"
+          type="button"
+          class="btn btn-sm"
+          [class.btn-outline-secondary]="!hasFeatureKey(k, editForm)"
+          [class.btn-secondary]="hasFeatureKey(k, editForm)"
+          (click)="toggleFeatureKey(k, editForm)"
+        >
+          {{ k | transloco }}
+        </button>
+      </div>
+      <textarea cFormControl formControlName="features" rows="2"></textarea>
 
       <label cLabel>Price</label>
       <input type="number" cFormControl formControlName="priceAmount" />

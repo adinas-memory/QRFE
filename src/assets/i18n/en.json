@@ -65,6 +65,16 @@
       }
     }
   },
+  "pricing": {
+    "maxTables": "Max tables",
+    "features": {
+      "cardPayments": "Card payments (guests)",
+      "reports": "Manager reports",
+      "bookings": "Bookings / reservations",
+      "realtimeUpdates": "Real-time updates (SSE)",
+      "offlineFirst": "Offline-first (Dexie queue)"
+    }
+  },
   "client": {
     "callWaiter": "Call waiter",
     "callWaiterConfirm": "Call the waiter to your table?",
@@ -443,6 +453,10 @@
         "q": "Can guests see what has been ordered?",
         "a": "Yes. On the public menu guests can open “My order” to see the list of line items for their table—names, quantities, and prices—as shown on the guest order screen."
       },
+      "confirmedOrderAddItems": {
+        "q": "After an order is confirmed, can staff still add items?",
+        "a": "Yes. Even after confirming the order, staff can continue adding or updating items (online or queued offline)."
+      },
       "waiterCallVisual": {
         "q": "Why does a table turn yellow on the staff orders screen?",
         "a": "When a guest taps “Call waiter” on the public menu, the API pushes a real-time event to your restaurant. While that call is active, the table row uses a warning (yellow) style so floor staff can spot it quickly. Snooze or resolve flows update the highlight."
@@ -474,6 +488,10 @@
       "guestQrMenu": {
         "q": "How does a guest open the menu without logging in?",
         "a": "Each table QR encodes your restaurant and table identifiers. Guests get the public menu and ordering experience in the browser, while staff remain authenticated in their own area. No guest password is required for browsing or calling the waiter from that link."
+      },
+      "moveOrderConstraints": {
+        "q": "When can an order be moved to another table?",
+        "a": "An order can be moved only when it is already confirmed, and only to a target table that is currently free (no open order)."
       },
       "dashboardReporting": {
         "q": "What do manager dashboards show?",

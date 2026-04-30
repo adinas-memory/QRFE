@@ -65,6 +65,16 @@
       }
     }
   },
+  "pricing": {
+    "maxTables": "Máx. mesas",
+    "features": {
+      "cardPayments": "Pagos con tarjeta (clientes)",
+      "reports": "Informes del manager",
+      "bookings": "Reservas",
+      "realtimeUpdates": "Actualizaciones en tiempo real (SSE)",
+      "offlineFirst": "Offline-first (cola Dexie)"
+    }
+  },
   "client": {
     "callWaiter": "Llamar al camarero",
     "callWaiterConfirm": "¿Llamar al camarero a tu mesa?",
@@ -409,6 +419,10 @@
         "q": "¿Los comensales pueden ver lo que se ha pedido?",
         "a": "Sí. Desde el menú público pueden abrir «Mi pedido» y ver la lista de líneas de su mesa—nombres, cantidades y precios—como en la pantalla de pedido del invitado."
       },
+      "confirmedOrderAddItems": {
+        "q": "Después de confirmar un pedido, ¿se pueden seguir añadiendo productos?",
+        "a": "Sí. Incluso tras confirmar el pedido, el personal puede seguir añadiendo o actualizando productos (en línea o en cola offline)."
+      },
       "waiterCallVisual": {
         "q": "¿Por qué una mesa se muestra en amarillo en el panel de pedidos?",
         "a": "Cuando un invitado pulsa «Llamar al camarero» en el menú público, la API envía un evento en tiempo real. Mientras la llamada esté activa, la fila usa el estilo de aviso (amarillo). Posponer o resolver actualiza el resaltado."
@@ -440,6 +454,10 @@
       "guestQrMenu": {
         "q": "¿Cómo abre un invitado el menú sin cuenta?",
         "a": "El QR codifica restaurante y mesa. El menú público se abre en el navegador; llamar al camarero no requiere contraseña de invitado. El personal sigue autenticado en su área."
+      },
+      "moveOrderConstraints": {
+        "q": "¿Cuándo se puede mover un pedido a otra mesa?",
+        "a": "Un pedido solo se puede mover cuando ya está confirmado y únicamente a una mesa de destino que esté libre (sin pedido abierto)."
       },
       "dashboardReporting": {
         "q": "¿Qué muestran los paneles del manager?",

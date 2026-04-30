@@ -37,6 +37,14 @@ export class SubscriptionService {
     return this.http.post<CreateSubscriptionProductModel>(`${this.apiUrl}/api/restaurants/create-subscription-product`, payload, { withCredentials: true });
   }
 
+  updateProduct(payload: any): Observable<{ productId: string; priceId: string }> {
+    return this.http.put<{ productId: string; priceId: string }>(
+      `${this.apiUrl}/api/restaurants/update-subscription-product`,
+      payload,
+      { withCredentials: true }
+    );
+  }
+
   /** Store a pending plan (when user not logged in yet) */
   setPendingPlan(plan: PendingPlanModel): void {
     this.pendingPlan = plan;

@@ -168,6 +168,43 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
     return this.productLimits?.find(l => l.type === type);
   }
 
+  getFeatureKeys(card: SubscriptionProductModel): string[] {
+    const raw = (card?.features ?? '').trim();
+    if (!raw) {
+      return this.defaultFeatureKeys();
+    }
+
+    // Preferred format: JSON array of Transloco keys.
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.every(x => typeof x === 'string')) {
+        return parsed as string[];
+      }
+    } catch {
+      // fallthrough
+    }
+
+    // Back-compat: allow newline/comma separated text -> show as plain labels (no transloco).
+    const parts = raw.split(/\r?\n|,/g).map(x => x.trim()).filter(Boolean);
+    return parts.length ? parts.map(x => `pricing.features._plain:${x}`) : this.defaultFeatureKeys();
+  }
+
+  private defaultFeatureKeys(): string[] {
+    return [
+      'pricing.features.cardPayments',
+      'pricing.features.reports',
+      'pricing.features.bookings',
+      'pricing.features.realtimeUpdates',
+      'pricing.features.offlineFirst'
+    ];
+  }
+
+  featureLabel(key: string): string {
+    // If key is in the pseudo-namespace, return the plain text after ':'
+    if (key.startsWith('pricing.features._plain:')) return key.split(':', 2)[1] ?? '';
+    return this.transloco.translate(key);
+  }
+
 
 
   ngOnInit(): void {

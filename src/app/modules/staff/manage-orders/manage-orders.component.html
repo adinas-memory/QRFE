@@ -236,7 +236,9 @@
               style="cursor: pointer; user-select: none;">
               <img [src]="item.menuItemIconUrl + '?v=' + forceRefreshAfterUpdate" class="img-fluid mb-2 rounded"
                 style="max-height: 90px; object-fit: contain;" />
-              <div class="fw-bold" [class.text-decoration-line-through]="item.isAvailable === false">
+              <div class="fw-bold"
+                   [class.text-decoration-line-through]="item.isAvailable === false"
+                   [class.unavailable-title]="item.isAvailable === false">
                 {{ displayMenuItemNameInCanvas(item) }}
               </div>
               <div class="text-muted small">
@@ -266,7 +268,9 @@
                     style="cursor: pointer; user-select: none;">
                     <img [src]="item.menuItemIconUrl + '?v=' + forceRefreshAfterUpdate" class="img-fluid mb-2 rounded"
                       style="max-height: 90px; object-fit: contain;" />
-                    <div class="fw-bold" [class.text-decoration-line-through]="item.isAvailable === false">
+                    <div class="fw-bold"
+                         [class.text-decoration-line-through]="item.isAvailable === false"
+                         [class.unavailable-title]="item.isAvailable === false">
                       {{ displayMenuItemNameInCanvas(item) }}
                     </div>
                     <div class="text-muted small">

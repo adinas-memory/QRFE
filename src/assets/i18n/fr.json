@@ -65,6 +65,16 @@
       }
     }
   },
+  "pricing": {
+    "maxTables": "Max tables",
+    "features": {
+      "cardPayments": "Paiement par carte (clients)",
+      "reports": "Rapports manager",
+      "bookings": "Réservations",
+      "realtimeUpdates": "Mises à jour en temps réel (SSE)",
+      "offlineFirst": "Offline-first (file Dexie)"
+    }
+  },
   "client": {
     "callWaiter": "Appeler le serveur",
     "callWaiterConfirm": "Appeler le serveur à votre table ?",
@@ -409,6 +419,10 @@
         "q": "Les clients peuvent-ils voir ce qui a été commandé ?",
         "a": "Oui. Depuis le menu public ils peuvent ouvrir « Ma commande » et voir la liste des lignes pour leur table—noms, quantités et prix—comme sur l’écran commande invité."
       },
+      "confirmedOrderAddItems": {
+        "q": "Après confirmation d’une commande, peut-on encore ajouter des articles ?",
+        "a": "Oui. Même après confirmation, le personnel peut continuer à ajouter ou modifier des articles (en ligne ou via la file hors ligne)."
+      },
       "waiterCallVisual": {
         "q": "Pourquoi une table devient jaune sur l’écran des commandes ?",
         "a": "Lorsqu’un invité appelle le serveur depuis le menu public, l’API envoie un événement temps réel. Tant que l’appel est actif, la ligne utilise le style d’avertissement (jaune). Reporter ou traiter met à jour la mise en évidence."
@@ -440,6 +454,10 @@
       "guestQrMenu": {
         "q": "Comment un invité ouvre le menu sans compte ?",
         "a": "Le QR encode restaurant et table. Le menu public s’ouvre dans le navigateur ; appeler le serveur ne nécessite pas de mot de passe invité. Le personnel reste authentifié dans son espace."
+      },
+      "moveOrderConstraints": {
+        "q": "Quand une commande peut-elle être déplacée vers une autre table ?",
+        "a": "Une commande ne peut être déplacée que si elle est déjà confirmée, et uniquement vers une table cible libre (sans commande ouverte)."
       },
       "dashboardReporting": {
         "q": "Que montrent les tableaux de bord manager ?",
