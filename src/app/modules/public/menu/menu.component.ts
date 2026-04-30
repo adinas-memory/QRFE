@@ -1,10 +1,11 @@
-import { CurrencyPipe, NgFor } from '@angular/common';
+import { CurrencyPipe, NgFor, NgIf } from '@angular/common';
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import {
   AccordionButtonDirective, AccordionComponent, AccordionItemComponent,
   ModalBodyComponent, ModalComponent, Tabs2Module, TemplateIdDirective,
 } from '@coreui/angular';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { Subject } from 'rxjs';
 import { MenuItem, MenuResponse } from '../../../core/models/menu/menuItem';
 
@@ -14,6 +15,8 @@ import { MenuItem, MenuResponse } from '../../../core/models/menu/menuItem';
     ModalComponent, ModalBodyComponent,
     AccordionComponent, AccordionItemComponent, AccordionButtonDirective,
     TemplateIdDirective, CurrencyPipe, Tabs2Module, NgFor,
+    NgIf,
+    TranslocoPipe,
   ],
   standalone: true,
   templateUrl: './menu.component.html',

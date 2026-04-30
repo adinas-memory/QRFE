@@ -50,6 +50,21 @@
       "cta": "Tillbaka"
     }
   },
+  "menu": {
+    "availability": {
+      "unavailableBadge": "Tillfälligt ej tillgänglig",
+      "staff": {
+        "unavailableToast": "Den här artikeln är tillfälligt ej tillgänglig."
+      },
+      "manager": {
+        "markUnavailable": "Markera som ej tillgänglig",
+        "markAvailable": "Markera som tillgänglig",
+        "toastAvailable": "Artikeln markerad som tillgänglig.",
+        "toastUnavailable": "Artikeln markerad som ej tillgänglig.",
+        "toastError": "Kunde inte uppdatera tillgänglighet. Försök igen."
+      }
+    }
+  },
   "client": {
     "callWaiter": "Kalla på servitör",
     "callWaiterConfirm": "Kalla på servitören till ditt bord?",

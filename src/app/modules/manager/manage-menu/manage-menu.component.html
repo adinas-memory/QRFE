@@ -31,6 +31,9 @@
                 >
                   <div>
                     <strong>{{ item.menuItemName }}</strong>
+                    <span *ngIf="item.isAvailable === false" class="badge bg-secondary ms-2">
+                      {{ 'menu.availability.unavailableBadge' | transloco }}
+                    </span>
                     <span class="text-muted">
                       ({{
                         item.menuItemPriceAmount
@@ -50,6 +53,17 @@
                       height="50"
                       class="me-2"
                     />
+                    <button
+                      class="btn btn-sm btn-outline-secondary me-1"
+                      (click)="toggleAvailability(item)"
+                    >
+                      {{
+                        (item.isAvailable === false
+                          ? 'menu.availability.manager.markAvailable'
+                          : 'menu.availability.manager.markUnavailable'
+                        ) | transloco
+                      }}
+                    </button>
                     <button
                       class="btn btn-sm btn-outline-primary me-1"
                       (click)="onEdit(item)"

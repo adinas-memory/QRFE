@@ -50,6 +50,21 @@
       "cta": "Înapoi"
     }
   },
+  "menu": {
+    "availability": {
+      "unavailableBadge": "Indisponibil momentan",
+      "staff": {
+        "unavailableToast": "Acest produs este indisponibil momentan."
+      },
+      "manager": {
+        "markUnavailable": "Marchează indisponibil",
+        "markAvailable": "Marchează disponibil",
+        "toastAvailable": "Produs marcat ca disponibil.",
+        "toastUnavailable": "Produs marcat ca indisponibil.",
+        "toastError": "Nu s-a putut actualiza disponibilitatea. Încearcă din nou."
+      }
+    }
+  },
   "client": {
     "callWaiter": "Cheamă ospătarul",
     "callWaiterConfirm": "Vrei să chemi ospătarul la masă?",

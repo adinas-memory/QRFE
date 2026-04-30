@@ -38,9 +38,13 @@
                 <li
                   *ngFor="let item of groupedMenuItems[cat]"
                   class="list-group-item d-flex justify-content-between align-items-center"
+                  [class.opacity-50]="item.isAvailable === false"
                 >
                   <div>
                     <strong>{{ item.menuItemName }}</strong>
+                    <span *ngIf="item.isAvailable === false" class="badge bg-secondary ms-2">
+                      {{ 'menu.availability.unavailableBadge' | transloco }}
+                    </span>
                     <span class="text-muted">
                       ({{
                         item.menuItemPriceAmount

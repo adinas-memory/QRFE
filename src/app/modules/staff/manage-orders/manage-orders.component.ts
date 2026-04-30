@@ -315,6 +315,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     if (!(await this.ensureNotPaymentLockedAsync())) {
       return;
     }
+
+    if (item.isAvailable === false) {
+      this.appToast.info(this.transloco.translate('menu.availability.staff.unavailableToast'));
+      return;
+    }
     const record = await this.offlineDB.loadCartRecord(tableId);
     const orderId = record?.orderId ?? null;
     const cart = record?.items ?? [];

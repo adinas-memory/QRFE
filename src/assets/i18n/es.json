@@ -50,6 +50,21 @@
       "cta": "Volver"
     }
   },
+  "menu": {
+    "availability": {
+      "unavailableBadge": "No disponible temporalmente",
+      "staff": {
+        "unavailableToast": "Este producto no está disponible temporalmente."
+      },
+      "manager": {
+        "markUnavailable": "Marcar como no disponible",
+        "markAvailable": "Marcar como disponible",
+        "toastAvailable": "Producto marcado como disponible.",
+        "toastUnavailable": "Producto marcado como no disponible.",
+        "toastError": "No se pudo actualizar la disponibilidad. Inténtalo de nuevo."
+      }
+    }
+  },
   "client": {
     "callWaiter": "Llamar al camarero",
     "callWaiterConfirm": "¿Llamar al camarero a tu mesa?",

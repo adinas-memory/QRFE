@@ -50,6 +50,21 @@
       "cta": "Indietro"
     }
   },
+  "menu": {
+    "availability": {
+      "unavailableBadge": "Temporaneamente non disponibile",
+      "staff": {
+        "unavailableToast": "Questo articolo è temporaneamente non disponibile."
+      },
+      "manager": {
+        "markUnavailable": "Segna come non disponibile",
+        "markAvailable": "Segna come disponibile",
+        "toastAvailable": "Articolo segnato come disponibile.",
+        "toastUnavailable": "Articolo segnato come non disponibile.",
+        "toastError": "Impossibile aggiornare la disponibilità. Riprova."
+      }
+    }
+  },
   "client": {
     "callWaiter": "Chiama il cameriere",
     "callWaiterConfirm": "Chiamare il cameriere al tuo tavolo?",

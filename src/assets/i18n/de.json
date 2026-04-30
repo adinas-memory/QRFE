@@ -50,6 +50,21 @@
       "cta": "Zurück"
     }
   },
+  "menu": {
+    "availability": {
+      "unavailableBadge": "Vorübergehend nicht verfügbar",
+      "staff": {
+        "unavailableToast": "Dieser Artikel ist derzeit nicht verfügbar."
+      },
+      "manager": {
+        "markUnavailable": "Als nicht verfügbar markieren",
+        "markAvailable": "Als verfügbar markieren",
+        "toastAvailable": "Artikel als verfügbar markiert.",
+        "toastUnavailable": "Artikel als nicht verfügbar markiert.",
+        "toastError": "Verfügbarkeit konnte nicht aktualisiert werden. Bitte erneut versuchen."
+      }
+    }
+  },
   "client": {
     "callWaiter": "Kellner rufen",
     "callWaiterConfirm": "Kellner an deinen Tisch rufen?",

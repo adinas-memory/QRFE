@@ -50,6 +50,21 @@
       "cta": "Retour"
     }
   },
+  "menu": {
+    "availability": {
+      "unavailableBadge": "Indisponible temporairement",
+      "staff": {
+        "unavailableToast": "Cet article est temporairement indisponible."
+      },
+      "manager": {
+        "markUnavailable": "Marquer indisponible",
+        "markAvailable": "Marquer disponible",
+        "toastAvailable": "Article marqué comme disponible.",
+        "toastUnavailable": "Article marqué comme indisponible.",
+        "toastError": "Impossible de mettre à jour la disponibilité. Réessayez."
+      }
+    }
+  },
   "client": {
     "callWaiter": "Appeler le serveur",
     "callWaiterConfirm": "Appeler le serveur à votre table ?",

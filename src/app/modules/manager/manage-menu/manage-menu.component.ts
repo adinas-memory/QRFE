@@ -20,16 +20,17 @@ import { filter, Subject, take, takeUntil } from 'rxjs';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MenuItem, MenuResponse } from '../../../core/models/menu/menuItem';
 import { AuthService } from '../../../core/auth/auth.service';
-import { NgFor, CurrencyPipe } from '@angular/common';
+import { NgFor, NgIf, CurrencyPipe } from '@angular/common';
 import { UserContextModel } from '../../../core/models/userContextModel';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 ;
 
 @Component({
   selector: 'app-manage-menu',
   imports: [Tabs2Module, FormControlDirective,
     FormLabelDirective,
-    NgFor, ReactiveFormsModule,
+    NgFor, NgIf, ReactiveFormsModule,
     AccordionButtonDirective,
     AccordionComponent, AccordionItemComponent,
     TemplateIdDirective, CurrencyPipe,
@@ -41,6 +42,8 @@ import { AppToastService } from '../../../core/services/toast-service/toast-serv
     ButtonCloseDirective,
     ModalBodyComponent,
     ModalFooterComponent
+    ,
+    TranslocoPipe
   ],
   standalone: true,
   templateUrl: './manage-menu.component.html'
@@ -63,7 +66,8 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
 
   constructor(private menuItemService: MenuItemServiceService,
     private fb: FormBuilder, private authService: AuthService,
-    private appToast: AppToastService) {
+    private appToast: AppToastService,
+    private transloco: TranslocoService) {
     this.menuItemsForm = this.fb.group({
       menuItemName: ['', Validators.required],
       menuItemDescription: ['', Validators.required],
@@ -135,6 +139,25 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
         .pipe(takeUntil(this.destroy$))
         .subscribe(() => this.loadMenuItems());
     }
+  }
+
+  toggleAvailability(item: MenuItem): void {
+    const next = !(item.isAvailable ?? true);
+    this.menuItemService.setAvailability(this.restaurantId, item.menuItemId, next)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          item.isAvailable = next;
+          this.appToast.success(
+            next
+              ? this.transloco.translate('menu.availability.manager.toastAvailable')
+              : this.transloco.translate('menu.availability.manager.toastUnavailable')
+          );
+        },
+        error: (error) => {
+          this.appToast.error(this.transloco.translate('menu.availability.manager.toastError'));
+        }
+      });
   }
 
   onSubmit(): void {
@@ -236,7 +259,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
 
   resetForm(): void {
     this.selectedItem = null;
-    this.menuItemsForm.reset({ isAvailable: true, price: 0 });
+    this.menuItemsForm.reset({ menuItemPriceAmount: 0 });
   }
 
   ngOnDestroy(): void {

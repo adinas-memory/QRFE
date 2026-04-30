@@ -50,6 +50,21 @@
       "cta": "Back"
     }
   },
+  "menu": {
+    "availability": {
+      "unavailableBadge": "Temporarily unavailable",
+      "staff": {
+        "unavailableToast": "This item is temporarily unavailable."
+      },
+      "manager": {
+        "markUnavailable": "Mark unavailable",
+        "markAvailable": "Mark available",
+        "toastAvailable": "Item marked as available.",
+        "toastUnavailable": "Item marked as unavailable.",
+        "toastError": "Could not update availability. Please try again."
+      }
+    }
+  },
   "client": {
     "callWaiter": "Call waiter",
     "callWaiterConfirm": "Call the waiter to your table?",

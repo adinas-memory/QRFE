@@ -31,6 +31,14 @@ export class MenuItemServiceService {
     return this.http.delete<void>(`${this.apiUrl}/api/restaurants/${restaurantId}/admin/menu/${menuItemId}`, { withCredentials: true });
   }
 
+  setAvailability(restaurantId: string, menuItemId: string, isAvailable: boolean): Observable<{ menuId: string; menuItem: MenuItem }> {
+    return this.http.patch<{ menuId: string; menuItem: MenuItem }>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/admin/menu/${menuItemId}/availability`,
+      { isAvailable },
+      { withCredentials: true }
+    );
+  }
+
   // async getAllWithFallback(restaurantId: string): Promise<{ menuItems: MenuItem[], categories: string[] }> {
   //   if (navigator.onLine) {
   //     try {

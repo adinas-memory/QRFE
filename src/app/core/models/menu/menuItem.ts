@@ -6,6 +6,7 @@ export interface MenuItem {
   category: string;
   menuItemPriceCurrency?: string;
   menuItemIconUrl?: string;
+  isAvailable?: boolean;
 }
 
 export interface MenuResponse {
