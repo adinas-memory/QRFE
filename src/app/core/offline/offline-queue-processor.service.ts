@@ -366,7 +366,7 @@ export class OfflineQueueProcessor {
                     err?.error?.errors?.[0]?.message
                     ?? err?.error?.message
                     ?? 'This order is currently being paid by the client. Please wait for the payment to complete.';
-                this.toast.warning(msg, 'Order locked for payment');
+                this.toast.info(msg, 'Order locked for payment');
                 // keep action pending; we'll retry after payment completes
                 return false;
             }

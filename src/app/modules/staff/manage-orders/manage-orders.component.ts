@@ -126,6 +126,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   /** When present, staff mutations are frozen (client is paying). */
   paymentLockedByTable: Record<string, { orderId: string; expiresAtUtc?: string }> = {};
+  private paymentLockCheckedAtByOrder: Record<string, number> = {};
 
   constructor(
     private tablesService: TablesService,
@@ -158,6 +159,38 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     // Only lock the active order context.
     if (!this.currentOrderId) return false;
     return lock.orderId === this.currentOrderId;
+  }
+
+  private async ensureNotPaymentLockedAsync(): Promise<boolean> {
+    if (!this.isOnline) return true; // offline: keep current behavior
+    if (!this.orderIsConfirmed) return true;
+    const orderId = this.currentOrderId;
+    const tableId = this.currentTableId;
+    if (!orderId || orderId.startsWith('local-') || !tableId) return true;
+
+    // fast path if already locked
+    if (this.isPaymentLockedForCurrentTable()) return false;
+
+    // cache lock check for 3s per order to avoid spamming
+    const now = Date.now();
+    const last = this.paymentLockCheckedAtByOrder[orderId] ?? 0;
+    if (now - last < 3000) return true;
+    this.paymentLockCheckedAtByOrder[orderId] = now;
+
+    try {
+      const res = await firstValueFrom(this.ordersService.getOrderPaymentLock(this.restaurantId, orderId));
+      if (res?.locked) {
+        this.paymentLockedByTable[tableId] = { orderId };
+        this.appToast.info(
+          this.transloco.translate('manageOrders.orderLockedForPaymentBody'),
+          this.transloco.translate('manageOrders.orderLockedForPaymentTitle'),
+        );
+        return false;
+      }
+    } catch {
+      // if check fails, don't block UX; backend will still return 409
+    }
+    return true;
   }
 
   private sseField<T = unknown>(obj: any, pascal: string, camel: string): T | undefined {
@@ -279,11 +312,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   async addCartItem(item: MenuItem) {
     const tableId = this.currentTableId;
-    if (this.isPaymentLockedForCurrentTable()) {
-      this.appToast.warning(
-        this.transloco.translate('manageOrders.orderLockedForPaymentBody'),
-        this.transloco.translate('manageOrders.orderLockedForPaymentTitle'),
-      );
+    if (!(await this.ensureNotPaymentLockedAsync())) {
       return;
     }
     const record = await this.offlineDB.loadCartRecord(tableId);
@@ -379,11 +408,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   async decrementItem(sel: CartItem) {
     const tableId = this.currentTableId;
-    if (this.isPaymentLockedForCurrentTable()) {
-      this.appToast.warning(
-        this.transloco.translate('manageOrders.orderLockedForPaymentBody'),
-        this.transloco.translate('manageOrders.orderLockedForPaymentTitle'),
-      );
+    if (!(await this.ensureNotPaymentLockedAsync())) {
       return;
     }
     const record = await this.offlineDB.loadCartRecord(tableId);
@@ -425,11 +450,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   async removeItem(sel: CartItem) {
     const tableId = this.currentTableId;
-    if (this.isPaymentLockedForCurrentTable()) {
-      this.appToast.warning(
-        this.transloco.translate('manageOrders.orderLockedForPaymentBody'),
-        this.transloco.translate('manageOrders.orderLockedForPaymentTitle'),
-      );
+    if (!(await this.ensureNotPaymentLockedAsync())) {
       return;
     }
     const record = await this.offlineDB.loadCartRecord(tableId);
@@ -910,7 +931,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
             orderId,
             expiresAtUtc: this.sseField<string>(Data, 'ExpiresAtUtc', 'expiresAtUtc'),
           };
-          this.appToast.warning(
+          this.appToast.info(
             this.transloco.translate('manageOrders.orderLockedForPaymentBody'),
             this.transloco.translate('manageOrders.orderLockedForPaymentTitle'),
           );

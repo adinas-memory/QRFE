@@ -177,15 +177,9 @@ export class AuthService {
   refreshUserContext() {
     return this.http.post<UserContextModel>(`${this.apiUrl}/api/user/refresh-token`, {}, { withCredentials: true }).pipe(
       tap(user => {
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H5',location:'auth.service.ts:refreshUserContext:tap',message:'refresh-token success',data:{hasUser:!!user,role:user?.role??null,restaurantId:user?.restaurantId??null},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         this.setUser(user);
       }),
       catchError(err => {
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H5',location:'auth.service.ts:refreshUserContext:catch',message:'refresh-token failed',data:{status:err?.status??null,url:err?.url??null},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         console.error('Refresh failed', err);
         this.clearUser();
         this.router.navigate(['/login']);

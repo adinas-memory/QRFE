@@ -57,6 +57,21 @@ export class OrdersService {
     return this.http.post<OrderDTO>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${orderId}/close-order`, {}, { withCredentials: true });
   }
 
+  getOrderPaymentLock(restaurantId: string, orderId: string): Observable<{ locked: boolean }> {
+    return this.http.get<{ locked: boolean }>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/staff/orders/${orderId}/payment-lock`,
+      { withCredentials: true },
+    );
+  }
+
+  forceUnlockOrderPayment(restaurantId: string, orderId: string): Observable<{ unlocked: boolean }> {
+    return this.http.post<{ unlocked: boolean }>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/staff/orders/${orderId}/payment-unlock`,
+      {},
+      { withCredentials: true },
+    );
+  }
+
   listTablesStatus(restaurantId: string): Observable<OrderDTO[]> {
     return this.http.get<OrderDTO[]>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/get-tables-status`, { withCredentials: true });
   }
