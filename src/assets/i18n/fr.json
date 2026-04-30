@@ -69,6 +69,8 @@
     "maxTables": "Max tables",
     "features": {
       "cardPayments": "Paiement par carte (clients)",
+      "qrMenu": "Menu via QR (clients)",
+      "callWaiter": "Bouton « Appeler le serveur »",
       "reports": "Rapports manager",
       "bookings": "Réservations",
       "realtimeUpdates": "Mises à jour en temps réel (SSE)",

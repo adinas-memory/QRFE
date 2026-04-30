@@ -69,6 +69,8 @@
     "maxTables": "Max bord",
     "features": {
       "cardPayments": "Kortbetalning (gäster)",
+      "qrMenu": "QR-meny (gäster)",
+      "callWaiter": "Knapp för att kalla servitör",
       "reports": "Manager-rapporter",
       "bookings": "Bokningar",
       "realtimeUpdates": "Realtidsuppdateringar (SSE)",

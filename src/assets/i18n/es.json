@@ -69,6 +69,8 @@
     "maxTables": "Máx. mesas",
     "features": {
       "cardPayments": "Pagos con tarjeta (clientes)",
+      "qrMenu": "Menú por QR (clientes)",
+      "callWaiter": "Botón «Llamar al camarero»",
       "reports": "Informes del manager",
       "bookings": "Reservas",
       "realtimeUpdates": "Actualizaciones en tiempo real (SSE)",

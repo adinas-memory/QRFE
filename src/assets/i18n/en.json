@@ -69,6 +69,8 @@
     "maxTables": "Max tables",
     "features": {
       "cardPayments": "Card payments (guests)",
+      "qrMenu": "QR menu (guest access)",
+      "callWaiter": "Call waiter button",
       "reports": "Manager reports",
       "bookings": "Bookings / reservations",
       "realtimeUpdates": "Real-time updates (SSE)",

@@ -69,6 +69,8 @@
     "maxTables": "Max tavoli",
     "features": {
       "cardPayments": "Pagamenti con carta (clienti)",
+      "qrMenu": "Menu via QR (clienti)",
+      "callWaiter": "Pulsante «Chiama il cameriere»",
       "reports": "Report manager",
       "bookings": "Prenotazioni",
       "realtimeUpdates": "Aggiornamenti in tempo reale (SSE)",

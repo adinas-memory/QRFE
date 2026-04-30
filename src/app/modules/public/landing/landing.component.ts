@@ -192,6 +192,8 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
   private defaultFeatureKeys(): string[] {
     return [
       'pricing.features.cardPayments',
+      'pricing.features.qrMenu',
+      'pricing.features.callWaiter',
       'pricing.features.reports',
       'pricing.features.bookings',
       'pricing.features.realtimeUpdates',

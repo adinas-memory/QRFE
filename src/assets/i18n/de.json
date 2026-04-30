@@ -69,6 +69,8 @@
     "maxTables": "Max. Tische",
     "features": {
       "cardPayments": "Kartenzahlung (Gäste)",
+      "qrMenu": "QR-Menü (Gästezugang)",
+      "callWaiter": "„Kellner rufen“-Button",
       "reports": "Manager-Reports",
       "bookings": "Reservierungen",
       "realtimeUpdates": "Echtzeit-Updates (SSE)",

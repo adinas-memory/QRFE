@@ -69,6 +69,8 @@
     "maxTables": "Max mese",
     "features": {
       "cardPayments": "Plăți cu cardul (clienți)",
+      "qrMenu": "Meniu prin QR (clienți)",
+      "callWaiter": "Buton „Cheamă ospătarul”",
       "reports": "Rapoarte pentru manager",
       "bookings": "Rezervări",
       "realtimeUpdates": "Update-uri în timp real (SSE)",
