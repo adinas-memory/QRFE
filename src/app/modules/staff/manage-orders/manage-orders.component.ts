@@ -348,6 +348,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     if (this.onlineStateService.isOnline) this.queueProcessor.triggerProcessing();
   }
 
+  displayMenuItemNameInCanvas(item: MenuItem): string {
+    const name = item.menuItemName ?? '';
+    if (item.isAvailable !== false) return name;
+
+    // Only truncate for unavailable items (canvas view). Keep full names elsewhere.
+    const max = 18;
+    return name.length > max ? name.slice(0, max - 1).trimEnd() + '…' : name;
+  }
+
   updateComputedLocal(tableId: string) {
     const cart = this.tableCarts[tableId] ?? [];
     const table = this.tables.find(t => t.tableId === tableId);
