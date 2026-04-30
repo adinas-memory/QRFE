@@ -147,6 +147,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     return raw;
   }
 
+  private sseField<T = unknown>(obj: any, pascal: string, camel: string): T | undefined {
+    if (!obj) return undefined;
+    return (obj[pascal] ?? obj[camel]) as T | undefined;
+  }
+
   // ─── GETTERS ──────────────────────────────────────────────────────────────────
 
   get isOnline() { return this.onlineStateService.isOnline; }
@@ -847,12 +852,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       case 'OrderUpdated': {
         if (this.currentOrderId?.startsWith('local-')) break;
         const payload = Data as OrderUpdatedSSEPayload;
-        const tableId = payload.TableId;
+        const tableId = (this.sseField<string>(payload as any, 'TableId', 'tableId') ?? payload.TableId) as string;
         const cart = await this.offlineDB.loadCart(tableId);
-
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'feature',hypothesisId:'H_overwrite',location:'manage-orders.component.ts:OrderUpdated',message:'OrderUpdated received; overwrites initiatedBy',data:{tableId,initiatedBy:InitiatedBy||null,hadExisting:!!this.tableComputed?.[tableId]},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion agent log
 
         for (const sseItem of payload.Items) {
           const localItem = cart.find(ci => ci.item.menuItemId === sseItem.MenuItemId);
@@ -868,13 +869,14 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       }
 
       case 'OrderClosedWithPayment': {
-        const tableId = Data.TableId;
+        const tableId = this.sseField<string>(Data, 'TableId', 'tableId');
+        if (!tableId) break;
         await this.offlineDB.deleteCart(tableId);
         // Persist "updated by" until the next order overwrites it.
         const existing = this.tableComputed[tableId];
         const table = this.tables.find(t => t.tableId === tableId);
         this.tableComputed[tableId] = {
-          lastActionAt: Data.ClosedAt ?? existing?.lastActionAt ?? new Date().toISOString(),
+          lastActionAt: this.sseField<string>(Data, 'ClosedAt', 'closedAt') ?? existing?.lastActionAt ?? new Date().toISOString(),
           lastAddedItem: '—',
           total: 0,
           currency: existing?.currency ?? '',
@@ -883,10 +885,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           initiatedBy: InitiatedBy || 'stripe',
         };
         this.ordersService.saveComputed(this.tableComputed);
-
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'feature',hypothesisId:'H_persist',location:'manage-orders.component.ts:OrderClosedWithPayment',message:'OrderClosedWithPayment persisted initiatedBy',data:{tableId,initiatedBy:this.tableComputed?.[tableId]?.initiatedBy||null,lastActionAt:this.tableComputed?.[tableId]?.lastActionAt||null},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion agent log
 
         delete this.kitchenPickupRequested[tableId];
         delete this.barPickupRequested[tableId];

@@ -12,7 +12,7 @@ import { environment } from '../../../../environments/environment';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
 import { TranslocoService } from '@jsverse/transloco';
-import { catchError, of } from 'rxjs';
+import { catchError, filter, fromEvent, of, switchMap, timer } from 'rxjs';
 
 @Component({
   selector: 'app-order',
@@ -31,6 +31,10 @@ export class OrderComponent implements OnInit, OnDestroy {
   error = false;
   paying = false;
   cardPaymentsAvailable: boolean | null = null;
+  private readonly tabVisible$ = fromEvent(document, 'visibilitychange').pipe(
+    // document.visibilityState is 'visible' | 'hidden'
+    switchMap(() => of(document.visibilityState === 'visible')),
+  );
 
   private restaurantId = '';
   private tableId = '';
@@ -60,6 +64,15 @@ export class OrderComponent implements OnInit, OnDestroy {
     this.tableId = this.route.parent?.snapshot.paramMap.get('tableId') ?? '';
     this.loadOrder();
     this.loadCardPaymentsStatus();
+
+    // Keep the order view in sync if quantities are changed elsewhere.
+    // Public SSE only broadcasts new empty orders; quantity changes need polling.
+    timer(12_000, 12_000)
+      .pipe(
+        takeUntil(this.destroy$),
+        filter(() => document.visibilityState === 'visible'),
+      )
+      .subscribe(() => this.loadOrder());
   }
 
   loadCardPaymentsStatus(): void {
@@ -101,9 +114,6 @@ export class OrderComponent implements OnInit, OnDestroy {
     if (!this.order?.orderId || !this.restaurantId) return;
 
     this.paying = true;
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H_checkout',location:'order.component.ts:payByCard',message:'starting diner checkout session',data:{restaurantId:this.restaurantId,tableId:this.tableId,orderId:this.order.orderId},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     this.http
       .post<{ checkoutUrl: string }>(
         `${this.apiUrl}/api/payments/checkout-session`,
@@ -115,9 +125,6 @@ export class OrderComponent implements OnInit, OnDestroy {
         next: res => {
           this.paying = false;
           if (res?.checkoutUrl) {
-            // #region agent log
-            fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H_checkout',location:'order.component.ts:payByCard:redirect',message:'redirecting browser to Stripe checkoutUrl',data:{hasCheckoutUrl:true},timestamp:Date.now()})}).catch(()=>{});
-            // #endregion
             window.location.href = res.checkoutUrl;
           }
         },

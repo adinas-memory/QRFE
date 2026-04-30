@@ -39,7 +39,9 @@
     "success": {
       "title": "Betalning bekräftad",
       "body": "Tack. Du omdirigeras till inloggning om några sekunder.",
+      "orderBody": "Tack. Din betalning har bekräftats.",
       "cta": "Gå till inloggning",
+      "orderCta": "Tillbaka till beställningen",
       "provisioning": "Din restaurang konfigureras. Vänligen vänta..."
     },
     "failure": {

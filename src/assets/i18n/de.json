@@ -39,7 +39,9 @@
     "success": {
       "title": "Zahlung bestätigt",
       "body": "Danke. Du wirst in wenigen Sekunden zum Login weitergeleitet.",
+      "orderBody": "Danke. Deine Zahlung wurde bestätigt.",
       "cta": "Zum Login",
+      "orderCta": "Zurück zur Bestellung",
       "provisioning": "Dein Restaurant wird eingerichtet. Bitte warte..."
     },
     "failure": {

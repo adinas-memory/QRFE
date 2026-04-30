@@ -39,7 +39,9 @@
     "success": {
       "title": "Plata a fost confirmată",
       "body": "Îți mulțumim. Vei fi redirecționat către login în câteva secunde.",
+      "orderBody": "Îți mulțumim. Plata a fost confirmată.",
       "cta": "Mergi la login",
+      "orderCta": "Înapoi la comandă",
       "provisioning": "Se configurează restaurantul tău. Te rugăm să aștepți..."
     },
     "failure": {

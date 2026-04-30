@@ -10,7 +10,7 @@
       } @else {
         <c-alert color="success" class="mb-3">
           <div class="fw-semibold">{{ 'payment.success.title' | transloco }}</div>
-          <div class="small">{{ 'payment.success.body' | transloco }}</div>
+          <div class="small">{{ successBodyKey | transloco }}</div>
         </c-alert>
 
         <div class="d-flex gap-2 align-items-center justify-content-between">
@@ -20,7 +20,7 @@
             </a>
           } @else {
             <a cButton color="primary" [routerLink]="['/login']">
-              {{ 'payment.success.cta' | transloco }}
+              {{ successCtaKey | transloco }}
             </a>
           }
           @if (secondsLeft > 0) {

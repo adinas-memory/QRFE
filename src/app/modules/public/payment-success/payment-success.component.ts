@@ -26,6 +26,14 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
   restaurantId: string | null = null;
   tableId: string | null = null;
 
+  get successBodyKey(): string {
+    return this.flow === 'order' ? 'payment.success.orderBody' : 'payment.success.body';
+  }
+
+  get successCtaKey(): string {
+    return this.flow === 'order' ? 'payment.success.orderCta' : 'payment.success.cta';
+  }
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -35,18 +43,11 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H1',location:'payment-success.component.ts:ngOnInit',message:'payment success init',data:{url:typeof window!=='undefined'?window.location.href:null},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     this.route.queryParamMap.pipe(take(1)).subscribe(q => {
       const f = (q.get('flow') ?? '').toLowerCase();
       this.flow = (f === 'subscription' || f === 'order') ? (f as any) : 'unknown';
       this.restaurantId = q.get('restaurantId');
       this.tableId = q.get('tableId');
-
-      // #region agent log
-      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H_flow',location:'payment-success.component.ts:flow',message:'payment-success flow parsed',data:{flow:this.flow,hasRestaurantId:!!this.restaurantId,hasTableId:!!this.tableId},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
 
       if (this.flow === 'order' && this.restaurantId && this.tableId) {
         // Diner/table checkout: do not poll refresh-token and never redirect to login.
@@ -60,20 +61,11 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$),
       switchMap(() => {
         this.pollCount++;
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H2',location:'payment-success.component.ts:pollTick',message:'poll tick',data:{pollCount:this.pollCount,maxPolls:this.maxPolls},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         return this.authService.refreshUserContext().pipe(
           catchError((err) => {
-            // #region agent log
-            fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H3',location:'payment-success.component.ts:refreshCatch',message:'refreshUserContext errored in payment-success pipeline',data:{pollCount:this.pollCount,status:err?.status??null},timestamp:Date.now()})}).catch(()=>{});
-            // #endregion
             return of(null);
           }),
           switchMap(user => {
-            // #region agent log
-            fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H1',location:'payment-success.component.ts:afterRefresh',message:'refresh result received',data:{pollCount:this.pollCount,hasUser:!!user,role:user?.role??null,restaurantId:user?.restaurantId??null},timestamp:Date.now()})}).catch(()=>{});
-            // #endregion
             if (!user?.restaurantId || user.role !== 'manager') {
               return of(user);
             }
@@ -99,18 +91,12 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
         );
       }),
       tap(user => {
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H4',location:'payment-success.component.ts:tap',message:'tap branch check',data:{pollCount:this.pollCount,hasUser:!!user,role:user?.role??null,willManagerBranch:!!(user&&user.role==='manager'),willTimeoutBranch:this.pollCount>=this.maxPolls},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         if (user && user.role === 'manager') {
           this.provisioning = false;
           this.secondsLeft = 3;
           const interval = setInterval(() => this.secondsLeft = Math.max(0, this.secondsLeft - 1), 1000);
           setTimeout(() => {
             clearInterval(interval);
-            // #region agent log
-            fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H_mgrRedirect',location:'payment-success.component.ts:managerRedirect',message:'redirecting to /login after manager provisioning',data:{pollCount:this.pollCount},timestamp:Date.now()})}).catch(()=>{});
-            // #endregion
             this.authService.clearUser();
             this.router.navigate(['/login']);
           }, 3000);
@@ -121,9 +107,6 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
           const interval = setInterval(() => this.secondsLeft = Math.max(0, this.secondsLeft - 1), 1000);
           setTimeout(() => {
             clearInterval(interval);
-            // #region agent log
-            fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'909afb'},body:JSON.stringify({sessionId:'909afb',runId:'pre-fix',hypothesisId:'H_timeoutRedirect',location:'payment-success.component.ts:timeoutRedirect',message:'redirecting to /login after timeout (non-manager)',data:{pollCount:this.pollCount,maxPolls:this.maxPolls,role:user?.role??null,restaurantId:user?.restaurantId??null},timestamp:Date.now()})}).catch(()=>{});
-            // #endregion
             this.authService.clearUser();
             this.router.navigate(['/login']);
           }, 3000);
