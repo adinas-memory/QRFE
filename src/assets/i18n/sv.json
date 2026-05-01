@@ -1,6 +1,7 @@
 {
   "landing": {
     "brand": "U.R.S.",
+    "kicker": "Ett system som minskar kaoset i din restaurang och ökar serveringshastigheten.",
     "headline": "Universal Restaurant System",
     "subheadline": "Offline-first POS för restauranger. Realtidsuppdateringar, personalflöden och en ren setup.",
     "ctaPrimary": "Se paket",
