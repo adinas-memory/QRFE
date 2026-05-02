@@ -384,11 +384,27 @@
       "loadError": "Could not load enrollment codes",
       "generateError": "Could not generate code",
       "revokeError": "Could not revoke code",
+      "deleteConfirm": "Delete this enrollment code? Already enrolled agents keep working.",
+      "deleteError": "Could not delete code",
+      "toastDeletedTitle": "Code deleted",
+      "toastDeletedBody": "Enrollment code removed.",
       "yes": "Yes",
       "revokeConfirm": "Revoke this enrollment code? Already enrolled agents keep working.",
       "noCodes": "No enrollment codes yet.",
       "toastGeneratedTitle": "Code created",
       "toastGeneratedBody": "Copy the code now; it cannot be retrieved later."
+    },
+    "billPrinter": {
+      "title": "Bill (non-fiscal) — default printer",
+      "hint": "Choose the printer used for non-fiscal bills. Printers are reported by the Printer Agent via heartbeat.",
+      "loading": "Loading printers…",
+      "noPrinters": "No printers reported. Start the Printer Agent and verify heartbeat.",
+      "label": "Printer",
+      "save": "Save",
+      "saving": "Saving…",
+      "toastSavedTitle": "Settings saved",
+      "toastSavedBody": "Default bill printer updated.",
+      "toastErrorTitle": "Could not save printer"
     }
   },
   "feedbackModal": {
@@ -426,7 +442,13 @@
     "closeOrderConfirm": "Are you sure you want to close this order?",
     "cancel": "Cancel",
     "closeOrder": "Close order",
-    "print": "Print"
+    "print": "Print",
+    "printQueuedTitle": "Bill",
+    "printQueuedBody": "Bill print job queued.",
+    "printNoPrinterTitle": "Bill",
+    "printNoPrinterBody": "No printer configured/reported by Printer Agent.",
+    "printErrorTitle": "Bill",
+    "printErrorBody": "Could not queue bill print job."
   },
   "faq": {
     "navLink": "FAQ",

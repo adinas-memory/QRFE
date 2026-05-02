@@ -109,6 +109,17 @@
                             {{ 'restaurantSettings.printerAgentEnrollment.revoke' | transloco }}
                           </button>
                         }
+                        <button
+                          cButton
+                          color="danger"
+                          variant="outline"
+                          size="sm"
+                          type="button"
+                          class="ms-2"
+                          (click)="deleteEnrollmentCode(row.id)"
+                        >
+                          {{ 'client.delete' | transloco }}
+                        </button>
                       </td>
                     </tr>
                   }
@@ -116,6 +127,49 @@
               </table>
             </div>
           }
+        }
+      </c-card-body>
+    </c-card>
+
+    <c-card class="mb-4" id="bill-printer">
+      <c-card-header>
+        <strong>{{ 'restaurantSettings.billPrinter.title' | transloco }}</strong>
+      </c-card-header>
+      <c-card-body>
+        <p class="text-body-secondary small mb-3">
+          {{ 'restaurantSettings.billPrinter.hint' | transloco }}
+        </p>
+
+        @if (!restaurantId) {
+          <p class="text-warning mb-0">{{ 'restaurantSettings.noRestaurant' | transloco }}</p>
+        } @else if (loadingBillPrinters) {
+          <p class="text-body-secondary small mb-0">{{ 'restaurantSettings.billPrinter.loading' | transloco }}</p>
+        } @else if (billPrinters.length === 0) {
+          <p class="text-body-secondary small mb-0">{{ 'restaurantSettings.billPrinter.noPrinters' | transloco }}</p>
+        } @else {
+          <div class="mb-3">
+            <label cLabel for="billPrinter">{{ 'restaurantSettings.billPrinter.label' | transloco }}</label>
+            <select cSelect id="billPrinter" [(ngModel)]="defaultBillPrinterId">
+              <option [ngValue]="null">—</option>
+              @for (p of billPrinters; track p.id) {
+                <option [value]="p.id">{{ p.name }} ({{ p.id }})</option>
+              }
+            </select>
+          </div>
+
+          <button
+            cButton
+            color="primary"
+            type="button"
+            [disabled]="savingDefaultBillPrinter"
+            (click)="saveDefaultBillPrinter()"
+          >
+            @if (savingDefaultBillPrinter) {
+              {{ 'restaurantSettings.billPrinter.saving' | transloco }}
+            } @else {
+              {{ 'restaurantSettings.billPrinter.save' | transloco }}
+            }
+          </button>
         }
       </c-card-body>
     </c-card>

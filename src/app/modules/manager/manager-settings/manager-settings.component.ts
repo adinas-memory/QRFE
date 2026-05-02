@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import {
   ButtonDirective,
@@ -20,6 +21,7 @@ import { AppToastService } from '../../../core/services/toast-service/toast-serv
 import { Currency } from '../../../core/models/restaurantTablesModel';
 import { Router } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { PrintJobsService, PrinterAgentPrinterDto } from '../../../core/services/print-jobs/print-jobs.service';
 
 export interface PrinterAgentEnrollmentCodeRow {
   id: string;
@@ -36,6 +38,7 @@ export interface PrinterAgentEnrollmentCodeRow {
   styleUrl: './manager-settings.component.scss',
   imports: [
     ReactiveFormsModule,
+    FormsModule,
     DatePipe,
     CardComponent,
     CardHeaderComponent,
@@ -50,6 +53,7 @@ export interface PrinterAgentEnrollmentCodeRow {
 })
 export class ManagerSettingsComponent implements OnInit {
   private readonly apiUrl = environment.apiUrl;
+  private readonly debugRunId = 'printer-dropdown-pre-fix';
 
   readonly fallbackCurrencies = Object.values(Currency) as string[];
   currencyOptions: string[] = [...this.fallbackCurrencies];
@@ -73,6 +77,11 @@ export class ManagerSettingsComponent implements OnInit {
   stripePayoutsEnabled = false;
   stripeDetailsSubmitted = false;
 
+  billPrinters: PrinterAgentPrinterDto[] = [];
+  loadingBillPrinters = false;
+  savingDefaultBillPrinter = false;
+  defaultBillPrinterId: string | null = null;
+
   constructor(
     private fb: FormBuilder,
     private http: HttpClient,
@@ -81,7 +90,8 @@ export class ManagerSettingsComponent implements OnInit {
     private subscriptionService: SubscriptionService,
     private router: Router,
     private toast: AppToastService,
-    private transloco: TranslocoService
+    private transloco: TranslocoService,
+    private printJobs: PrintJobsService
   ) {}
 
   ngOnInit(): void {
@@ -97,6 +107,7 @@ export class ManagerSettingsComponent implements OnInit {
     });
     this.loadEnrollmentCodes();
     this.loadStripeConnectStatus();
+    this.loadBillPrinters();
   }
 
   get isManager(): boolean {
@@ -266,6 +277,104 @@ export class ManagerSettingsComponent implements OnInit {
           );
         }
       });
+  }
+
+  deleteEnrollmentCode(codeId: string): void {
+    if (!confirm(this.transloco.translate('restaurantSettings.printerAgentEnrollment.deleteConfirm'))) {
+      return;
+    }
+    const rid = this.restaurantId;
+    if (!rid) {
+      return;
+    }
+    this.http
+      .delete(`${this.apiUrl}/api/restaurants/${rid}/admin/printer-agent/enrollment-codes/${codeId}/delete`, {
+        withCredentials: true
+      })
+      .subscribe({
+        next: () => {
+          this.loadEnrollmentCodes();
+          this.toast.success(
+            this.transloco.translate('restaurantSettings.printerAgentEnrollment.toastDeletedBody'),
+            this.transloco.translate('restaurantSettings.printerAgentEnrollment.toastDeletedTitle'),
+          );
+        },
+        error: err => {
+          console.error('Failed to delete enrollment code', err);
+          this.toast.error(
+            this.miscellaneousService.getFirstErrorMessage(err),
+            this.transloco.translate('restaurantSettings.printerAgentEnrollment.deleteError')
+          );
+        }
+      });
+  }
+
+  loadBillPrinters(): void {
+    const rid = this.restaurantId;
+    if (!rid) return;
+
+    this.loadingBillPrinters = true;
+
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a9d52a'},body:JSON.stringify({sessionId:'a9d52a',runId:this.debugRunId,hypothesisId:'A',location:'manager-settings.component.ts:loadBillPrinters:entry',message:'Load bill printers start',data:{restaurantId:rid,existingSelected:this.defaultBillPrinterId},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
+    this.printJobs.listAgentPrinters(rid).subscribe({
+      next: list => {
+        this.billPrinters = list ?? [];
+        this.loadingBillPrinters = false;
+
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a9d52a'},body:JSON.stringify({sessionId:'a9d52a',runId:this.debugRunId,hypothesisId:'A',location:'manager-settings.component.ts:loadBillPrinters:list_ok',message:'Loaded agent printers',data:{count:this.billPrinters.length,first:this.billPrinters[0]?.id??null,firstName:this.billPrinters[0]?.name??null},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+      },
+      error: err => {
+        console.error('Failed to load agent printers', err);
+        this.loadingBillPrinters = false;
+
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a9d52a'},body:JSON.stringify({sessionId:'a9d52a',runId:this.debugRunId,hypothesisId:'A',location:'manager-settings.component.ts:loadBillPrinters:list_err',message:'Load agent printers failed',data:{status:err?.status??null,message:err?.message??null},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+      }
+    });
+
+    this.printJobs.getDefaultBillPrinter(rid).subscribe({
+      next: res => {
+        this.defaultBillPrinterId = res?.defaultBillPrinterId ?? null;
+
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a9d52a'},body:JSON.stringify({sessionId:'a9d52a',runId:this.debugRunId,hypothesisId:'B',location:'manager-settings.component.ts:loadBillPrinters:default_ok',message:'Loaded default bill printer',data:{defaultBillPrinterId:this.defaultBillPrinterId},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+      },
+      error: () => {
+        /* ignore */
+      }
+    });
+  }
+
+  saveDefaultBillPrinter(): void {
+    const rid = this.restaurantId;
+    if (!rid) return;
+    this.savingDefaultBillPrinter = true;
+
+    this.printJobs.updateDefaultBillPrinter(rid, this.defaultBillPrinterId).subscribe({
+      next: res => {
+        this.defaultBillPrinterId = res?.defaultBillPrinterId ?? null;
+        this.savingDefaultBillPrinter = false;
+        this.toast.success(
+          this.transloco.translate('restaurantSettings.billPrinter.toastSavedBody'),
+          this.transloco.translate('restaurantSettings.billPrinter.toastSavedTitle'),
+        );
+      },
+      error: err => {
+        console.error('Failed to save default bill printer', err);
+        this.savingDefaultBillPrinter = false;
+        this.toast.error(
+          this.miscellaneousService.getFirstErrorMessage(err),
+          this.transloco.translate('restaurantSettings.billPrinter.toastErrorTitle'),
+        );
+      }
+    });
   }
 
   confirmCancelSubscription(): void {

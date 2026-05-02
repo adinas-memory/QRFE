@@ -384,11 +384,27 @@
       "loadError": "Nu s-au putut încărca codurile",
       "generateError": "Nu s-a putut genera codul",
       "revokeError": "Nu s-a putut revoca codul",
+      "deleteConfirm": "Ștergi acest cod? Agenții deja înrolați continuă să funcționeze.",
+      "deleteError": "Nu s-a putut șterge codul",
+      "toastDeletedTitle": "Cod șters",
+      "toastDeletedBody": "Codul de înrolare a fost eliminat.",
       "yes": "Da",
       "revokeConfirm": "Revoci acest cod? Agenții deja înrolați continuă să funcționeze.",
       "noCodes": "Încă nu există coduri de înrolare.",
       "toastGeneratedTitle": "Cod creat",
       "toastGeneratedBody": "Copiază codul acum; nu poate fi recuperat ulterior."
+    },
+    "billPrinter": {
+      "title": "Notă de plată — imprimantă implicită",
+      "hint": "Alege imprimanta folosită pentru nota de plată (nefiscală). Imprimantele sunt raportate de Printer Agent prin heartbeat.",
+      "loading": "Se încarcă imprimantele…",
+      "noPrinters": "Nu există imprimante raportate. Pornește Printer Agent și verifică heartbeat-ul.",
+      "label": "Imprimantă",
+      "save": "Salvează",
+      "saving": "Se salvează…",
+      "toastSavedTitle": "Setări salvate",
+      "toastSavedBody": "Imprimanta implicită pentru nota de plată a fost actualizată.",
+      "toastErrorTitle": "Nu s-a putut salva imprimanta"
     }
   },
   "feedbackModal": {
@@ -426,7 +442,13 @@
     "closeOrderConfirm": "Sigur vrei să închizi această comandă?",
     "cancel": "Anulează",
     "closeOrder": "Închide comanda",
-    "print": "Printează"
+    "print": "Printează",
+    "printQueuedTitle": "Notă de plată",
+    "printQueuedBody": "Nota de plată a fost trimisă la imprimantă.",
+    "printNoPrinterTitle": "Notă de plată",
+    "printNoPrinterBody": "Nu există o imprimantă configurată/raportată de Printer Agent.",
+    "printErrorTitle": "Notă de plată",
+    "printErrorBody": "Nu s-a putut trimite nota de plată la imprimantă."
   },
   "faq": {
     "navLink": "Întrebări",

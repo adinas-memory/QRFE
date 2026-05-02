@@ -1,0 +1,1 @@
+﻿{"sessionId":"033ec2","hypothesisId":"H3","location":"CloseOrderWithPaymentCommandHandler.cs:after_broadcast","message":"Staff close-order completed without bill print enqueue","data":{"OrderId":"019de44f-0cb7-77b4-b6c8-156c0bf2fdef"},"timestamp":1777711346092}

@@ -43,6 +43,7 @@ import { AppToastService } from '../../../core/services/toast-service/toast-serv
 import { KitchenService } from '../../../core/services/kitchen-service/kitchen.service';
 import { BarService } from '../../../core/services/bar-service/bar.service';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { PrintJobsService } from '../../../core/services/print-jobs/print-jobs.service';
 
 @Component({
   selector: 'app-manage-orders',
@@ -106,6 +107,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   orderIsConfirmed = false;
   currentOrderId: string | null = null;
   showCloseConfirm = false;
+  private closeInFlight = false;
   resetConfirmVisible = false;
 
   /**
@@ -142,6 +144,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     private queueProcessor: OfflineQueueProcessor,
     private appToast: AppToastService,
     private transloco: TranslocoService,
+    private printJobs: PrintJobsService,
   ) {}
 
   formatInitiatedBy(raw: string): string {
@@ -676,15 +679,22 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   async confirmCloseOrder() {
     if (document.hidden) return;
+    if (this.closeInFlight) return;
+    this.closeInFlight = true;
     this.showCloseConfirm = false;
 
     const tableId = this.currentTableId;
     const orderId = this.currentOrderId;
 
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a9d52a'},body:JSON.stringify({sessionId:'a9d52a',runId:'double-close-pre-fix',hypothesisId:'A',location:'manage-orders.component.ts:confirmCloseOrder:entry',message:'confirmCloseOrder invoked',data:{restaurantId:this.restaurantId,tableId,orderId,closeInFlight:this.closeInFlight},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
     // FIX BUG 6: currentOrderId poate fi null — înainte codul folosea ! (non-null assertion)
     // pe un câmp care în practică poate fi null dacă butonul e apăsat fără order activ.
     if (!orderId) {
       this.resetCanvasState();
+      this.closeInFlight = false;
       return;
     }
 
@@ -697,6 +707,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         payload: {}
       });
       this.resetCanvasState();
+      this.closeInFlight = false;
       return;
     }
 
@@ -711,8 +722,20 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         await this.offlineDB.upsertTableStatus(tableId, true);
         this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
         this.resetCanvasState();
+        this.closeInFlight = false;
+
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a9d52a'},body:JSON.stringify({sessionId:'a9d52a',runId:'double-close-pre-fix',hypothesisId:'A',location:'manage-orders.component.ts:confirmCloseOrder:close_ok',message:'closeOrder API success',data:{orderId},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
       },
-      error: err => console.error('Error closing order:', err)
+      error: err => {
+        console.error('Error closing order:', err);
+        this.closeInFlight = false;
+
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a9d52a'},body:JSON.stringify({sessionId:'a9d52a',runId:'double-close-pre-fix',hypothesisId:'A',location:'manage-orders.component.ts:confirmCloseOrder:close_err',message:'closeOrder API error',data:{orderId,status:err?.status??null},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+      }
     });
   }
 
@@ -724,7 +747,63 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.canvasVisible = false;
   }
 
-  printOrder() {}
+  async printOrder() {
+    const restaurantId = this.restaurantId;
+    const orderId = this.currentOrderId;
+    if (!restaurantId || !orderId) return;
+    await this.enqueueBillPrintJob({ restaurantId, orderId });
+  }
+
+  private async enqueueBillPrintJob(args: { restaurantId: string; orderId: string }): Promise<void> {
+    try {
+      // If agent printers list is empty, there's nothing to print to (even if a stale default is set).
+      const printers = await firstValueFrom(this.printJobs.listAgentPrinters(args.restaurantId));
+      if (!printers?.length) {
+        this.appToast.info(
+          this.transloco.translate('manageOrders.printNoPrinterBody'),
+          this.transloco.translate('manageOrders.printNoPrinterTitle'),
+        );
+        return;
+      }
+
+      const cfg = await firstValueFrom(this.printJobs.getDefaultBillPrinter(args.restaurantId));
+      const printerId = (cfg?.defaultBillPrinterId ?? '').trim();
+      if (!printerId) {
+        this.appToast.info(
+          this.transloco.translate('manageOrders.printNoPrinterBody'),
+          this.transloco.translate('manageOrders.printNoPrinterTitle'),
+        );
+        return;
+      }
+
+      const payload = {
+        type: 'bill',
+        orderId: args.orderId,
+        currency: this.cartCurrency ?? null,
+        subTotal: this.cartSubTotal ?? 0,
+        finalTotal: this.cartSubTotal ?? 0,
+        paymentMethod: 'cash',
+        closedAtUtc: new Date().toISOString(),
+        items: this.selectedItems.map(x => ({
+          name: x.item.menuItemName,
+          quantity: x.quantity,
+          unitPrice: x.item.menuItemPriceAmount,
+        })),
+      };
+
+      await firstValueFrom(this.printJobs.createBillPrintJob(args.restaurantId, printerId, payload));
+      this.appToast.success(
+        this.transloco.translate('manageOrders.printQueuedBody'),
+        this.transloco.translate('manageOrders.printQueuedTitle'),
+      );
+    } catch (err) {
+      console.error('Print job failed', err);
+      this.appToast.error(
+        this.transloco.translate('manageOrders.printErrorBody'),
+        this.transloco.translate('manageOrders.printErrorTitle'),
+      );
+    }
+  }
 
   requestResetCanvas() {
     this.resetConfirmVisible = true;
@@ -919,9 +998,13 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       }
 
       case 'OrderUpdated': {
-        if (this.currentOrderId?.startsWith('local-')) break;
         const payload = Data as OrderUpdatedSSEPayload;
         const tableId = (this.sseField<string>(payload as any, 'TableId', 'tableId') ?? payload.TableId) as string;
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'033ec2'},body:JSON.stringify({sessionId:'033ec2',hypothesisId:'H1',location:'manage-orders.component.ts:OrderUpdated:entry',message:'OrderUpdated SSE',data:{eventTableId:tableId,currentTableId:this.currentTableId,currentOrderIdPrefix:(this.currentOrderId??'').slice(0,8),localDraft:!!this.currentOrderId?.startsWith('local-'),skipSameTableLocalDraft:!!(this.currentOrderId?.startsWith('local-')&&tableId===this.currentTableId),initiatedByLen:(InitiatedBy??'').length},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+        // Nu îmbina starea remote în canvas doar cât timp comanda locală e draft pe *aceeași* masă; altfel blochezi OrderUpdated pentru toate mesele (inclusiv initiatedBy).
+        if (this.currentOrderId?.startsWith('local-') && tableId === this.currentTableId) break;
         const cart = await this.offlineDB.loadCart(tableId);
 
         for (const sseItem of payload.Items) {

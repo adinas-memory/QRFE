@@ -228,7 +228,7 @@ export class BarComponent implements OnInit, OnDestroy {
     switch (EventType) {
       case 'OrderUpdated': {
         const payload = Data as OrderUpdatedSSEPayload;
-        void this.applyOrderUpdated(payload);
+        void this.applyOrderUpdated({ payload, envelopeSequence: Sequence });
         break;
       }
       case 'OrderItemAdded': {
@@ -297,7 +297,8 @@ export class BarComponent implements OnInit, OnDestroy {
     return items.filter(c => isDrinkCategory(c.item.category) || !c.item.category || c.item.category === 'Unknown');
   }
 
-  private async applyOrderUpdated(payload: OrderUpdatedSSEPayload) {
+  private async applyOrderUpdated(args: { payload: OrderUpdatedSSEPayload; envelopeSequence?: number }) {
+    const { payload, envelopeSequence } = args;
     const tableId =
       (payload as unknown as { TableId?: string; tableId?: string }).TableId
       ?? (payload as unknown as { tableId?: string }).tableId
@@ -313,7 +314,10 @@ export class BarComponent implements OnInit, OnDestroy {
 
     if (!tableId || !orderId) return;
 
-    const dedupeKey = `${orderId}:${lastActionAt}`;
+    const dedupeKey =
+      typeof envelopeSequence === 'number' && envelopeSequence > 0
+        ? `${orderId}:seq:${envelopeSequence}`
+        : `${orderId}:${lastActionAt}`;
     if (this.lastOrderUpdatedKeyByTableId[tableId] === dedupeKey) return;
     this.lastOrderUpdatedKeyByTableId[tableId] = dedupeKey;
 
