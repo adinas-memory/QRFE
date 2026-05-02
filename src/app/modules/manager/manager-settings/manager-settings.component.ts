@@ -1,5 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
@@ -53,7 +55,6 @@ export interface PrinterAgentEnrollmentCodeRow {
 })
 export class ManagerSettingsComponent implements OnInit {
   private readonly apiUrl = environment.apiUrl;
-  private readonly debugRunId = 'printer-dropdown-pre-fix';
 
   readonly fallbackCurrencies = Object.values(Currency) as string[];
   currencyOptions: string[] = [...this.fallbackCurrencies];
@@ -117,6 +118,21 @@ export class ManagerSettingsComponent implements OnInit {
   get restaurantId(): string | null {
     const id = this.authService.getUserRestaurantId();
     return typeof id === 'string' ? id : Array.isArray(id) ? id[0] ?? null : null;
+  }
+
+  /** Printers from agent heartbeat, plus a synthetic row when DB has a default id not yet in the list. */
+  get billPrinterOptions(): PrinterAgentPrinterDto[] {
+    const list = [...this.billPrinters];
+    const id = this.defaultBillPrinterId;
+    if (id && !list.some(p => p.id === id)) {
+      list.unshift({
+        id,
+        name: this.transloco.translate('restaurantSettings.billPrinter.pendingPrinterName'),
+        ipAddress: '',
+        port: 0
+      });
+    }
+    return list;
   }
 
   loadStripeConnectStatus(): void {
@@ -315,39 +331,24 @@ export class ManagerSettingsComponent implements OnInit {
 
     this.loadingBillPrinters = true;
 
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a9d52a'},body:JSON.stringify({sessionId:'a9d52a',runId:this.debugRunId,hypothesisId:'A',location:'manager-settings.component.ts:loadBillPrinters:entry',message:'Load bill printers start',data:{restaurantId:rid,existingSelected:this.defaultBillPrinterId},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-
-    this.printJobs.listAgentPrinters(rid).subscribe({
-      next: list => {
-        this.billPrinters = list ?? [];
+    forkJoin({
+      printers: this.printJobs.listAgentPrinters(rid).pipe(
+        catchError(err => {
+          console.error('Failed to load agent printers', err);
+          return of([] as PrinterAgentPrinterDto[]);
+        })
+      ),
+      defaults: this.printJobs.getDefaultBillPrinter(rid).pipe(
+        catchError(() => of({ defaultBillPrinterId: null as string | null }))
+      )
+    }).subscribe({
+      next: ({ printers, defaults }) => {
+        this.billPrinters = printers ?? [];
+        this.defaultBillPrinterId = defaults?.defaultBillPrinterId ?? null;
         this.loadingBillPrinters = false;
-
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a9d52a'},body:JSON.stringify({sessionId:'a9d52a',runId:this.debugRunId,hypothesisId:'A',location:'manager-settings.component.ts:loadBillPrinters:list_ok',message:'Loaded agent printers',data:{count:this.billPrinters.length,first:this.billPrinters[0]?.id??null,firstName:this.billPrinters[0]?.name??null},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
-      },
-      error: err => {
-        console.error('Failed to load agent printers', err);
-        this.loadingBillPrinters = false;
-
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a9d52a'},body:JSON.stringify({sessionId:'a9d52a',runId:this.debugRunId,hypothesisId:'A',location:'manager-settings.component.ts:loadBillPrinters:list_err',message:'Load agent printers failed',data:{status:err?.status??null,message:err?.message??null},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
-      }
-    });
-
-    this.printJobs.getDefaultBillPrinter(rid).subscribe({
-      next: res => {
-        this.defaultBillPrinterId = res?.defaultBillPrinterId ?? null;
-
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a9d52a'},body:JSON.stringify({sessionId:'a9d52a',runId:this.debugRunId,hypothesisId:'B',location:'manager-settings.component.ts:loadBillPrinters:default_ok',message:'Loaded default bill printer',data:{defaultBillPrinterId:this.defaultBillPrinterId},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
       },
       error: () => {
-        /* ignore */
+        this.loadingBillPrinters = false;
       }
     });
   }
@@ -369,10 +370,10 @@ export class ManagerSettingsComponent implements OnInit {
       error: err => {
         console.error('Failed to save default bill printer', err);
         this.savingDefaultBillPrinter = false;
-        this.toast.error(
-          this.miscellaneousService.getFirstErrorMessage(err),
-          this.transloco.translate('restaurantSettings.billPrinter.toastErrorTitle'),
-        );
+        const detail =
+          this.miscellaneousService.getFirstErrorMessage(err) ||
+          this.transloco.translate('restaurantSettings.billPrinter.toastErrorBody');
+        this.toast.error(detail, this.transloco.translate('restaurantSettings.billPrinter.toastErrorTitle'));
       }
     });
   }

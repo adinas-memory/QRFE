@@ -404,7 +404,9 @@
       "saving": "Saving…",
       "toastSavedTitle": "Settings saved",
       "toastSavedBody": "Default bill printer updated.",
-      "toastErrorTitle": "Could not save printer"
+      "toastErrorTitle": "Could not save printer",
+      "toastErrorBody": "Please try again.",
+      "pendingPrinterName": "Saved printer (pending agent heartbeat)"
     }
   },
   "feedbackModal": {

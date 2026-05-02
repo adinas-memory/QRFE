@@ -74,10 +74,6 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    const keyTheme = 'coreui-free-angular-admin-template-theme-default';
-    const defaultValue = '"dark"';
-    localStorage.setItem(keyTheme, defaultValue);
-
     this.#onlineStateService.online$.subscribe(isOnline => {
       this.isOffline = !isOnline;
     });

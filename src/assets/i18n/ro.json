@@ -404,7 +404,9 @@
       "saving": "Se salvează…",
       "toastSavedTitle": "Setări salvate",
       "toastSavedBody": "Imprimanta implicită pentru nota de plată a fost actualizată.",
-      "toastErrorTitle": "Nu s-a putut salva imprimanta"
+      "toastErrorTitle": "Nu s-a putut salva imprimanta",
+      "toastErrorBody": "Încearcă din nou.",
+      "pendingPrinterName": "Imprimantă salvată (așteaptă heartbeat agent)"
     }
   },
   "feedbackModal": {

@@ -144,15 +144,16 @@
           <p class="text-warning mb-0">{{ 'restaurantSettings.noRestaurant' | transloco }}</p>
         } @else if (loadingBillPrinters) {
           <p class="text-body-secondary small mb-0">{{ 'restaurantSettings.billPrinter.loading' | transloco }}</p>
-        } @else if (billPrinters.length === 0) {
-          <p class="text-body-secondary small mb-0">{{ 'restaurantSettings.billPrinter.noPrinters' | transloco }}</p>
         } @else {
+          @if (billPrinters.length === 0) {
+            <p class="text-body-secondary small mb-3">{{ 'restaurantSettings.billPrinter.noPrinters' | transloco }}</p>
+          }
           <div class="mb-3">
             <label cLabel for="billPrinter">{{ 'restaurantSettings.billPrinter.label' | transloco }}</label>
             <select cSelect id="billPrinter" [(ngModel)]="defaultBillPrinterId">
               <option [ngValue]="null">—</option>
-              @for (p of billPrinters; track p.id) {
-                <option [value]="p.id">{{ p.name }} ({{ p.id }})</option>
+              @for (p of billPrinterOptions; track p.id) {
+                <option [ngValue]="p.id">{{ p.name }} ({{ p.id }})</option>
               }
             </select>
           </div>
