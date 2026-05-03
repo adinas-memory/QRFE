@@ -26,7 +26,14 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
-  line-height: 1.25;
+  font-size: 0.8125rem; /* 13px — compact, readable in tiles */
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--cui-body-color, inherit);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   word-break: break-word;
   overflow-wrap: anywhere;
   hyphens: auto;
