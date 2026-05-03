@@ -8,8 +8,28 @@
   overflow-y: auto;
 }
 
+/* Bootstrap 5 columns default to min-width: auto; long text stops tiles from shrinking on lg+ (col-lg-3). */
+.offcanvas-body .row.g-3 > [class*='col-'] {
+  min-width: 0;
+}
+
 .product-tile {
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
   transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.product-tile__name {
+  min-width: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-height: 1.25;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 .product-tile:hover {
@@ -69,6 +89,18 @@
 .cart-scroll {
   max-height: 25vh;
   overflow-y: auto;
+
+  table {
+    table-layout: fixed;
+    width: 100%;
+  }
+}
+
+.cart-item-name {
+  width: 42%;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
 }
 
 /* Cart forces light text on black; reset for confirm box so text stays readable. */
