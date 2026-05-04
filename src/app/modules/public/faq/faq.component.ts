@@ -9,11 +9,13 @@ import {
   TemplateIdDirective
 } from '@coreui/angular';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { environment } from '../../../../environments/environment';
 
 /** FAQ entries must match `faq.items.<id>` in i18n JSON. */
 const FAQ_ITEM_IDS = [
   'pwaSupportedBrowsers',
   'settingsCurrencyBeforeUse',
+  'printerAgentDownload',
   'byodStaffDevices',
   'qrSignedSecurity',
   'bookingsSlotDuration',
@@ -54,6 +56,8 @@ export type FaqItemId = (typeof FAQ_ITEM_IDS)[number];
   styleUrl: './faq.component.scss'
 })
 export class FaqComponent {
+  protected readonly printerAgentDownloadUrl = environment.printerAgentDownloadUrl?.trim() ?? '';
+
   /** On the landing page: show only the first questions + link to `/faq`. */
   readonly compact = input(false);
   /** On the landing page: tighter section without “back home”. */

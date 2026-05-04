@@ -55,6 +55,7 @@ export interface PrinterAgentEnrollmentCodeRow {
 })
 export class ManagerSettingsComponent implements OnInit {
   private readonly apiUrl = environment.apiUrl;
+  readonly printerAgentDownloadUrl = environment.printerAgentDownloadUrl?.trim() ?? '';
 
   readonly fallbackCurrencies = Object.values(Currency) as string[];
   currencyOptions: string[] = [...this.fallbackCurrencies];

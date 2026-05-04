@@ -338,6 +338,7 @@
     "printerAgentEnrollment": {
       "title": "Printer agent setup",
       "hint": "Generate a 10-character code for the printer agent on first run. Each code can be used a limited number of times until it expires.",
+      "downloadLatest": "Download latest Printer Agent (Windows x64 ZIP)",
       "generate": "Generate new code",
       "generating": "Generating…",
       "loading": "Loading codes…",
@@ -410,6 +411,12 @@
       "settingsCurrencyBeforeUse": {
         "q": "Vad måste jag ställa in innan riktig drift?",
         "a": "Innan ni kör på riktigt: öppna Inställningar och välj restaurangens valuta för meny och beställningar. Du kan inte byta valuta medan något bord fortfarande har en öppen beställning—stäng dessa först."
+      },
+      "printerAgentDownload": {
+        "q": "Var laddar jag ner Printer Agent för Windows?",
+        "aIntro": "Printer Agent körs på en Windows x64-dator i restaurangen, pratar med backend och rapporterar skrivare via heartbeat. Efter installation: skapa en registreringskod under Manager → Inställningar (Printer agent) och slutför konfigurationen på den datorn.",
+        "linkLabel": "Ladda ner senaste Windows x64 (ZIP)",
+        "linkUnset": "Nedladdnings-URL är inte konfigurerad — fråga administratören eller öppna organisationens Printer Agent GitHub Releases."
       },
       "byodStaffDevices": {
         "q": "Kan personal använda egna telefoner eller surfplattor?",

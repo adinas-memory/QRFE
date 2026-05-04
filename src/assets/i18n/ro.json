@@ -371,6 +371,7 @@
     "printerAgentEnrollment": {
       "title": "Agent imprimantă",
       "hint": "Generează un cod din 10 caractere pentru agentul de imprimantă la prima rulare. Fiecare cod poate fi folosit de un număr limitat de ori până la expirare.",
+      "downloadLatest": "Descarcă ultima versiune Printer Agent (Windows x64 ZIP)",
       "generate": "Generează cod nou",
       "generating": "Se generează…",
       "loading": "Se încarcă codurile…",
@@ -468,6 +469,12 @@
       "settingsCurrencyBeforeUse": {
         "q": "Ce trebuie configurat înainte de folosirea efectivă?",
         "a": "Înainte de serviciu live, deschide Setări și alege moneda în care va opera restaurantul pentru meniu și comenzi. Nu poți schimba moneda dacă există comenzi deschise pe vreo masă—închide sau finalizează mai întâi acele comenzi."
+      },
+      "printerAgentDownload": {
+        "q": "De unde descarc Printer Agent pentru Windows?",
+        "aIntro": "Printer Agent rulează pe un PC Windows x64 la restaurant, comunică cu backend-ul și raportează imprimantele prin heartbeat. După instalare, generează un cod de înrolare din Manager → Setări (secțiunea Printer agent) și finalizează configurarea pe acel calculator.",
+        "linkLabel": "Descarcă ultima versiune Windows x64 (ZIP)",
+        "linkUnset": "Linkul de descărcare nu este configurat pentru acest mediu — întreabă administratorul sau deschide pagina de Releases GitHub a Printer Agent."
       },
       "byodStaffDevices": {
         "q": "Personalul poate folosi propriile telefoane sau tablete?",

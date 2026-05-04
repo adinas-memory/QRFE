@@ -338,6 +338,7 @@
     "printerAgentEnrollment": {
       "title": "Printer agent setup",
       "hint": "Generate a 10-character code for the printer agent on first run. Each code can be used a limited number of times until it expires.",
+      "downloadLatest": "Download latest Printer Agent (Windows x64 ZIP)",
       "generate": "Generate new code",
       "generating": "Generating…",
       "loading": "Loading codes…",
@@ -410,6 +411,12 @@
       "settingsCurrencyBeforeUse": {
         "q": "Que faut-il configurer avant un service réel ?",
         "a": "Avant le service en conditions réelles, ouvrez Paramètres et choisissez la devise du restaurant pour menus et commandes. Vous ne pouvez pas changer la devise tant qu’une table a encore une commande ouverte—clôturez d’abord ces commandes."
+      },
+      "printerAgentDownload": {
+        "q": "Où télécharger Printer Agent pour Windows ?",
+        "aIntro": "Printer Agent s’exécute sur un PC Windows x64 sur site, parle au backend et remonte les imprimantes via heartbeat. Après installation, générez un code d’enrôlement dans Manager → Paramètres (section Printer agent) et terminez la configuration sur cette machine.",
+        "linkLabel": "Télécharger la dernière build Windows x64 (ZIP)",
+        "linkUnset": "L’URL de téléchargement n’est pas configurée — demandez à votre administrateur ou ouvrez la page GitHub Releases de Printer Agent."
       },
       "byodStaffDevices": {
         "q": "Le personnel peut-il utiliser ses propres téléphones ou tablettes ?",

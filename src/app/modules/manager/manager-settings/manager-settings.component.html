@@ -44,6 +44,13 @@
         <p class="text-body-secondary small mb-3">
           {{ 'restaurantSettings.printerAgentEnrollment.hint' | transloco }}
         </p>
+        @if (printerAgentDownloadUrl) {
+          <p class="mb-3">
+            <a [href]="printerAgentDownloadUrl" target="_blank" rel="noopener noreferrer">
+              {{ 'restaurantSettings.printerAgentEnrollment.downloadLatest' | transloco }}
+            </a>
+          </p>
+        }
         @if (!restaurantId) {
           <p class="text-warning">{{ 'restaurantSettings.noRestaurant' | transloco }}</p>
         } @else {
