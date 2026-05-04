@@ -105,6 +105,44 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
   }
 
 
+  /**
+   * Title-cases words whose letter count is greater than 3; shorter words stay as typed.
+   * Uses Romanian locale for upper/lower casing (ă, î, ș, ț, etc.).
+   */
+  formatMenuItemName(): void {
+    const control = this.menuItemsForm.get('menuItemName');
+    if (!control || typeof control.value !== 'string') return;
+    const raw = control.value;
+    const trimmed = raw.trim();
+    if (!trimmed) return;
+
+    const formatted = trimmed
+      .split(/\s+/)
+      .map((word) => {
+        const letterCount = [...word].filter((ch) => /\p{L}/u.test(ch)).length;
+        if (letterCount <= 3) return word;
+        let seenLetter = false;
+        return [...word]
+          .map((ch) => {
+            if (!/\p{L}/u.test(ch)) {
+              seenLetter = false;
+              return ch;
+            }
+            if (!seenLetter) {
+              seenLetter = true;
+              return ch.toLocaleUpperCase('ro-RO');
+            }
+            return ch.toLocaleLowerCase('ro-RO');
+          })
+          .join('');
+      })
+      .join(' ');
+
+    if (formatted !== raw) {
+      control.setValue(formatted, { emitEvent: false });
+    }
+  }
+
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
@@ -161,6 +199,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
   }
 
   onSubmit(): void {
+    this.formatMenuItemName();
     const formData = new FormData();
     formData.append('menuItemName', this.menuItemsForm.value.menuItemName);
     formData.append('menuItemDescription', this.menuItemsForm.value.menuItemDescription);
@@ -207,6 +246,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
   }
 
   onUpdate() {
+    this.formatMenuItemName();
     if (this.menuItemsForm.valid && this.selectedItem) {
       const updated = { ...this.selectedItem, ...this.menuItemsForm.value, menuItemPriceCurrency: this.selectedItem.menuItemPriceCurrency };
       this.menuItemService.update(this.restaurantId, this.selectedItem.menuItemId, updated)

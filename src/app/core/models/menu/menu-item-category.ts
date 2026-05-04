@@ -7,6 +7,8 @@ const DRINK_CATEGORY_VALUES: readonly MenuItemCategory[] = [
   MenuItemCategory.Beer,
   MenuItemCategory.Beverage,
   MenuItemCategory.Cocktail,
+  MenuItemCategory.Coffee,
+  MenuItemCategory.Tea,
 ];
 
 const DRINK_CATEGORY_SET = new Set<string>(DRINK_CATEGORY_VALUES);

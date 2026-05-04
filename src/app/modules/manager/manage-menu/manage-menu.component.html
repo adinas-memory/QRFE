@@ -94,6 +94,27 @@
         class="flex-wrap"
       >
         <div class="mb-3">
+          <label cLabel for="menuItemIcon">Upload Image</label>
+          <input
+            cFormControl
+            id="menuItemIcon"
+            placeholder="Choose an icon file"
+            type="file"
+            (change)="onFileSelected($event)"
+          />
+        </div>
+        <div class="mb-3">
+          <label cLabel for="menuItemName">Menu Item Name</label>
+          <input
+            formControlName="menuItemName"
+            cFormControl
+            id="menuItemName"
+            placeholder="Gulasch"
+            type="text"
+            (blur)="formatMenuItemName()"
+          />
+        </div>
+        <div class="mb-3">
           <label cLabel for="menuItemCategory">Category</label>
           <select
             formControlName="menuItemCategory"
@@ -106,16 +127,6 @@
               {{ cat }}
             </option>
           </select>
-        </div>
-        <div class="mb-3">
-          <label cLabel for="menuItemName">Menu Item Name</label>
-          <input
-            formControlName="menuItemName"
-            cFormControl
-            id="menuItemName"
-            placeholder="Gulasch"
-            type="text"
-          />
         </div>
         <div class="mb-3">
           <label cLabel for="menuItemPriceAmount">Price</label>
@@ -137,17 +148,7 @@
             type="text"
           />
         </div>
-        <div class="mb-3">
-          <label cLabel for="">Upload Dish Image</label>
-          <input
-            cFormControl
-            id="menuItemIcon"
-            placeholder="Choose an icon file"
-            type="file"
-            (change)="onFileSelected($event)"
-          />
-        </div>
-        <button type="submit" class="btn btn-primary">
+        <button type="submit" class="btn btn-primary me-2">
           {{ selectedItem ? "Update Item" : "Add Item" }}
         </button>
         <button type="button" class="btn btn-secondary" (click)="resetForm()">
@@ -167,26 +168,32 @@
   <c-modal-body>
     <form [formGroup]="menuItemsForm" (ngSubmit)="onUpdate()" cForm>
       <div class="mb-3">
-        <label cLabel for="menuItemCategory">Category</label>
-        <select formControlName="menuItemCategory" cFormControl id="menuItemCategory" cSelect>
+        <label cLabel for="menuItemIconEdit">Upload Image</label>
+        <input cFormControl id="menuItemIconEdit" type="file" (change)="onFileSelected($event)" />
+      </div>
+      <div class="mb-3">
+        <label cLabel for="menuItemNameEdit">Menu Item Name</label>
+        <input
+          formControlName="menuItemName"
+          cFormControl
+          id="menuItemNameEdit"
+          type="text"
+          (blur)="formatMenuItemName()"
+        />
+      </div>
+      <div class="mb-3">
+        <label cLabel for="menuItemCategoryEdit">Category</label>
+        <select formControlName="menuItemCategory" cFormControl id="menuItemCategoryEdit" cSelect>
           <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
         </select>
       </div>
       <div class="mb-3">
-        <label cLabel for="menuItemName">Menu Item Name</label>
-        <input formControlName="menuItemName" cFormControl id="menuItemName" type="text" />
+        <label cLabel for="menuItemPriceAmountEdit">Price</label>
+        <input formControlName="menuItemPriceAmount" cFormControl id="menuItemPriceAmountEdit" type="number" />
       </div>
       <div class="mb-3">
-        <label cLabel for="menuItemPriceAmount">Price</label>
-        <input formControlName="menuItemPriceAmount" cFormControl id="menuItemPriceAmount" type="number" />
-      </div>
-      <div class="mb-3">
-        <label cLabel for="menuItemDescription">Description</label>
-        <input formControlName="menuItemDescription" cFormControl id="menuItemDescription" type="text" />
-      </div>
-      <div class="mb-3">
-        <label cLabel for="menuItemIcon">Upload Dish Image</label>
-        <input cFormControl id="menuItemIcon" type="file" (change)="onFileSelected($event)" />
+        <label cLabel for="menuItemDescriptionEdit">Description</label>
+        <input formControlName="menuItemDescription" cFormControl id="menuItemDescriptionEdit" type="text" />
       </div>
     </form>
   </c-modal-body>

@@ -39,5 +39,9 @@ export enum MenuItemCategory {
   RoseWine = 'RoseWine',
   Beer = 'Beer',
   Beverage = 'Beverage',
-  Cocktail = 'Cocktail'
+  Cocktail = 'Cocktail',
+  Coffee = 'Coffee',
+  Tea = 'Tea',
+  Pasta = 'Pasta',
+  Salad = 'Salad'
 }
