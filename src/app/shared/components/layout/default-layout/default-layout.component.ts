@@ -81,11 +81,18 @@ export class DefaultLayoutComponent implements OnInit {
   ngOnInit(): void {
     this.userRole = this.auth.getUserSnapshot()?.role ?? 'default';
     this.restaurantName = this.auth.getRestaurantCtx()?.name ?? null;
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e3ccb5'},body:JSON.stringify({sessionId:'e3ccb5',runId:'pre-fix',hypothesisId:'H4',location:'default-layout.component.ts:87',message:'DefaultLayout ngOnInit: initial ctx',data:{ctxNameTruthy:!!this.restaurantName,ctxNameLen:(typeof this.restaurantName === 'string' ? this.restaurantName.length : -1),userRole:this.userRole},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion agent log
 
     this.auth.user$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(user => {
-        this.restaurantName = user?.restaurantName ?? this.auth.getRestaurantCtx()?.name ?? null;
+        const next = user?.restaurantName ?? this.auth.getRestaurantCtx()?.name ?? null;
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e3ccb5'},body:JSON.stringify({sessionId:'e3ccb5',runId:'pre-fix',hypothesisId:'H4',location:'default-layout.component.ts:95',message:'DefaultLayout auth.user$ emission',data:{userNull:user===null,hasUserRestaurantName:!!user?.restaurantName,userRestaurantNameLen:(user?.restaurantName?.length ?? 0),fallbackCtxNameTruthy:!!this.auth.getRestaurantCtx()?.name,fallbackCtxNameLen:(this.auth.getRestaurantCtx()?.name?.length ?? 0),nextTruthy:!!next,nextLen:(typeof next === 'string' ? next.length : -1)},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion agent log
+        this.restaurantName = next;
       });
 
     // Wait for translation files before translate(); avoids raw keys (e.g. sidebar.manage) on slow/async loads (Edge).
