@@ -407,7 +407,8 @@
       "toastSavedBody": "Imprimanta implicită pentru nota de plată a fost actualizată.",
       "toastErrorTitle": "Nu s-a putut salva imprimanta",
       "toastErrorBody": "Încearcă din nou.",
-      "pendingPrinterName": "Imprimantă salvată (așteaptă heartbeat agent)"
+      "pendingPrinterName": "Imprimantă salvată (așteaptă heartbeat agent)",
+      "autoRefreshHint": "Se verifică automat la fiecare 10 secunde până apare o imprimantă raportată de agent."
     }
   },
   "feedbackModal": {

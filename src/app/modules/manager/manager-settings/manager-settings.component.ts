@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { forkJoin, of } from 'rxjs';
+import { forkJoin, interval, of, Subscription } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
@@ -53,8 +53,11 @@ export interface PrinterAgentEnrollmentCodeRow {
     TranslocoPipe
   ]
 })
-export class ManagerSettingsComponent implements OnInit {
+export class ManagerSettingsComponent implements OnInit, OnDestroy {
   private readonly apiUrl = environment.apiUrl;
+  private static readonly billPrinterPollIntervalMs = 10_000;
+
+  private billPrinterPollSub: Subscription | null = null;
   readonly printerAgentDownloadUrl = environment.printerAgentDownloadUrl?.trim() ?? '';
 
   readonly fallbackCurrencies = Object.values(Currency) as string[];
@@ -81,6 +84,8 @@ export class ManagerSettingsComponent implements OnInit {
 
   billPrinters: PrinterAgentPrinterDto[] = [];
   loadingBillPrinters = false;
+  /** True while polling every 10s until at least one agent printer is returned. */
+  billPrintersAutoRefreshActive = false;
   savingDefaultBillPrinter = false;
   defaultBillPrinterId: string | null = null;
 
@@ -110,6 +115,10 @@ export class ManagerSettingsComponent implements OnInit {
     this.loadEnrollmentCodes();
     this.loadStripeConnectStatus();
     this.loadBillPrinters();
+  }
+
+  ngOnDestroy(): void {
+    this.stopBillPrinterPolling();
   }
 
   get isManager(): boolean {
@@ -327,10 +336,16 @@ export class ManagerSettingsComponent implements OnInit {
   }
 
   loadBillPrinters(): void {
+    this.fetchBillPrinters({ silent: false });
+  }
+
+  private fetchBillPrinters(options: { silent: boolean }): void {
     const rid = this.restaurantId;
     if (!rid) return;
 
-    this.loadingBillPrinters = true;
+    if (!options.silent) {
+      this.loadingBillPrinters = true;
+    }
 
     forkJoin({
       printers: this.printJobs.listAgentPrinters(rid).pipe(
@@ -347,11 +362,34 @@ export class ManagerSettingsComponent implements OnInit {
         this.billPrinters = printers ?? [];
         this.defaultBillPrinterId = defaults?.defaultBillPrinterId ?? null;
         this.loadingBillPrinters = false;
+
+        if (options.silent && this.billPrinters.length > 0) {
+          this.stopBillPrinterPolling();
+        }
+        if (!options.silent && this.billPrinters.length === 0) {
+          this.startBillPrinterPolling();
+        }
       },
       error: () => {
         this.loadingBillPrinters = false;
       }
     });
+  }
+
+  private startBillPrinterPolling(): void {
+    if (this.billPrinterPollSub || !this.restaurantId) {
+      return;
+    }
+    this.billPrintersAutoRefreshActive = true;
+    this.billPrinterPollSub = interval(ManagerSettingsComponent.billPrinterPollIntervalMs).subscribe(() => {
+      this.fetchBillPrinters({ silent: true });
+    });
+  }
+
+  private stopBillPrinterPolling(): void {
+    this.billPrinterPollSub?.unsubscribe();
+    this.billPrinterPollSub = null;
+    this.billPrintersAutoRefreshActive = false;
   }
 
   saveDefaultBillPrinter(): void {
