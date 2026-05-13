@@ -5,6 +5,48 @@
   </c-tabs-list>
   <c-tabs-content>
     <c-tab-panel class="p-3" [itemKey]="0">
+      <form [formGroup]="presentationForm" class="mb-4 p-3 border rounded">
+        <h6 class="mb-2">{{ 'menu.manageMenu.presentationTitle' | transloco }}</h6>
+        <p class="text-muted small">{{ 'menu.manageMenu.presentationHelp' | transloco }}</p>
+        <div class="row g-2 align-items-end">
+          <div class="col-md-8">
+            <label cLabel for="menuPresentationMode">{{ 'menu.manageMenu.modeLabel' | transloco }}</label>
+            <select formControlName="menuPresentationMode" cFormControl id="menuPresentationMode" cSelect>
+              <option value="fixed">{{ 'menu.manageMenu.modeNormal' | transloco }}</option>
+              <option value="daily">{{ 'menu.manageMenu.modeDaily' | transloco }}</option>
+              <option value="weekly">{{ 'menu.manageMenu.modeWeekly' | transloco }}</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <button type="button" class="btn btn-outline-primary w-100" (click)="savePresentation()">
+              {{ 'menu.manageMenu.savePresentation' | transloco }}
+            </button>
+          </div>
+        </div>
+      </form>
+      <form *ngIf="selectedPresentationMode === 'weekly'" [formGroup]="weeklyDayForm" class="mb-3">
+        <label class="form-label small">{{ 'menu.manageMenu.weeklyDayPicker' | transloco }}</label>
+        <c-button-group role="group" class="d-flex flex-wrap">
+          <ng-container *ngFor="let d of weekdayIndexes">
+            <input
+              class="btn-check"
+              formControlName="selectedWeekday"
+              type="radio"
+              [value]="d"
+              [id]="'wd-' + d"
+            />
+            <label
+              [for]="'wd-' + d"
+              cButton
+              cFormCheckLabel
+              variant="outline"
+              (click)="setWeeklyDay(d)"
+            >
+              {{ weekdayLabel(d) }}
+            </label>
+          </ng-container>
+        </c-button-group>
+      </form>
       <c-accordion [flush]="true">
         <c-accordion-item
           *ngFor="let cat of categories"
@@ -33,6 +75,12 @@
                     <strong>{{ item.menuItemName }}</strong>
                     <span *ngIf="item.isAvailable === false" class="badge bg-secondary ms-2">
                       {{ 'menu.availability.unavailableBadge' | transloco }}
+                    </span>
+                    <span *ngIf="(item.menuItemScheduleKind || '').toLowerCase() === 'dated'" class="badge bg-info text-dark ms-1">
+                      {{ 'menu.manageMenu.badgeDated' | transloco }}{{ item.scheduledOnDate ? ': ' + item.scheduledOnDate : '' }}
+                    </span>
+                    <span *ngIf="(item.menuItemScheduleKind || '').toLowerCase() === 'weekday'" class="badge bg-info text-dark ms-1">
+                      {{ weekdayLabel(item.scheduledWeekday ?? 0) }}
                     </span>
                     <span class="text-muted">
                       ({{
@@ -138,6 +186,20 @@
             type="number"
           />
         </div>
+        <div class="mb-3" *ngIf="selectedPresentationMode === 'fixed'">
+          <span class="form-text">{{ 'menu.manageMenu.schedulePermanent' | transloco }}</span>
+        </div>
+        <div class="mb-3" *ngIf="selectedPresentationMode === 'daily'">
+          <p class="form-text text-muted mb-0">
+            {{ 'menu.manageMenu.scheduleDatedTodayHint' | transloco }} ({{ localTodayIso() }})
+          </p>
+        </div>
+        <div class="mb-3" *ngIf="selectedPresentationMode === 'weekly'">
+          <p class="form-text text-muted mb-0">
+            {{ 'menu.manageMenu.scheduleWeekdaySelectedHint' | transloco }}
+            {{ weekdayLabel(selectedWeeklyDay) }}
+          </p>
+        </div>
         <div class="mb-3">
           <label cLabel for="menuItemDescription">Description</label>
           <input
@@ -190,6 +252,23 @@
       <div class="mb-3">
         <label cLabel for="menuItemPriceAmountEdit">Price</label>
         <input formControlName="menuItemPriceAmount" cFormControl id="menuItemPriceAmountEdit" type="number" />
+      </div>
+      <div class="mb-3" *ngIf="selectedPresentationMode === 'fixed'">
+        <span class="form-text">{{ 'menu.manageMenu.schedulePermanent' | transloco }}</span>
+      </div>
+      <div class="mb-3" *ngIf="selectedPresentationMode === 'daily'">
+        <p class="form-text text-muted mb-0">
+          {{ 'menu.manageMenu.scheduleDatedTodayHint' | transloco }} ({{ localTodayIso() }})
+        </p>
+      </div>
+      <div class="mb-3" *ngIf="selectedPresentationMode === 'weekly'">
+        <label cLabel for="scheduledWeekdayEdit">{{ 'menu.manageMenu.scheduledWeekday' | transloco }}</label>
+        <select formControlName="scheduledWeekday" cFormControl id="scheduledWeekdayEdit" cSelect>
+          <option value="" disabled>{{ 'menu.manageMenu.scheduledWeekday' | transloco }}</option>
+          <option *ngFor="let d of weekdayIndexes" [value]="d">
+            {{ weekdayLabel(d) }}
+          </option>
+        </select>
       </div>
       <div class="mb-3">
         <label cLabel for="menuItemDescriptionEdit">Description</label>

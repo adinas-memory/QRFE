@@ -1,5 +1,11 @@
 <div class="menu-modern">
-<c-tabs [activeItemKey]="0">
+  <div *ngIf="nonEmptyCategories.length === 0 && emptyGuestMessageKey" class="alert alert-info m-3" role="status">
+    {{ emptyGuestMessageKey | transloco }}
+  </div>
+  <p *ngIf="nonEmptyCategories.length > 0 && (activeGuestView === 'daily' || activeGuestView === 'weekly')" class="text-muted small px-3 mb-0">
+    {{ 'menu.guest.todaysMenuHint' | transloco }}
+  </p>
+<c-tabs [activeItemKey]="0" *ngIf="nonEmptyCategories.length > 0">
   <c-tabs-list variant="tabs" class="c-tabs-custom d-flex flex-row flex-nowrap overflow-x-auto overflow-y-hidden">
     <button
       *ngFor="let cat of nonEmptyCategories; let i = index"

@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment';
 import { Observable } from 'rxjs';
-import { MenuItem, MenuResponse } from '../../models/menu/menuItem';
-import { HttpClient } from '@angular/common/http';
+import { MenuItem, MenuManagementResponse, MenuResponse } from '../../models/menu/menuItem';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { MenuItemEntity, OfflineDbService } from '../../offline/offline-db';
 
@@ -17,6 +17,29 @@ export class MenuItemServiceService {
 
   getAll(restaurantId: string): Observable<MenuResponse> {
     return this.http.get<MenuResponse>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/menu`, { withCredentials: true });
+  }
+
+  /** Filtered menu for manager UI + saved presentation mode from DB. */
+  getManagementMenu(restaurantId: string, clientDate: string, viewAs?: string): Observable<MenuManagementResponse> {
+    let params = new HttpParams().set('clientDate', clientDate);
+    if (viewAs) {
+      params = params.set('viewAs', viewAs);
+    }
+    return this.http.get<MenuManagementResponse>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/admin/menu/management`,
+      { params, withCredentials: true }
+    );
+  }
+
+  updateMenuPresentation(
+    restaurantId: string,
+    body: { menuPresentationMode: string }
+  ): Observable<{ menuPresentationMode: string }> {
+    return this.http.patch<{ menuPresentationMode: string }>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/admin/menu-presentation`,
+      body,
+      { withCredentials: true }
+    );
   }
 
   create(restaurantId: string, formData: FormData): Observable<MenuItem> {

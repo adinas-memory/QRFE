@@ -64,6 +64,46 @@
         "toastUnavailable": "Artikeln markerad som ej tillgänglig.",
         "toastError": "Kunde inte uppdatera tillgänglighet. Försök igen."
       }
+    },
+    "manageMenu": {
+      "presentationTitle": "How guests see the menu",
+      "modeLabel": "Display mode",
+      "presentationHelp": "Normal (à la carte): rätter som alltid finns på menyn. Dagens / veckomeny: endast rätter schemalagda för idag eller vald veckodag (enhetens datum).",
+      "modeNormal": "Normal meny (à la carte)",
+      "modeDaily": "Dagens meny",
+      "modeWeekly": "Veckomeny",
+      "savePresentation": "Spara menyläge",
+      "toastPresentationSaved": "Display settings saved.",
+      "toastPresentationError": "Could not save display settings.",
+      "scheduleTitle": "When to show this dish",
+      "schedulePermanent": "Always on the menu",
+      "scheduleDated": "Only on a specific date",
+      "scheduleWeekday": "Every week on…",
+      "scheduledDate": "Date",
+      "scheduledWeekday": "Weekday",
+      "scheduleHint": "Choose how this row appears to guests according to your restaurant display mode.",
+      "badgeDated": "Dated",
+      "badgeWeekday": "Weekly",
+      "weeklyDayPicker": "Veckodag",
+      "scheduleWeekdaySelectedHint": "Nya rätter läggs till för",
+      "weekdays": {
+        "0": "Söndag",
+        "1": "Måndag",
+        "2": "Tisdag",
+        "3": "Onsdag",
+        "4": "Torsdag",
+        "5": "Fredag",
+        "6": "Lördag"
+      }
+    },
+    "guest": {
+      "emptyNoItemsForToday": "No dishes are scheduled for today.",
+      "emptyNoItemsForWeekday": "No dishes are scheduled for this weekday.",
+      "emptyNoMenuItems": "No menu items are available right now.",
+      "todaysMenuHint": "Today's selection",
+      "dailyMenuButton": "Today's menu",
+      "weeklyMenuButton": "Weekly menu",
+      "backToMainMenu": "Back to menu"
     }
   },
   "pricing": {
@@ -417,6 +457,10 @@
         "aIntro": "Printer Agent körs på en Windows x64-dator i restaurangen, pratar med backend och rapporterar skrivare via heartbeat. Efter installation: skapa en registreringskod under Manager → Inställningar (Printer agent) och slutför konfigurationen på den datorn.",
         "linkLabel": "Ladda ner senaste Windows x64 (ZIP)",
         "linkUnset": "Nedladdnings-URL är inte konfigurerad — fråga administratören eller öppna organisationens Printer Agent GitHub Releases."
+      },
+      "printerAgentReconnectAfterNetwork": {
+        "q": "Kvitto-/räkningsutskrift eller Printer Agent slutade fungera efter att Wi‑Fi eller hotspot tappats. Måste jag starta om datorn?",
+        "a": "Oftast inte. Starta om Windows-tjänsten URS Printer Agent först (services.msc) — det startar om agentprocessen och återansluter till backend och Redis. Om agenten använder en WireGuard-VPN-tunnel: starta om WireGuard-tunneltjänsten för din tunnel, vänta tills den är aktiv och starta sedan URS Printer Agent igen så att tunneln är klar före anslutningen. Starta om hela datorn först om stegen inte hjälper — det nollställer hela nätverksstacken och alla tjänster."
       },
       "byodStaffDevices": {
         "q": "Kan personal använda egna telefoner eller surfplattor?",

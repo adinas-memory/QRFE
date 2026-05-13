@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import {
   BadgeComponent, ButtonDirective, ContainerComponent, FooterComponent,
@@ -8,6 +8,7 @@ import {
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { MenuService, PublicRestaurantSseEvent } from '../../../core/services/menu-public/menu.service';
+import { GuestMenuViewService } from '../../../core/services/menu-public/guest-menu-view.service';
 import { MenuResponse, WaiterCallResponse } from '../../../core/models/menu/menuItem';
 import { OrderDTO } from '../../../core/models/orderingModel';
 import { NgClass } from '@angular/common';
@@ -67,7 +68,25 @@ export class PublicLayoutComponent implements OnInit, OnDestroy {
     private router: Router,
     private menuService: MenuService,
     private transloco: TranslocoService,
+    readonly guestMenuView: GuestMenuViewService,
+    private cdr: ChangeDetectorRef,
   ) {}
+
+  get showAlternateMenuButtons(): boolean {
+    return this.guestMenuView.isOnDefaultView && this.guestMenuView.alternateGuestViews.length > 0;
+  }
+
+  get showBackToMainMenu(): boolean {
+    return !this.guestMenuView.isOnDefaultView;
+  }
+
+  openAlternateView(view: string): void {
+    this.guestMenuView.loadView(view).subscribe();
+  }
+
+  backToMainMenu(): void {
+    this.guestMenuView.showDefault().subscribe();
+  }
 
   viewOrder(): void {
     const rid = this.restaurantId || this.route.snapshot.paramMap.get('restaurantId');
@@ -77,6 +96,12 @@ export class PublicLayoutComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.theme = (localStorage.getItem('publicTheme') as 'dark' | 'light') || 'dark';
+
+    this.guestMenuView.menuState$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.cdr.detectChanges();
+      });
 
     fromEvent(document, 'visibilitychange')
       .pipe(takeUntil(this.destroy$))

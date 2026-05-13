@@ -7,6 +7,10 @@ export interface MenuItem {
   menuItemPriceCurrency?: string;
   menuItemIconUrl?: string;
   isAvailable?: boolean;
+  /** Backend: `Permanent` | `Dated` | `Weekday` (JSON string enum). */
+  menuItemScheduleKind?: string;
+  scheduledOnDate?: string | null;
+  scheduledWeekday?: number | string | null;
 }
 
 export interface MenuResponse {
@@ -17,6 +21,21 @@ export interface MenuResponse {
   waiterCallCount: number;
   categories: string[];
   restaurantName?: string;
+  menuPresentationMode?: string;
+  emptyReason?: string | null;
+  defaultGuestView?: string;
+  activeGuestView?: string;
+  alternateGuestViews?: string[];
+}
+
+/** `GET .../admin/menu/management` — full menu + presentation settings for the manager UI. */
+export interface MenuManagementResponse {
+  menu: {
+    menuId: string;
+    menuItems: MenuItem[];
+  };
+  categories: string[];
+  menuPresentationMode: string;
 }
 
 export interface WaiterCallResponse {

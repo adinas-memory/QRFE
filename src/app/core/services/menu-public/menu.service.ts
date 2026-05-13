@@ -3,7 +3,7 @@ import { environment } from '../../../../environments/environment';
 import { Observable } from 'rxjs';
 import { MenuResponse, WaiterCallResponse } from '../../models/menu/menuItem';
 import { OrderDTO } from '../../models/orderingModel';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 
 /** Events delivered on `/sse/public/restaurant/{restaurantId}` (see backend `SseAudience.Public`). */
 export type PublicRestaurantSseEvent =
@@ -22,8 +22,21 @@ export class MenuService {
 
   constructor(private http: HttpClient, private ngZone: NgZone) { }
   
-  getAll(restaurantId: string, tableId: string): Observable<MenuResponse> {
-    return this.http.get<MenuResponse>(`${this.apiUrl}/api/public/${restaurantId}/menu/${tableId}`, { withCredentials: true });
+  getAll(
+    restaurantId: string,
+    tableId: string,
+    opts?: { clientDate?: string; viewAs?: string }
+  ): Observable<MenuResponse> {
+    let params = new HttpParams();
+    const clientDate = opts?.clientDate ?? new Date().toLocaleDateString('en-CA');
+    params = params.set('clientDate', clientDate);
+    if (opts?.viewAs) {
+      params = params.set('viewAs', opts.viewAs);
+    }
+    return this.http.get<MenuResponse>(
+      `${this.apiUrl}/api/public/${restaurantId}/menu/${tableId}`,
+      { params, withCredentials: true }
+    );
   }
 
   callWaiter(restaurantId: string, tableId: string): Observable<WaiterCallResponse> {

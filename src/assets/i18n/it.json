@@ -64,6 +64,46 @@
         "toastUnavailable": "Articolo segnato come non disponibile.",
         "toastError": "Impossibile aggiornare la disponibilità. Riprova."
       }
+    },
+    "manageMenu": {
+      "presentationTitle": "How guests see the menu",
+      "modeLabel": "Display mode",
+      "presentationHelp": "Normale (à la carte): piatti sempre in carta. Menu del giorno / settimanale: solo piatti programmati per oggi o il giorno scelto (data del dispositivo).",
+      "modeNormal": "Menu normale (à la carte)",
+      "modeDaily": "Menu del giorno",
+      "modeWeekly": "Menu settimanale",
+      "savePresentation": "Salva modalità menu",
+      "toastPresentationSaved": "Display settings saved.",
+      "toastPresentationError": "Could not save display settings.",
+      "scheduleTitle": "When to show this dish",
+      "schedulePermanent": "Always on the menu",
+      "scheduleDated": "Only on a specific date",
+      "scheduleWeekday": "Every week on…",
+      "scheduledDate": "Date",
+      "scheduledWeekday": "Weekday",
+      "scheduleHint": "Choose how this row appears to guests according to your restaurant display mode.",
+      "badgeDated": "Dated",
+      "badgeWeekday": "Weekly",
+      "weeklyDayPicker": "Giorno della settimana",
+      "scheduleWeekdaySelectedHint": "I nuovi piatti vengono aggiunti per",
+      "weekdays": {
+        "0": "Domenica",
+        "1": "Lunedì",
+        "2": "Martedì",
+        "3": "Mercoledì",
+        "4": "Giovedì",
+        "5": "Venerdì",
+        "6": "Sabato"
+      }
+    },
+    "guest": {
+      "emptyNoItemsForToday": "No dishes are scheduled for today.",
+      "emptyNoItemsForWeekday": "No dishes are scheduled for this weekday.",
+      "emptyNoMenuItems": "No menu items are available right now.",
+      "todaysMenuHint": "Today's selection",
+      "dailyMenuButton": "Today's menu",
+      "weeklyMenuButton": "Weekly menu",
+      "backToMainMenu": "Back to menu"
     }
   },
   "pricing": {
@@ -417,6 +457,10 @@
         "aIntro": "Printer Agent gira su un PC Windows x64 in sede, parla con il backend e segnala le stampanti tramite heartbeat. Dopo l’installazione genera un codice di enrollment in Manager → Impostazioni (sezione Printer agent) e completa la configurazione su quel PC.",
         "linkLabel": "Scarica l’ultima build Windows x64 (ZIP)",
         "linkUnset": "URL di download non configurato — chiedi all’amministratore o apri la pagina GitHub Releases di Printer Agent."
+      },
+      "printerAgentReconnectAfterNetwork": {
+        "q": "La stampa del conto o Printer Agent non funziona più dopo un calo di Wi‑Fi o dell’hotspot. Devo riavviare il PC?",
+        "a": "Di solito no. Prima riavvia il servizio Windows URS Printer Agent (services.msc): riavvia il processo dell’agente e si riconnette a backend e Redis. Se l’agente usa un tunnel VPN WireGuard, riavvia il servizio tunnel WireGuard del tuo tunnel, attendi che sia attivo, poi riavvia di nuovo URS Printer Agent così il tunnel è pronto prima della connessione. Riavvia l’intero PC solo se quei passaggi non bastano: azzera l’intero stack di rete e i servizi."
       },
       "byodStaffDevices": {
         "q": "Il personale può usare telefoni o tablet propri?",

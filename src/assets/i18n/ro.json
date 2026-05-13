@@ -64,6 +64,47 @@
         "toastUnavailable": "Produs marcat ca indisponibil.",
         "toastError": "Nu s-a putut actualiza disponibilitatea. Încearcă din nou."
       }
+    },
+    "manageMenu": {
+      "presentationTitle": "Cum văd clienții meniul",
+      "modeLabel": "Mod afișare",
+      "presentationHelp": "Normal (à la carte): feluri mereu în meniu. Meniul zilei / săptămânal: doar felurile programate pentru astăzi sau ziua selectată (data dispozitivului).",
+      "modeNormal": "Normal (à la carte)",
+      "modeDaily": "Meniul zilei",
+      "modeWeekly": "Meniul săptămânal",
+      "savePresentation": "Salvează modul meniului",
+      "toastPresentationSaved": "Modul de afișare a fost salvat.",
+      "toastPresentationError": "Nu s-au putut salva setările de afișare.",
+      "scheduleTitle": "Când apare felul",
+      "schedulePermanent": "Mereu în meniu",
+      "scheduleDated": "Doar într-o anumită dată",
+      "scheduleWeekday": "În fiecare săptămână, în ziua…",
+      "scheduledDate": "Data",
+      "scheduledWeekday": "Ziua săptămânii",
+      "scheduleHint": "Alege cum apare acest rând clienților, în funcție de modul setat la restaurant.",
+      "scheduleDatedTodayHint": "Apare doar în meniul de azi",
+      "badgeDated": "Pe dată",
+      "badgeWeekday": "Săptămânal",
+      "weeklyDayPicker": "Ziua săptămânii",
+      "scheduleWeekdaySelectedHint": "Felurile noi se adaugă pentru",
+      "weekdays": {
+        "0": "Duminică",
+        "1": "Luni",
+        "2": "Marți",
+        "3": "Miercuri",
+        "4": "Joi",
+        "5": "Vineri",
+        "6": "Sâmbătă"
+      }
+    },
+    "guest": {
+      "emptyNoItemsForToday": "Nu există feluri programate pentru astăzi.",
+      "emptyNoItemsForWeekday": "Nu există feluri programate pentru această zi a săptămânii.",
+      "emptyNoMenuItems": "Nu există feluri disponibile în meniu momentan.",
+      "todaysMenuHint": "Selecția zilei",
+      "dailyMenuButton": "Meniu zilei",
+      "weeklyMenuButton": "Meniu săptămânal",
+      "backToMainMenu": "Înapoi la meniu"
     }
   },
   "pricing": {
@@ -476,6 +517,10 @@
         "aIntro": "Printer Agent rulează pe un PC Windows x64 la restaurant, comunică cu backend-ul și raportează imprimantele prin heartbeat. După instalare, generează un cod de înrolare din Manager → Setări (secțiunea Printer agent) și finalizează configurarea pe acel calculator.",
         "linkLabel": "Descarcă ultima versiune Windows x64 (ZIP)",
         "linkUnset": "Linkul de descărcare nu este configurat pentru acest mediu — întreabă administratorul sau deschide pagina de Releases GitHub a Printer Agent."
+      },
+      "printerAgentReconnectAfterNetwork": {
+        "q": "Nota de plată sau Printer Agent nu mai merg după ce Wi‑Fi-ul sau hotspot-ul a picat. Trebuie să repornesc PC-ul?",
+        "a": "De obicei nu. Repornește mai întâi serviciul Windows URS Printer Agent (services.msc) — repornește procesul agentului și reconectează la backend și Redis. Dacă agentul folosește tunel VPN WireGuard, repornește serviciul de tunel WireGuard pentru tunelul tău, așteaptă să fie activ, apoi repornește din nou URS Printer Agent, ca tunelul să fie gata înainte de conexiunea agentului. Repornirea întregului PC doar dacă pașii de mai sus nu rezolvă — resetează stiva de rețea și toate serviciile."
       },
       "byodStaffDevices": {
         "q": "Personalul poate folosi propriile telefoane sau tablete?",

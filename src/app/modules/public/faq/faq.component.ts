@@ -16,6 +16,7 @@ const FAQ_ITEM_IDS = [
   'pwaSupportedBrowsers',
   'settingsCurrencyBeforeUse',
   'printerAgentDownload',
+  'printerAgentReconnectAfterNetwork',
   'byodStaffDevices',
   'qrSignedSecurity',
   'bookingsSlotDuration',

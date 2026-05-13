@@ -59,11 +59,18 @@
   margin-left: 0.5rem;
 }
 
-.my-order-topbar {
+.topbar-ghost-btn {
   white-space: nowrap;
-  margin-right: 0.75rem;
   border: none !important;
   color: rgba(255, 255, 255, 0.85);
+}
+
+[data-coreui-theme="light"] .topbar-ghost-btn {
+  color: #212529;
+}
+
+.my-order-topbar {
+  margin-right: 0.75rem;
 }
 
 .my-order-badge {
@@ -71,10 +78,6 @@
   min-width: 1.15rem;
   padding: 0.2em 0.45em;
   vertical-align: middle;
-}
-
-[data-coreui-theme="light"] .my-order-topbar {
-  color: #212529;
 }
 
 .call-waiter-topbar {
