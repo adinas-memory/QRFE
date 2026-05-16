@@ -6,14 +6,14 @@ import { MenuService } from './menu.service';
 @Injectable({ providedIn: 'root' })
 export class GuestMenuViewService {
   private readonly response$ = new BehaviorSubject<MenuResponse | null>(null);
+  private readonly viewTick$ = new BehaviorSubject(0);
 
   restaurantId = '';
   tableId = '';
-  defaultGuestView = 'fixed';
-  currentView = 'fixed';
-  alternateGuestViews: string[] = [];
+  showingSetMenuView = false;
 
   readonly menuState$ = this.response$.asObservable();
+  readonly viewState$ = this.viewTick$.asObservable();
 
   constructor(private menuService: MenuService) {}
 
@@ -33,14 +33,18 @@ export class GuestMenuViewService {
     return this.response$.value?.emptyReason;
   }
 
-  get activeGuestView(): string {
-    return this.response$.value?.activeGuestView
-      ?? this.response$.value?.menuPresentationMode
-      ?? 'fixed';
+  get todaySetMenu() {
+    return this.response$.value?.todaySetMenu ?? null;
   }
 
-  get isOnDefaultView(): boolean {
-    return this.currentView === this.defaultGuestView;
+  showSetMenuView(): void {
+    this.showingSetMenuView = true;
+    this.viewTick$.next(this.viewTick$.value + 1);
+  }
+
+  hideSetMenuView(): void {
+    this.showingSetMenuView = false;
+    this.viewTick$.next(this.viewTick$.value + 1);
   }
 
   initFromResponse(response: MenuResponse, restaurantId: string, tableId: string): void {
@@ -49,22 +53,14 @@ export class GuestMenuViewService {
     this.applyResponse(response);
   }
 
-  loadView(viewAs: string): Observable<MenuResponse> {
-    return this.menuService
-      .getAll(this.restaurantId, this.tableId, { viewAs })
-      .pipe(tap(response => this.applyResponse(response)));
-  }
-
   showDefault(): Observable<MenuResponse> {
+    this.showingSetMenuView = false;
     return this.menuService
       .getAll(this.restaurantId, this.tableId)
       .pipe(tap(response => this.applyResponse(response)));
   }
 
   private applyResponse(response: MenuResponse): void {
-    this.defaultGuestView = (response.defaultGuestView ?? response.menuPresentationMode ?? 'fixed').toLowerCase();
-    this.currentView = (response.activeGuestView ?? response.menuPresentationMode ?? this.defaultGuestView).toLowerCase();
-    this.alternateGuestViews = (response.alternateGuestViews ?? []).map(v => v.toLowerCase());
     this.response$.next(response);
   }
 }

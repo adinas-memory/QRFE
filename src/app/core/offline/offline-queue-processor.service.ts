@@ -2,7 +2,7 @@ import { Injectable } from "@angular/core";
 import { OrdersService } from "../services/order-service/orders.service";
 import { OfflineAction, OfflineDbService } from "./offline-db";
 import { debounceTime, distinctUntilChanged, filter, firstValueFrom, Subject } from "rxjs";
-import { CartItem, OrderItemDTO } from "../models/orderingModel";
+import { CartItem, OrderItemDTO, cartItemFromOrderLine } from "../models/orderingModel";
 import { OnlineStateService } from "./online-state-service";
 import { AuthService } from "../auth/auth.service";
 import { AppToastService } from "../services/toast-service/toast-service.service";
@@ -387,19 +387,8 @@ export class OfflineQueueProcessor {
             (o): o is OrderItemDTO => o !== null
         );
 
-        const items: CartItem[] = safeItems.map(o => ({
-            item: {
-                menuItemId: o.menuItemId,
-                menuItemName: o.orderItemName,
-                menuItemDescription: o.orderItemDescription,
-                menuItemPriceAmount: o.orderItemPriceAmount ?? 0,
-                menuItemPriceCurrency: o.orderItemPriceCurrency,
-                menuItemIconUrl: undefined,
-                category: o.category
-            },
-            quantity: o.quantity,
-            orderItemId: o.orderItemId
-        }));
+        const { menuItems } = await this.offlineDB.loadMenu();
+        const items: CartItem[] = safeItems.map(o => cartItemFromOrderLine(o, menuItems));
         await this.offlineDB.saveCart(tableId, items, orderId);
     }
 

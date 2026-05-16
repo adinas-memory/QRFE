@@ -89,9 +89,6 @@ export class AuthService {
 
   // --- Session management ---
   setUser(user: UserContextModel): void {
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e3ccb5'},body:JSON.stringify({sessionId:'e3ccb5',runId:'pre-fix',hypothesisId:'H1',location:'auth.service.ts:95',message:'setUser()',data:{hasUser:!!user,hasRestaurantName:!!user?.restaurantName,restaurantNameLen:(user?.restaurantName?.length ?? 0),role:user?.role ?? null,hasRestaurantId:!!user?.restaurantId},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion agent log
     const wasLoggedOut = !this.userSubject.value;  // era delogat înainte?
     this.userSubject.next(user);
     localStorage.setItem('UserCtx', JSON.stringify(user));
@@ -108,16 +105,10 @@ export class AuthService {
       type: this.userSubject.value?.restaurantType ?? ''
     };
 
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e3ccb5'},body:JSON.stringify({sessionId:'e3ccb5',runId:'pre-fix',hypothesisId:'H1',location:'auth.service.ts:114',message:'setRestaurantCtx()',data:{ctxNameTruthy:!!ctx.name,ctxNameLen:ctx.name.length,ctxTypeTruthy:!!ctx.type},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion agent log
     localStorage.setItem('RestaurantCtx', JSON.stringify(ctx));
   }
 
   clearRestaurantCtx(): void {
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e3ccb5'},body:JSON.stringify({sessionId:'e3ccb5',runId:'pre-fix',hypothesisId:'H2',location:'auth.service.ts:122',message:'clearRestaurantCtx()',data:{},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion agent log
     localStorage.removeItem('RestaurantCtx');
   }
 
@@ -134,9 +125,6 @@ export class AuthService {
 
 
   clearUser(): void {
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e3ccb5'},body:JSON.stringify({sessionId:'e3ccb5',runId:'pre-fix',hypothesisId:'H2',location:'auth.service.ts:139',message:'clearUser()',data:{},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion agent log
     this.userSubject.next(null);
     localStorage.removeItem('UserCtx');
   }
@@ -146,27 +134,18 @@ export class AuthService {
     if (raw) {
       try {
         const user = JSON.parse(raw) as UserContextModel;
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e3ccb5'},body:JSON.stringify({sessionId:'e3ccb5',runId:'pre-fix',hypothesisId:'H3',location:'auth.service.ts:152',message:'restoreSession(): parsed UserCtx',data:{hasRestaurantName:!!user?.restaurantName,restaurantNameLen:(user?.restaurantName?.length ?? 0),role:user?.role ?? null,hasRestaurantId:!!user?.restaurantId},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion agent log
         this.userSubject.next(user);
         localStorage.setItem('UserCtx', JSON.stringify(user));
         this.setRestaurantCtx();
         return of(user);
       } catch {
         console.warn('[AuthService] Failed to parse UserCtx');
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e3ccb5'},body:JSON.stringify({sessionId:'e3ccb5',runId:'pre-fix',hypothesisId:'H3',location:'auth.service.ts:160',message:'restoreSession(): parse failed',data:{rawLen:raw.length},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion agent log
         this.userSubject.next(null);
         this.clearRestaurantCtx();
         return of(null);
       }
     }
 
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e3ccb5'},body:JSON.stringify({sessionId:'e3ccb5',runId:'pre-fix',hypothesisId:'H3',location:'auth.service.ts:172',message:'restoreSession(): no UserCtx in storage',data:{},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion agent log
     this.userSubject.next(null);
     this.clearRestaurantCtx();
     return of(null);
@@ -174,20 +153,11 @@ export class AuthService {
   // --- Refresh from backend ---
 
   pingSession(isPublic: boolean = false): Observable<UserContextModel | null> {
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e3ccb5'},body:JSON.stringify({sessionId:'e3ccb5',runId:'pre-fix',hypothesisId:'H1',location:'auth.service.ts:182',message:'pingSession(): request',data:{isPublic},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion agent log
     return this.http.get<UserContextModel>(`${this.apiUrl}/api/user/ping`, { withCredentials: true }).pipe(
       tap(user => {
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e3ccb5'},body:JSON.stringify({sessionId:'e3ccb5',runId:'pre-fix',hypothesisId:'H1',location:'auth.service.ts:186',message:'pingSession(): success',data:{hasRestaurantName:!!user?.restaurantName,restaurantNameLen:(user?.restaurantName?.length ?? 0),role:user?.role ?? null,hasRestaurantId:!!user?.restaurantId},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion agent log
         this.setUser(user);
       }),
       catchError((error: HttpErrorResponse) => {
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e3ccb5'},body:JSON.stringify({sessionId:'e3ccb5',runId:'pre-fix',hypothesisId:'H2',location:'auth.service.ts:193',message:'pingSession(): error',data:{status:error.status,isPublic},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion agent log
         if (error.status === 401 && !isPublic) {
           return this.refreshUserContext().pipe(
             tap(user => {
@@ -205,20 +175,11 @@ export class AuthService {
   }
 
   refreshUserContext() {
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e3ccb5'},body:JSON.stringify({sessionId:'e3ccb5',runId:'pre-fix',hypothesisId:'H2',location:'auth.service.ts:214',message:'refreshUserContext(): request',data:{},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion agent log
     return this.http.post<UserContextModel>(`${this.apiUrl}/api/user/refresh-token`, {}, { withCredentials: true }).pipe(
       tap(user => {
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e3ccb5'},body:JSON.stringify({sessionId:'e3ccb5',runId:'pre-fix',hypothesisId:'H1',location:'auth.service.ts:218',message:'refreshUserContext(): success',data:{hasRestaurantName:!!user?.restaurantName,restaurantNameLen:(user?.restaurantName?.length ?? 0),role:user?.role ?? null,hasRestaurantId:!!user?.restaurantId},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion agent log
         this.setUser(user);
       }),
       catchError(err => {
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e3ccb5'},body:JSON.stringify({sessionId:'e3ccb5',runId:'pre-fix',hypothesisId:'H2',location:'auth.service.ts:223',message:'refreshUserContext(): error',data:{},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion agent log
         console.error('Refresh failed', err);
         this.clearUser();
         this.router.navigate(['/login']);

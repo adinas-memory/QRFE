@@ -66,15 +66,13 @@
       }
     },
     "manageMenu": {
-      "presentationTitle": "How guests see the menu",
-      "modeLabel": "Display mode",
-      "presentationHelp": "Normal (à la carte): rätter som alltid finns på menyn. Dagens / veckomeny: endast rätter schemalagda för idag eller vald veckodag (enhetens datum).",
-      "modeNormal": "Normal meny (à la carte)",
-      "modeDaily": "Dagens meny",
-      "modeWeekly": "Veckomeny",
+      "presentationTitle": "Hur gäster ser menyn",
+      "modeLabel": "Visningsläge",
+      "presentationHelp": "Välj vad du redigerar: à la carte-rätter (alltid på den offentliga menyn) eller dagens meny för varje veckodag.",
+      "modeNormal": "À la carte-meny",
       "savePresentation": "Spara menyläge",
-      "toastPresentationSaved": "Display settings saved.",
-      "toastPresentationError": "Could not save display settings.",
+      "toastPresentationSaved": "Visningsinställningar sparade.",
+      "toastPresentationError": "Kunde inte spara visningsinställningar.",
       "scheduleTitle": "When to show this dish",
       "schedulePermanent": "Always on the menu",
       "scheduleDated": "Only on a specific date",
@@ -94,16 +92,31 @@
         "4": "Torsdag",
         "5": "Fredag",
         "6": "Lördag"
-      }
+      },
+      "modeSetMenu": "Dagens meny",
+      "addMenuItem": "Lägg till rätt",
+      "hideAddItem": "Dölj formulär",
+      "weeklySetMenuListTitle": "Konfigurerade dagmenyer",
+      "weeklySetMenuEmpty": "Inga dagmenyer sparade för denna vecka ännu.",
+      "saveSetMenuDay": "Spara dag",
+      "setMenuTitleLabel": "Titel",
+      "setMenuPriceLabel": "Pris",
+      "setMenuPriceRequired": "Pris krävs (minst 0,01).",
+      "setMenuAvailableLabel": "Tillgänglig",
+      "setMenuLinesLabel": "Menyrader",
+      "addSetMenuLine": "+ Rad",
+      "setMenuLinePlaceholder": "Rad {{n}}",
+      "removeSetMenuLineAria": "Ta bort rad {{n}}"
     },
     "guest": {
-      "emptyNoItemsForToday": "No dishes are scheduled for today.",
-      "emptyNoItemsForWeekday": "No dishes are scheduled for this weekday.",
-      "emptyNoMenuItems": "No menu items are available right now.",
-      "todaysMenuHint": "Today's selection",
-      "dailyMenuButton": "Today's menu",
-      "weeklyMenuButton": "Weekly menu",
-      "backToMainMenu": "Back to menu"
+      "emptyNoItemsForToday": "Inga rätter schemalagda för idag.",
+      "emptyNoItemsForWeekday": "Inga rätter schemalagda för denna veckodag.",
+      "emptyNoMenuItems": "Inga rätter tillgängliga just nu.",
+      "setMenuToday": "Dagens meny",
+      "todaysMenuHint": "Dagens urval",
+      "dailyMenuButton": "Dagens meny",
+      "weeklyMenuButton": "Veckomeny",
+      "backToMainMenu": "Tillbaka till menyn"
     }
   },
   "pricing": {
@@ -541,4 +554,3 @@
     }
   }
 }
-

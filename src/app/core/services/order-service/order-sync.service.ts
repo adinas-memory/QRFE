@@ -242,20 +242,30 @@ export class OrderSyncService {
 
   private async syncRestaurantState(restaurantId: string): Promise<void> {
     const url = `${this.apiUrl.replace(/\/$/, '')}/api/sync?restaurantId=${encodeURIComponent(restaurantId)}`;
-    const res = await fetch(url, { method: 'GET', credentials: 'include' });
-    if (!res.ok) throw new Error(`Sync failed: HTTP ${res.status}`);
-    const json = await res.json() as any;
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch(url, { method: 'GET', credentials: 'include' });
+        if (!res.ok) throw new Error(`Sync failed: HTTP ${res.status}`);
+        const json = await res.json() as any;
 
-    // ASP.NET typically serializes to camelCase by default (restaurantId/tables/watermark).
-    // Accept both PascalCase and camelCase to avoid "empty snapshot" bugs.
-    const watermark = json?.Watermark ?? json?.watermark;
-    const seq = watermark?.Sequence ?? watermark?.sequence ?? 0;
-    if (typeof seq === 'number' && seq > this.watermarkSequence) {
-      this.watermarkSequence = seq;
+        const watermark = json?.Watermark ?? json?.watermark;
+        const seq = watermark?.Sequence ?? watermark?.sequence ?? 0;
+        if (typeof seq === 'number' && seq > this.watermarkSequence) {
+          this.watermarkSequence = seq;
+        }
+
+        const tables = (json?.Tables ?? json?.tables ?? []) as any[];
+        await this.offlineDB.applySyncSnapshot(tables as any);
+        return;
+      } catch (e) {
+        lastError = e;
+        if (attempt === 0) {
+          await new Promise(r => setTimeout(r, 400));
+        }
+      }
     }
-
-    const tables = (json?.Tables ?? json?.tables ?? []) as any[];
-    await this.offlineDB.applySyncSnapshot(tables as any);
+    throw lastError;
   }
 
   private bufferEvent(ev: SseEvent<any>) {

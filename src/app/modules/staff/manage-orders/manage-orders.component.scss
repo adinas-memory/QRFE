@@ -96,18 +96,75 @@
 .cart-scroll {
   max-height: 25vh;
   overflow-y: auto;
+  overflow-x: hidden;
 
-  table {
+  .cart-table {
     table-layout: fixed;
     width: 100%;
+  }
+
+  .cart-col-name {
+    width: 42%;
+  }
+
+  .cart-col-qty {
+    width: 14%;
+  }
+
+  .cart-col-price {
+    width: 24%;
+  }
+
+  .cart-col-actions {
+    width: 20%;
+  }
+
+  .cart-table--setmenu {
+    .cart-col-name {
+      width: 26%;
+    }
+
+    .cart-col-qty {
+      width: 10%;
+    }
+
+    .cart-col-price {
+      width: 22%;
+    }
+
+    .cart-col-actions {
+      width: 42%;
+    }
   }
 }
 
 .cart-item-name {
-  width: 42%;
   word-break: break-word;
   overflow-wrap: anywhere;
   vertical-align: middle;
+}
+
+.cart-item-name--setmenu {
+  overflow: hidden;
+  max-width: 0;
+}
+
+.cart-item-name__text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cart-item-actions {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.cart-row-setmenu .cart-item-actions .btn {
+  padding: 0.15rem 0.35rem;
+  line-height: 1.2;
+  min-width: 1.55rem;
 }
 
 /* Cart forces light text on black; reset for confirm box so text stays readable. */

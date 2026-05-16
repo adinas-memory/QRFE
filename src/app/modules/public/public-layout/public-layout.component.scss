@@ -59,6 +59,22 @@
   margin-left: 0.5rem;
 }
 
+.topbar-setmenu-actions {
+  flex-shrink: 0;
+}
+
+.topbar-vdivider {
+  align-self: stretch;
+  width: 1px;
+  min-height: 1.35rem;
+  margin: 0 0.65rem 0 0.35rem;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+[data-coreui-theme='light'] .topbar-vdivider {
+  background: rgba(0, 0, 0, 0.14);
+}
+
 .topbar-ghost-btn {
   white-space: nowrap;
   border: none !important;

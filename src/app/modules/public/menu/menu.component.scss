@@ -48,7 +48,17 @@
 
 /* ── Light theme ── */
 
+.set-menu-today {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
 :host-context([data-coreui-theme="light"]) {
+  .set-menu-today {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.1) !important;
+  }
+
   .menu-modern :host ::ng-deep .nav-tabs {
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   }

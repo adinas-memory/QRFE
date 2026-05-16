@@ -66,15 +66,13 @@
       }
     },
     "manageMenu": {
-      "presentationTitle": "How guests see the menu",
-      "modeLabel": "Display mode",
-      "presentationHelp": "Normal (à la carte): Gerichte, die immer auf der Karte stehen. Tages- / Wochenmenü: nur Gerichte für heute oder den gewählten Wochentag (Gerätedatum).",
-      "modeNormal": "Normales Menü (à la carte)",
-      "modeDaily": "Tagesmenü",
-      "modeWeekly": "Wochenmenü",
+      "presentationTitle": "So sehen Gäste die Speisekarte",
+      "modeLabel": "Anzeigemodus",
+      "presentationHelp": "Wählen Sie, was Sie bearbeiten: À-la-carte-Gerichte (immer auf der öffentlichen Karte) oder das Tagesmenü für jeden Wochentag.",
+      "modeNormal": "À-la-carte-Karte",
       "savePresentation": "Menümodus speichern",
-      "toastPresentationSaved": "Display settings saved.",
-      "toastPresentationError": "Could not save display settings.",
+      "toastPresentationSaved": "Anzeigeeinstellungen gespeichert.",
+      "toastPresentationError": "Anzeigeeinstellungen konnten nicht gespeichert werden.",
       "scheduleTitle": "When to show this dish",
       "schedulePermanent": "Always on the menu",
       "scheduleDated": "Only on a specific date",
@@ -94,16 +92,31 @@
         "4": "Donnerstag",
         "5": "Freitag",
         "6": "Samstag"
-      }
+      },
+      "modeSetMenu": "Tagesmenü",
+      "addMenuItem": "Gericht hinzufügen",
+      "hideAddItem": "Formular ausblenden",
+      "weeklySetMenuListTitle": "Konfigurierte Tagesmenüs",
+      "weeklySetMenuEmpty": "Für diese Woche sind noch keine Tagesmenüs gespeichert.",
+      "saveSetMenuDay": "Tag speichern",
+      "setMenuTitleLabel": "Titel",
+      "setMenuPriceLabel": "Preis",
+      "setMenuPriceRequired": "Preis erforderlich (mindestens 0,01).",
+      "setMenuAvailableLabel": "Verfügbar",
+      "setMenuLinesLabel": "Menüzeilen",
+      "addSetMenuLine": "+ Zeile",
+      "setMenuLinePlaceholder": "Zeile {{n}}",
+      "removeSetMenuLineAria": "Zeile {{n}} entfernen"
     },
     "guest": {
-      "emptyNoItemsForToday": "No dishes are scheduled for today.",
-      "emptyNoItemsForWeekday": "No dishes are scheduled for this weekday.",
-      "emptyNoMenuItems": "No menu items are available right now.",
-      "todaysMenuHint": "Today's selection",
-      "dailyMenuButton": "Today's menu",
-      "weeklyMenuButton": "Weekly menu",
-      "backToMainMenu": "Back to menu"
+      "emptyNoItemsForToday": "Für heute sind keine Gerichte geplant.",
+      "emptyNoItemsForWeekday": "Für diesen Wochentag sind keine Gerichte geplant.",
+      "emptyNoMenuItems": "Derzeit sind keine Gerichte verfügbar.",
+      "setMenuToday": "Tagesmenü",
+      "todaysMenuHint": "Auswahl des Tages",
+      "dailyMenuButton": "Tagesmenü",
+      "weeklyMenuButton": "Wochenmenü",
+      "backToMainMenu": "Zurück zur Karte"
     }
   },
   "pricing": {
@@ -541,4 +554,3 @@
     }
   }
 }
-

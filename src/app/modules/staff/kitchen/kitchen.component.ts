@@ -325,9 +325,6 @@ export class KitchenComponent implements OnInit, OnDestroy {
         ? `${orderId}:seq:${envelopeSequence}`
         : `${orderId}:${lastActionAt}`;
     if (this.lastOrderUpdatedKeyByTableId[tableId] === dedupeKey) {
-      // #region agent log
-      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'033ec2'},body:JSON.stringify({sessionId:'033ec2',hypothesisId:'H2',location:'kitchen.component.ts:applyOrderUpdated:deduped',message:'skipped duplicate OrderUpdated',data:{tableId,orderId,dedupeKey,lastActionAt,envelopeSequence},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       return;
     }
     this.lastOrderUpdatedKeyByTableId[tableId] = dedupeKey;

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment';
 import { Observable } from 'rxjs';
 import { MenuItem, MenuManagementResponse, MenuResponse } from '../../models/menu/menuItem';
+import { SetMenuDTO, WeeklySetMenuResponse } from '../../models/menu/setMenu';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { MenuItemEntity, OfflineDbService } from '../../offline/offline-db';
@@ -20,11 +21,8 @@ export class MenuItemServiceService {
   }
 
   /** Filtered menu for manager UI + saved presentation mode from DB. */
-  getManagementMenu(restaurantId: string, clientDate: string, viewAs?: string): Observable<MenuManagementResponse> {
-    let params = new HttpParams().set('clientDate', clientDate);
-    if (viewAs) {
-      params = params.set('viewAs', viewAs);
-    }
+  getManagementMenu(restaurantId: string, clientDate: string): Observable<MenuManagementResponse> {
+    const params = new HttpParams().set('clientDate', clientDate);
     return this.http.get<MenuManagementResponse>(
       `${this.apiUrl}/api/restaurants/${restaurantId}/admin/menu/management`,
       { params, withCredentials: true }
@@ -92,13 +90,15 @@ export class MenuItemServiceService {
 
 async getAllWithFallback(
   restaurantId: string
-): Promise<{ menuItems: MenuItem[], categories: string[] }> {
+): Promise<{ menuItems: MenuItem[], categories: string[], todaySetMenu?: SetMenuDTO | null }> {
+
+  let todaySetMenu: SetMenuDTO | null | undefined;
 
   try {
     const response = await firstValueFrom(this.getAll(restaurantId));
 
-    // backend-ul trimite UN SINGUR obiect, nu array
     const menuItems = response.menu.menuItems;
+    todaySetMenu = response.todaySetMenu ?? null;
 
     await this.offlineDB.cacheMenu(menuItems);
 
@@ -106,8 +106,35 @@ async getAllWithFallback(
     console.warn('[MenuItemService] Backend unavailable, using Dexie fallback');
   }
 
-  return await this.offlineDB.loadMenu();
+  const loaded = await this.offlineDB.loadMenu();
+  return { ...loaded, todaySetMenu };
 }
+
+  getWeeklySetMenu(restaurantId: string): Observable<WeeklySetMenuResponse> {
+    return this.http.get<WeeklySetMenuResponse>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/admin/set-menu/weekly`,
+      { withCredentials: true }
+    );
+  }
+
+  upsertSetMenu(
+    restaurantId: string,
+    weekday: number,
+    body: { title: string; priceAmount: number; lines: string[]; isAvailable: boolean; sourceLocale?: string }
+  ): Observable<SetMenuDTO> {
+    return this.http.put<SetMenuDTO>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/admin/set-menu/${weekday}`,
+      body,
+      { withCredentials: true }
+    );
+  }
+
+  getTodaySetMenu(restaurantId: string): Observable<SetMenuDTO> {
+    return this.http.get<SetMenuDTO>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/staff/set-menu/today`,
+      { withCredentials: true }
+    );
+  }
 
 
 

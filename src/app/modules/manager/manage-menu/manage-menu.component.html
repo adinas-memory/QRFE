@@ -1,227 +1,249 @@
-<c-tabs [activeItemKey]="0">
-  <c-tabs-list variant="pills">
-    <button cTab [itemKey]="0" class="ms-2">List & Edit the Menu</button>
-    <button cTab [itemKey]="1" class="ms-2">Add Menu Item</button>
-  </c-tabs-list>
-  <c-tabs-content>
-    <c-tab-panel class="p-3" [itemKey]="0">
-      <form [formGroup]="presentationForm" class="mb-4 p-3 border rounded">
-        <h6 class="mb-2">{{ 'menu.manageMenu.presentationTitle' | transloco }}</h6>
-        <p class="text-muted small">{{ 'menu.manageMenu.presentationHelp' | transloco }}</p>
-        <div class="row g-2 align-items-end">
-          <div class="col-md-8">
-            <label cLabel for="menuPresentationMode">{{ 'menu.manageMenu.modeLabel' | transloco }}</label>
-            <select formControlName="menuPresentationMode" cFormControl id="menuPresentationMode" cSelect>
-              <option value="fixed">{{ 'menu.manageMenu.modeNormal' | transloco }}</option>
-              <option value="daily">{{ 'menu.manageMenu.modeDaily' | transloco }}</option>
-              <option value="weekly">{{ 'menu.manageMenu.modeWeekly' | transloco }}</option>
-            </select>
-          </div>
-          <div class="col-md-4">
-            <button type="button" class="btn btn-outline-primary w-100" (click)="savePresentation()">
-              {{ 'menu.manageMenu.savePresentation' | transloco }}
-            </button>
-          </div>
-        </div>
-      </form>
-      <form *ngIf="selectedPresentationMode === 'weekly'" [formGroup]="weeklyDayForm" class="mb-3">
-        <label class="form-label small">{{ 'menu.manageMenu.weeklyDayPicker' | transloco }}</label>
-        <c-button-group role="group" class="d-flex flex-wrap">
-          <ng-container *ngFor="let d of weekdayIndexes">
-            <input
-              class="btn-check"
-              formControlName="selectedWeekday"
-              type="radio"
-              [value]="d"
-              [id]="'wd-' + d"
-            />
-            <label
-              [for]="'wd-' + d"
-              cButton
-              cFormCheckLabel
-              variant="outline"
-              (click)="setWeeklyDay(d)"
-            >
-              {{ weekdayLabel(d) }}
-            </label>
-          </ng-container>
-        </c-button-group>
-      </form>
-      <c-accordion [flush]="true">
-        <c-accordion-item
-          *ngFor="let cat of categories"
-          #accordionItem="cAccordionItem"
-          [visible]="false"
-          [hidden]="!groupedMenuItems[cat]?.length"
+﻿<div class="manage-menu-page p-3">
+  <form [formGroup]="presentationForm" class="mb-4 p-3 border rounded presentation-toolbar">
+    <h6 class="mb-2">{{ 'menu.manageMenu.presentationTitle' | transloco }}</h6>
+    <p class="text-muted small mb-3">{{ 'menu.manageMenu.presentationHelp' | transloco }}</p>
+    <div class="row g-2 align-items-end">
+      <div class="col-md-6 col-lg-5">
+        <label cLabel for="menuPresentationMode">{{ 'menu.manageMenu.modeLabel' | transloco }}</label>
+        <select formControlName="menuPresentationMode" cFormControl id="menuPresentationMode" cSelect>
+          <option value="fixed">{{ 'menu.manageMenu.modeNormal' | transloco }}</option>
+          <option value="setmenu">{{ 'menu.manageMenu.modeSetMenu' | transloco }}</option>
+        </select>
+      </div>
+      <div class="col-md-6 col-lg-4" *ngIf="selectedPresentationMode === 'fixed'">
+        <button
+          type="button"
+          class="btn btn-primary w-100"
+          (click)="toggleAddForm()"
         >
-          <ng-template cTemplateId="accordionHeaderTemplate">
-            <button
-              (click)="accordionItem.toggleItem()"
-              [collapsed]="!accordionItem.visible"
-              cAccordionButton
-            >
-              {{ cat }}
-            </button>
-          </ng-template>
+          {{ showAddForm ? ('menu.manageMenu.hideAddItem' | transloco) : ('menu.manageMenu.addMenuItem' | transloco) }}
+        </button>
+      </div>
+    </div>
+  </form>
 
-          <ng-template cTemplateId="accordionBodyTemplate">
-            <div class="accordion-body">
-              <ul class="list-group">
-                <li
-                  *ngFor="let item of groupedMenuItems[cat]"
-                  class="list-group-item d-flex justify-content-between align-items-center"
-                >
-                  <div>
-                    <strong>{{ item.menuItemName }}</strong>
-                    <span *ngIf="item.isAvailable === false" class="badge bg-secondary ms-2">
-                      {{ 'menu.availability.unavailableBadge' | transloco }}
-                    </span>
-                    <span *ngIf="(item.menuItemScheduleKind || '').toLowerCase() === 'dated'" class="badge bg-info text-dark ms-1">
-                      {{ 'menu.manageMenu.badgeDated' | transloco }}{{ item.scheduledOnDate ? ': ' + item.scheduledOnDate : '' }}
-                    </span>
-                    <span *ngIf="(item.menuItemScheduleKind || '').toLowerCase() === 'weekday'" class="badge bg-info text-dark ms-1">
-                      {{ weekdayLabel(item.scheduledWeekday ?? 0) }}
-                    </span>
-                    <span class="text-muted">
-                      ({{
-                        item.menuItemPriceAmount
-                          | currency
-                            : item.menuItemPriceCurrency
-                            : "symbol"
-                            : "1.2-2"
-                      }})
-                    </span>
-                    <div>{{ item.menuItemDescription }}</div>
-                  </div>
-                  <div class="d-flex align-items-center">
-                    <img
-                      [src]="item.menuItemIconUrl + '?v=' + forceRefreshAfterUpdate"
-                      [alt]="item.category + ', ' + item.menuItemName"
-                      width="50"
-                      height="50"
-                      class="me-2"
-                    />
-                    <button
-                      class="btn btn-sm btn-outline-secondary me-1"
-                      (click)="toggleAvailability(item)"
-                    >
-                      {{
-                        (item.isAvailable === false
-                          ? 'menu.availability.manager.markAvailable'
-                          : 'menu.availability.manager.markUnavailable'
-                        ) | transloco
-                      }}
-                    </button>
-                    <button
-                      class="btn btn-sm btn-outline-primary me-1"
-                      (click)="onEdit(item)"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      class="btn btn-sm btn-outline-danger"
-                      (click)="onDelete(item)"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </li>
-              </ul>
+  <form
+    *ngIf="selectedPresentationMode === 'fixed' && showAddForm"
+    [formGroup]="menuItemsForm"
+    (ngSubmit)="onSubmit()"
+    cForm
+    class="border rounded p-3 mb-4 add-item-form"
+  >
+    <div class="mb-3">
+      <label cLabel for="menuItemIcon">Upload Image</label>
+      <input
+        cFormControl
+        id="menuItemIcon"
+        placeholder="Choose an icon file"
+        type="file"
+        (change)="onFileSelected($event)"
+      />
+    </div>
+    <div class="mb-3">
+      <label cLabel for="menuItemName">Menu Item Name</label>
+      <input
+        formControlName="menuItemName"
+        cFormControl
+        id="menuItemName"
+        placeholder="Gulasch"
+        type="text"
+        (blur)="formatMenuItemName()"
+      />
+    </div>
+    <div class="mb-3">
+      <label cLabel for="menuItemCategory">Category</label>
+      <select formControlName="menuItemCategory" cFormControl id="menuItemCategory" cSelect>
+        <option value="" disabled>Select a category</option>
+        <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label cLabel for="menuItemPriceAmount">Price</label>
+      <input
+        formControlName="menuItemPriceAmount"
+        cFormControl
+        id="menuItemPriceAmount"
+        placeholder="9.99"
+        type="number"
+      />
+    </div>
+    <div class="mb-3">
+    </div>
+    <div class="mb-3">
+      <label cLabel for="menuItemDescription">Description</label>
+      <input
+        formControlName="menuItemDescription"
+        cFormControl
+        id="menuItemDescription"
+        placeholder="Delicious beef goulash with potatoes & rosemary, served with fresh bread."
+        type="text"
+      />
+    </div>
+    <button type="submit" class="btn btn-primary me-2">Add Item</button>
+    <button type="button" class="btn btn-secondary" (click)="resetForm()">Reset</button>
+  </form>
+
+  <ng-container *ngIf="selectedPresentationMode === 'setmenu'">
+    <label class="form-label small">{{ 'menu.manageMenu.weeklyDayPicker' | transloco }}</label>
+    <c-button-group role="group" class="d-flex flex-wrap mb-3">
+      <ng-container *ngFor="let d of weekdayIndexes">
+        <button
+          type="button"
+          cButton
+          [color]="selectedSetMenuWeekday === d ? 'danger' : 'secondary'"
+          variant="outline"
+          (click)="selectSetMenuWeekday(d)"
+        >
+          {{ weekdayLabel(d) }}
+        </button>
+      </ng-container>
+    </c-button-group>
+
+    <div class="row g-3 set-menu-split">
+      <div class="col-12 col-lg-6 set-menu-split__form">
+        <form [formGroup]="setMenuForm" class="border rounded p-3 h-100">
+          <div class="mb-3">
+            <label cLabel for="setMenuTitle">{{ 'menu.manageMenu.setMenuTitleLabel' | transloco }}</label>
+            <input id="setMenuTitle" cFormControl formControlName="title" class="form-control" />
+          </div>
+          <div class="mb-3">
+            <label cLabel for="setMenuPrice">{{ 'menu.manageMenu.setMenuPriceLabel' | transloco }}</label>
+            <input
+              id="setMenuPrice"
+              cFormControl
+              formControlName="priceAmount"
+              type="number"
+              step="0.01"
+              min="0.01"
+              placeholder="0.00"
+              class="form-control"
+              [class.is-invalid]="setMenuForm.get('priceAmount')?.invalid && setMenuForm.get('priceAmount')?.touched"
+            />
+            <div class="invalid-feedback d-block" *ngIf="setMenuForm.get('priceAmount')?.invalid && setMenuForm.get('priceAmount')?.touched">
+              {{ 'menu.manageMenu.setMenuPriceRequired' | transloco }}
             </div>
-          </ng-template>
-        </c-accordion-item>
-      </c-accordion>
-    </c-tab-panel>
-  </c-tabs-content>
-  <c-tabs-content>
-    <c-tab-panel class="p-3" [itemKey]="1">
-      <form
-        [formGroup]="menuItemsForm"
-        (ngSubmit)="onSubmit()"
-        cForm
-        class="flex-wrap"
-      >
-        <div class="mb-3">
-          <label cLabel for="menuItemIcon">Upload Image</label>
-          <input
-            cFormControl
-            id="menuItemIcon"
-            placeholder="Choose an icon file"
-            type="file"
-            (change)="onFileSelected($event)"
-          />
-        </div>
-        <div class="mb-3">
-          <label cLabel for="menuItemName">Menu Item Name</label>
-          <input
-            formControlName="menuItemName"
-            cFormControl
-            id="menuItemName"
-            placeholder="Gulasch"
-            type="text"
-            (blur)="formatMenuItemName()"
-          />
-        </div>
-        <div class="mb-3">
-          <label cLabel for="menuItemCategory">Category</label>
-          <select
-            formControlName="menuItemCategory"
-            cFormControl
-            id="menuItemCategory"
-            cSelect
-          >
-            <option value="" disabled>Select a category</option>
-            <option *ngFor="let cat of categories" [value]="cat">
-              {{ cat }}
-            </option>
-          </select>
-        </div>
-        <div class="mb-3">
-          <label cLabel for="menuItemPriceAmount">Price</label>
-          <input
-            formControlName="menuItemPriceAmount"
-            cFormControl
-            id="menuItemPriceAmount"
-            placeholder="9.99"
-            type="number"
-          />
-        </div>
-        <div class="mb-3" *ngIf="selectedPresentationMode === 'fixed'">
-          <span class="form-text">{{ 'menu.manageMenu.schedulePermanent' | transloco }}</span>
-        </div>
-        <div class="mb-3" *ngIf="selectedPresentationMode === 'daily'">
-          <p class="form-text text-muted mb-0">
-            {{ 'menu.manageMenu.scheduleDatedTodayHint' | transloco }} ({{ localTodayIso() }})
+          </div>
+          <div class="mb-3 form-check">
+            <input id="setMenuAvailable" class="form-check-input" type="checkbox" formControlName="isAvailable" />
+            <label class="form-check-label" for="setMenuAvailable">{{ 'menu.manageMenu.setMenuAvailableLabel' | transloco }}</label>
+          </div>
+          <label class="form-label">{{ 'menu.manageMenu.setMenuLinesLabel' | transloco }}</label>
+          <div *ngFor="let ctrl of setMenuLines.controls; let i = index" class="input-group mb-2">
+            <input [formControl]="$any(ctrl)" class="form-control" [placeholder]="'menu.manageMenu.setMenuLinePlaceholder' | transloco: { n: i + 1 }" />
+            <button
+              *ngIf="setMenuLines.length > 1"
+              type="button"
+              class="btn btn-outline-danger"
+              (click)="removeSetMenuLine(i)"
+              [attr.aria-label]="'menu.manageMenu.removeSetMenuLineAria' | transloco: { n: i + 1 }"
+            >×</button>
+          </div>
+          <button type="button" class="btn btn-outline-secondary btn-sm mb-3" (click)="addSetMenuLine()">{{ 'menu.manageMenu.addSetMenuLine' | transloco }}</button>
+          <div>
+            <button type="button" class="btn btn-primary" (click)="saveSetMenu()">{{ 'menu.manageMenu.saveSetMenuDay' | transloco }}</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="col-12 col-lg-6 set-menu-split__list">
+        <div class="border rounded p-3 h-100">
+          <h6 class="mb-3">{{ 'menu.manageMenu.weeklySetMenuListTitle' | transloco }}</h6>
+          <p *ngIf="!savedSetMenus.length" class="text-muted small mb-0">
+            {{ 'menu.manageMenu.weeklySetMenuEmpty' | transloco }}
           </p>
+          <ul class="list-group list-group-flush" *ngIf="savedSetMenus.length">
+            <li
+              *ngFor="let entry of savedSetMenus"
+              class="list-group-item set-menu-week-item px-0"
+              [class.active-day]="normalizeWeekday(entry.weekday) === selectedSetMenuWeekday"
+              role="button"
+              (click)="selectSetMenuWeekday(entry.weekday)"
+            >
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <div>
+                  <span class="badge bg-secondary me-2">{{ weekdayLabel(entry.weekday) }}</span>
+                  <strong>{{ entry.title }}</strong>
+                  <ul class="mb-0 mt-1 ps-3 small text-muted">
+                    <li *ngFor="let line of entry.lines | slice:0:4">{{ line.text }}</li>
+                  </ul>
+                </div>
+                <span class="text-nowrap fw-semibold">
+                  {{ entry.priceAmount | currency: entry.priceCurrency : 'symbol' : '1.2-2' }}
+                </span>
+              </div>
+            </li>
+          </ul>
         </div>
-        <div class="mb-3" *ngIf="selectedPresentationMode === 'weekly'">
-          <p class="form-text text-muted mb-0">
-            {{ 'menu.manageMenu.scheduleWeekdaySelectedHint' | transloco }}
-            {{ weekdayLabel(selectedWeeklyDay) }}
-          </p>
-        </div>
-        <div class="mb-3">
-          <label cLabel for="menuItemDescription">Description</label>
-          <input
-            formControlName="menuItemDescription"
-            cFormControl
-            id="menuItemDescription"
-            placeholder="Delicious beef goulash with potatoes & rosemary, served with fresh bread."
-            type="text"
-          />
-        </div>
-        <button type="submit" class="btn btn-primary me-2">
-          {{ selectedItem ? "Update Item" : "Add Item" }}
+      </div>
+    </div>
+  </ng-container>
+
+  <c-accordion *ngIf="selectedPresentationMode === 'fixed'" [flush]="true">
+    <c-accordion-item
+      *ngFor="let cat of categories"
+      #accordionItem="cAccordionItem"
+      [visible]="false"
+      [hidden]="!groupedMenuItems[cat]?.length"
+    >
+      <ng-template cTemplateId="accordionHeaderTemplate">
+        <button
+          (click)="accordionItem.toggleItem()"
+          [collapsed]="!accordionItem.visible"
+          cAccordionButton
+        >
+          {{ cat }}
         </button>
-        <button type="button" class="btn btn-secondary" (click)="resetForm()">
-          Reset
-        </button>
-      </form>
-    </c-tab-panel>
-  </c-tabs-content>
+      </ng-template>
+
+      <ng-template cTemplateId="accordionBodyTemplate">
+        <div class="accordion-body">
+          <ul class="list-group">
+            <li
+              *ngFor="let item of groupedMenuItems[cat]"
+              class="list-group-item d-flex justify-content-between align-items-center"
+            >
+              <div>
+                <strong>{{ item.menuItemName }}</strong>
+                <span *ngIf="item.isAvailable === false" class="badge bg-secondary ms-2">
+                  {{ 'menu.availability.unavailableBadge' | transloco }}
+                </span>
+                <span class="text-muted">
+                  ({{
+                    item.menuItemPriceAmount
+                      | currency: item.menuItemPriceCurrency : 'symbol' : '1.2-2'
+                  }})
+                </span>
+                <div>{{ item.menuItemDescription }}</div>
+              </div>
+              <div class="d-flex align-items-center">
+                <img
+                  [src]="item.menuItemIconUrl + '?v=' + forceRefreshAfterUpdate"
+                  [alt]="item.category + ', ' + item.menuItemName"
+                  width="50"
+                  height="50"
+                  class="me-2"
+                />
+                <button class="btn btn-sm btn-outline-secondary me-1" (click)="toggleAvailability(item)">
+                  {{
+                    (item.isAvailable === false
+                      ? 'menu.availability.manager.markAvailable'
+                      : 'menu.availability.manager.markUnavailable'
+                    ) | transloco
+                  }}
+                </button>
+                <button class="btn btn-sm btn-outline-primary me-1" (click)="onEdit(item)">Edit</button>
+                <button class="btn btn-sm btn-outline-danger" (click)="onDelete(item)">Delete</button>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </ng-template>
+    </c-accordion-item>
+  </c-accordion>
+
   <c-toaster class="p-3" position="fixed" [placement]="placement" />
-</c-tabs>
-<!-- Edit Modal -->
+</div>
+
 <c-modal [(visible)]="editModalVisible" alignment="center" size="lg">
   <c-modal-header>
     <h5 cModalTitle>Edit Menu Item</h5>
@@ -235,13 +257,7 @@
       </div>
       <div class="mb-3">
         <label cLabel for="menuItemNameEdit">Menu Item Name</label>
-        <input
-          formControlName="menuItemName"
-          cFormControl
-          id="menuItemNameEdit"
-          type="text"
-          (blur)="formatMenuItemName()"
-        />
+        <input formControlName="menuItemName" cFormControl id="menuItemNameEdit" type="text" (blur)="formatMenuItemName()" />
       </div>
       <div class="mb-3">
         <label cLabel for="menuItemCategoryEdit">Category</label>
@@ -253,23 +269,8 @@
         <label cLabel for="menuItemPriceAmountEdit">Price</label>
         <input formControlName="menuItemPriceAmount" cFormControl id="menuItemPriceAmountEdit" type="number" />
       </div>
-      <div class="mb-3" *ngIf="selectedPresentationMode === 'fixed'">
-        <span class="form-text">{{ 'menu.manageMenu.schedulePermanent' | transloco }}</span>
-      </div>
-      <div class="mb-3" *ngIf="selectedPresentationMode === 'daily'">
-        <p class="form-text text-muted mb-0">
-          {{ 'menu.manageMenu.scheduleDatedTodayHint' | transloco }} ({{ localTodayIso() }})
-        </p>
-      </div>
-      <div class="mb-3" *ngIf="selectedPresentationMode === 'weekly'">
-        <label cLabel for="scheduledWeekdayEdit">{{ 'menu.manageMenu.scheduledWeekday' | transloco }}</label>
-        <select formControlName="scheduledWeekday" cFormControl id="scheduledWeekdayEdit" cSelect>
-          <option value="" disabled>{{ 'menu.manageMenu.scheduledWeekday' | transloco }}</option>
-          <option *ngFor="let d of weekdayIndexes" [value]="d">
-            {{ weekdayLabel(d) }}
-          </option>
-        </select>
-      </div>
+      <div class="mb-3">
+        </div>
       <div class="mb-3">
         <label cLabel for="menuItemDescriptionEdit">Description</label>
         <input formControlName="menuItemDescription" cFormControl id="menuItemDescriptionEdit" type="text" />
@@ -277,7 +278,8 @@
     </form>
   </c-modal-body>
   <c-modal-footer>
-    <button type="submit" cButton cButton color="secondary" (click)="onSubmit()">Update Item</button>
-      <button type="button" cButton (click)="closeEditModal()" color="primary">Cancel</button>
+    <button type="submit" cButton color="secondary" (click)="onSubmit()">Update Item</button>
+    <button type="button" cButton (click)="closeEditModal()" color="primary">Cancel</button>
   </c-modal-footer>
 </c-modal>
+

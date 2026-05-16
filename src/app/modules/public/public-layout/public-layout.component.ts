@@ -59,6 +59,8 @@ export class PublicLayoutComponent implements OnInit, OnDestroy {
   poweredBy = environment.poweredBy;
   frontendPubicUrl = environment.apiUrl;
   theme: 'dark' | 'light' = 'dark';
+  /** True on `/public/menu/.../order` — hide set-menu header controls there. */
+  isOnOrderPage = false;
 
   private destroy$ = new Subject<void>();
   private readonly tabVisible$ = new BehaviorSubject(document.visibilityState === 'visible');
@@ -72,20 +74,28 @@ export class PublicLayoutComponent implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
   ) {}
 
-  get showAlternateMenuButtons(): boolean {
-    return this.guestMenuView.isOnDefaultView && this.guestMenuView.alternateGuestViews.length > 0;
+  get showSetMenuButton(): boolean {
+    return !this.isOnOrderPage
+      && !this.guestMenuView.showingSetMenuView
+      && !!this.guestMenuView.todaySetMenu;
   }
 
   get showBackToMainMenu(): boolean {
-    return !this.guestMenuView.isOnDefaultView;
+    return !this.isOnOrderPage && this.guestMenuView.showingSetMenuView;
   }
 
-  openAlternateView(view: string): void {
-    this.guestMenuView.loadView(view).subscribe();
+  get showSetMenuTopbar(): boolean {
+    return !this.isOnOrderPage && (this.showBackToMainMenu || this.showSetMenuButton);
+  }
+
+  openSetMenuView(): void {
+    this.guestMenuView.showSetMenuView();
+    this.cdr.detectChanges();
   }
 
   backToMainMenu(): void {
-    this.guestMenuView.showDefault().subscribe();
+    this.guestMenuView.hideSetMenuView();
+    this.cdr.detectChanges();
   }
 
   viewOrder(): void {
@@ -95,6 +105,7 @@ export class PublicLayoutComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.syncOrderPageFlag();
     this.theme = (localStorage.getItem('publicTheme') as 'dark' | 'light') || 'dark';
 
     this.guestMenuView.menuState$
@@ -157,9 +168,11 @@ export class PublicLayoutComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$),
       )
       .subscribe(() => {
+        this.syncOrderPageFlag();
         if (this.restaurantId && this.tableId) {
           this.refreshOrderBadge();
         }
+        this.cdr.markForCheck();
       });
 
     // Staff add/remove lines use internal-only SSE; poll lightly while the tab is visible.
@@ -251,6 +264,10 @@ export class PublicLayoutComponent implements OnInit, OnDestroy {
   setLanguage(l: AppLang) {
     this.transloco.setActiveLang(l);
     try { localStorage.setItem(LANG_STORAGE_KEY, l); } catch { /* ignore */ }
+  }
+
+  private syncOrderPageFlag(): void {
+    this.isOnOrderPage = this.router.url.includes('/order');
   }
 
   ngOnDestroy(): void {

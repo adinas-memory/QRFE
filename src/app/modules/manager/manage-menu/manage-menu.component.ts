@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit, viewChild } from '@angular/core';
 import {
-  Tabs2Module, FormControlDirective,
+  FormControlDirective,
   FormLabelDirective, AccordionButtonDirective,
   AccordionComponent, AccordionItemComponent,
   ToasterComponent, TemplateIdDirective,
@@ -19,19 +19,24 @@ import {
 import { } from '@coreui/angular';
 import { MenuItemServiceService } from '../../../core/services/menu-item-service/menu-item-service.service';
 import { filter, Subject, take, takeUntil } from 'rxjs';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
 import { MenuItem, MenuManagementResponse } from '../../../core/models/menu/menuItem';
+import {
+  canonicalMenuItemCategory,
+  mergeManagementCategories,
+} from '../../../core/models/menu/menu-item-categories';
+import { SetMenuDTO } from '../../../core/models/menu/setMenu';
 import { AuthService } from '../../../core/auth/auth.service';
-import { NgFor, NgIf, CurrencyPipe } from '@angular/common';
+import { NgFor, NgIf, CurrencyPipe, SlicePipe } from '@angular/common';
 import { UserContextModel } from '../../../core/models/userContextModel';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 @Component({
   selector: 'app-manage-menu',
-  imports: [Tabs2Module, FormControlDirective,
+  imports: [FormControlDirective,
     FormLabelDirective,
-    NgFor, NgIf, ReactiveFormsModule,
+    NgFor, NgIf, SlicePipe, ReactiveFormsModule,
     AccordionButtonDirective,
     AccordionComponent, AccordionItemComponent,
     TemplateIdDirective, CurrencyPipe,
@@ -49,7 +54,8 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
     TranslocoPipe
   ],
   standalone: true,
-  templateUrl: './manage-menu.component.html'
+  templateUrl: './manage-menu.component.html',
+  styleUrls: ['./manage-menu.component.scss'],
 })
 export class ManageMenuComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
@@ -63,11 +69,13 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
   selectedItem: MenuItem | null = null;
   menuItemsForm: FormGroup;
   presentationForm: FormGroup;
-  weeklyDayForm: FormGroup;
-  weeklyMenuItems: MenuItem[] = [];
+  weeklySetMenus: SetMenuDTO[] = [];
+  setMenuForm: FormGroup;
+  selectedSetMenuWeekday = new Date().getDay();
   selectedFile: File | null = null;
   placement = ToasterPlacement.TopEnd;
   editModalVisible = false;
+  showAddForm = false;
   forceRefreshAfterUpdate = Date.now();
   readonly weekdayIndexes = [0, 1, 2, 3, 4, 5, 6] as const;
   private presentationModeInitialized = false;
@@ -81,24 +89,125 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
     this.presentationForm = this.fb.group({
       menuPresentationMode: ['fixed'],
     });
-    this.weeklyDayForm = this.fb.group({
-      selectedWeekday: [new Date().getDay()],
-    });
     this.menuItemsForm = this.fb.group({
       menuItemName: ['', Validators.required],
       menuItemDescription: ['', Validators.required],
       menuItemPriceAmount: [0, [Validators.required, Validators.min(0.01)]],
       menuItemCategory: ['', Validators.required],
       menuItemIcon: [null, Validators.required],
-      menuItemScheduleKind: ['permanent'],
-      scheduledOnDate: [''],
-      scheduledWeekday: [''],
+    });
+    this.setMenuForm = this.fb.group({
+      title: ['Meniul Zilei', Validators.required],
+      priceAmount: [null, [Validators.required, Validators.min(0.01)]],
+      isAvailable: [true],
+      lines: this.fb.array([this.fb.control('', Validators.required)]),
+    });
+  }
+
+  get setMenuLines(): FormArray {
+    return this.setMenuForm.get('lines') as FormArray;
+  }
+
+  addSetMenuLine(): void {
+    this.setMenuLines.push(this.fb.control('', Validators.required));
+  }
+
+  removeSetMenuLine(index: number): void {
+    if (this.setMenuLines.length <= 1) return;
+    this.setMenuLines.removeAt(index);
+  }
+
+  selectSetMenuWeekday(d: number | string): void {
+    const weekday = this.normalizeWeekday(d);
+    if (weekday === null) return;
+    this.selectedSetMenuWeekday = weekday;
+    this.loadSetMenuForWeekday(weekday);
+  }
+
+  loadWeeklySetMenus(): void {
+    this.menuItemService.getWeeklySetMenu(this.restaurantId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res) => {
+          this.weeklySetMenus = res?.days ?? [];
+          this.loadSetMenuForWeekday(this.selectedSetMenuWeekday);
+        },
+        error: (err) => console.error('[ManageMenu] loadWeeklySetMenus', err),
+      });
+  }
+
+  loadSetMenuForWeekday(weekday: number): void {
+    const target = this.normalizeWeekday(weekday) ?? weekday;
+    const existing = this.weeklySetMenus.find(
+      d => this.normalizeWeekday(d.weekday) === target,
+    );
+    while (this.setMenuLines.length) this.setMenuLines.removeAt(0);
+    if (existing?.lines?.length) {
+      for (const line of [...existing.lines].sort((a, b) => a.sortOrder - b.sortOrder)) {
+        this.setMenuLines.push(this.fb.control(line.text, Validators.required));
+      }
+      this.setMenuForm.patchValue({
+        title: existing.title,
+        priceAmount: existing.priceAmount,
+        isAvailable: existing.isAvailable,
+      });
+    } else {
+      this.setMenuLines.push(this.fb.control('', Validators.required));
+      this.setMenuForm.patchValue({
+        title: 'Meniul Zilei',
+        priceAmount: null,
+        isAvailable: true,
+      });
+    }
+  }
+
+  saveSetMenu(): void {
+    if (!this.restaurantId) {
+      this.appToast.error('Restaurant indisponibil. Reîncărcați pagina.');
+      return;
+    }
+
+    const raw = this.setMenuForm.getRawValue();
+    const title = (raw.title ?? '').trim();
+    const priceAmount = Number(raw.priceAmount);
+    const lines = (raw.lines as string[]).map(l => (l ?? '').trim()).filter(Boolean);
+
+    if (!title) {
+      this.setMenuForm.get('title')?.markAsTouched();
+      this.appToast.error('Introduceți titlul meniului zilei.');
+      return;
+    }
+    if (!Number.isFinite(priceAmount) || priceAmount < 0.01) {
+      this.setMenuForm.get('priceAmount')?.markAsTouched();
+      this.appToast.error('Introduceți un preț valid (minim 0,01).');
+      return;
+    }
+    if (!lines.length) {
+      this.setMenuForm.markAllAsTouched();
+      this.appToast.error('Adăugați cel puțin o linie în meniu.');
+      return;
+    }
+
+    this.menuItemService.upsertSetMenu(this.restaurantId, this.selectedSetMenuWeekday, {
+      title,
+      priceAmount,
+      lines,
+      isAvailable: !!raw.isAvailable,
+      sourceLocale: this.transloco.getActiveLang() || 'ro',
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.appToast.success('Meniul zilei a fost salvat.');
+        this.loadWeeklySetMenus();
+      },
+      error: () => {
+        this.appToast.error('Eroare la salvarea meniului.');
+      },
     });
   }
 
   private rebuildGroupedMenuItems(): void {
     this.groupedMenuItems = this.menuItems.reduce((acc, item) => {
-      const cat = item.category;
+      const cat = canonicalMenuItemCategory(item.category);
       if (!acc[cat]) {
         acc[cat] = [];
       }
@@ -112,7 +221,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
     return this.transloco.translate(`menu.manageMenu.weekdays.${n ?? 0}`);
   }
 
-  private normalizeWeekday(value: number | string | null | undefined): number | null {
+  normalizeWeekday(value: number | string | null | undefined): number | null {
     if (value === null || value === undefined || value === '') return null;
     if (typeof value === 'number' && Number.isFinite(value)) return value;
     const dayMap: Record<string, number> = {
@@ -124,119 +233,59 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
     return Number.isFinite(n) ? n : null;
   }
 
-  get selectedWeeklyDay(): number {
-    return Number(this.weeklyDayForm.value.selectedWeekday ?? new Date().getDay());
-  }
-
-  setWeeklyDay(d: number): void {
-    this.weeklyDayForm.setValue({ selectedWeekday: d });
-  }
-
-  private applyWeeklyDayFilter(): void {
-    const day = this.selectedWeeklyDay;
-    this.menuItems = this.weeklyMenuItems.filter(
-      (i) => this.normalizeWeekday(i.scheduledWeekday) === day
-    );
-    this.rebuildGroupedMenuItems();
-  }
-
   /** Local calendar date as `yyyy-MM-dd` (browser timezone). */
   localTodayIso(): string {
     return new Date().toLocaleDateString('en-CA');
   }
 
   loadMenuItems(): void {
+    if (this.selectedPresentationMode === 'setmenu') {
+      this.loadWeeklySetMenus();
+      return;
+    }
     const clientDate = this.localTodayIso();
-    const mode = this.selectedPresentationMode;
-    const viewAs = mode;
-    this.menuItemService.getManagementMenu(this.restaurantId, clientDate, viewAs)
+    this.menuItemService.getManagementMenu(this.restaurantId, clientDate)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response: MenuManagementResponse) => {
-          this.categories = response?.categories ?? [];
-          const savedMode = (response.menuPresentationMode ?? 'Fixed').toLowerCase();
+          this.categories = mergeManagementCategories(response?.categories);
           if (!this.presentationModeInitialized) {
+            const savedMode = (response.menuPresentationMode ?? 'Fixed').toLowerCase();
+            const editorMode = savedMode === 'weekly' || savedMode === 'daily' ? 'setmenu' : 'fixed';
             this.presentationForm.patchValue(
-              { menuPresentationMode: savedMode },
+              { menuPresentationMode: editorMode },
               { emitEvent: false }
             );
             this.presentationModeInitialized = true;
           }
-          const activeMode = this.selectedPresentationMode;
-          if (activeMode === 'weekly') {
-            this.weeklyMenuItems = response?.menu?.menuItems ?? [];
-            this.applyWeeklyDayFilter();
-          } else {
-            this.weeklyMenuItems = [];
-            this.menuItems = response?.menu?.menuItems ?? [];
-            this.rebuildGroupedMenuItems();
-          }
-          this.syncAddFormToPresentationMode(activeMode);
+          this.menuItems = (response?.menu?.menuItems ?? []).map((item) => ({
+            ...item,
+            category: canonicalMenuItemCategory(item.category),
+          }));
+          this.rebuildGroupedMenuItems();
         },
         error: err => console.error('[ManageMenuComponent] Error loading menu items', err)
       });
   }
 
-  savePresentation(): void {
-    const mode = (this.presentationForm.getRawValue().menuPresentationMode as string) ?? 'fixed';
-    this.menuItemService
-      .updateMenuPresentation(this.restaurantId, { menuPresentationMode: mode })
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => {
-          this.appToast.success(this.transloco.translate('menu.manageMenu.toastPresentationSaved'));
-          this.syncAddFormToPresentationMode(mode);
-          this.loadMenuItems();
-        },
-        error: () => {
-          this.appToast.error(this.transloco.translate('menu.manageMenu.toastPresentationError'));
-        },
-      });
-  }
-
-  /** Align add/edit schedule fields with the selected presentation mode in the dropdown. */
-  syncAddFormToPresentationMode(mode: string): void {
-    const m = (mode ?? 'fixed').toLowerCase();
-    if (m === 'daily') {
-      this.menuItemsForm.patchValue({
-        menuItemScheduleKind: 'dated',
-        scheduledOnDate: this.localTodayIso(),
-        scheduledWeekday: '',
-      }, { emitEvent: false });
-    } else if (m === 'weekly') {
-      this.menuItemsForm.patchValue({
-        menuItemScheduleKind: 'weekday',
-        scheduledOnDate: '',
-        scheduledWeekday: String(this.selectedWeeklyDay),
-      }, { emitEvent: false });
-    } else {
-      this.menuItemsForm.patchValue({
-        menuItemScheduleKind: 'permanent',
-        scheduledOnDate: '',
-        scheduledWeekday: '',
-      }, { emitEvent: false });
-    }
-  }
 
   get selectedPresentationMode(): string {
     return (this.presentationForm.value.menuPresentationMode as string) ?? 'fixed';
   }
 
-  private appendScheduleToFormData(formData: FormData): void {
-    const sk = (this.menuItemsForm.value.menuItemScheduleKind as string) ?? 'permanent';
-    const kindMap: Record<string, string> = { permanent: 'Permanent', dated: 'Dated', weekday: 'Weekday' };
-    formData.append('menuItemScheduleKind', kindMap[sk.toLowerCase()] ?? 'Permanent');
-    if (sk === 'dated') {
-      const today = this.localTodayIso();
-      formData.append('scheduledOnDate', today);
-      this.menuItemsForm.patchValue({ scheduledOnDate: today }, { emitEvent: false });
-    } else if (sk === 'weekday') {
-      const w = this.menuItemsForm.value.scheduledWeekday;
-      if (w !== '' && w !== null && w !== undefined) {
-        formData.append('scheduledWeekday', String(w));
-      }
+  get savedSetMenus(): SetMenuDTO[] {
+    return [...this.weeklySetMenus]
+      .filter(m => (m.lines?.length ?? 0) > 0)
+      .sort((a, b) => Number(a.weekday) - Number(b.weekday));
+  }
+
+  toggleAddForm(): void {
+    this.showAddForm = !this.showAddForm;
+    if (!this.showAddForm) {
+      this.resetForm();
     }
   }
+
 
 
   /**
@@ -289,19 +338,16 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
 
   onEdit(item: MenuItem): void {
     this.selectedItem = item;
-    // this.menuItemsForm.patchValue(item);
+    this.selectedFile = null;
+    const iconControl = this.menuItemsForm.get('menuItemIcon');
+    iconControl?.clearValidators();
+    iconControl?.updateValueAndValidity({ emitEvent: false });
     this.menuItemsForm.patchValue({
       menuItemName: item.menuItemName,
       menuItemDescription: item.menuItemDescription,
       menuItemPriceAmount: item.menuItemPriceAmount,
-      menuItemCategory: item.category, // map correctly
-      menuItemIcon: null, // don’t prefill file input
-      menuItemScheduleKind: (item.menuItemScheduleKind ?? 'permanent').toString().toLowerCase(),
-      scheduledOnDate: item.scheduledOnDate ?? '',
-      scheduledWeekday:
-        item.scheduledWeekday !== null && item.scheduledWeekday !== undefined
-          ? String(item.scheduledWeekday)
-          : '',
+      menuItemCategory: canonicalMenuItemCategory(item.category),
+      menuItemIcon: null,
     });
     this.editModalVisible = true;
   }
@@ -344,14 +390,14 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
     formData.append('menuItemName', this.menuItemsForm.value.menuItemName);
     formData.append('menuItemDescription', this.menuItemsForm.value.menuItemDescription);
     formData.append('menuItemPriceAmount', this.menuItemsForm.value.menuItemPriceAmount);
-    formData.append('menuItemCategory', this.menuItemsForm.value.menuItemCategory.toString());
-    this.appendScheduleToFormData(formData);
-
-    if (this.selectedFile) {
-      formData.append('menuItemIcon', this.selectedFile);
+    formData.append('menuItemCategory', canonicalMenuItemCategory(this.menuItemsForm.value.menuItemCategory));
+    const iconFile = this.selectedFile ?? this.menuItemsForm.value.menuItemIcon;
+    if (iconFile instanceof File) {
+      formData.append('menuItemIcon', iconFile);
     }
 
     if (this.selectedItem) {
+      formData.append('menuItemPriceCurrency', this.selectedItem.menuItemPriceCurrency ?? 'RON');
       this.menuItemService.update(this.restaurantId, this.selectedItem.menuItemId, formData)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
@@ -375,6 +421,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
           next: () => {
             this.appToast.success(`Menu Item Created: ${this.menuItemsForm.get('menuItemName')?.value ?? ''}`);
             this.resetForm();
+            this.showAddForm = false;
             this.loadMenuItems();
           },
           error: (error) => {
@@ -424,16 +471,11 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
     this.presentationForm.get('menuPresentationMode')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe((mode: string) => {
-        this.syncAddFormToPresentationMode(mode);
-        this.loadMenuItems();
-      });
-
-    this.weeklyDayForm.valueChanges
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        if (this.selectedPresentationMode === 'weekly') {
-          this.applyWeeklyDayFilter();
-          this.syncAddFormToPresentationMode('weekly');
+        if (mode === 'setmenu') {
+          this.showAddForm = false;
+          this.loadWeeklySetMenus();
+        } else {
+          this.loadMenuItems();
         }
       });
 
@@ -447,6 +489,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
         next: (user) => {
           this.restaurantId = user?.restaurantId ?? '';
           this.loadMenuItems();
+          this.loadWeeklySetMenus();
         },
         error: (err) => {
           this.appToast.error(`Error fetching menu items: ${err?.Message}`);
@@ -456,13 +499,13 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
 
   resetForm(): void {
     this.selectedItem = null;
+    this.selectedFile = null;
     this.menuItemsForm.reset({
       menuItemPriceAmount: 0,
-      menuItemScheduleKind: 'permanent',
-      scheduledOnDate: '',
-      scheduledWeekday: '',
     });
-    this.syncAddFormToPresentationMode(this.selectedPresentationMode);
+    const iconControl = this.menuItemsForm.get('menuItemIcon');
+    iconControl?.setValidators(Validators.required);
+    iconControl?.updateValueAndValidity({ emitEvent: false });
   }
 
   ngOnDestroy(): void {

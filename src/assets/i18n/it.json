@@ -66,15 +66,13 @@
       }
     },
     "manageMenu": {
-      "presentationTitle": "How guests see the menu",
-      "modeLabel": "Display mode",
-      "presentationHelp": "Normale (à la carte): piatti sempre in carta. Menu del giorno / settimanale: solo piatti programmati per oggi o il giorno scelto (data del dispositivo).",
-      "modeNormal": "Menu normale (à la carte)",
-      "modeDaily": "Menu del giorno",
-      "modeWeekly": "Menu settimanale",
+      "presentationTitle": "Come i clienti vedono il menu",
+      "modeLabel": "Modalità di visualizzazione",
+      "presentationHelp": "Scegli cosa modificare: piatti à la carte (sempre nel menu pubblico) o il menu del giorno per ogni giorno della settimana.",
+      "modeNormal": "Menu à la carte",
       "savePresentation": "Salva modalità menu",
-      "toastPresentationSaved": "Display settings saved.",
-      "toastPresentationError": "Could not save display settings.",
+      "toastPresentationSaved": "Impostazioni di visualizzazione salvate.",
+      "toastPresentationError": "Impossibile salvare le impostazioni di visualizzazione.",
       "scheduleTitle": "When to show this dish",
       "schedulePermanent": "Always on the menu",
       "scheduleDated": "Only on a specific date",
@@ -94,16 +92,31 @@
         "4": "Giovedì",
         "5": "Venerdì",
         "6": "Sabato"
-      }
+      },
+      "modeSetMenu": "Menu del giorno",
+      "addMenuItem": "Aggiungi piatto",
+      "hideAddItem": "Nascondi modulo",
+      "weeklySetMenuListTitle": "Menu del giorno configurati",
+      "weeklySetMenuEmpty": "Nessun menu del giorno salvato per questa settimana.",
+      "saveSetMenuDay": "Salva giorno",
+      "setMenuTitleLabel": "Titolo",
+      "setMenuPriceLabel": "Prezzo",
+      "setMenuPriceRequired": "Prezzo obbligatorio (minimo 0,01).",
+      "setMenuAvailableLabel": "Disponibile",
+      "setMenuLinesLabel": "Righe del menu",
+      "addSetMenuLine": "+ Riga",
+      "setMenuLinePlaceholder": "Riga {{n}}",
+      "removeSetMenuLineAria": "Rimuovi riga {{n}}"
     },
     "guest": {
-      "emptyNoItemsForToday": "No dishes are scheduled for today.",
-      "emptyNoItemsForWeekday": "No dishes are scheduled for this weekday.",
-      "emptyNoMenuItems": "No menu items are available right now.",
-      "todaysMenuHint": "Today's selection",
-      "dailyMenuButton": "Today's menu",
-      "weeklyMenuButton": "Weekly menu",
-      "backToMainMenu": "Back to menu"
+      "emptyNoItemsForToday": "Nessun piatto programmato per oggi.",
+      "emptyNoItemsForWeekday": "Nessun piatto programmato per questo giorno della settimana.",
+      "emptyNoMenuItems": "Nessun piatto disponibile al momento.",
+      "setMenuToday": "Menu del giorno",
+      "todaysMenuHint": "Selezione del giorno",
+      "dailyMenuButton": "Menu del giorno",
+      "weeklyMenuButton": "Menu settimanale",
+      "backToMainMenu": "Torna al menu"
     }
   },
   "pricing": {
@@ -541,4 +554,3 @@
     }
   }
 }
-

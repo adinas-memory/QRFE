@@ -15,8 +15,7 @@ export class MenuResolver implements Resolve<MenuResponse> {
   resolve(route: ActivatedRouteSnapshot): Observable<MenuResponse> {
     const restaurantId = route.paramMap.get('restaurantId')!;
     const tableId = route.paramMap.get('tableId')!;
-    const clientDate = new Date().toLocaleDateString('en-CA');
-    return this.menuService.getAll(restaurantId, tableId, { clientDate }).pipe(
+    return this.menuService.getAll(restaurantId, tableId).pipe(
       tap(response => this.guestMenuView.initFromResponse(response, restaurantId, tableId)),
     );
   }

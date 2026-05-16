@@ -36,36 +36,34 @@
       <!-- Restaurant name (center, takes remaining space) -->
       <a cNavbarBrand class="fw-semibold me-auto restaurant-name">{{ restaurantName }}</a>
 
-      <!-- Alternate menu views (daily / weekly) -->
-      @if (showBackToMainMenu) {
-        <button
-          cButton
-          color="light"
-          variant="ghost"
-          size="sm"
-          class="topbar-ghost-btn me-1"
-          (click)="backToMainMenu()"
-        >
-          {{ 'menu.guest.backToMainMenu' | transloco }}
-        </button>
-      }
-      @if (showAlternateMenuButtons) {
-        @for (view of guestMenuView.alternateGuestViews; track view) {
-          <button
-            cButton
-            color="light"
-            variant="ghost"
-            size="sm"
-            class="topbar-ghost-btn me-1"
-            (click)="openAlternateView(view)"
-          >
-            @if (view === 'daily') {
-              {{ 'menu.guest.dailyMenuButton' | transloco }}
-            } @else if (view === 'weekly') {
-              {{ 'menu.guest.weeklyMenuButton' | transloco }}
-            }
-          </button>
-        }
+      @if (showSetMenuTopbar) {
+        <div class="topbar-setmenu-actions d-flex align-items-center">
+          @if (showBackToMainMenu) {
+            <button
+              cButton
+              color="light"
+              variant="ghost"
+              size="sm"
+              class="topbar-ghost-btn me-1"
+              (click)="backToMainMenu()"
+            >
+              {{ 'menu.guest.backToMainMenu' | transloco }}
+            </button>
+          }
+          @if (showSetMenuButton) {
+            <button
+              cButton
+              color="light"
+              variant="ghost"
+              size="sm"
+              class="topbar-ghost-btn"
+              (click)="openSetMenuView()"
+            >
+              {{ 'menu.guest.setMenuToday' | transloco }}
+            </button>
+          }
+        </div>
+        <div class="topbar-vdivider" aria-hidden="true"></div>
       }
 
       <!-- My Order (direct button) -->

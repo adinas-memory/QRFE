@@ -1,0 +1,30 @@
+.set-menu-split__form,
+.set-menu-split__list {
+  min-width: 0;
+}
+
+.set-menu-week-item {
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.03);
+  }
+
+  &.active-day {
+    border-left-color: var(--cui-danger, #e55353);
+    background: rgba(229, 83, 83, 0.08);
+  }
+}
+
+.presentation-toolbar .btn {
+  margin-top: 0.25rem;
+}
+
+@media (min-width: 992px) {
+  .set-menu-split__form,
+  .set-menu-split__list {
+    min-height: 22rem;
+  }
+}

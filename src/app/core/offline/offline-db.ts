@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import Dexie, { Table } from 'dexie';
 import { Subject } from 'rxjs';
-import { OrderDTO, OrderItemDTO, TableCart } from '../../core/models/orderingModel';
+import { cartItemFromOrderLine, OrderDTO, OrderItemDTO, TableCart } from '../../core/models/orderingModel';
 import { MenuItem } from '../models/menu/menuItem';
 import { Currency, TableDTO } from '../models/restaurantTablesModel';
 export interface MenuItemEntity extends MenuItem { }
@@ -199,21 +199,22 @@ export class OfflineDbService {
     }
 
     async saveOrderSnapshot(tableId: string, order: OrderDTO): Promise<void> {
+        const existing = await this.loadCartRecord(tableId);
+        const previousIcons = new Map(
+            (existing?.items ?? []).map(ci => [ci.item.menuItemId, ci.item.menuItemIconUrl])
+        );
+        const { menuItems } = await this.loadMenu();
+
         const items = (order.orderItems ?? [])
             .filter((o): o is OrderItemDTO => o !== null)
-            .map(o => ({
-                item: {
-                    menuItemId: o.menuItemId,
-                    menuItemName: o.orderItemName,
-                    menuItemDescription: o.orderItemDescription,
-                    menuItemPriceAmount: o.orderItemPriceAmount ?? 0,
-                    menuItemPriceCurrency: o.orderItemPriceCurrency,
-                    menuItemIconUrl: undefined,
-                    category: o.category
-                },
-                quantity: o.quantity,
-                orderItemId: o.orderItemId
-            }));
+            .map(o => {
+                const line = cartItemFromOrderLine(o, menuItems);
+                const preservedIcon = previousIcons.get(o.menuItemId);
+                if (preservedIcon && !line.item.menuItemIconUrl) {
+                    line.item.menuItemIconUrl = preservedIcon;
+                }
+                return line;
+            });
 
         await this.saveCart(tableId, items, order.orderId);
     }

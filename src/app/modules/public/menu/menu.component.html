@@ -1,90 +1,107 @@
 <div class="menu-modern">
-  <div *ngIf="nonEmptyCategories.length === 0 && emptyGuestMessageKey" class="alert alert-info m-3" role="status">
-    {{ emptyGuestMessageKey | transloco }}
+  <div *ngIf="showingSetMenuView && todaySetMenu" class="set-menu-today mx-3 mb-3 p-3 border rounded">
+    <div class="d-flex justify-content-between align-items-start gap-3">
+      <div>
+        <p class="text-muted small mb-1">{{ 'menu.guest.setMenuToday' | transloco }}</p>
+        <h2 class="h5 mb-2">{{ todaySetMenu.title }}</h2>
+        <ul class="mb-0 ps-3">
+          <li *ngFor="let line of setMenuDisplayLines">{{ line }}</li>
+        </ul>
+      </div>
+      <div class="text-nowrap fw-semibold">
+        {{
+          todaySetMenu.priceAmount
+            | currency: todaySetMenu.priceCurrency : 'symbol' : '1.2-2'
+        }}
+      </div>
+    </div>
   </div>
-  <p *ngIf="nonEmptyCategories.length > 0 && (activeGuestView === 'daily' || activeGuestView === 'weekly')" class="text-muted small px-3 mb-0">
-    {{ 'menu.guest.todaysMenuHint' | transloco }}
-  </p>
+
+  <ng-container *ngIf="!showingSetMenuView">
+    <div *ngIf="nonEmptyCategories.length === 0 && emptyGuestMessageKey" class="alert alert-info m-3" role="status">
+      {{ emptyGuestMessageKey | transloco }}
+    </div>
 <c-tabs [activeItemKey]="0" *ngIf="nonEmptyCategories.length > 0">
-  <c-tabs-list variant="tabs" class="c-tabs-custom d-flex flex-row flex-nowrap overflow-x-auto overflow-y-hidden">
-    <button
-      *ngFor="let cat of nonEmptyCategories; let i = index"
-      cTab
-      [itemKey]="i"
-    >
-      {{ cat }}
-    </button>
-  </c-tabs-list>
-
-  <c-tabs-content>
-    <c-tab-panel
-      *ngFor="let cat of nonEmptyCategories; let i = index"
-      class="p-3"
-      [itemKey]="i"
-    >
-      <c-accordion [flush]="true">
-        <c-accordion-item
-          #accordionItem="cAccordionItem"
-          [visible]="true"
-          [hidden]="!groupedMenuItems[cat]?.length"
+      <c-tabs-list variant="tabs" class="c-tabs-custom d-flex flex-row flex-nowrap overflow-x-auto overflow-y-hidden">
+        <button
+          *ngFor="let cat of nonEmptyCategories; let i = index"
+          cTab
+          [itemKey]="i"
         >
-          <ng-template cTemplateId="accordionHeaderTemplate">
-            <button
-              (click)="accordionItem.toggleItem()"
-              [collapsed]="!accordionItem.visible"
-              cAccordionButton
-            >
-              {{ menuName ? menuName + ' — ' : '' }}{{ cat }}
-            </button>
-          </ng-template>
+          {{ cat }}
+        </button>
+      </c-tabs-list>
 
-          <ng-template cTemplateId="accordionBodyTemplate">
-            <div class="accordion-body">
-              <ul class="list-group">
-                <li
-                  *ngFor="let item of groupedMenuItems[cat]"
-                  class="list-group-item d-flex justify-content-between align-items-center"
-                  [class.opacity-50]="item.isAvailable === false"
+      <c-tabs-content>
+        <c-tab-panel
+          *ngFor="let cat of nonEmptyCategories; let i = index"
+          class="p-3"
+          [itemKey]="i"
+        >
+          <c-accordion [flush]="true">
+            <c-accordion-item
+              #accordionItem="cAccordionItem"
+              [visible]="true"
+              [hidden]="!groupedMenuItems[cat]?.length"
+            >
+              <ng-template cTemplateId="accordionHeaderTemplate">
+                <button
+                  (click)="accordionItem.toggleItem()"
+                  [collapsed]="!accordionItem.visible"
+                  cAccordionButton
                 >
-                  <div>
-                    <strong>{{ item.menuItemName }}</strong>
-                    <span *ngIf="item.isAvailable === false" class="badge bg-secondary ms-2">
-                      {{ 'menu.availability.unavailableBadge' | transloco }}
-                    </span>
-                    <span class="text-muted">
-                      ({{
-                        item.menuItemPriceAmount
-                          | currency
-                            : item.menuItemPriceCurrency
-                            : "symbol"
-                            : "1.2-2"
-                      }})
-                    </span>
-                    <div>{{ item.menuItemDescription }}</div>
-                  </div>
-                  <div class="d-flex align-items-center">
-                    <img
-                      [src]="item.menuItemIconUrl + '?v=' + forceRefreshAfterUpdate"
-                      [alt]="item.menuItemName"
-                      width="50"
-                      height="50"
-                      (click)="openImageModal(item)"
-                      style="cursor: pointer"
-                    />
-                  </div>
-                </li>
-              </ul>
-            </div>
-          </ng-template>
-        </c-accordion-item>
-      </c-accordion>
-    </c-tab-panel>
-  </c-tabs-content>
-</c-tabs>
+                  {{ menuName ? menuName + ' — ' : '' }}{{ cat }}
+                </button>
+              </ng-template>
+
+              <ng-template cTemplateId="accordionBodyTemplate">
+                <div class="accordion-body">
+                  <ul class="list-group">
+                    <li
+                      *ngFor="let item of groupedMenuItems[cat]"
+                      class="list-group-item d-flex justify-content-between align-items-center"
+                      [class.opacity-50]="item.isAvailable === false"
+                    >
+                      <div>
+                        <strong>{{ item.menuItemName }}</strong>
+                        <span *ngIf="item.isAvailable === false" class="badge bg-secondary ms-2">
+                          {{ 'menu.availability.unavailableBadge' | transloco }}
+                        </span>
+                        <span class="text-muted">
+                          ({{
+                            item.menuItemPriceAmount
+                              | currency
+                                : item.menuItemPriceCurrency
+                                : "symbol"
+                                : "1.2-2"
+                          }})
+                        </span>
+                        <div>{{ item.menuItemDescription }}</div>
+                      </div>
+                      <div class="d-flex align-items-center">
+                        <img
+                          [src]="item.menuItemIconUrl + '?v=' + forceRefreshAfterUpdate"
+                          [alt]="item.menuItemName"
+                          width="50"
+                          height="50"
+                          (click)="openImageModal(item)"
+                          style="cursor: pointer"
+                        />
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </ng-template>
+            </c-accordion-item>
+          </c-accordion>
+        </c-tab-panel>
+      </c-tabs-content>
+    </c-tabs>
+  </ng-container>
+</div>
 
 <c-modal [(visible)]="imageModalVisible" alignment="center" size="lg">
   <c-modal-body>
     <img [src]="selectedImageUrl" [alt]="selectedImageName" class="img-fluid" />
   </c-modal-body>
 </c-modal>
-</div>

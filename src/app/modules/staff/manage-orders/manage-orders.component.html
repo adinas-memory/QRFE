@@ -57,8 +57,13 @@
                     }
                   </p>
                 </c-card-body>
-                <footer>
-                  <button cButton class="btn btn-primary float-end" [disabled]="!isOnline"
+                <footer class="d-flex justify-content-between align-items-center gap-2 px-2 pb-2">
+                  @if (todaySetMenu) {
+                    <button cButton color="success" size="sm" (click)="openSetMenuModal(table, $event)">
+                      Meniul zilei
+                    </button>
+                  }
+                  <button cButton class="btn btn-primary ms-auto" [disabled]="!isOnline"
                     (click)="table.order ? seeOrder(table) : openTable(table)">
                     {{ !table.isTableOpen ? ('manageOrders.seeOrder' | transloco) : ('manageOrders.openTable' | transloco) }}
                   </button>
@@ -118,8 +123,13 @@
                   }
                 </p>
               </c-card-body>
-              <footer>
-                <button cButton class="btn btn-primary float-end"
+              <footer class="d-flex justify-content-between align-items-center gap-2 px-2 pb-2">
+                @if (todaySetMenu) {
+                  <button cButton color="success" size="sm" (click)="openSetMenuModal(table, $event)">
+                    Meniul zilei
+                  </button>
+                }
+                <button cButton class="btn btn-primary ms-auto"
                   (click)="table.order ? seeOrder(table) : openTable(table)">
                   {{ !table.isTableOpen ? ('manageOrders.seeOrder' | transloco) : ('manageOrders.openTable' | transloco) }}
                 </button>
@@ -179,8 +189,13 @@
                   }
                 </p>
               </c-card-body>
-              <footer>
-                <button cButton class="btn btn-primary float-end"
+              <footer class="d-flex justify-content-between align-items-center gap-2 px-2 pb-2">
+                @if (todaySetMenu) {
+                  <button cButton color="success" size="sm" (click)="openSetMenuModal(table, $event)">
+                    Meniul zilei
+                  </button>
+                }
+                <button cButton class="btn btn-primary ms-auto"
                   (click)="table.order ? seeOrder(table) : openTable(table)">
                   {{ !table.isTableOpen ? ('manageOrders.seeOrder' | transloco) : ('manageOrders.openTable' | transloco) }}
                 </button>
@@ -288,23 +303,51 @@
     <!-- CART -->
     <div class="cart">
       <div class="cart-scroll">
-        <table bordered cTable hover small class="mb-0">
+        <table
+          bordered
+          cTable
+          hover
+          small
+          class="mb-0 cart-table"
+          [class.cart-table--setmenu]="hasSetMenuInCart"
+        >
+          <colgroup>
+            <col class="cart-col-name" />
+            <col class="cart-col-qty" />
+            <col class="cart-col-price" />
+            <col class="cart-col-actions" />
+          </colgroup>
           <tbody>
-            <tr *ngFor="let sel of selectedItems">
-              <td class="cart-item-name">
-                {{ sel.item.menuItemName }}
+            <tr *ngFor="let sel of selectedItems" [class.cart-row-setmenu]="isSetMenuCartLine(sel)">
+              <td class="cart-item-name" [class.cart-item-name--setmenu]="isSetMenuCartLine(sel)">
+                <span
+                  *ngIf="isSetMenuCartLine(sel); else plainCartName"
+                  class="cart-item-name__text"
+                  [title]="sel.item.menuItemName"
+                >
+                  {{ sel.item.menuItemName }}
+                </span>
+                <ng-template #plainCartName>{{ sel.item.menuItemName }}</ng-template>
               </td>
-              <td class="text-start">
+              <td class="text-start cart-item-qty">
                 × {{ sel.quantity }}
               </td>
-              <td class="text-end">
+              <td class="text-end cart-item-price">
                 {{ sel.item.menuItemPriceAmount * sel.quantity | currency: sel.item.menuItemPriceCurrency }}
               </td>
-              <td class="text-end">
-                <button class="btn btn-sm btn-outline-secondary me-1" (click)="decrementItem(sel)">
+              <td class="text-end cart-item-actions">
+                <button
+                  *ngIf="isSetMenuCartLine(sel)"
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary me-1"
+                  (click)="incrementSetMenuItem(sel)"
+                >
+                  +
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary me-1" (click)="decrementItem(sel)">
                   -
                 </button>
-                <button class="btn btn-sm btn-outline-danger" (click)="removeItem(sel)">
+                <button type="button" class="btn btn-sm btn-outline-danger" (click)="removeItem(sel)">
                   ×
                 </button>
               </td>
@@ -346,6 +389,24 @@
   </div>
 </c-offcanvas>
 <!-- END OFFCANVAS -->
+
+<c-modal [(visible)]="setMenuModalVisible">
+  <c-modal-header>
+    <h5 cModalTitle>Meniul zilei</h5>
+  </c-modal-header>
+  <c-modal-body>
+    <p class="fw-semibold mb-1">{{ todaySetMenu?.title }}</p>
+    <ul class="small mb-3">
+      <li *ngFor="let line of todaySetMenu?.lines">{{ line.text }}</li>
+    </ul>
+    <label class="form-label" for="setMenuQty">Cantitate</label>
+    <input id="setMenuQty" type="number" class="form-control" min="1" [(ngModel)]="setMenuQty" />
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" (click)="cancelSetMenuModal()">{{ 'manageOrders.cancel' | transloco }}</button>
+    <button cButton color="primary" (click)="confirmSetMenuOrder()">Adaugă</button>
+  </c-modal-footer>
+</c-modal>
 
 <c-modal [(visible)]="resetConfirmVisible">
   <c-modal-header>

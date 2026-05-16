@@ -1,3 +1,5 @@
+import { SetMenuDTO } from './setMenu';
+
 export interface MenuItem {
   menuItemId: string;
   menuItemName: string;
@@ -7,10 +9,6 @@ export interface MenuItem {
   menuItemPriceCurrency?: string;
   menuItemIconUrl?: string;
   isAvailable?: boolean;
-  /** Backend: `Permanent` | `Dated` | `Weekday` (JSON string enum). */
-  menuItemScheduleKind?: string;
-  scheduledOnDate?: string | null;
-  scheduledWeekday?: number | string | null;
 }
 
 export interface MenuResponse {
@@ -23,12 +21,9 @@ export interface MenuResponse {
   restaurantName?: string;
   menuPresentationMode?: string;
   emptyReason?: string | null;
-  defaultGuestView?: string;
-  activeGuestView?: string;
-  alternateGuestViews?: string[];
+  todaySetMenu?: SetMenuDTO | null;
 }
 
-/** `GET .../admin/menu/management` — full menu + presentation settings for the manager UI. */
 export interface MenuManagementResponse {
   menu: {
     menuId: string;
@@ -44,7 +39,6 @@ export interface WaiterCallResponse {
   counterCalls: number;
   message: string;
 }
-
 
 export enum MenuItemCategory {
   Appetizer = 'Appetizer',

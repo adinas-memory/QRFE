@@ -66,15 +66,13 @@
       }
     },
     "manageMenu": {
-      "presentationTitle": "How guests see the menu",
-      "modeLabel": "Display mode",
-      "presentationHelp": "Normal (à la carte): platos siempre en carta. Menú del día / semanal: solo platos programados para hoy o el día de la semana elegido (fecha del dispositivo).",
-      "modeNormal": "Menú normal (à la carte)",
-      "modeDaily": "Menú del día",
-      "modeWeekly": "Menú semanal",
+      "presentationTitle": "Cómo ven los clientes el menú",
+      "modeLabel": "Modo de visualización",
+      "presentationHelp": "Elija qué editar: platos a la carta (siempre en el menú público) o el menú del día para cada día de la semana.",
+      "modeNormal": "Menú a la carta",
       "savePresentation": "Guardar modo del menú",
-      "toastPresentationSaved": "Display settings saved.",
-      "toastPresentationError": "Could not save display settings.",
+      "toastPresentationSaved": "Ajustes de visualización guardados.",
+      "toastPresentationError": "No se pudieron guardar los ajustes de visualización.",
       "scheduleTitle": "When to show this dish",
       "schedulePermanent": "Always on the menu",
       "scheduleDated": "Only on a specific date",
@@ -94,16 +92,31 @@
         "4": "Jueves",
         "5": "Viernes",
         "6": "Sábado"
-      }
+      },
+      "modeSetMenu": "Menú del día",
+      "addMenuItem": "Añadir plato",
+      "hideAddItem": "Ocultar formulario",
+      "weeklySetMenuListTitle": "Menús del día configurados",
+      "weeklySetMenuEmpty": "Aún no hay menús del día guardados para esta semana.",
+      "saveSetMenuDay": "Guardar día",
+      "setMenuTitleLabel": "Título",
+      "setMenuPriceLabel": "Precio",
+      "setMenuPriceRequired": "Precio obligatorio (mínimo 0,01).",
+      "setMenuAvailableLabel": "Disponible",
+      "setMenuLinesLabel": "Líneas del menú",
+      "addSetMenuLine": "+ Línea",
+      "setMenuLinePlaceholder": "Línea {{n}}",
+      "removeSetMenuLineAria": "Eliminar línea {{n}}"
     },
     "guest": {
-      "emptyNoItemsForToday": "No dishes are scheduled for today.",
-      "emptyNoItemsForWeekday": "No dishes are scheduled for this weekday.",
-      "emptyNoMenuItems": "No menu items are available right now.",
-      "todaysMenuHint": "Today's selection",
-      "dailyMenuButton": "Today's menu",
-      "weeklyMenuButton": "Weekly menu",
-      "backToMainMenu": "Back to menu"
+      "emptyNoItemsForToday": "No hay platos programados para hoy.",
+      "emptyNoItemsForWeekday": "No hay platos programados para este día de la semana.",
+      "emptyNoMenuItems": "No hay platos disponibles en este momento.",
+      "setMenuToday": "Menú del día",
+      "todaysMenuHint": "Selección del día",
+      "dailyMenuButton": "Menú del día",
+      "weeklyMenuButton": "Menú semanal",
+      "backToMainMenu": "Volver al menú"
     }
   },
   "pricing": {
@@ -541,4 +554,3 @@
     }
   }
 }
-

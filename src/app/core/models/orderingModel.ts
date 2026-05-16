@@ -48,6 +48,31 @@ export interface CartItem {
   orderItemId?: string; 
 }
 
+/** Build a cart line from persisted order data; optional menu merge enriches icon/availability. */
+export function cartItemFromOrderLine(
+  orderItem: OrderItemDTO,
+  menuItems?: Iterable<MenuItem>
+): CartItem {
+  const fromMenu = menuItems
+    ? [...menuItems].find(m => m.menuItemId === orderItem.menuItemId)
+    : undefined;
+
+  return {
+    item: {
+      menuItemId: orderItem.menuItemId,
+      menuItemName: orderItem.orderItemName,
+      menuItemDescription: orderItem.orderItemDescription,
+      menuItemPriceAmount: orderItem.orderItemPriceAmount ?? fromMenu?.menuItemPriceAmount ?? 0,
+      menuItemPriceCurrency: orderItem.orderItemPriceCurrency ?? fromMenu?.menuItemPriceCurrency,
+      menuItemIconUrl: fromMenu?.menuItemIconUrl,
+      category: orderItem.category || fromMenu?.category || '',
+      isAvailable: fromMenu?.isAvailable,
+    },
+    quantity: orderItem.quantity,
+    orderItemId: orderItem.orderItemId,
+  };
+}
+
 export interface TableCart {
   [tableId: string]: CartItem[];
 }

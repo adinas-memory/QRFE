@@ -24,6 +24,7 @@ import { cilBellExclamation } from '@coreui/icons';
 import { UserContextModel } from '../../../core/models/userContextModel';
 import { WaiterCallState } from '../../../core/models/callWaiter/callWaiter';
 import { MenuItem } from '../../../core/models/menu/menuItem';
+import { SetMenuDTO, setMenuToMenuItem } from '../../../core/models/menu/setMenu';
 import { MenuItemServiceService } from '../../../core/services/menu-item-service/menu-item-service.service';
 import { OrdersService } from '../../../core/services/order-service/orders.service';
 import {
@@ -31,7 +32,9 @@ import {
   TableCart,
   OrderUpdatedSSEPayload,
   TableComputedDTO,
-  OrderDTO
+  OrderDTO,
+  OrderItemDTO,
+  cartItemFromOrderLine
 } from '../../../core/models/orderingModel';
 import { OrderSyncService } from '../../../core/services/order-service/order-sync.service';
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
@@ -89,6 +92,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   modalVisible = false;
   categories: string[] = [];
   menuItems: MenuItem[] = [];
+  todaySetMenu: SetMenuDTO | null = null;
+  setMenuModalVisible = false;
+  setMenuQty = 1;
+  setMenuTargetTable: TableDTO | null = null;
   forceRefreshAfterUpdate = Date.now();
   tableName: string = '';
   canvasVisible = false;
@@ -208,7 +215,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   get filteredMenuItems(): MenuItem[] {
     const term = this.searchTerm.trim().toLowerCase();
     if (!term) return [];
-    return this.menuItems.filter(i => i.menuItemName.toLowerCase().includes(term));
+    return this.effectiveMenuItems.filter(i => i.menuItemName.toLowerCase().includes(term));
   }
 
   get selectedItems(): CartItem[] {
@@ -219,8 +226,19 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     return this.menuItems.filter(i => i.category === this.selectedCategory);
   }
 
+  /** Current presentation menu plus lines already on the open order (other menu modes). */
+  private get effectiveMenuItems(): MenuItem[] {
+    const byId = new Map(this.menuItems.map(m => [m.menuItemId, m]));
+    for (const line of this.selectedItems) {
+      if (line.item?.menuItemId && !byId.has(line.item.menuItemId)) {
+        byId.set(line.item.menuItemId, line.item);
+      }
+    }
+    return [...byId.values()];
+  }
+
   get groupedMenuItems(): { [category: string]: MenuItem[] } {
-    return this.menuItems.reduce((acc, item) => {
+    return this.effectiveMenuItems.reduce((acc, item) => {
       const cat = item.category;
       if (!acc[cat]) acc[cat] = [];
       acc[cat].push(item);
@@ -229,7 +247,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   get nonEmptyCategories(): string[] {
-    return this.categories.filter(cat => this.groupedMenuItems[cat]?.length > 0);
+    const cats = new Set(this.categories);
+    for (const line of this.selectedItems) {
+      if (line.item?.category) cats.add(line.item.category);
+    }
+    return [...cats].filter(cat => this.groupedMenuItems[cat]?.length > 0);
   }
 
   /**
@@ -423,6 +445,20 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.ordersService.saveComputed(this.tableComputed);
   }
 
+  isSetMenuCartLine(sel: CartItem): boolean {
+    const linkedId = this.todaySetMenu?.linkedMenuItemId;
+    return !!linkedId && sel.item.menuItemId === linkedId;
+  }
+
+  get hasSetMenuInCart(): boolean {
+    return this.selectedItems.some(sel => this.isSetMenuCartLine(sel));
+  }
+
+  async incrementSetMenuItem(sel: CartItem): Promise<void> {
+    if (!this.isSetMenuCartLine(sel)) return;
+    await this.addCartItem(sel.item);
+  }
+
   async decrementItem(sel: CartItem) {
     const tableId = this.currentTableId;
     if (!(await this.ensureNotPaymentLockedAsync())) {
@@ -500,6 +536,37 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     }
   }
 
+  openSetMenuModal(table: TableDTO, event?: Event): void {
+    event?.stopPropagation();
+    if (!this.todaySetMenu?.linkedMenuItemId) return;
+    this.setMenuTargetTable = table;
+    this.setMenuQty = 1;
+    this.setMenuModalVisible = true;
+  }
+
+  async confirmSetMenuOrder(): Promise<void> {
+    if (!this.todaySetMenu || !this.setMenuTargetTable) return;
+    const table = this.setMenuTargetTable;
+    this.setMenuModalVisible = false;
+    this.setMenuTargetTable = null;
+
+    if (table.order) {
+      await this.seeOrder(table);
+    } else {
+      await this.openTable(table);
+    }
+
+    const item = setMenuToMenuItem(this.todaySetMenu, this.transloco.getActiveLang());
+    for (let i = 0; i < this.setMenuQty; i++) {
+      await this.addCartItem(item as MenuItem);
+    }
+  }
+
+  cancelSetMenuModal(): void {
+    this.setMenuModalVisible = false;
+    this.setMenuTargetTable = null;
+  }
+
   async openTable(table: TableDTO) {
     const tableId = table.tableId;
     this.currentTableId = tableId;
@@ -533,11 +600,14 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     if (order) {
       this.currentOrderId = order.orderId;
       this.orderIsConfirmed = true;
-      this.tableCarts[this.currentTableId] = (order.orderItems ?? []).map(o => ({
-        item: this.menuItems.find(m => m.menuItemId === o?.menuItemId)!,
-        quantity: o?.quantity ?? 0,
-        orderItemId: o?.orderItemId
-      }));
+      const record = await this.offlineDB.loadCartRecord(this.currentTableId);
+      if (record?.items?.length) {
+        this.tableCarts[this.currentTableId] = record.items;
+      } else {
+        this.tableCarts[this.currentTableId] = (order.orderItems ?? [])
+          .filter((o): o is OrderItemDTO => !!o)
+          .map(o => cartItemFromOrderLine(o, this.menuItems));
+      }
     }
   }
 
@@ -686,10 +756,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     const tableId = this.currentTableId;
     const orderId = this.currentOrderId;
 
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a9d52a'},body:JSON.stringify({sessionId:'a9d52a',runId:'double-close-pre-fix',hypothesisId:'A',location:'manage-orders.component.ts:confirmCloseOrder:entry',message:'confirmCloseOrder invoked',data:{restaurantId:this.restaurantId,tableId,orderId,closeInFlight:this.closeInFlight},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-
     // FIX BUG 6: currentOrderId poate fi null — înainte codul folosea ! (non-null assertion)
     // pe un câmp care în practică poate fi null dacă butonul e apăsat fără order activ.
     if (!orderId) {
@@ -723,18 +789,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
         this.resetCanvasState();
         this.closeInFlight = false;
-
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a9d52a'},body:JSON.stringify({sessionId:'a9d52a',runId:'double-close-pre-fix',hypothesisId:'A',location:'manage-orders.component.ts:confirmCloseOrder:close_ok',message:'closeOrder API success',data:{orderId},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
       },
       error: err => {
         console.error('Error closing order:', err);
         this.closeInFlight = false;
-
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a9d52a'},body:JSON.stringify({sessionId:'a9d52a',runId:'double-close-pre-fix',hypothesisId:'A',location:'manage-orders.component.ts:confirmCloseOrder:close_err',message:'closeOrder API error',data:{orderId,status:err?.status??null},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
       }
     });
   }
@@ -1000,9 +1058,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       case 'OrderUpdated': {
         const payload = Data as OrderUpdatedSSEPayload;
         const tableId = (this.sseField<string>(payload as any, 'TableId', 'tableId') ?? payload.TableId) as string;
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'033ec2'},body:JSON.stringify({sessionId:'033ec2',hypothesisId:'H1',location:'manage-orders.component.ts:OrderUpdated:entry',message:'OrderUpdated SSE',data:{eventTableId:tableId,currentTableId:this.currentTableId,currentOrderIdPrefix:(this.currentOrderId??'').slice(0,8),localDraft:!!this.currentOrderId?.startsWith('local-'),skipSameTableLocalDraft:!!(this.currentOrderId?.startsWith('local-')&&tableId===this.currentTableId),initiatedByLen:(InitiatedBy??'').length},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         // Nu îmbina starea remote în canvas doar cât timp comanda locală e draft pe *aceeași* masă; altfel blochezi OrderUpdated pentru toate mesele (inclusiv initiatedBy).
         if (this.currentOrderId?.startsWith('local-') && tableId === this.currentTableId) break;
         const cart = await this.offlineDB.loadCart(tableId);
@@ -1189,6 +1244,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           this.refreshTableLists();
 
           this.menuItems = menu.menuItems ?? [];
+          this.todaySetMenu = menu.todaySetMenu ?? null;
           this.categories = menu.categories ?? [];
           this.tablesAvailable = await this.offlineDB.loadTablesStatusMap();
           this.tableComputed = this.ordersService.loadComputed() || {};
