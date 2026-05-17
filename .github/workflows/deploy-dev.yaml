@@ -38,11 +38,14 @@ jobs:
       run: |
         echo "Runner host: $(hostname)"
         echo "Runner user: $(whoami)"
-        echo "Runner OS: $(uname -a 2>/dev/null || ver)"
+        command -v ssh && command -v scp && command -v tar
 
   deploy:
     runs-on: self-hosted
     needs: [build, verify-runner]
+    env:
+      RUN: ${{ github.run_number }}
+      SSH_PORT: ${{ secrets.DEV_SERVER_SSH_PORT }}
 
     steps:
     - name: Download artifact
@@ -54,60 +57,48 @@ jobs:
     - name: Inspect workspace
       run: ls -R .
 
-    - name: Create release folder on server
-      uses: appleboy/ssh-action@v0.1.10
-      with:
-        host: ${{ secrets.DEV_SERVER_HOST }}
-        username: ${{ secrets.DEV_SERVER_USER }}
-        key: ${{ secrets.DEV_SERVER_SSH_KEY }}
-        port: ${{ secrets.DEV_SERVER_SSH_PORT }}
-        script: |
-          rm -rf /home/adi/releases/frontend-${{ github.run_number }}
-          mkdir -p /home/adi/releases/frontend-${{ github.run_number }}
-
-    - name: Create tarball from browser folder
+    - name: Configure SSH (no Docker — native ssh/scp)
       run: |
-        tar -czf frontend.tar.gz -C browser .
+        mkdir -p ~/.ssh
+        printf '%s\n' "${{ secrets.DEV_SERVER_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        PORT="${SSH_PORT:-22}"
+        ssh-keyscan -p "$PORT" -H "${{ secrets.DEV_SERVER_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+        cat > ~/.ssh/config <<EOF
+        Host dev-deploy
+          HostName ${{ secrets.DEV_SERVER_HOST }}
+          User ${{ secrets.DEV_SERVER_USER }}
+          Port ${PORT}
+          IdentityFile ~/.ssh/deploy_key
+          IdentitiesOnly yes
+          StrictHostKeyChecking accept-new
+        EOF
+        chmod 600 ~/.ssh/config
 
-    - name: Upload tarball to server
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ secrets.DEV_SERVER_HOST }}
-        username: ${{ secrets.DEV_SERVER_USER }}
-        key: ${{ secrets.DEV_SERVER_SSH_KEY }}
-        port: ${{ secrets.DEV_SERVER_SSH_PORT }}
-        source: "frontend.tar.gz"
-        target: "/home/adi/releases/frontend-${{ github.run_number }}"
+    - name: Build tarball and deploy frontend
+      run: |
+        set -euo pipefail
+        RELEASE="/home/adi/releases/frontend-${RUN}"
 
-    - name: Extract tarball on server
-      uses: appleboy/ssh-action@v0.1.10
-      with:
-        host: ${{ secrets.DEV_SERVER_HOST }}
-        username: ${{ secrets.DEV_SERVER_USER }}
-        key: ${{ secrets.DEV_SERVER_SSH_KEY }}
-        port: ${{ secrets.DEV_SERVER_SSH_PORT }}
-        script: |
-          cd /home/adi/releases/frontend-${{ github.run_number }}
-          tar -xzf frontend.tar.gz
-          rm frontend.tar.gz
+        if [ -d browser ]; then
+          BROWSER=browser
+        elif [ -d qrfe/browser ]; then
+          BROWSER=qrfe/browser
+        else
+          echo "browser output not found"; ls -la; exit 1
+        fi
 
-    - name: Update symlink for frontend
-      uses: appleboy/ssh-action@v0.1.10
-      with:
-        host: ${{ secrets.DEV_SERVER_HOST }}
-        username: ${{ secrets.DEV_SERVER_USER }}
-        key: ${{ secrets.DEV_SERVER_SSH_KEY }}
-        port: ${{ secrets.DEV_SERVER_SSH_PORT }}
-        script: |
-          sudo rm -rf /var/www/qrfe-dev
-          sudo ln -sfn /home/adi/releases/frontend-${{ github.run_number }} /var/www/qrfe-dev
+        tar -czf frontend.tar.gz -C "$BROWSER" .
 
-    - name: Reload nginx
-      uses: appleboy/ssh-action@v0.1.10
-      with:
-        host: ${{ secrets.DEV_SERVER_HOST }}
-        username: ${{ secrets.DEV_SERVER_USER }}
-        key: ${{ secrets.DEV_SERVER_SSH_KEY }}
-        port: ${{ secrets.DEV_SERVER_SSH_PORT }}
-        script: |
-          sudo nginx -t && sudo systemctl reload nginx
+        ssh dev-deploy "rm -rf ${RELEASE} && mkdir -p ${RELEASE}"
+        scp frontend.tar.gz "dev-deploy:${RELEASE}/"
+
+        ssh dev-deploy "bash -s" <<REMOTE
+        set -euo pipefail
+        cd ${RELEASE}
+        tar -xzf frontend.tar.gz
+        rm frontend.tar.gz
+        sudo rm -rf /var/www/qrfe-dev
+        sudo ln -sfn ${RELEASE} /var/www/qrfe-dev
+        sudo nginx -t && sudo systemctl reload nginx
+        REMOTE
