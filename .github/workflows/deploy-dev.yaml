@@ -31,9 +31,18 @@ jobs:
         name: frontend-package-dev
         path: dist/**
 
+  verify-runner:
+    runs-on: self-hosted
+    steps:
+    - name: Confirm self-hosted runner is reachable
+      run: |
+        echo "Runner host: $(hostname)"
+        echo "Runner user: $(whoami)"
+        echo "Runner OS: $(uname -a 2>/dev/null || ver)"
+
   deploy:
-    runs-on: [self-hosted, dev]
-    needs: build
+    runs-on: self-hosted
+    needs: [build, verify-runner]
 
     steps:
     - name: Download artifact
