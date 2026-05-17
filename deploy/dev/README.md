@@ -8,7 +8,7 @@ Uses Angular configuration `devhost` → `environment.devhost.ts` (`apiUrl: http
 
 ## Deploy
 
-- Workflow: `.github/workflows/deploy-dev.yaml` (push `develop` or manual dispatch)
+- Workflow: `.github/workflows/deploy-dev.yaml` (push `main` or manual dispatch; runs alongside production deploy)
 - Requires self-hosted runner with label `dev` on the LAN host
 - GitHub secrets: `DEV_SERVER_HOST`, `DEV_SERVER_USER`, `DEV_SERVER_SSH_KEY`, `DEV_SERVER_SSH_PORT`
 
