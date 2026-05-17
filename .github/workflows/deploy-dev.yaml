@@ -1,0 +1,104 @@
+name: Deploy Angular Frontend to LAN Dev Server
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "develop" ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build Angular app (devhost)
+      run: npm run build -- --configuration devhost
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-package-dev
+        path: dist/**
+
+  deploy:
+    runs-on: [self-hosted, dev]
+    needs: build
+
+    steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: frontend-package-dev
+        path: .
+
+    - name: Inspect workspace
+      run: ls -R .
+
+    - name: Create release folder on server
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.DEV_SERVER_HOST }}
+        username: ${{ secrets.DEV_SERVER_USER }}
+        key: ${{ secrets.DEV_SERVER_SSH_KEY }}
+        port: ${{ secrets.DEV_SERVER_SSH_PORT }}
+        script: |
+          rm -rf /home/adi/releases/frontend-${{ github.run_number }}
+          mkdir -p /home/adi/releases/frontend-${{ github.run_number }}
+
+    - name: Create tarball from browser folder
+      run: |
+        tar -czf frontend.tar.gz -C browser .
+
+    - name: Upload tarball to server
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.DEV_SERVER_HOST }}
+        username: ${{ secrets.DEV_SERVER_USER }}
+        key: ${{ secrets.DEV_SERVER_SSH_KEY }}
+        port: ${{ secrets.DEV_SERVER_SSH_PORT }}
+        source: "frontend.tar.gz"
+        target: "/home/adi/releases/frontend-${{ github.run_number }}"
+
+    - name: Extract tarball on server
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.DEV_SERVER_HOST }}
+        username: ${{ secrets.DEV_SERVER_USER }}
+        key: ${{ secrets.DEV_SERVER_SSH_KEY }}
+        port: ${{ secrets.DEV_SERVER_SSH_PORT }}
+        script: |
+          cd /home/adi/releases/frontend-${{ github.run_number }}
+          tar -xzf frontend.tar.gz
+          rm frontend.tar.gz
+
+    - name: Update symlink for frontend
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.DEV_SERVER_HOST }}
+        username: ${{ secrets.DEV_SERVER_USER }}
+        key: ${{ secrets.DEV_SERVER_SSH_KEY }}
+        port: ${{ secrets.DEV_SERVER_SSH_PORT }}
+        script: |
+          sudo rm -rf /var/www/qrfe-dev
+          sudo ln -sfn /home/adi/releases/frontend-${{ github.run_number }} /var/www/qrfe-dev
+
+    - name: Reload nginx
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.DEV_SERVER_HOST }}
+        username: ${{ secrets.DEV_SERVER_USER }}
+        key: ${{ secrets.DEV_SERVER_SSH_KEY }}
+        port: ${{ secrets.DEV_SERVER_SSH_PORT }}
+        script: |
+          sudo nginx -t && sudo systemctl reload nginx
