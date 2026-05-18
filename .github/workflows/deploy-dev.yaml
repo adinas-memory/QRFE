@@ -108,8 +108,9 @@ jobs:
         cd ${RELEASE}
         tar -xzf frontend.tar.gz
         rm frontend.tar.gz
-        rm -rf /var/www/qrfe-dev
-        ln -sfn ${RELEASE} /var/www/qrfe-dev
+        sudo -n rm -rf /var/www/qrfe-dev
+        sudo -n ln -sfn ${RELEASE} /var/www/qrfe-dev
+        sudo -n chown -h ${USER}:${USER} /var/www/qrfe-dev 2>/dev/null || true
         sudo -n /usr/sbin/nginx -t
         sudo -n /usr/bin/systemctl reload nginx
         REMOTE
