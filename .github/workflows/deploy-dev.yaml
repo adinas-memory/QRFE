@@ -75,6 +75,10 @@ jobs:
         EOF
         chmod 600 ~/.ssh/config
 
+    - name: Verify SSH user and passwordless sudo
+      run: |
+        ssh dev-deploy 'whoami; sudo -n true && echo "NOPASSWD sudo: OK" || { echo "NOPASSWD sudo: FAILED for $(whoami) — fix /etc/sudoers.d/qr-dev-deploy"; exit 1; }'
+
     - name: Build tarball and deploy frontend
       run: |
         set -euo pipefail
@@ -98,7 +102,8 @@ jobs:
         cd ${RELEASE}
         tar -xzf frontend.tar.gz
         rm frontend.tar.gz
-        sudo rm -rf /var/www/qrfe-dev
-        sudo ln -sfn ${RELEASE} /var/www/qrfe-dev
-        sudo nginx -t && sudo systemctl reload nginx
+        rm -rf /var/www/qrfe-dev
+        ln -sfn ${RELEASE} /var/www/qrfe-dev
+        sudo -n /usr/sbin/nginx -t
+        sudo -n /usr/bin/systemctl reload nginx
         REMOTE
