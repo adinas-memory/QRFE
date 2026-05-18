@@ -1,8 +1,8 @@
 name: Deploy Angular Frontend to Bare Metal
 
 on:
-  push:
-    branches: [ "main" ]
+  # Prod/UAT deploy is manual — push on main triggers deploy-dev.yaml (LAN) only.
+  workflow_dispatch:
 
 jobs:
 
