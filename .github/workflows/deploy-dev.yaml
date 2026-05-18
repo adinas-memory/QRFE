@@ -48,6 +48,9 @@ jobs:
       SSH_PORT: ${{ secrets.DEV_SERVER_SSH_PORT }}
 
     steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
     - name: Download artifact
       uses: actions/download-artifact@v4
       with:
@@ -76,8 +79,11 @@ jobs:
         chmod 600 ~/.ssh/config
 
     - name: Verify SSH user and passwordless sudo
+      env:
+        DEPLOY_USER: ${{ secrets.DEV_SERVER_USER }}
+        SESSION_ID: "7379f5"
       run: |
-        ssh dev-deploy 'whoami; sudo -n true && echo "NOPASSWD sudo: OK" || { echo "NOPASSWD sudo: FAILED for $(whoami) — fix /etc/sudoers.d/qr-dev-deploy"; exit 1; }'
+        bash .github/workflows/deploy-dev-diagnose-sudo.sh
 
     - name: Build tarball and deploy frontend
       run: |
