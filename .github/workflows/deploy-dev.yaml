@@ -45,11 +45,37 @@ jobs:
     needs: [build, verify-runner]
     env:
       RUN: ${{ github.run_number }}
-      SSH_PORT: ${{ secrets.DEV_SERVER_SSH_PORT }}
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    - name: Resolve deploy target (secrets or variables)
+      env:
+        SECRET_HOST: ${{ secrets.DEV_SERVER_HOST }}
+        SECRET_USER: ${{ secrets.DEV_SERVER_USER }}
+        SECRET_PORT: ${{ secrets.DEV_SERVER_SSH_PORT }}
+        VARS_HOST: ${{ vars.DEV_SERVER_HOST }}
+        VARS_USER: ${{ vars.DEV_SERVER_USER }}
+        VARS_PORT: ${{ vars.DEV_SERVER_SSH_PORT }}
+      run: |
+        pick() { if [[ -n "${1}" ]]; then echo "${1}"; else echo "${2}"; fi; }
+        HOST=$(pick "$SECRET_HOST" "$VARS_HOST")
+        USER=$(pick "$SECRET_USER" "$VARS_USER")
+        PORT=$(pick "$SECRET_PORT" "$VARS_PORT")
+        PORT="${PORT:-22}"
+
+        missing=()
+        [[ -n "$SECRET_HOST" || -n "$VARS_HOST" ]] || missing+=("DEV_SERVER_HOST")
+        [[ -n "$SECRET_USER" || -n "$VARS_USER" ]] || missing+=("DEV_SERVER_USER")
+        [[ -n "${{ secrets.DEV_SERVER_SSH_KEY }}" ]] || missing+=("DEV_SERVER_SSH_KEY")
+
+        if [[ ${#missing[@]} -gt 0 ]]; then
+          echo "::error::Missing for this repository (QRFE): ${missing[*]}"
+          exit 1
+        fi
+
+        echo "DEV_HOST=$HOST" >> "$GITHUB_ENV"
+        echo "DEV_USER=$USER" >> "$GITHUB_ENV"
+        echo "DEV_PORT=$PORT" >> "$GITHUB_ENV"
+        echo "Using deploy target host=$HOST user=$USER port=$PORT"
 
     - name: Download artifact
       uses: actions/download-artifact@v4
@@ -65,12 +91,12 @@ jobs:
         mkdir -p ~/.ssh
         printf '%s\n' "${{ secrets.DEV_SERVER_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
         chmod 600 ~/.ssh/deploy_key
-        PORT="${SSH_PORT:-22}"
-        ssh-keyscan -p "$PORT" -H "${{ secrets.DEV_SERVER_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+        PORT="${DEV_PORT:-22}"
+        ssh-keyscan -p "$PORT" -H "${DEV_HOST}" >> ~/.ssh/known_hosts 2>/dev/null || true
         cat > ~/.ssh/config <<EOF
         Host dev-deploy
-          HostName ${{ secrets.DEV_SERVER_HOST }}
-          User ${{ secrets.DEV_SERVER_USER }}
+          HostName ${DEV_HOST}
+          User ${DEV_USER}
           Port ${PORT}
           IdentityFile ~/.ssh/deploy_key
           IdentitiesOnly yes
@@ -79,11 +105,17 @@ jobs:
         chmod 600 ~/.ssh/config
 
     - name: Verify SSH user and passwordless sudo
-      env:
-        DEPLOY_USER: ${{ secrets.DEV_SERVER_USER }}
-        SESSION_ID: "7379f5"
       run: |
-        bash .github/workflows/deploy-dev-diagnose-sudo.sh
+        echo "ssh_target_host=${DEV_HOST}"
+        echo "ssh_config_user=${DEV_USER}"
+        ACTUAL=$(ssh dev-deploy 'whoami' | tr -d '\r\n')
+        echo "ssh_remote_whoami=${ACTUAL}"
+        if [[ "${ACTUAL}" != "${DEV_USER}" ]]; then
+          echo "::error::SSH user mismatch: connected as '${ACTUAL}', expected DEV_SERVER_USER='${DEV_USER}'"
+          exit 1
+        fi
+        ssh dev-deploy 'sudo -n true'
+        echo "NOPASSWD sudo: OK"
 
     - name: Build tarball and deploy frontend
       run: |
