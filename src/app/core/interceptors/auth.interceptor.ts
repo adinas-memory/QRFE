@@ -98,6 +98,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
               refreshReturnedUser: user != null,
             });
             // #endregion
+            if (!user) {
+              return throwError(() => error);
+            }
             return next(request);
           }),
           catchError(err => {
