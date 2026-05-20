@@ -175,54 +175,9 @@ export class AuthService {
   }
 
   refreshUserContext() {
-    // #region agent log
-    const DEBUG_INGEST = 'http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18';
-    fetch(DEBUG_INGEST, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7379f5' },
-      body: JSON.stringify({
-        sessionId: '7379f5',
-        hypothesisId: 'H5',
-        location: 'auth.service.ts:refreshUserContext',
-        message: 'refresh-token request start',
-        data: { apiUrl: this.apiUrl },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     return this.http.post<UserContextModel>(`${this.apiUrl}/api/user/refresh-token`, {}, { withCredentials: true }).pipe(
-      tap(user => {
-        // #region agent log
-        fetch(DEBUG_INGEST, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7379f5' },
-          body: JSON.stringify({
-            sessionId: '7379f5',
-            hypothesisId: 'H2',
-            location: 'auth.service.ts:refreshUserContext',
-            message: 'refresh-token success',
-            data: { hasUser: user != null, role: user?.role ?? null },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
-        this.setUser(user);
-      }),
+      tap(user => this.setUser(user)),
       catchError(err => {
-        // #region agent log
-        fetch(DEBUG_INGEST, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7379f5' },
-          body: JSON.stringify({
-            sessionId: '7379f5',
-            hypothesisId: 'H2',
-            location: 'auth.service.ts:refreshUserContext',
-            message: 'refresh-token failed',
-            data: { status: err?.status ?? null },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
         console.error('Refresh failed', err);
         this.clearUser();
         this.router.navigate(['/login']);

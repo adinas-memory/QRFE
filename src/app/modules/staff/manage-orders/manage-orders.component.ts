@@ -306,7 +306,26 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   async confirmOrder() {
     if (document.hidden) return;
 
-    const localOrderId = 'local-' + crypto.randomUUID();
+    const localOrderId =
+      'local-' + (crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2));
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7379f5' },
+      body: JSON.stringify({
+        sessionId: '7379f5',
+        runId: 'post-fix',
+        hypothesisId: 'H1',
+        location: 'manage-orders.component.ts:confirmOrder',
+        message: 'local order id generated without throw',
+        data: {
+          nativeRandomUUID: typeof crypto?.randomUUID === 'function',
+          idLength: localOrderId.length
+        },
+        timestamp: Date.now()
+      })
+    }).catch(() => {});
+    // #endregion
     this.currentOrderId = localOrderId;
     this.orderIsConfirmed = true;
 
