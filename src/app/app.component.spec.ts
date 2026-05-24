@@ -1,14 +1,67 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { provideTransloco } from '@jsverse/transloco';
 import { AppComponent } from './app.component';
+import { AuthService } from './core/auth/auth.service';
+import { OrderSyncService } from './core/services/order-service/order-sync.service';
+import { OnlineStateService } from './core/offline/online-state-service';
+import { ColorModeService } from '@coreui/angular';
+import { IconSetService } from '@coreui/icons-angular';
+import { of } from 'rxjs';
 
 describe('AppComponent', () => {
+  let authSpy: any;
+  let orderSyncSpy: any;
+  let onlineStateSpy: any;
+  let colorModeSpy: any;
+
   beforeEach(async () => {
+    authSpy = {
+      getUserContext: () => of({ id: '1', role: 'manager', restaurantId: '123' }),
+      restoreSession: () => of(true),
+      pingSession: () => of(true)
+    };
+
+    orderSyncSpy = {
+      listenToRestaurantEvents: jasmine.createSpy('listenToRestaurantEvents').and.returnValue(of({}))
+    };
+
+    onlineStateSpy = {
+      online$: of(true)
+    };
+
+    colorModeSpy = {
+      localStorageItemName: { set: jasmine.createSpy('set') },
+      eventName: { set: jasmine.createSpy('set') }
+    };
+
     await TestBed.configureTestingModule({
       imports: [
         AppComponent
       ],
-      providers: [provideRouter([])]
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideNoopAnimations(),
+        provideTransloco({
+          config: {
+            availableLangs: ['en', 'ro'],
+            defaultLang: 'en',
+            fallbackLang: 'en',
+            reRenderOnLangChange: true,
+            prodMode: true
+          }
+        }),
+        IconSetService,
+        { provide: AuthService, useValue: authSpy },
+        { provide: OrderSyncService, useValue: orderSyncSpy },
+        { provide: OnlineStateService, useValue: onlineStateSpy },
+        { provide: ColorModeService, useValue: colorModeSpy }
+      ]
     }).compileComponents();
   });
 

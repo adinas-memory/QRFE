@@ -302,10 +302,6 @@ export class OrderSyncService {
     }
     if (this.isRefreshing) return;
 
-  // #region agent log
-  fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'order-sync.service.ts:handleSseError',message:'sse_error',data:{isOnline:this.onlineStateService.isOnline,reconnectAttempts:this.reconnectAttempts,errMsg:String(err?.message??err)},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
-  // #endregion
-
     if (!this.onlineStateService.isOnline) {
       this.scheduleSseReconnect(restaurantId);
       return;
@@ -353,9 +349,6 @@ export class OrderSyncService {
     if (this.reconnectAttempts <= this.maxReconnectAttempts) {
       const delay = Math.min(30000, this.baseReconnectDelayMs * Math.pow(2, this.reconnectAttempts - 1));
       console.warn(`[OrderSync] scheduling reconnect attempt ${this.reconnectAttempts} in ${delay}ms`);
-  // #region agent log
-  fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'order-sync.service.ts:scheduleSseReconnect',message:'reconnect_scheduled',data:{attempt:this.reconnectAttempts,delay,isOnline:this.onlineStateService.isOnline},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
-  // #endregion
       timer(delay).pipe(take(1)).subscribe(() => {
         if (document.hidden) {
           return;
@@ -367,9 +360,6 @@ export class OrderSyncService {
       });
     } else {
       console.warn('[OrderSync] max reconnect attempts reached, waiting for online');
-  // #region agent log
-  fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'order-sync.service.ts:scheduleSseReconnect',message:'max_retries_no_clear',data:{isOnline:this.onlineStateService.isOnline,authenticated:this.auth.isAuthenticated()},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
-  // #endregion
       this.close();
       this.reconnectAttempts = 0;
     }

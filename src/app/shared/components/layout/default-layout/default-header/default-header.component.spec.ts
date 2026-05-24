@@ -17,6 +17,11 @@ import { IconModule, IconSetService } from '@coreui/icons-angular';
 import { iconSubset } from '@app/icons/icon-subset';
 import { DefaultHeaderComponent } from './default-header.component';
 
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { provideTransloco } from '@jsverse/transloco';
+
 describe('DefaultHeaderComponent', () => {
   let component: DefaultHeaderComponent;
   let fixture: ComponentFixture<DefaultHeaderComponent>;
@@ -24,9 +29,24 @@ describe('DefaultHeaderComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-    imports: [GridModule, HeaderModule, IconModule, NavModule, BadgeModule, AvatarModule, DropdownModule, BreadcrumbModule, SidebarModule, ProgressModule, ButtonGroupModule, ReactiveFormsModule, DefaultHeaderComponent],
-    providers: [IconSetService, provideRouter([])]
-})
+      imports: [GridModule, HeaderModule, IconModule, NavModule, BadgeModule, AvatarModule, DropdownModule, BreadcrumbModule, SidebarModule, ProgressModule, ButtonGroupModule, ReactiveFormsModule, DefaultHeaderComponent],
+      providers: [
+        IconSetService,
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideNoopAnimations(),
+        provideTransloco({
+          config: {
+            availableLangs: ['en', 'ro'],
+            defaultLang: 'en',
+            fallbackLang: 'en',
+            reRenderOnLangChange: true,
+            prodMode: true
+          }
+        })
+      ]
+    })
       .compileComponents();
   });
 

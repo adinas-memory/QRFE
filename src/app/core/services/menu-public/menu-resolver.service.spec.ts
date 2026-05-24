@@ -1,16 +1,31 @@
 import { TestBed } from '@angular/core/testing';
 
-import { MenuResolverService } from './menu-resolver.service';
+import { MenuResolver } from './menu-resolver.service';
+import { MenuService } from './menu.service';
+import { GuestMenuViewService } from './guest-menu-view.service';
 
-describe('MenuResolverService', () => {
-  let service: MenuResolverService;
+describe('MenuResolver', () => {
+  let resolver: MenuResolver;
+  let menuServiceMock: jasmine.SpyObj<MenuService>;
+  let guestMenuViewServiceMock: jasmine.SpyObj<GuestMenuViewService>;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
-    service = TestBed.inject(MenuResolverService);
+    const menuSpy = jasmine.createSpyObj('MenuService', ['getAll']);
+    const guestSpy = jasmine.createSpyObj('GuestMenuViewService', ['initFromResponse']);
+
+    TestBed.configureTestingModule({
+      providers: [
+        MenuResolver,
+        { provide: MenuService, useValue: menuSpy },
+        { provide: GuestMenuViewService, useValue: guestSpy }
+      ]
+    });
+    resolver = TestBed.inject(MenuResolver);
+    menuServiceMock = TestBed.inject(MenuService) as jasmine.SpyObj<MenuService>;
+    guestMenuViewServiceMock = TestBed.inject(GuestMenuViewService) as jasmine.SpyObj<GuestMenuViewService>;
   });
 
   it('should be created', () => {
-    expect(service).toBeTruthy();
+    expect(resolver).toBeTruthy();
   });
 });

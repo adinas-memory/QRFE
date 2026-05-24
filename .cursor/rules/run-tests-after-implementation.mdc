@@ -1,0 +1,37 @@
+---
+description: Rulează testele după fiecare implementare înainte de a considera task-ul finalizat
+alwaysApply: true
+---
+
+# Rulare teste după implementare
+
+După **orice implementare** (cod de producție, teste noi, bugfix sau refactor), rulează testele înainte de a marca task-ul ca finalizat.
+
+## Workflow obligatoriu
+
+1. **Teste țintite** — când s-a modificat un fișier sau spec anume:
+   ```bash
+   npm test -- --include=**/nume-fisier.spec.ts --watch=false --browsers=ChromeHeadless
+   ```
+2. **Suită completă** — obligatoriu înainte de commit/PR sau când schimbarea poate afecta alte module:
+   ```bash
+   npm test -- --watch=false --browsers=ChromeHeadless
+   ```
+
+## Reguli
+
+- Nu considera implementarea gata dacă există teste eșuate.
+- Remediază regresiile sau actualizează testele intenționat (cu explicație scurtă).
+- Dacă ai adăugat teste noi, verifică că trec local, nu doar că se compilează.
+- Rulează comenzile efectiv (Shell), nu doar menționa-le utilizatorului.
+
+## Exemple
+
+```bash
+# După modificări în ManageOrdersComponent
+npm test -- --include=**/manage-orders.component.spec.ts --watch=false --browsers=ChromeHeadless
+
+# Verificare regresii în întreg proiectul QRFE
+cd c:/W/QRFE
+npm test -- --watch=false --browsers=ChromeHeadless
+```
