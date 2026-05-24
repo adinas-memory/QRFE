@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  // PWA test build: production-like optimizations + service worker, but keep dev endpoints if needed.
+  // Use with http://localhost:8080 — api must be localhost (not LAN IP) for auth cookies.
   apiUrl: 'http://localhost:7051',
   poweredBy: 'QRFE PWA Test'  
 };

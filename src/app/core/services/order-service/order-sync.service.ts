@@ -1,7 +1,7 @@
 // order-sync.service.ts
 import { Injectable, NgZone } from '@angular/core';
 import { Observable, Subject, BehaviorSubject, of, timer } from 'rxjs';
-import { switchMap, take, catchError } from 'rxjs/operators';
+import { switchMap, take, catchError, filter } from 'rxjs/operators';
 import { fetchEventSource, EventStreamContentType } from '@microsoft/fetch-event-source';
 import { environment } from '../../../../environments/environment';
 import { SseEvent } from '../../models/sseModel';
@@ -72,6 +72,16 @@ export class OrderSyncService {
         }
       }
     });
+
+    this.onlineStateService.online$
+      .pipe(filter(isOnline => isOnline))
+      .subscribe(() => {
+        const rid = this.pendingOpenRestaurantId ?? this.lastRestaurantId;
+        if (rid && !this.controller) {
+          this.reconnectAttempts = 0;
+          this.openConnection(rid);
+        }
+      });
   }
 
   async trySyncNow() {
@@ -124,6 +134,11 @@ export class OrderSyncService {
     }
     if (document.hidden) {
       this.pendingOpenRestaurantId = restaurantId;
+      return;
+    }
+    if (!this.onlineStateService.isOnline) {
+      this.pendingOpenRestaurantId = restaurantId;
+      this.lastRestaurantId = restaurantId;
       return;
     }
     this.pendingOpenRestaurantId = null;
@@ -285,10 +300,18 @@ export class OrderSyncService {
     if (document.hidden) {
       return;
     }
-    // If already refreshing, do nothing (we'll reconnect after refresh completes)
     if (this.isRefreshing) return;
 
-    // Try to refresh session once, serialized
+  // #region agent log
+  fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'order-sync.service.ts:handleSseError',message:'sse_error',data:{isOnline:this.onlineStateService.isOnline,reconnectAttempts:this.reconnectAttempts,errMsg:String(err?.message??err)},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+  // #endregion
+
+    if (!this.onlineStateService.isOnline) {
+      this.scheduleSseReconnect(restaurantId);
+      return;
+    }
+
+    // Try to refresh session once, serialized (only when online)
     this.isRefreshing = true;
 
     this.auth.refreshUserContext().pipe(
@@ -307,32 +330,48 @@ export class OrderSyncService {
         setTimeout(() => {
           this.openConnection(restaurantId);
           // flush any buffered events after connection established
-          // note: openConnection resets reconnectAttempts in onopen
+          // note: openConnection resets reconnectAttempts to onopen
           setTimeout(() => this.flushBuffer(), 300);
         }, 300);
         return;
       }
 
-      // refresh failed -> try limited reconnects (backoff) or force logout
-      this.reconnectAttempts++;
-      if (this.reconnectAttempts <= this.maxReconnectAttempts) {
-        const delay = Math.min(30000, this.baseReconnectDelayMs * Math.pow(2, this.reconnectAttempts - 1));
-        console.warn(`[OrderSync] refresh failed, scheduling reconnect attempt ${this.reconnectAttempts} in ${delay}ms`);
-        timer(delay).pipe(take(1)).subscribe(() => {
-          if (document.hidden) {
-            return;
-          }
-          // attempt to reopen; this will again trigger refresh flow if needed
-          this.openConnection(restaurantId);
-        });
-      } else {
-        // give up: clear session and emit an error event so app can redirect to login
-        console.error('[OrderSync] max reconnect attempts reached, clearing session');
-        this.close();
-        this.auth.clearUser();
-        // emit a special event so components can react (optional)
-        this.eventsSubject.next({ EventType: 'SSE_AUTH_FAILED', Data: null, Sequence: 0, RestaurantId: restaurantId, InitiatedBy: 'system' });
+      // refresh failed without clearing session (network/transient) -> backoff reconnect
+      if (this.auth.isAuthenticated()) {
+        this.scheduleSseReconnect(restaurantId);
+        return;
       }
+
+      // Real auth failure — refreshUserContext already cleared session
+      this.close();
+      this.eventsSubject.next({ EventType: 'SSE_AUTH_FAILED', Data: null, Sequence: 0, RestaurantId: restaurantId, InitiatedBy: 'system' });
     });
+  }
+
+  private scheduleSseReconnect(restaurantId: string) {
+    this.reconnectAttempts++;
+    if (this.reconnectAttempts <= this.maxReconnectAttempts) {
+      const delay = Math.min(30000, this.baseReconnectDelayMs * Math.pow(2, this.reconnectAttempts - 1));
+      console.warn(`[OrderSync] scheduling reconnect attempt ${this.reconnectAttempts} in ${delay}ms`);
+  // #region agent log
+  fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'order-sync.service.ts:scheduleSseReconnect',message:'reconnect_scheduled',data:{attempt:this.reconnectAttempts,delay,isOnline:this.onlineStateService.isOnline},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
+  // #endregion
+      timer(delay).pipe(take(1)).subscribe(() => {
+        if (document.hidden) {
+          return;
+        }
+        if (!this.onlineStateService.isOnline) {
+          return;
+        }
+        this.openConnection(restaurantId);
+      });
+    } else {
+      console.warn('[OrderSync] max reconnect attempts reached, waiting for online');
+  // #region agent log
+  fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'order-sync.service.ts:scheduleSseReconnect',message:'max_retries_no_clear',data:{isOnline:this.onlineStateService.isOnline,authenticated:this.auth.isAuthenticated()},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
+  // #endregion
+      this.close();
+      this.reconnectAttempts = 0;
+    }
   }
 }

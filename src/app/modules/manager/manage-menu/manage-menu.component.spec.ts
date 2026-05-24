@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ManageMenuComponent } from './manage-menu.component';
+import { COMMON_TEST_PROVIDERS } from '../../../testing/common-test-providers';
 
 describe('ManageMenuComponent', () => {
   let component: ManageMenuComponent;
@@ -8,7 +9,8 @@ describe('ManageMenuComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ManageMenuComponent]
+      imports: [ManageMenuComponent],
+      providers: [...COMMON_TEST_PROVIDERS],
     })
     .compileComponents();
 

@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { RestaurantSetupComponent } from './restaurant-setup.component';
+import { COMMON_TEST_PROVIDERS } from '../../../testing/common-test-providers';
 
 describe('RestaurantSetupComponent', () => {
   let component: RestaurantSetupComponent;
@@ -8,7 +9,8 @@ describe('RestaurantSetupComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [RestaurantSetupComponent]
+      imports: [RestaurantSetupComponent],
+      providers: [...COMMON_TEST_PROVIDERS],
     })
     .compileComponents();
 

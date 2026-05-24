@@ -5,6 +5,7 @@ import { IconModule } from '@coreui/icons-angular';
 import { IconSetService } from '@coreui/icons-angular';
 import { iconSubset } from '../../../icons/icon-subset';
 import { RegisterComponent } from './register.component';
+import { COMMON_TEST_PROVIDERS } from '../../../testing/common-test-providers';
 
 describe('RegisterComponent', () => {
   let component: RegisterComponent;
@@ -13,9 +14,9 @@ describe('RegisterComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-    imports: [CardModule, FormModule, GridModule, ButtonModule, IconModule, RegisterComponent],
-    providers: [IconSetService]
-})
+      imports: [CardModule, FormModule, GridModule, ButtonModule, IconModule, RegisterComponent],
+      providers: [IconSetService, ...COMMON_TEST_PROVIDERS],
+    })
     .compileComponents();
   });
 

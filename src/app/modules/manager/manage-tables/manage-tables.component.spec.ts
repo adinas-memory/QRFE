@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ManageTablesComponent } from './manage-tables.component';
+import { COMMON_TEST_PROVIDERS } from '../../../testing/common-test-providers';
 
 describe('ManageTablesComponent', () => {
   let component: ManageTablesComponent;
@@ -8,7 +9,8 @@ describe('ManageTablesComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ManageTablesComponent]
+      imports: [ManageTablesComponent],
+      providers: [...COMMON_TEST_PROVIDERS],
     })
     .compileComponents();
 

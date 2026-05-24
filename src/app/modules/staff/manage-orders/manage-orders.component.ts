@@ -308,24 +308,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
     const localOrderId =
       'local-' + (crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2));
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7379f5' },
-      body: JSON.stringify({
-        sessionId: '7379f5',
-        runId: 'post-fix',
-        hypothesisId: 'H1',
-        location: 'manage-orders.component.ts:confirmOrder',
-        message: 'local order id generated without throw',
-        data: {
-          nativeRandomUUID: typeof crypto?.randomUUID === 'function',
-          idLength: localOrderId.length
-        },
-        timestamp: Date.now()
-      })
-    }).catch(() => {});
-    // #endregion
     this.currentOrderId = localOrderId;
     this.orderIsConfirmed = true;
 
@@ -1042,13 +1024,17 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         break;
       }
 
-      case 'WaiterCall':
-        this.waiterState[Data.TableId] = WaiterCallState.Active;
+      case 'WaiterCall': {
+        const tableId = this.sseField<string>(Data, 'TableId', 'tableId') ?? Data?.TableId ?? Data?.tableId;
+        if (tableId) this.waiterState[tableId] = WaiterCallState.Active;
         break;
+      }
 
-      case 'WaiterCallSnoozed':
-        this.waiterState[Data.TableId] = WaiterCallState.Snoozed;
+      case 'WaiterCallSnoozed': {
+        const tableId = this.sseField<string>(Data, 'TableId', 'tableId') ?? Data?.TableId ?? Data?.tableId;
+        if (tableId) this.waiterState[tableId] = WaiterCallState.Snoozed;
         break;
+      }
 
       case 'OrderItemDeleted': {
         const tableId = Data.TableId ?? this.currentTableId;

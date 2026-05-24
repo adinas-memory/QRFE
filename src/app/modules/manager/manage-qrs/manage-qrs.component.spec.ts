@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ManageQrsComponent } from './manage-qrs.component';
+import { COMMON_TEST_PROVIDERS } from '../../../testing/common-test-providers';
 
 describe('ManageQrsComponent', () => {
   let component: ManageQrsComponent;
@@ -8,7 +9,8 @@ describe('ManageQrsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ManageQrsComponent]
+      imports: [ManageQrsComponent],
+      providers: [...COMMON_TEST_PROVIDERS],
     })
     .compileComponents();
 

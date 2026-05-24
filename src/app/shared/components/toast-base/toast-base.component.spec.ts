@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ToastBaseComponent } from './toast-base.component';
+import { COMMON_TEST_PROVIDERS } from '../../../testing/common-test-providers';
 
 describe('ToastBaseComponent', () => {
   let component: ToastBaseComponent;
@@ -8,7 +9,8 @@ describe('ToastBaseComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ToastBaseComponent]
+      imports: [ToastBaseComponent],
+      providers: [...COMMON_TEST_PROVIDERS],
     })
     .compileComponents();
 

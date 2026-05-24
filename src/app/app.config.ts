@@ -22,6 +22,27 @@ import { provideTransloco, TranslocoService } from '@jsverse/transloco';
 import { firstValueFrom } from 'rxjs';
 import { TranslocoHttpLoader } from './core/i18n/transloco-loader';
 import { LANG_STORAGE_KEY, DEFAULT_LANG, translocoConfig, type AppLang, APP_LANGS } from './core/i18n/transloco.config';
+import { environment } from '../environments/environment';
+
+/** SW + credentialed API cookies require the same host (localhost vs LAN IP are different sites). */
+function isServiceWorkerEnabled(): boolean {
+  if (isDevMode()) return false;
+  if (typeof window === 'undefined') return true;
+  try {
+    const apiHost = new URL(environment.apiUrl).hostname;
+    const pageHost = window.location.hostname;
+    if (apiHost !== pageHost) {
+      console.warn(
+        `[QRFE] Service worker disabled: API host "${apiHost}" != page host "${pageHost}". ` +
+          `On localhost use "npm run serve:localhost" (build:pwa). On LAN use build:devhost at your IP.`
+      );
+      return false;
+    }
+    return true;
+  } catch {
+    return true;
+  }
+}
 
 export function initAuth(authService: AuthService) {
   return () => authService.restoreSession().toPromise();
@@ -87,12 +108,10 @@ export const appConfig: ApplicationConfig = {
       config: translocoConfig,
       loader: TranslocoHttpLoader
     }),
-    provideAnimationsAsync(), provideServiceWorker('ngsw-worker.js', {
-            enabled: !isDevMode(),
-            registrationStrategy: 'registerWhenStable:30000'
-          }), provideServiceWorker('ngsw-worker.js', {
-            enabled: !isDevMode(),
-            registrationStrategy: 'registerWhenStable:30000'
-          })
+    provideAnimationsAsync(),
+    provideServiceWorker('ngsw-worker.js', {
+      enabled: isServiceWorkerEnabled(),
+      registrationStrategy: 'registerWhenStable:30000'
+    })
   ]
 };

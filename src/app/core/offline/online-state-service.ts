@@ -57,12 +57,10 @@ export class OnlineStateService {
     this.heartbeatInProgress = (async () => {
       try {
         const res = await fetch(`${this.apiUrl}/api/ping-lite`, {
-          method: 'HEAD',
-          credentials: 'include',
+          method: 'GET',
           cache: 'no-store',
-          headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+          signal: AbortSignal.timeout(8000),
         });
-        // Verificăm și statusul, nu doar că fetch-ul a reușit
         if (res.ok || res.status < 500) {
           this.setOnline();
         } else {
@@ -70,6 +68,9 @@ export class OnlineStateService {
         }
       } catch {
         this.setOffline();
+  // #region agent log
+  fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'online-state-service.ts:heartbeat',message:'ping_lite_failed',data:{url:`${this.apiUrl}/api/ping-lite`},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+  // #endregion
       } finally {
         this.lastHeartbeat = Date.now();
         this.heartbeatInProgress = null;
@@ -81,11 +82,17 @@ export class OnlineStateService {
     if (!this._isOnline) return;
     this._isOnline = false;
     this.onlineSubject.next(false);
+  // #region agent log
+  fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'online-state-service.ts:setOffline',message:'state_offline',data:{},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+  // #endregion
   }
 
   setOnline() {
     if (this._isOnline) return;
     this._isOnline = true;
     this.onlineSubject.next(true);
+  // #region agent log
+  fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'online-state-service.ts:setOnline',message:'state_online',data:{},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+  // #endregion
   }
 }
