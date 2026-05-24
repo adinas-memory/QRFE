@@ -1,6 +1,6 @@
 import { Router } from '@angular/router';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, Subject, catchError, map, of, tap, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, catchError, finalize, map, of, shareReplay, tap, throwError } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { UserContextModel } from '../models/userContextModel';
 import { RegisterUserRequestModel } from '../models/registerUserRequestModel';
@@ -12,6 +12,30 @@ export function isHttpAuthFailure(err: unknown): boolean {
   return status === 401 || status === 403;
 }
 
+/** Normalizes API user payloads (camelCase or PascalCase). */
+export function normalizeUserContext(raw: unknown): UserContextModel | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  const id = (r['id'] ?? r['Id']) as string | undefined;
+  const role = (r['role'] ?? r['Role']) as string | undefined;
+  if (!id || !role) return null;
+  return {
+    id,
+    role,
+    restaurantId: (r['restaurantId'] ?? r['RestaurantId'] ?? null) as string | null,
+    restaurantName: (r['restaurantName'] ?? r['RestaurantName'] ?? null) as string | null,
+    restaurantType: (r['restaurantType'] ?? r['RestaurantType'] ?? null) as string | null,
+  };
+}
+
+function isRefreshSuccess(raw: unknown): boolean {
+  if (!raw || typeof raw !== 'object') return true;
+  const r = raw as Record<string, unknown>;
+  if ('isSuccess' in r) return r['isSuccess'] === true;
+  if ('IsSuccess' in r) return r['IsSuccess'] === true;
+  return true;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private userSubject = new BehaviorSubject<UserContextModel | null>(null);
@@ -19,6 +43,8 @@ export class AuthService {
   readonly loggedIn$ = new Subject<void>();
   // use environment variable
   private apiUrl = environment.apiUrl;
+  /** Shared in-flight refresh — prevents parallel refresh-token calls that invalidate each other. */
+  private refreshInFlight: Observable<UserContextModel | null> | null = null;
 
   constructor(private http: HttpClient,
     private router: Router) { }
@@ -177,18 +203,43 @@ export class AuthService {
     );
   }
 
-  refreshUserContext() {
-    return this.http.post<UserContextModel>(`${this.apiUrl}/api/user/refresh-token`, {}, { withCredentials: true }).pipe(
-      tap(user => this.setUser(user)),
-      catchError(err => {
-        console.error('Refresh failed', err);
-        if (isHttpAuthFailure(err)) {
-          this.clearUser();
-          this.router.navigate(['/login']);
-        }
-        return of(null);
-      })
-    );
+  refreshUserContext(): Observable<UserContextModel | null> {
+    if (this.refreshInFlight) {
+      return this.refreshInFlight;
+    }
+
+    this.refreshInFlight = this.http
+      .post<unknown>(`${this.apiUrl}/api/user/refresh-token`, {}, { withCredentials: true })
+      .pipe(
+        map(raw => this.resolveUserAfterRefresh(raw)),
+        tap(user => {
+          if (user) this.setUser(user);
+        }),
+        catchError(err => {
+          console.error('Refresh failed', err);
+          if (isHttpAuthFailure(err)) {
+            this.clearUser();
+            this.router.navigate(['/login']);
+          }
+          return of(null);
+        }),
+        finalize(() => {
+          this.refreshInFlight = null;
+        }),
+        shareReplay(1),
+      );
+
+    return this.refreshInFlight;
+  }
+
+  /** After refresh, cookies hold the new JWT; keep local ctx if body omits user fields. */
+  private resolveUserAfterRefresh(raw: unknown): UserContextModel | null {
+    const normalized = normalizeUserContext(raw);
+    if (normalized) return normalized;
+    if (isRefreshSuccess(raw)) {
+      return this.getUserSnapshot();
+    }
+    return null;
   }
 
   logout(): Observable<void> {

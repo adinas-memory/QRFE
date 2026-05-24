@@ -2,7 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { Router } from '@angular/router';
-import { AuthService, isHttpAuthFailure } from './auth.service';
+import { AuthService, isHttpAuthFailure, normalizeUserContext } from './auth.service';
+import { UserContextModel } from '../models/userContextModel';
 import { environment } from '../../../environments/environment';
 
 describe('isHttpAuthFailure', () => {
@@ -14,6 +15,25 @@ describe('isHttpAuthFailure', () => {
   it('returns false for network and other errors', () => {
     expect(isHttpAuthFailure(new HttpErrorResponse({ status: 0 }))).toBe(false);
     expect(isHttpAuthFailure(new HttpErrorResponse({ status: 500 }))).toBe(false);
+  });
+});
+
+describe('normalizeUserContext', () => {
+  it('maps camelCase and PascalCase payloads', () => {
+    expect(normalizeUserContext({ id: '1', role: 'staff', restaurantId: 'r1' })).toEqual({
+      id: '1',
+      role: 'staff',
+      restaurantId: 'r1',
+      restaurantName: null,
+      restaurantType: null,
+    });
+    expect(normalizeUserContext({ Id: '2', Role: 'manager', RestaurantId: 'r2' })).toEqual({
+      id: '2',
+      role: 'manager',
+      restaurantId: 'r2',
+      restaurantName: null,
+      restaurantType: null,
+    });
   });
 });
 
@@ -71,5 +91,32 @@ describe('AuthService offline session handling', () => {
 
     expect(router.navigate).toHaveBeenCalledWith(['/login']);
     expect(service.isAuthenticated()).toBe(false);
+  });
+
+  it('refreshUserContext deduplicates concurrent calls', () => {
+    service.setUser({ id: '1', role: 'manager', restaurantId: 'r1', restaurantName: 'R', restaurantType: 'Small' });
+
+    let first: UserContextModel | null | undefined;
+    let second: UserContextModel | null | undefined;
+    service.refreshUserContext().subscribe(v => (first = v));
+    service.refreshUserContext().subscribe(v => (second = v));
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/user/refresh-token`);
+    req.flush({ IsSuccess: true, Id: '1', Role: 'manager', RestaurantId: 'r1' });
+
+    expect(first?.id).toBe('1');
+    expect(second?.id).toBe('1');
+  });
+
+  it('refreshUserContext keeps snapshot when body has isSuccess only', () => {
+    service.setUser({ id: '1', role: 'staff', restaurantId: 'r1', restaurantName: 'R', restaurantType: 'Small' });
+
+    service.refreshUserContext().subscribe(result => {
+      expect(result?.id).toBe('1');
+      expect(result?.role).toBe('staff');
+    });
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/user/refresh-token`);
+    req.flush({ isSuccess: true, message: 'refreshed successfully' });
   });
 });

@@ -104,4 +104,23 @@ describe('authInterceptor offline behavior', () => {
     expect(auth.clearUser).not.toHaveBeenCalled();
     expect(router.navigate).not.toHaveBeenCalled();
   });
+
+  it('401 after refresh retry logs out instead of looping refresh', () => {
+    (onlineState as any)._isOnline = true;
+    auth.refreshUserContext.and.returnValue(
+      of({ id: '1', role: 'manager', restaurantId: 'r1', restaurantName: 'R', restaurantType: 'Small' })
+    );
+
+    http.get('/api/restaurants/x/staff/metrics').subscribe({ error: () => {} });
+
+    const req1 = httpMock.expectOne('/api/restaurants/x/staff/metrics');
+    req1.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+
+    const req2 = httpMock.expectOne('/api/restaurants/x/staff/metrics');
+    req2.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+
+    expect(auth.refreshUserContext).toHaveBeenCalledTimes(1);
+    expect(auth.clearUser).toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledWith(['/login']);
+  });
 });

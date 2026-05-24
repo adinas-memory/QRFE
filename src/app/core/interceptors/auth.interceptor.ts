@@ -1,9 +1,12 @@
-import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { HttpInterceptorFn, HttpErrorResponse, HttpContextToken } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { AuthService, isHttpAuthFailure } from '../auth/auth.service';
 import { Router } from '@angular/router';
 import { OnlineStateService } from '../offline/online-state-service';
 import { catchError, switchMap, throwError } from 'rxjs';
+
+/** Set on a retried request so a second 401 does not trigger another refresh loop. */
+export const AUTH_RETRIED = new HttpContextToken<boolean>(() => false);
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
@@ -31,12 +34,17 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         if (!onlineState.isOnline) {
           return throwError(() => error);
         }
+        if (req.context.get(AUTH_RETRIED)) {
+          auth.clearUser();
+          router.navigate(['/login']);
+          return throwError(() => error);
+        }
         return auth.refreshUserContext().pipe(
           switchMap((user) => {
             if (!user) {
               return throwError(() => error);
             }
-            return next(request);
+            return next(req.clone({ context: req.context.set(AUTH_RETRIED, true) }));
           }),
           catchError(err => {
             if (isHttpAuthFailure(err)) {

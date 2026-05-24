@@ -44,3 +44,7 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Cursor debug session logs (agent instrumentation)
+.cursor/debug-*.log
+debug-*.log
