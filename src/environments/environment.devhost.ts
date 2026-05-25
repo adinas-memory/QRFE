@@ -4,5 +4,5 @@ export const environment = {
   apiUrl: 'http://192.168.43.237:7051',
   poweredBy: 'QRFE Dev LAN',
   printerAgentDownloadUrl:
-    'https://github.com/adrian-badulescu/Printer-Agent/releases/download/v1.0.8/URSPrinterAgentSetup.exe',
+    'https://github.com/adrian-badulescu/Printer-Agent/releases/download/v1.2.4/URSPrinterAgentSetup.exe',
 };

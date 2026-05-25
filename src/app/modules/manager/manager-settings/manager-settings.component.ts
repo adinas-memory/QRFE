@@ -417,6 +417,48 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     });
   }
 
+  stripeConnectStatusLabel(status: string | null): string {
+    if (!status) {
+      return '—';
+    }
+    const key = this.stripeConnectStatusTranslationKey(status);
+    return key ? this.transloco.translate(key) : status;
+  }
+
+  stripeChargesFlagLabel(): string {
+    return this.transloco.translate(
+      this.stripeChargesEnabled
+        ? 'restaurantSettings.paymentsFlagChargesEnabled'
+        : 'restaurantSettings.paymentsFlagChargesDisabled',
+    );
+  }
+
+  stripePayoutsFlagLabel(): string {
+    return this.transloco.translate(
+      this.stripePayoutsEnabled
+        ? 'restaurantSettings.paymentsFlagPayoutsEnabled'
+        : 'restaurantSettings.paymentsFlagPayoutsDisabled',
+    );
+  }
+
+  stripeDetailsFlagLabel(): string {
+    return this.transloco.translate(
+      this.stripeDetailsSubmitted
+        ? 'restaurantSettings.paymentsFlagDetailsSubmitted'
+        : 'restaurantSettings.paymentsFlagDetailsMissing',
+    );
+  }
+
+  private stripeConnectStatusTranslationKey(status: string): string | null {
+    const normalized = status.trim().toLowerCase().replace(/-/g, '_');
+    const keys: Record<string, string> = {
+      not_connected: 'restaurantSettings.paymentsStatusNotConnected',
+      connected: 'restaurantSettings.paymentsStatusConnected',
+      pending: 'restaurantSettings.paymentsStatusPending',
+    };
+    return keys[normalized] ?? null;
+  }
+
   confirmCancelSubscription(): void {
     if (
       !confirm(this.transloco.translate('restaurantSettings.confirmCancelSubscription'))

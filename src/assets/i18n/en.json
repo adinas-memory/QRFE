@@ -414,6 +414,17 @@
     "paymentsStripeAccount": "Connected account",
     "paymentsStripeFlags": "Account flags",
     "paymentsStripeConnectErrorTitle": "Could not load Stripe status",
+    "paymentsOnboardingPending": "Onboarding pending",
+    "paymentsCardAfterOnboarding": "Card payments will be available after Stripe onboarding is completed.",
+    "paymentsFlagChargesEnabled": "Charges enabled",
+    "paymentsFlagChargesDisabled": "Charges disabled",
+    "paymentsFlagPayoutsEnabled": "Payouts enabled",
+    "paymentsFlagPayoutsDisabled": "Payouts disabled",
+    "paymentsFlagDetailsSubmitted": "Details submitted",
+    "paymentsFlagDetailsMissing": "Details missing",
+    "paymentsStatusNotConnected": "Not connected",
+    "paymentsStatusConnected": "Connected",
+    "paymentsStatusPending": "Pending",
     "subscriptionTitle": "Subscription",
     "subscriptionCancelHint": "Cancel your Stripe subscription for this account. You will be signed out after cancellation succeeds.",
     "canceling": "Processing…",
@@ -425,7 +436,7 @@
     "printerAgentEnrollment": {
       "title": "Printer agent setup",
       "hint": "Generate a 10-character code for the printer agent on first run. Each code can be used a limited number of times until it expires.",
-      "downloadLatest": "Download latest Printer Agent (Windows x64 ZIP)",
+      "downloadLatest": "Download URS Printer Agent installer (Windows x64)",
       "generate": "Generate new code",
       "generating": "Generating…",
       "loading": "Loading codes…",
@@ -528,7 +539,7 @@
       "printerAgentDownload": {
         "q": "Where do I download the Printer Agent for Windows?",
         "aIntro": "Printer Agent runs on a Windows x64 PC at the restaurant, talks to the backend, and reports printers via heartbeat. After installing, generate an enrollment code in Manager → Settings (Printer agent section) and finish setup on that machine.",
-        "linkLabel": "Download latest Windows x64 build (ZIP)",
+        "linkLabel": "Download URSPrinterAgentSetup.exe (Windows x64)",
         "linkUnset": "Download URL is not configured for this deployment — ask your administrator or open your organisation’s Printer Agent GitHub Releases page."
       },
       "printerAgentReconnectAfterNetwork": {
