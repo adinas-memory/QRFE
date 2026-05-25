@@ -1,7 +1,8 @@
 import { Component, DestroyRef, HostListener, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, ActivatedRouteSnapshot, NavigationEnd, Router, RouterOutlet } from '@angular/router';
-import { delay, filter, map, take, tap } from 'rxjs/operators';
+import { filter, take } from 'rxjs/operators';
 
 import { ColorModeService } from '@coreui/angular';
 import { IconSetService, } from '@coreui/icons-angular';
@@ -45,7 +46,6 @@ export class AppComponent implements OnInit {
   readonly #iconSetService = inject(IconSetService);
   readonly #orderSyncService = inject(OrderSyncService);
   readonly #onlineStateService = inject(OnlineStateService);
-
   constructor() {
     this.#titleService.setTitle(this.title);
 

@@ -1,62 +1,47 @@
-import { HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
-import { finalize } from 'rxjs';
-import { LoadingService } from '../services/loading/loading.service';
-
-function shouldSkipGlobalLoading(url: string): boolean {
-  return (
-    url.includes('/sse') ||
-    url.includes('/api/user/ping') ||
-    url.includes('/api/user/refresh-token') ||
-    url.includes('/api/ping-lite') ||
-    url.includes('/staff/dashboard/metrics') ||
-    url.includes('/assets/i18n/')
-  );
-}
-
-export const loadingInterceptor: HttpInterceptorFn = (req, next) => {
-  const loading = inject(LoadingService);
-  const skip = shouldSkipGlobalLoading(req.url);
-
-  // #region agent log
-  fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7379f5' },
-    body: JSON.stringify({
-      sessionId: '7379f5',
-      runId: 'spinner-fix',
-      location: 'loading.interceptor.ts:request',
-      message: skip ? 'loading skipped' : 'loading show',
-      data: { url: req.url, skip },
-      timestamp: Date.now(),
-      hypothesisId: 'H-S2',
-    }),
-  }).catch(() => {});
-  // #endregion
-
-  if (skip) {
-    return next(req);
-  }
-
-  loading.show();
-  return next(req).pipe(
-    finalize(() => {
-      loading.hide();
-      // #region agent log
-      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7379f5' },
-        body: JSON.stringify({
-          sessionId: '7379f5',
-          runId: 'spinner-fix',
-          location: 'loading.interceptor.ts:finalize',
-          message: 'loading hide',
-          data: { url: req.url },
-          timestamp: Date.now(),
-          hypothesisId: 'H-S1',
-        }),
-      }).catch(() => {});
-      // #endregion
-    }),
-  );
-};
+import { HttpContextToken, HttpInterceptorFn } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { finalize } from 'rxjs';
+import { LoadingService } from '../services/loading/loading.service';
+
+/** Opt out of the global overlay for a specific request (e.g. background poll). */
+export const SKIP_GLOBAL_LOADING = new HttpContextToken<boolean>(() => false);
+
+/** Rare: force overlay even when URL would be skipped. */
+export const FORCE_GLOBAL_LOADING = new HttpContextToken<boolean>(() => false);
+
+/**
+ * Background / long-lived calls that must not affect the global HttpClient loading counter.
+ * Everything else (GET, POST, PUT, PATCH, DELETE) shows activity via LoadingService.
+ */
+function shouldSkipGlobalLoading(req: Parameters<HttpInterceptorFn>[0]): boolean {
+  if (req.context.get(FORCE_GLOBAL_LOADING)) {
+    return false;
+  }
+  if (req.context.get(SKIP_GLOBAL_LOADING)) {
+    return true;
+  }
+
+  const url = req.url;
+  return (
+    url.includes('/sse') ||
+    url.includes('/api/user/ping') ||
+    url.includes('/api/user/refresh-token') ||
+    url.includes('/api/ping-lite')
+  );
+}
+
+export const loadingInterceptor: HttpInterceptorFn = (req, next) => {
+  const loading = inject(LoadingService);
+
+  if (shouldSkipGlobalLoading(req)) {
+    return next(req);
+  }
+
+  loading.show(req.method, req.url);
+  return next(req).pipe(
+    finalize(() => {
+      loading.hide(req.method, req.url);
+    }),
+  );
+};
+
