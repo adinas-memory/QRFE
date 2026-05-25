@@ -7,7 +7,10 @@ function shouldSkipGlobalLoading(url: string): boolean {
   return (
     url.includes('/sse') ||
     url.includes('/api/user/ping') ||
-    url.includes('/api/user/refresh-token')
+    url.includes('/api/user/refresh-token') ||
+    url.includes('/api/ping-lite') ||
+    url.includes('/staff/dashboard/metrics') ||
+    url.includes('/assets/i18n/')
   );
 }
 

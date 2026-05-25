@@ -28,6 +28,12 @@ export class LoadingService {
     // #endregion
   }
 
+  /** Clears a stuck global spinner (e.g. after navigation). */
+  reset(): void {
+    this.counter = 0;
+    this._loading.next(false);
+  }
+
   hide() {
     this.counter--;
     if (this.counter <= 0) {
