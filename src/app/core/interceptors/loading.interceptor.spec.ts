@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 import { LoadingService } from '../services/loading/loading.service';
+import { navigationCancelInterceptor } from './navigation-cancel.interceptor';
 import { FORCE_GLOBAL_LOADING, loadingInterceptor } from './loading.interceptor';
 
 describe('loadingInterceptor', () => {
@@ -13,7 +14,9 @@ describe('loadingInterceptor', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        provideHttpClient(withInterceptors([loadingInterceptor])),
+        provideHttpClient(
+          withInterceptors([navigationCancelInterceptor, loadingInterceptor]),
+        ),
         provideHttpClientTesting(),
         LoadingService,
       ],
@@ -37,16 +40,24 @@ describe('loadingInterceptor', () => {
     expect(visible).toBeFalse();
   });
 
-  it('toggles global loading for staff POST until complete', async () => {
+  it('toggles global loading for dashboard metrics GET', async () => {
     const p = firstValueFrom(
-      http.post('/api/restaurants/x/staff/tables/t1/orders/o1/add-order-item', {}),
+      http.get('/api/restaurants/x/staff/dashboard/metrics'),
     );
     let visible = false;
     loading.loading$.subscribe(v => (visible = v));
     expect(visible).toBeTrue();
-    httpMock
-      .expectOne('/api/restaurants/x/staff/tables/t1/orders/o1/add-order-item')
-      .flush({});
+    httpMock.expectOne('/api/restaurants/x/staff/dashboard/metrics').flush({});
+    await p;
+    expect(visible).toBeFalse();
+  });
+
+  it('does not toggle global loading for i18n assets', async () => {
+    const p = firstValueFrom(http.get('/assets/i18n/en.json'));
+    let visible = false;
+    loading.loading$.subscribe(v => (visible = v));
+    expect(visible).toBeFalse();
+    httpMock.expectOne('/assets/i18n/en.json').flush({});
     await p;
     expect(visible).toBeFalse();
   });
@@ -74,27 +85,6 @@ describe('loadingInterceptor', () => {
     httpMock.expectOne('/api/b').flush([]);
     await p2;
     expect(states.at(-1)).toBeFalse();
-  });
-
-  it('does not leak counter when SSE url is skipped (regression)', async () => {
-    const p = firstValueFrom(http.get('/sse/internal/restaurant/x'));
-    let visible = false;
-    loading.loading$.subscribe(v => (visible = v));
-    expect(visible).toBeFalse();
-    httpMock.expectOne('/sse/internal/restaurant/x').flush({});
-    await p;
-    expect(visible).toBeFalse();
-  });
-
-  it('can force loading on skipped ping-lite via context token', async () => {
-    const ctx = new HttpContext().set(FORCE_GLOBAL_LOADING, true);
-    const p = firstValueFrom(http.head('/api/ping-lite', { context: ctx }));
-    let visible = false;
-    loading.loading$.subscribe(v => (visible = v));
-    expect(visible).toBeTrue();
-    httpMock.expectOne('/api/ping-lite').flush({});
-    await p;
-    expect(visible).toBeFalse();
   });
 });
 

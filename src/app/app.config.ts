@@ -15,6 +15,7 @@ import { routes } from './app.routes';
 import { AuthService } from './core/auth/auth.service';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { loadingInterceptor } from './core/interceptors/loading.interceptor';
+import { navigationCancelInterceptor } from './core/interceptors/navigation-cancel.interceptor';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { clientInstanceInterceptor } from './core/interceptors/client-instance.interceptor';
 import { loggingInterceptor } from './core/interceptors/logging.interceptor';
@@ -98,6 +99,7 @@ export const appConfig: ApplicationConfig = {
     ),
     provideHttpClient(
       withInterceptors([
+        navigationCancelInterceptor,
         loadingInterceptor,
         authInterceptor,
         clientInstanceInterceptor,

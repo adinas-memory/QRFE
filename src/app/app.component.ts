@@ -1,7 +1,7 @@
 import { Component, DestroyRef, HostListener, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Title } from '@angular/platform-browser';
-import { ActivatedRoute, ActivatedRouteSnapshot, NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { ActivatedRoute, ActivatedRouteSnapshot, NavigationEnd, NavigationStart, Router, RouterOutlet } from '@angular/router';
 import { filter, take } from 'rxjs/operators';
 
 import { ColorModeService } from '@coreui/angular';
@@ -12,6 +12,8 @@ import { SpinnerComponent } from "./shared/components/spinner/spinner.component"
 import { OrderSyncService } from './core/services/order-service/order-sync.service';
 import { OnlineStateService } from './core/offline/online-state-service';
 import { AppToastsComponent } from '../app/shared/components/app-toast/app-toast.component';
+import { LoadingService } from './core/services/loading/loading.service';
+import { HttpNavigationCancelService } from './core/services/http-navigation-cancel.service';
 
 
 @Component({
@@ -46,6 +48,9 @@ export class AppComponent implements OnInit {
   readonly #iconSetService = inject(IconSetService);
   readonly #orderSyncService = inject(OrderSyncService);
   readonly #onlineStateService = inject(OnlineStateService);
+  readonly #loadingService = inject(LoadingService);
+  readonly #httpNavCancel = inject(HttpNavigationCancelService);
+
   constructor() {
     this.#titleService.setTitle(this.title);
 
@@ -86,6 +91,16 @@ export class AppComponent implements OnInit {
           this.sseStarted = true;
           this.#orderSyncService.listenToRestaurantEvents(user!.restaurantId!);
         }
+      });
+
+    this.#router.events
+      .pipe(
+        filter((evt): evt is NavigationStart => evt instanceof NavigationStart),
+        takeUntilDestroyed(this.#destroyRef),
+      )
+      .subscribe(evt => {
+        this.#httpNavCancel.cancelAll();
+        this.#loadingService.reset(`NavigationStart:${evt.url}`);
       });
 
     this.#router.events.pipe(
