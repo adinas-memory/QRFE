@@ -26,17 +26,29 @@ import { TranslocoHttpLoader } from './core/i18n/transloco-loader';
 import { LANG_STORAGE_KEY, DEFAULT_LANG, translocoConfig, type AppLang, APP_LANGS } from './core/i18n/transloco.config';
 import { environment } from '../environments/environment';
 
-/** SW + credentialed API cookies require the same host (localhost vs LAN IP are different sites). */
+/** SW must not intercept /api or /sse on static-only dev servers (localhost:8080). */
 function isServiceWorkerEnabled(): boolean {
   if (isDevMode()) return false;
   if (typeof window === 'undefined') return true;
   try {
-    const apiHost = new URL(environment.apiUrl).hostname;
     const pageHost = window.location.hostname;
+    const pagePort = window.location.port;
+    if (
+      (pageHost === 'localhost' || pageHost === '127.0.0.1') &&
+      pagePort !== '' &&
+      pagePort !== '80' &&
+      pagePort !== '443'
+    ) {
+      console.warn(
+        `[QRFE] Service worker disabled on ${window.location.origin} (static dev server; API/SSE use configured apiUrl).`
+      );
+      return false;
+    }
+    const apiHost = new URL(environment.apiUrl).hostname;
     if (apiHost !== pageHost) {
       console.warn(
         `[QRFE] Service worker disabled: API host "${apiHost}" != page host "${pageHost}". ` +
-          `On localhost use "npm run serve:localhost" (build:pwa). On LAN use build:devhost at your IP.`
+          `Use ng serve, or open the app at the API host (e.g. http://192.168.43.142/).`
       );
       return false;
     }
