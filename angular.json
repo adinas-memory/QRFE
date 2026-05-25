@@ -146,7 +146,8 @@
               "buildTarget": "qrfe:build:pwa"
             },
             "devhost": {
-              "buildTarget": "qrfe:build:devhost"
+              "buildTarget": "qrfe:build:devhost",
+              "proxyConfig": "proxy.devhost.json"
             },
             "development": {
               "buildTarget": "qrfe:build:development"

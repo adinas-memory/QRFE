@@ -1,0 +1,12 @@
+{
+  "/api": {
+    "target": "http://192.168.43.142",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/sse": {
+    "target": "http://192.168.43.142",
+    "secure": false,
+    "changeOrigin": true
+  }
+}

@@ -1,18 +1,26 @@
-import { isLocalStaticDevServer } from './resolve-api-url';
+import {
+  isLocalStaticDevServer,
+  isNginxFrontPort,
+  isStaticDevServerPort,
+} from './resolve-api-url';
 
-describe('isLocalStaticDevServer', () => {
-  it('treats localhost:8080 and :4200 as static-only (no nginx /api)', () => {
+describe('resolve-api-url helpers', () => {
+  it('detects static dev ports on any host', () => {
+    expect(isStaticDevServerPort('8080')).toBeTrue();
+    expect(isStaticDevServerPort('4200')).toBeTrue();
+    expect(isStaticDevServerPort('80')).toBeFalse();
+  });
+
+  it('detects nginx front ports', () => {
+    expect(isNginxFrontPort('')).toBeTrue();
+    expect(isNginxFrontPort('80')).toBeTrue();
+    expect(isNginxFrontPort('443')).toBeTrue();
+    expect(isNginxFrontPort('8080')).toBeFalse();
+  });
+
+  it('isLocalStaticDevServer is localhost + static port', () => {
     expect(isLocalStaticDevServer('localhost', '8080')).toBeTrue();
-    expect(isLocalStaticDevServer('127.0.0.1', '4200')).toBeTrue();
-  });
-
-  it('allows localhost:80 as potential nginx front', () => {
+    expect(isLocalStaticDevServer('192.168.43.237', '8080')).toBeFalse();
     expect(isLocalStaticDevServer('localhost', '80')).toBeFalse();
-    expect(isLocalStaticDevServer('localhost', '')).toBeFalse();
-  });
-
-  it('does not apply to LAN hosts', () => {
-    expect(isLocalStaticDevServer('192.168.43.142', '80')).toBeFalse();
-    expect(isLocalStaticDevServer('192.168.43.142', '')).toBeFalse();
   });
 });

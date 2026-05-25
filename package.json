@@ -17,7 +17,8 @@
     "build:pwa": "ng build --configuration=pwa",
     "build:devhost": "ng build --configuration=devhost",
     "serve:pwa": "npx http-server -p 8080 -c-1 ./dist-pwa/browser",
-    "serve:devhost": "npx http-server -p 8080 -c-1 ./dist/browser",
+    "serve:devhost": "npm run build:devhost && node scripts/static-with-proxy.mjs",
+    "serve:devhost:live": "ng serve --configuration=devhost --port=8080 --host=0.0.0.0 --proxy-config proxy.devhost.json",
     "serve:localhost": "npm run build:pwa && npm run serve:pwa",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"

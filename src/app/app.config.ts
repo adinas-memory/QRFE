@@ -33,14 +33,9 @@ function isServiceWorkerEnabled(): boolean {
   try {
     const pageHost = window.location.hostname;
     const pagePort = window.location.port;
-    if (
-      (pageHost === 'localhost' || pageHost === '127.0.0.1') &&
-      pagePort !== '' &&
-      pagePort !== '80' &&
-      pagePort !== '443'
-    ) {
+    if (pagePort === '8080' || pagePort === '4200') {
       console.warn(
-        `[QRFE] Service worker disabled on ${window.location.origin} (static dev server; API/SSE use configured apiUrl).`
+        `[QRFE] Service worker disabled on ${window.location.origin} (dev server; use serve:devhost with API proxy).`
       );
       return false;
     }
