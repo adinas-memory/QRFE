@@ -7,7 +7,7 @@ describe('LoadingService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [LoadingService]
+      providers: [LoadingService],
     });
     service = TestBed.inject(LoadingService);
   });
@@ -22,17 +22,20 @@ describe('LoadingService', () => {
     });
   });
 
-  it('should emit true when show is called', () => {
-    service.show();
+  it('should emit true while a request is in flight', () => {
+    const end = service.beginRequest();
+    let visible = false;
     service.loading$.pipe(first()).subscribe(loading => {
-      expect(loading).toBeTrue();
+      visible = loading;
     });
+    expect(visible).toBeTrue();
+    end();
   });
 
-  it('should remain true when show is called multiple times and hide is called fewer times', () => {
-    service.show(); // counter = 1
-    service.show(); // counter = 2
-    
+  it('should stay true until all in-flight requests end', () => {
+    const end1 = service.beginRequest();
+    const end2 = service.beginRequest();
+
     let currentLoading = false;
     const sub = service.loading$.subscribe(loading => {
       currentLoading = loading;
@@ -40,32 +43,21 @@ describe('LoadingService', () => {
 
     expect(currentLoading).toBeTrue();
 
-    service.hide(); // counter = 1
+    end1();
     expect(currentLoading).toBeTrue();
 
-    service.hide(); // counter = 0
+    end2();
     expect(currentLoading).toBeFalse();
     sub.unsubscribe();
   });
 
-  it('should handle hide calls when already at zero loading and reset to zero', () => {
+  it('reset clears all in-flight tracking', () => {
+    service.beginRequest();
+    service.reset();
     let currentLoading = true;
-    const sub = service.loading$.subscribe(loading => {
+    service.loading$.pipe(first()).subscribe(loading => {
       currentLoading = loading;
     });
-
     expect(currentLoading).toBeFalse();
-
-    service.hide(); // should remain at zero and false
-    expect(currentLoading).toBeFalse();
-
-    // Call show once, it should go to 1 (true)
-    service.show();
-    expect(currentLoading).toBeTrue();
-
-    // Call hide once, it should go back to 0 (false)
-    service.hide();
-    expect(currentLoading).toBeFalse();
-    sub.unsubscribe();
   });
 });

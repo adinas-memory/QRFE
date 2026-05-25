@@ -18,6 +18,7 @@ import { ChartjsComponent } from '@coreui/angular-chartjs';
 import { IconDirective } from '@coreui/icons-angular';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
+import { catchError, finalize, of, timeout } from 'rxjs';
 import { AuthService } from '@app/core/auth/auth.service';
 import { DashboardMetricsResponse } from '@app/core/models/dashboard-metrics.model';
 import { ReportingService } from '@app/core/services/reporting/reporting.service';
@@ -102,19 +103,20 @@ export class DashboardComponent implements OnInit {
     this.loadingMetrics.set(true);
     this.#reporting
       .getDashboardMetrics(rid)
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe({
-        next: m => {
-          this.metrics.set(m);
-          this.loadingMetrics.set(false);
-          this.refreshChartFromMetrics();
-        },
-        error: () => {
-          this.loadingMetrics.set(false);
+      .pipe(
+        timeout(25_000),
+        catchError(() => of(null)),
+        finalize(() => this.loadingMetrics.set(false)),
+        takeUntilDestroyed(this.#destroyRef),
+      )
+      .subscribe(m => {
+        if (!m) {
           this.loadError.set('requestFailed');
           this.metrics.set(null);
-          this.refreshChartFromMetrics();
+        } else {
+          this.metrics.set(m);
         }
+        this.refreshChartFromMetrics();
       });
   }
 

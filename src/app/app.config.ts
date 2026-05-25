@@ -99,8 +99,8 @@ export const appConfig: ApplicationConfig = {
     ),
     provideHttpClient(
       withInterceptors([
-        navigationCancelInterceptor,
         loadingInterceptor,
+        navigationCancelInterceptor,
         authInterceptor,
         clientInstanceInterceptor,
         loggingInterceptor
