@@ -47,6 +47,7 @@ import { KitchenService } from '../../../core/services/kitchen-service/kitchen.s
 import { BarService } from '../../../core/services/bar-service/bar.service';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { PrintJobsService } from '../../../core/services/print-jobs/print-jobs.service';
+import { DeviceFeedbackService } from '../../../core/services/device/device-feedback.service';
 
 @Component({
   selector: 'app-manage-orders',
@@ -152,6 +153,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     private appToast: AppToastService,
     private transloco: TranslocoService,
     private printJobs: PrintJobsService,
+    private deviceFeedback: DeviceFeedbackService,
   ) {}
 
   formatInitiatedBy(raw: string): string {
@@ -979,6 +981,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         if (tableId) {
           this.kitchenPickupRequested[tableId] = true;
           this.appToast.info(`Kitchen requests pickup at table ${this.tables.find(t => t.tableId === tableId)?.tableName ?? tableId}`);
+          this.deviceFeedback.notifyPickupReady('kitchen', {
+            tableId,
+            clientInstanceId: this.sseField<string>(Data, 'ClientInstanceId', 'clientInstanceId'),
+          });
           if (this.kitchenPickupTimers[tableId]) clearTimeout(this.kitchenPickupTimers[tableId]);
           this.kitchenPickupTimers[tableId] = setTimeout(() => {
             delete this.kitchenPickupRequested[tableId];
@@ -1004,6 +1010,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         if (tableId) {
           this.barPickupRequested[tableId] = true;
           this.appToast.info(`Bar requests pickup at table ${this.tables.find(t => t.tableId === tableId)?.tableName ?? tableId}`);
+          this.deviceFeedback.notifyPickupReady('bar', {
+            tableId,
+            clientInstanceId: this.sseField<string>(Data, 'ClientInstanceId', 'clientInstanceId'),
+          });
           if (this.barPickupTimers[tableId]) clearTimeout(this.barPickupTimers[tableId]);
           this.barPickupTimers[tableId] = setTimeout(() => {
             delete this.barPickupRequested[tableId];

@@ -576,7 +576,7 @@
       },
       "kitchenBarSse": {
         "q": "Cum știe ospătarul când să ridice preparatele de la bucătărie sau de la bar?",
-        "a": "Ecranele Bucătărie și Bar folosesc același flux de evenimente live ca și comenzile. Când preparatele sunt gata sau personalul amână un reminder, ospătarul vede semnalul și știe când să ridice de la pass sau de la bar, fără să reîmprospăteze pagina."
+        "a": "Ecranele Bucătărie și Bar folosesc același flux de evenimente live ca și comenzile. Când preparatele sunt gata sau personalul amână un reminder, ospătarul vede semnalul și știe când să ridice de la pass sau de la bar, fără să reîmprospăteze pagina. Pe dispozitive compatibile, tableta sau telefonul care a actualizat ultima dată comanda de la masa respectivă vibrează scurt, astfel încât ospătarul potrivit să fie alertat."
       },
       "kitchenBarToastDismiss": {
         "q": "De ce toasturile pentru comandă nouă sau ștergere produs trebuie închise manual la Bucătărie și Bar?",

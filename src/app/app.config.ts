@@ -16,6 +16,7 @@ import { AuthService } from './core/auth/auth.service';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { loadingInterceptor } from './core/interceptors/loading.interceptor';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { clientInstanceInterceptor } from './core/interceptors/client-instance.interceptor';
 import { loggingInterceptor } from './core/interceptors/logging.interceptor';
 import { provideServiceWorker } from '@angular/service-worker';
 import { provideTransloco, TranslocoService } from '@jsverse/transloco';
@@ -99,6 +100,7 @@ export const appConfig: ApplicationConfig = {
       withInterceptors([
         loadingInterceptor,
         authInterceptor,
+        clientInstanceInterceptor,
         loggingInterceptor
       ])
     ),

@@ -13,6 +13,7 @@ import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.
 import { KitchenService } from '../../../core/services/kitchen-service/kitchen.service';
 import { BarService } from '../../../core/services/bar-service/bar.service';
 import { PrintJobsService } from '../../../core/services/print-jobs/print-jobs.service';
+import { DeviceFeedbackService } from '../../../core/services/device/device-feedback.service';
 import { COMMON_TEST_PROVIDERS } from '../../../testing/common-test-providers';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
 import { CartItem, TableComputedDTO } from '../../../core/models/orderingModel';
@@ -189,6 +190,9 @@ export interface ManageOrdersMocks {
     getDefaultBillPrinter: jasmine.Spy;
     createBillPrintJob: jasmine.Spy;
   };
+  deviceFeedback: {
+    notifyPickupReady: jasmine.Spy;
+  };
 }
 
 interface OnlineStateMock {
@@ -309,6 +313,9 @@ export function createManageOrdersMocks(options: SetupManageOrdersOptions = {}):
       getDefaultBillPrinter: jasmine.createSpy('getDefaultBillPrinter').and.returnValue(of({ defaultBillPrinterId: '' })),
       createBillPrintJob: jasmine.createSpy('createBillPrintJob').and.returnValue(of({})),
     },
+    deviceFeedback: {
+      notifyPickupReady: jasmine.createSpy('notifyPickupReady'),
+    },
   };
 }
 
@@ -334,6 +341,7 @@ export async function setupManageOrdersComponent(
       { provide: KitchenService, useValue: mocks.kitchenService },
       { provide: BarService, useValue: mocks.barService },
       { provide: PrintJobsService, useValue: mocks.printJobs },
+      { provide: DeviceFeedbackService, useValue: mocks.deviceFeedback },
     ],
   }).compileComponents();
 

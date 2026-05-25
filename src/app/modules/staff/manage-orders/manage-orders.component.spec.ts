@@ -376,9 +376,31 @@ describe('ManageOrdersComponent', () => {
       expect(mocks.appToast.info).toHaveBeenCalled();
     });
 
+    it('KitchenWaiterCall forwards client instance id to device feedback', async () => {
+      await invokeSse(component, 'KitchenWaiterCall', {
+        TableId: TABLE_A,
+        ClientInstanceId: 'device-123',
+      });
+      expect(mocks.deviceFeedback.notifyPickupReady).toHaveBeenCalledWith('kitchen', {
+        tableId: TABLE_A,
+        clientInstanceId: 'device-123',
+      });
+    });
+
     it('BarWaiterCall sets bar pickup flag', async () => {
       await invokeSse(component, 'BarWaiterCall', { TableId: TABLE_B });
       expect(component.barPickupRequested[TABLE_B]).toBeTrue();
+    });
+
+    it('BarWaiterCall forwards client instance id to device feedback', async () => {
+      await invokeSse(component, 'BarWaiterCall', {
+        TableId: TABLE_B,
+        clientInstanceId: 'device-456',
+      });
+      expect(mocks.deviceFeedback.notifyPickupReady).toHaveBeenCalledWith('bar', {
+        tableId: TABLE_B,
+        clientInstanceId: 'device-456',
+      });
     });
 
     it('NewOrderPrivateEvent replaces local order id with server id', async () => {

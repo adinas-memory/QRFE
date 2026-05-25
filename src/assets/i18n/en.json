@@ -576,7 +576,7 @@
       },
       "kitchenBarSse": {
         "q": "How does the waiter know when to pick up food from the kitchen or the bar?",
-        "a": "Kitchen and Bar screens share the same live event stream as the orders view. When dishes or drinks are ready—or staff snooze a reminder—waiters see those signals so they know when to collect from the pass or bar station without refreshing the page."
+        "a": "Kitchen and Bar screens share the same live event stream as the orders view. When dishes or drinks are ready—or staff snooze a reminder—waiters see those signals so they know when to collect from the pass or bar station without refreshing the page. On supported devices, the tablet or phone that last updated that table's order also vibrates briefly so the right waiter is alerted."
       },
       "kitchenBarToastDismiss": {
         "q": "Why must new-order and item-deleted toasts be closed manually on Kitchen and Bar?",
