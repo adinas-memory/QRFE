@@ -6,6 +6,36 @@ import {
 
 const MAX_LEN = 64;
 
+/**
+ * `crypto.randomUUID()` requires a secure context (HTTPS or localhost/127.0.0.1).
+ * On LAN HTTP origins it's `undefined` — fall back to a manual UUIDv4 derived
+ * from `crypto.getRandomValues` (Math.random as last resort).
+ */
+function generateUuid(): string {
+  const cryptoObj: Crypto | undefined =
+    typeof crypto !== 'undefined' ? crypto : undefined;
+  if (cryptoObj && typeof cryptoObj.randomUUID === 'function') {
+    return cryptoObj.randomUUID();
+  }
+  if (cryptoObj && typeof cryptoObj.getRandomValues === 'function') {
+    const bytes = new Uint8Array(16);
+    cryptoObj.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const h: string[] = [];
+    for (let i = 0; i < bytes.length; i++) {
+      h.push(bytes[i].toString(16).padStart(2, '0'));
+    }
+    return `${h[0]}${h[1]}${h[2]}${h[3]}-${h[4]}${h[5]}-${h[6]}${h[7]}-${h[8]}${h[9]}-${h[10]}${h[11]}${h[12]}${h[13]}${h[14]}${h[15]}`;
+  }
+  // Last resort: not cryptographically strong but valid format.
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 /** Stable per-device id (browser localStorage or Capacitor Preferences). */
 @Injectable({ providedIn: 'root' })
 export class ClientInstanceService {
@@ -23,13 +53,13 @@ export class ClientInstanceService {
         this.cachedId = stored;
         return stored;
       }
-      const created = crypto.randomUUID();
+      const created = generateUuid();
       localStorage.setItem(CLIENT_INSTANCE_STORAGE_KEY, created);
       this.cachedId = created;
       void this.platformStorage.setString(CLIENT_INSTANCE_STORAGE_KEY, created);
       return created;
     } catch {
-      const fallback = crypto.randomUUID();
+      const fallback = generateUuid();
       this.cachedId = fallback;
       return fallback;
     }
