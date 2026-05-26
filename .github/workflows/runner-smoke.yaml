@@ -1,0 +1,20 @@
+name: Self-hosted runner smoke test
+
+# Use this alone to test runner pickup (Actions → Run workflow).
+# If this job never appears in journalctl, the runner is not assigned to QRFE on GitHub.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ping-runner:
+    runs-on: self-hosted
+    steps:
+      - name: Runner identity
+        run: |
+          echo "hostname=$(hostname)"
+          echo "user=$(whoami)"
+          echo "pwd=$(pwd)"
+          echo "run_id=${{ github.run_id }}"
+          echo "run_number=${{ github.run_number }}"
+          date -u

@@ -31,51 +31,20 @@ jobs:
         name: frontend-package-dev
         path: dist/**
 
-  verify-runner:
-    runs-on: self-hosted
-    steps:
-    - name: Confirm self-hosted runner is reachable
-      run: |
-        echo "Runner host: $(hostname)"
-        echo "Runner user: $(whoami)"
-        command -v ssh && command -v scp && command -v tar
-
   deploy:
+    # Runner service zena-dina.dev runs ON this host — deploy via local paths, not SSH loopback.
     runs-on: self-hosted
-    needs: [build, verify-runner]
+    needs: build
     env:
       RUN: ${{ github.run_number }}
 
     steps:
-    - name: Resolve deploy target (secrets or variables)
-      env:
-        SECRET_HOST: ${{ secrets.DEV_SERVER_HOST }}
-        SECRET_USER: ${{ secrets.DEV_SERVER_USER }}
-        SECRET_PORT: ${{ secrets.DEV_SERVER_SSH_PORT }}
-        VARS_HOST: ${{ vars.DEV_SERVER_HOST }}
-        VARS_USER: ${{ vars.DEV_SERVER_USER }}
-        VARS_PORT: ${{ vars.DEV_SERVER_SSH_PORT }}
+    - name: Runner check
       run: |
-        pick() { if [[ -n "${1}" ]]; then echo "${1}"; else echo "${2}"; fi; }
-        HOST=$(pick "$SECRET_HOST" "$VARS_HOST")
-        USER=$(pick "$SECRET_USER" "$VARS_USER")
-        PORT=$(pick "$SECRET_PORT" "$VARS_PORT")
-        PORT="${PORT:-22}"
-
-        missing=()
-        [[ -n "$SECRET_HOST" || -n "$VARS_HOST" ]] || missing+=("DEV_SERVER_HOST")
-        [[ -n "$SECRET_USER" || -n "$VARS_USER" ]] || missing+=("DEV_SERVER_USER")
-        [[ -n "${{ secrets.DEV_SERVER_SSH_KEY }}" ]] || missing+=("DEV_SERVER_SSH_KEY")
-
-        if [[ ${#missing[@]} -gt 0 ]]; then
-          echo "::error::Missing for this repository (QRFE): ${missing[*]}"
-          exit 1
-        fi
-
-        echo "DEV_HOST=$HOST" >> "$GITHUB_ENV"
-        echo "DEV_USER=$USER" >> "$GITHUB_ENV"
-        echo "DEV_PORT=$PORT" >> "$GITHUB_ENV"
-        echo "Using deploy target host=$HOST user=$USER port=$PORT"
+        echo "hostname=$(hostname)"
+        echo "user=$(whoami)"
+        echo "run_number=${RUN}"
+        command -v tar
 
     - name: Download artifact
       uses: actions/download-artifact@v4
@@ -83,41 +52,13 @@ jobs:
         name: frontend-package-dev
         path: .
 
-    - name: Inspect workspace
-      run: ls -la && ls -la dist/browser 2>/dev/null || ls -la browser 2>/dev/null || true
-
-    - name: Configure SSH (no Docker — native ssh/scp)
+    - name: Inspect artifact layout
       run: |
-        mkdir -p ~/.ssh
-        printf '%s\n' "${{ secrets.DEV_SERVER_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
-        chmod 600 ~/.ssh/deploy_key
-        PORT="${DEV_PORT:-22}"
-        ssh-keyscan -p "$PORT" -H "${DEV_HOST}" >> ~/.ssh/known_hosts 2>/dev/null || true
-        cat > ~/.ssh/config <<EOF
-        Host dev-deploy
-          HostName ${DEV_HOST}
-          User ${DEV_USER}
-          Port ${PORT}
-          IdentityFile ~/.ssh/deploy_key
-          IdentitiesOnly yes
-          StrictHostKeyChecking accept-new
-        EOF
-        chmod 600 ~/.ssh/config
+        ls -la
+        ls -la browser 2>/dev/null || true
+        ls -la dist/browser 2>/dev/null || true
 
-    - name: Verify SSH user and passwordless sudo
-      run: |
-        echo "ssh_target_host=${DEV_HOST}"
-        echo "ssh_config_user=${DEV_USER}"
-        ACTUAL=$(ssh dev-deploy 'whoami' | tr -d '\r\n')
-        echo "ssh_remote_whoami=${ACTUAL}"
-        if [[ "${ACTUAL}" != "${DEV_USER}" ]]; then
-          echo "::error::SSH user mismatch: connected as '${ACTUAL}', expected DEV_SERVER_USER='${DEV_USER}'"
-          exit 1
-        fi
-        ssh dev-deploy 'sudo -n true'
-        echo "NOPASSWD sudo: OK"
-
-    - name: Build tarball and deploy frontend
+    - name: Deploy to /var/www/qrfe-dev (local)
       run: |
         set -euo pipefail
         RELEASE="/home/adi/releases/frontend-${RUN}"
@@ -131,26 +72,25 @@ jobs:
         elif [ -d qrfe/browser ]; then
           BROWSER=qrfe/browser
         else
-          echo "::error::browser output not found"
+          echo "::error::browser output not found after artifact download"
           ls -la
           exit 1
         fi
+
         echo "Packaging from: ${BROWSER}"
         test -f "${BROWSER}/index.html"
-        tar -czf frontend.tar.gz -C "$BROWSER" .
 
-        ssh dev-deploy "rm -rf ${RELEASE} && mkdir -p ${RELEASE}"
-        scp frontend.tar.gz "dev-deploy:${RELEASE}/"
+        rm -rf "${RELEASE}"
+        mkdir -p "${RELEASE}"
+        tar -cf - -C "${BROWSER}" . | tar -xf - -C "${RELEASE}"
 
-        ssh dev-deploy "bash -s" <<REMOTE
-        set -euo pipefail
-        cd ${RELEASE}
-        tar -xzf frontend.tar.gz
-        rm frontend.tar.gz
         sudo -n rm -rf /var/www/qrfe-dev
-        sudo -n ln -sfn ${RELEASE} /var/www/qrfe-dev
-        sudo -n chown -h ${USER}:${USER} /var/www/qrfe-dev 2>/dev/null || true
+        sudo -n ln -sfn "${RELEASE}" /var/www/qrfe-dev
+        sudo -n chown -h "$(whoami):$(whoami)" /var/www/qrfe-dev 2>/dev/null || true
         sudo -n /usr/sbin/nginx -t
         sudo -n /usr/bin/systemctl reload nginx
-        echo "Active release: \$(readlink -f /var/www/qrfe-dev)"
-        REMOTE
+
+        ACTIVE="$(readlink -f /var/www/qrfe-dev)"
+        echo "Active release: ${ACTIVE}"
+        test "${ACTIVE}" = "${RELEASE}"
+        test -f "${ACTIVE}/index.html"

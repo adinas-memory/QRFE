@@ -25,13 +25,22 @@ Uses Angular configuration `devhost` → `environment.devhost.ts` (`apiUrl: http
 
 `frontend-26` is **workflow run #26**, not “May 26”. No push/manual run on the 27th ⇒ no `frontend-27` from CI.
 
-### Troubleshooting “nothing on GitHub on day X”
+### Troubleshooting runner not picking up jobs
 
-1. **Actions** tab → filter workflow *Deploy Angular Frontend to LAN Dev Server* — any run that day?
-2. If **no run**: no `push` to `main` that day (`git log origin/main --since=...`). Push or use **Run workflow**.
-3. If **build OK, deploy Queued forever**: runner not registered for **QRFE** (backend-only runner does not pick FE jobs), or org **Runner group → Repository access** excludes QRFE, or runner offline (`sudo ~/actions-runner/svc.sh status`).
-4. If **deploy failed**: open failed step logs (SSH secrets, artifact layout — expect `browser/` after `dist/**` upload).
-5. On the runner host: `journalctl -u actions.runner.* -n 30` — you should see `Running job: verify-runner` then `deploy` after each push.
+**Symptom:** `build` finishes (~1m30s) but `journalctl` shows no new `Running job:` since the last successful deploy.
+
+1. **Smoke test (isolated):** Actions → **Self-hosted runner smoke test** → Run workflow.  
+   On server: `journalctl -u actions.runner.zena-dina.dev -f` — must show `Running job: ping-runner` within ~30s.
+2. **GitHub → org/repo → Settings → Actions → Runners:** runner **Idle** (green), not Offline.  
+   **Runner groups → Default (or your group) → Repository access** must include **QRFE**.
+3. On server: `bash deploy/dev/check-runner-on-server.sh` — check `gitHubUrl` points at **QRFE** (or org with QRFE in the group).
+4. Restart listener: `cd ~/actions-runner && sudo ./svc.sh stop && sudo ./svc.sh start`
+5. Deploy uses **local paths** on the runner host (no SSH). Requires passwordless sudo (`bootstrap-dev.sh`).
+
+### Troubleshooting deploy failures
+
+1. If **deploy failed**: open logs — expect `browser/` folder after `dist/**` artifact download.
+2. `readlink -f /var/www/qrfe-dev` should match `/home/adi/releases/frontend-<run_number>`.
 
 ### Register runner for QRFE (one-time)
 
