@@ -8,10 +8,6 @@ on:
   push:
     branches: [ "main" ]
 
-concurrency:
-  group: deploy-dev-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
 
   build:
@@ -45,9 +41,15 @@ jobs:
         name: frontend-package-dev
         path: dist/browser
 
-  verify-runner:
-    runs-on: self-hosted
-    timeout-minutes: 10
+  deploy:
+    # Runner must be registered on THIS repo (QRFE) or on an org group that includes QRFE.
+    # Labels must include both self-hosted and dev (see deploy/dev/README.md).
+    runs-on: [self-hosted, dev]
+    timeout-minutes: 30
+    needs: build
+    env:
+      RUN: ${{ github.run_number }}
+
     steps:
     - name: Confirm self-hosted runner is reachable
       run: |
@@ -55,14 +57,6 @@ jobs:
         echo "Runner user: $(whoami)"
         command -v ssh && command -v scp && command -v tar
 
-  deploy:
-    runs-on: self-hosted
-    timeout-minutes: 20
-    needs: [build, verify-runner]
-    env:
-      RUN: ${{ github.run_number }}
-
-    steps:
     - name: Resolve deploy target (secrets or variables)
       env:
         SECRET_HOST: ${{ secrets.DEV_SERVER_HOST }}
