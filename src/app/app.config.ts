@@ -15,7 +15,6 @@ import { routes } from './app.routes';
 import { AuthService } from './core/auth/auth.service';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { loadingInterceptor } from './core/interceptors/loading.interceptor';
-import { navigationCancelInterceptor } from './core/interceptors/navigation-cancel.interceptor';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { clientInstanceInterceptor } from './core/interceptors/client-instance.interceptor';
 import { loggingInterceptor } from './core/interceptors/logging.interceptor';
@@ -26,24 +25,17 @@ import { TranslocoHttpLoader } from './core/i18n/transloco-loader';
 import { LANG_STORAGE_KEY, DEFAULT_LANG, translocoConfig, type AppLang, APP_LANGS } from './core/i18n/transloco.config';
 import { environment } from '../environments/environment';
 
-/** SW must not intercept /api or /sse on static-only dev servers (localhost:8080). */
+/** SW + credentialed API cookies require the same host (localhost vs LAN IP are different sites). */
 function isServiceWorkerEnabled(): boolean {
   if (isDevMode()) return false;
   if (typeof window === 'undefined') return true;
   try {
-    const pageHost = window.location.hostname;
-    const pagePort = window.location.port;
-    if (pagePort === '8080' || pagePort === '4200') {
-      console.warn(
-        `[QRFE] Service worker disabled on ${window.location.origin} (dev server; use serve:devhost with API proxy).`
-      );
-      return false;
-    }
     const apiHost = new URL(environment.apiUrl).hostname;
+    const pageHost = window.location.hostname;
     if (apiHost !== pageHost) {
       console.warn(
         `[QRFE] Service worker disabled: API host "${apiHost}" != page host "${pageHost}". ` +
-          `Use ng serve, or open the app at the API host (e.g. http://192.168.43.142/).`
+          `On localhost use "npm run serve:localhost" (build:pwa). On LAN use build:devhost at your IP.`
       );
       return false;
     }
@@ -107,7 +99,6 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(
       withInterceptors([
         loadingInterceptor,
-        navigationCancelInterceptor,
         authInterceptor,
         clientInstanceInterceptor,
         loggingInterceptor
