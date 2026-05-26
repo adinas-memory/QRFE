@@ -37,6 +37,7 @@ function isCapacitorNative(): boolean {
 function isServiceWorkerEnabled(): boolean {
   if (isDevMode()) return false;
   if (isCapacitorNative()) return false;
+  if ('serviceWorker' in environment && environment.serviceWorker === false) return false;
   if (typeof window === 'undefined') return true;
   try {
     const apiHost = new URL(environment.apiUrl).hostname;
@@ -52,6 +53,18 @@ function isServiceWorkerEnabled(): boolean {
   } catch {
     return true;
   }
+}
+
+/** Drop stale ngsw from earlier devhost builds (e.g. after deploy restored an SW-enabled release). */
+export function initServiceWorkerCleanup() {
+  return async () => {
+    if (isServiceWorkerEnabled()) return;
+    if (!('serviceWorker' in navigator)) return;
+    const regs = await navigator.serviceWorker.getRegistrations();
+    if (!regs.length) return;
+    await Promise.all(regs.map((r) => r.unregister()));
+    console.warn(`[QRFE] Unregistered ${regs.length} service worker(s) (devhost / LAN).`);
+  };
 }
 
 export function initAuth(authService: AuthService) {
@@ -81,6 +94,11 @@ function initLanguage(transloco: TranslocoService) {
 
 export const appConfig: ApplicationConfig = {
   providers: [
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initServiceWorkerCleanup,
+      multi: true
+    },
     {
       provide: APP_INITIALIZER,
       useFactory: initAuth,
