@@ -25,6 +25,17 @@ Uses Angular configuration `devhost` → `environment.devhost.ts` (`apiUrl: http
 
 `frontend-26` is **workflow run #26**, not “May 26”. No push/manual run on the 27th ⇒ no `frontend-27` from CI.
 
+### YAML regression (confirmed in git)
+
+Last known good workflow: commit **`63aed06`** (Actions run **#26**).
+
+| Commit | Problem |
+|--------|---------|
+| **`13dba48` deployment test 2** | Added `concurrency: cancel-in-progress: true` — rapid pushes cancel queued `verify-runner` / `deploy` before the runner starts them |
+| **`5ac7e10`+** | `path: dist/browser`, removed parallel `verify-runner`, `runs-on: [self-hosted, dev]`, local-only deploy experiments |
+
+**Do not** add `concurrency` with `cancel-in-progress` on this workflow. Keep **`verify-runner`** in parallel with **`build`**.
+
 ### Troubleshooting runner not picking up jobs
 
 **Symptom:** `build` finishes (~1m30s) but `journalctl` shows no new `Running job:` since the last successful deploy.

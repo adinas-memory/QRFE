@@ -12,7 +12,7 @@ echo "=== runner config (.runner) ==="
 if [[ -f "$RUNNER_DIR/.runner" ]]; then
   python3 - <<'PY' "$RUNNER_DIR/.runner" 2>/dev/null || cat "$RUNNER_DIR/.runner"
 import json, sys
-d = json.load(open(sys.argv[1]))
+d = json.load(open(sys.argv[1], encoding="utf-8-sig"))
 print("agentName:", d.get("agentName"))
 print("gitHubUrl:", d.get("gitHubUrl"))
 print("poolName:", d.get("poolName"))
@@ -30,6 +30,14 @@ echo ""
 echo "=== nginx frontend symlink ==="
 readlink -f /var/www/qrfe-dev 2>/dev/null || echo "(no qrfe-dev symlink)"
 
+echo ""
+echo "=== expected QRFE remote ==="
+echo "https://github.com/adrian-badulescu/QRFE"
+echo ""
+if [[ -f "$RUNNER_DIR/.runner" ]]; then
+  URL=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1],encoding='utf-8-sig')).get('gitHubUrl',''))" "$RUNNER_DIR/.runner" 2>/dev/null || true)
+  echo "Registered URL: ${URL:-unknown}"
+fi
 echo ""
 echo "If GitHub shows runner Offline but service is active, restart:"
 echo "  cd $RUNNER_DIR && sudo ./svc.sh stop && sudo ./svc.sh start"
