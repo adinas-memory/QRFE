@@ -19,6 +19,7 @@
     "build:capacitor": "ng build --configuration=capacitor",
     "cap:sync": "npx cap sync",
     "cap:android": "npx cap open android",
+    "android:lan": "npm run build:devhost && npm run cap:sync && npm run cap:android",
     "serve:pwa": "npx http-server -p 8080 -c-1 ./dist-pwa/browser",
     "serve:devhost": "node scripts/static-with-proxy.mjs",
     "serve:devhost:static": "npx http-server -p 8080 -c-1 ./dist/browser",

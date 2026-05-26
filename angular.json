@@ -130,8 +130,7 @@
               "outputPath": "dist",
               "extractLicenses": true,
               "sourceMap": false,
-              "outputHashing": "all",
-              "serviceWorker": "ngsw-config.json"
+              "outputHashing": "all"
             },
             "capacitor": {
               "budgets": [

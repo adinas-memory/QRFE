@@ -29,7 +29,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: frontend-package-dev
-        path: dist/**
+        path: dist/browser
 
   verify-runner:
     runs-on: self-hosted
@@ -122,14 +122,22 @@ jobs:
         set -euo pipefail
         RELEASE="/home/adi/releases/frontend-${RUN}"
 
-        if [ -d browser ]; then
+        if [ -f index.html ]; then
+          BROWSER=.
+        elif [ -d dist/browser ]; then
+          BROWSER=dist/browser
+        elif [ -d browser ]; then
           BROWSER=browser
         elif [ -d qrfe/browser ]; then
           BROWSER=qrfe/browser
         else
-          echo "browser output not found"; ls -la; exit 1
+          echo "::error::Angular browser output not found"
+          ls -la
+          ls -la dist 2>/dev/null || true
+          exit 1
         fi
-
+        echo "Packaging from: ${BROWSER}"
+        test -f "${BROWSER}/index.html"
         tar -czf frontend.tar.gz -C "$BROWSER" .
 
         ssh dev-deploy "rm -rf ${RELEASE} && mkdir -p ${RELEASE}"
@@ -145,4 +153,16 @@ jobs:
         sudo -n chown -h ${USER}:${USER} /var/www/qrfe-dev 2>/dev/null || true
         sudo -n /usr/sbin/nginx -t
         sudo -n /usr/bin/systemctl reload nginx
+        echo "Active release: \$(readlink -f /var/www/qrfe-dev)"
+        ls -la /var/www/qrfe-dev/index.html
         REMOTE
+
+    - name: Verify deployed release matches this run
+      run: |
+        ACTIVE=$(ssh dev-deploy "readlink -f /var/www/qrfe-dev")
+        echo "nginx root -> ${ACTIVE}"
+        if [[ "${ACTIVE}" != "/home/adi/releases/frontend-${RUN}" ]]; then
+          echo "::error::Symlink mismatch: expected /home/adi/releases/frontend-${RUN}, got ${ACTIVE}"
+          exit 1
+        fi
+        ssh dev-deploy "test -f ${ACTIVE}/index.html && test -f ${ACTIVE}/ngsw.json && echo 'has ngsw' || echo 'no ngsw (ok if SW disabled)'"
