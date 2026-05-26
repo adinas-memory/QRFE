@@ -1,9 +1,16 @@
 name: Deploy Angular Frontend to LAN Dev Server
 
+# Runs only when you push to main or click "Run workflow" in GitHub Actions.
+# Local edits / deploy-from-laptop.ps1 do NOT create a run here.
+
 on:
   workflow_dispatch:
   push:
     branches: [ "main" ]
+
+concurrency:
+  group: deploy-dev-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
 
@@ -11,6 +18,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Workflow trigger info
+      run: |
+        echo "event=${{ github.event_name }}"
+        echo "ref=${{ github.ref }}"
+        echo "sha=${{ github.sha }}"
+        echo "run_number=${{ github.run_number }} (release folder: frontend-${{ github.run_number }})"
+
     - name: Checkout code
       uses: actions/checkout@v4
 
@@ -33,6 +47,7 @@ jobs:
 
   verify-runner:
     runs-on: self-hosted
+    timeout-minutes: 10
     steps:
     - name: Confirm self-hosted runner is reachable
       run: |
@@ -42,6 +57,7 @@ jobs:
 
   deploy:
     runs-on: self-hosted
+    timeout-minutes: 20
     needs: [build, verify-runner]
     env:
       RUN: ${{ github.run_number }}
