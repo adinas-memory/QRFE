@@ -18,6 +18,8 @@ import { ChartjsComponent } from '@coreui/angular-chartjs';
 import { IconDirective } from '@coreui/icons-angular';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
+import { filter, map } from 'rxjs';
+
 import { AuthService } from '@app/core/auth/auth.service';
 import { DashboardMetricsResponse } from '@app/core/models/dashboard-metrics.model';
 import { ReportingService } from '@app/core/services/reporting/reporting.service';
@@ -86,7 +88,16 @@ export class DashboardComponent implements OnInit {
     this.trafficPeriod.set(this.trafficRadioGroup.value.trafficRadio ?? 'Month');
     this.refreshChartFromMetrics();
     this.updateChartOnColorModeChange();
-    this.loadMetrics();
+
+    this.#auth.hydrateSessionFromStorageIfNeeded();
+    this.#auth
+      .getUserContext()
+      .pipe(
+        map(u => (typeof u?.restaurantId === 'string' ? u.restaurantId : null)),
+        filter((rid): rid is string => !!rid),
+        takeUntilDestroyed(this.#destroyRef),
+      )
+      .subscribe(() => this.loadMetrics());
   }
 
   loadMetrics(): void {

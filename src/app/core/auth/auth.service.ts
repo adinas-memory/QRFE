@@ -60,15 +60,45 @@ export class AuthService {
     return this.user$;
   }
 
+  /**
+   * Re-hydrate in-memory session from UserCtx when storage still has a session but
+   * userSubject was not populated yet (startup race) or was cleared without storage.
+   */
+  hydrateSessionFromStorageIfNeeded(): void {
+    if (this.userSubject.value) {
+      return;
+    }
+    const raw = localStorage.getItem('UserCtx');
+    if (!raw) {
+      return;
+    }
+    try {
+      const user = JSON.parse(raw) as UserContextModel;
+      if (!user?.id || !user?.role) {
+        return;
+      }
+      this.userSubject.next(user);
+      this.setRestaurantCtx();
+      // #region agent log
+      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'lan-dashboard',hypothesisId:'H-HYDRATE',location:'auth.service.ts:hydrateSessionFromStorageIfNeeded',message:'hydrated userSubject from UserCtx',data:{role:user.role,hasRestaurantId:!!user.restaurantId},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+    } catch {
+      // ignore parse errors
+    }
+  }
+
   isAuthenticated(): boolean {
+    this.hydrateSessionFromStorageIfNeeded();
     return this.userSubject.value !== null;
   }
 
   getUserRole(): string | null {
+    this.hydrateSessionFromStorageIfNeeded();
     return this.userSubject.value?.role ?? null;
   }
 
   getUserRestaurantId(): string | string[] | null {
+    this.hydrateSessionFromStorageIfNeeded();
     return this.userSubject.value?.restaurantId ?? null;
   }
 

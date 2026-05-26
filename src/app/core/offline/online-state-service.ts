@@ -25,11 +25,7 @@ export class OnlineStateService {
     });
 
     window.addEventListener('offline', () => {
-      // 1. Feedback imediat în UI (optimistic offline)
-      this.setOffline();
-
-      // 2. Confirmare reală — fetch-ul poate infirma dacă browserul s-a înșelat
-      //    Guard-ul din runHeartbeat previne race condition
+      // Confirm with ping-lite before showing offline banner (browser "offline" is often wrong on LAN).
       this.runHeartbeat(true);
     });
 

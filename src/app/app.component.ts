@@ -103,19 +103,22 @@ export class AppComponent implements OnInit {
         this.#loadingService.reset(`NavigationStart:${evt.url}`);
       });
 
-    this.#router.events.pipe(
-      filter(evt => evt instanceof NavigationEnd),
-      take(1)
-    ).subscribe(() => {
-      const deepest = this.getDeepestChild(this.#router.routerState.root.snapshot);
-      const isPublic = deepest?.data?.['public'] === true;
+    this.#router.events
+      .pipe(
+        filter((evt): evt is NavigationEnd => evt instanceof NavigationEnd),
+        takeUntilDestroyed(this.#destroyRef),
+      )
+      .subscribe(() => {
+        const deepest = this.getDeepestChild(this.#router.routerState.root.snapshot);
+        const isPublic = deepest?.data?.['public'] === true;
 
-      if (!isPublic) {
-        this.#authService.restoreSession().subscribe(() => {
-          this.#authService.pingSession(false).subscribe();
-        });
-      }
-    });
+        if (!isPublic) {
+          this.#authService.hydrateSessionFromStorageIfNeeded();
+          this.#authService.restoreSession().subscribe(() => {
+            this.#authService.pingSession(false).subscribe();
+          });
+        }
+      });
   }
 
 }

@@ -108,6 +108,20 @@ describe('AuthService offline session handling', () => {
     expect(second?.id).toBe('1');
   });
 
+  it('hydrateSessionFromStorageIfNeeded restores user from UserCtx when subject is empty', () => {
+    const user: UserContextModel = {
+      id: '1',
+      role: 'manager',
+      restaurantId: 'r1',
+      restaurantName: null,
+      restaurantType: null,
+    };
+    localStorage.setItem('UserCtx', JSON.stringify(user));
+
+    expect(service.getUserRestaurantId()).toBe('r1');
+    expect(service.isAuthenticated()).toBe(true);
+  });
+
   it('refreshUserContext keeps snapshot when body has isSuccess only', () => {
     service.setUser({ id: '1', role: 'staff', restaurantId: 'r1', restaurantName: 'R', restaurantType: 'Small' });
 
