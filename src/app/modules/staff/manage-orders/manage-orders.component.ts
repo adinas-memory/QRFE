@@ -48,6 +48,7 @@ import { BarService } from '../../../core/services/bar-service/bar.service';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { PrintJobsService } from '../../../core/services/print-jobs/print-jobs.service';
 import { DeviceFeedbackService } from '../../../core/services/device/device-feedback.service';
+import { PickupNotificationService } from '../../../core/services/pickup/pickup-notification.service';
 
 @Component({
   selector: 'app-manage-orders',
@@ -154,7 +155,16 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     private transloco: TranslocoService,
     private printJobs: PrintJobsService,
     private deviceFeedback: DeviceFeedbackService,
+    private pickupNotification: PickupNotificationService,
   ) {}
+
+  get hapticsEnabled(): boolean {
+    return this.deviceFeedback.hapticsEnabled;
+  }
+
+  onHapticsToggle(enabled: boolean): void {
+    this.deviceFeedback.setHapticsEnabled(enabled);
+  }
 
   formatInitiatedBy(raw: string): string {
     const v = (raw ?? '').trim().toLowerCase();
@@ -977,14 +987,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     switch (EventType) {
 
       case 'KitchenWaiterCall': {
-        const tableId = Data?.TableId;
+        const parsed = this.pickupNotification.handlePickupSse('kitchen', Data);
+        const tableId = parsed.tableId;
         if (tableId) {
           this.kitchenPickupRequested[tableId] = true;
           this.appToast.info(`Kitchen requests pickup at table ${this.tables.find(t => t.tableId === tableId)?.tableName ?? tableId}`);
-          this.deviceFeedback.notifyPickupReady('kitchen', {
-            tableId,
-            clientInstanceId: this.sseField<string>(Data, 'ClientInstanceId', 'clientInstanceId'),
-          });
           if (this.kitchenPickupTimers[tableId]) clearTimeout(this.kitchenPickupTimers[tableId]);
           this.kitchenPickupTimers[tableId] = setTimeout(() => {
             delete this.kitchenPickupRequested[tableId];
@@ -1006,14 +1013,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       }
 
       case 'BarWaiterCall': {
-        const tableId = Data?.TableId;
+        const parsed = this.pickupNotification.handlePickupSse('bar', Data);
+        const tableId = parsed.tableId;
         if (tableId) {
           this.barPickupRequested[tableId] = true;
           this.appToast.info(`Bar requests pickup at table ${this.tables.find(t => t.tableId === tableId)?.tableName ?? tableId}`);
-          this.deviceFeedback.notifyPickupReady('bar', {
-            tableId,
-            clientInstanceId: this.sseField<string>(Data, 'ClientInstanceId', 'clientInstanceId'),
-          });
           if (this.barPickupTimers[tableId]) clearTimeout(this.barPickupTimers[tableId]);
           this.barPickupTimers[tableId] = setTimeout(() => {
             delete this.barPickupRequested[tableId];

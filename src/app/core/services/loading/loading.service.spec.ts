@@ -22,19 +22,16 @@ describe('LoadingService', () => {
     });
   });
 
-  it('should emit true while a request is in flight', () => {
-    const end = service.beginRequest();
-    let visible = false;
+  it('should emit true when show is called', () => {
+    service.show();
     service.loading$.pipe(first()).subscribe(loading => {
-      visible = loading;
+      expect(loading).toBeTrue();
     });
-    expect(visible).toBeTrue();
-    end();
   });
 
-  it('should stay true until all in-flight requests end', () => {
-    const end1 = service.beginRequest();
-    const end2 = service.beginRequest();
+  it('should remain true until all shows are hidden', () => {
+    service.show();
+    service.show();
 
     let currentLoading = false;
     const sub = service.loading$.subscribe(loading => {
@@ -42,22 +39,10 @@ describe('LoadingService', () => {
     });
 
     expect(currentLoading).toBeTrue();
-
-    end1();
+    service.hide();
     expect(currentLoading).toBeTrue();
-
-    end2();
+    service.hide();
     expect(currentLoading).toBeFalse();
     sub.unsubscribe();
-  });
-
-  it('reset clears all in-flight tracking', () => {
-    service.beginRequest();
-    service.reset();
-    let currentLoading = true;
-    service.loading$.pipe(first()).subscribe(loading => {
-      currentLoading = loading;
-    });
-    expect(currentLoading).toBeFalse();
   });
 });

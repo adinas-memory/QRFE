@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { DeviceFeedbackService } from './device-feedback.service';
 import { ClientInstanceService } from './client-instance.service';
+import { RuntimePlatformService } from '../../platform/runtime-platform.service';
+import { PlatformStorageService } from '../../platform/platform-storage.service';
 
 describe('DeviceFeedbackService', () => {
   let service: DeviceFeedbackService;
@@ -18,6 +20,19 @@ describe('DeviceFeedbackService', () => {
           provide: ClientInstanceService,
           useValue: { getId: () => localId, isAvailable: () => true },
         },
+        {
+          provide: RuntimePlatformService,
+          useValue: {
+            capabilities: { hapticsBackend: 'vibrate' },
+          },
+        },
+        {
+          provide: PlatformStorageService,
+          useValue: {
+            getHapticsEnabled: () => Promise.resolve(true),
+            setHapticsEnabled: () => Promise.resolve(),
+          },
+        },
       ],
     });
 
@@ -26,7 +41,6 @@ describe('DeviceFeedbackService', () => {
       value: vibrateSpy,
     });
 
-    localStorage.removeItem('hapticsEnabled');
     service = TestBed.inject(DeviceFeedbackService);
   });
 
@@ -47,7 +61,7 @@ describe('DeviceFeedbackService', () => {
   });
 
   it('does not vibrate when haptics disabled', () => {
-    localStorage.setItem('hapticsEnabled', '0');
+    service.setHapticsEnabled(false);
     service.notifyPickupReady('kitchen', {
       tableId: 'table-1',
       clientInstanceId: localId,

@@ -1,26 +1,17 @@
-import {
-  isLocalStaticDevServer,
-  isNginxFrontPort,
-  isStaticDevServerPort,
-} from './resolve-api-url';
+import { environment } from '../../../environments/environment';
+import { alignApiUrlWithPageHost } from './resolve-api-url';
 
-describe('resolve-api-url helpers', () => {
-  it('detects static dev ports on any host', () => {
-    expect(isStaticDevServerPort('8080')).toBeTrue();
-    expect(isStaticDevServerPort('4200')).toBeTrue();
-    expect(isStaticDevServerPort('80')).toBeFalse();
+describe('alignApiUrlWithPageHost', () => {
+  const originalApiUrl = environment.apiUrl;
+
+  afterEach(() => {
+    (environment as { apiUrl: string }).apiUrl = originalApiUrl;
   });
 
-  it('detects nginx front ports', () => {
-    expect(isNginxFrontPort('')).toBeTrue();
-    expect(isNginxFrontPort('80')).toBeTrue();
-    expect(isNginxFrontPort('443')).toBeTrue();
-    expect(isNginxFrontPort('8080')).toBeFalse();
-  });
-
-  it('isLocalStaticDevServer is localhost + static port', () => {
-    expect(isLocalStaticDevServer('localhost', '8080')).toBeTrue();
-    expect(isLocalStaticDevServer('192.168.43.237', '8080')).toBeFalse();
-    expect(isLocalStaticDevServer('localhost', '80')).toBeFalse();
+  it('does not rewrite apiUrl on native Capacitor', () => {
+    (environment as { apiUrl: string }).apiUrl = 'https://unrsystem.go.ro';
+    const result = alignApiUrlWithPageHost({ isNative: true, shouldAlign: true });
+    expect(result).toBe('https://unrsystem.go.ro');
+    expect(environment.apiUrl).toBe('https://unrsystem.go.ro');
   });
 });

@@ -1,24 +1,32 @@
 import { Injectable } from '@angular/core';
+import {
+  CLIENT_INSTANCE_STORAGE_KEY,
+  PlatformStorageService,
+} from '../../platform/platform-storage.service';
 
-const STORAGE_KEY = 'qrfe-client-instance-id';
 const MAX_LEN = 64;
 
-/** Stable per-browser profile id; Capacitor will use Preferences with the same key later. */
+/** Stable per-device id (browser localStorage or Capacitor Preferences). */
 @Injectable({ providedIn: 'root' })
 export class ClientInstanceService {
   private cachedId: string | null = null;
 
+  constructor(private readonly platformStorage: PlatformStorageService) {
+    void this.hydrateFromPersistentStorage();
+  }
+
   getId(): string {
     if (this.cachedId) return this.cachedId;
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(CLIENT_INSTANCE_STORAGE_KEY);
       if (stored && this.isValid(stored)) {
         this.cachedId = stored;
         return stored;
       }
       const created = crypto.randomUUID();
-      localStorage.setItem(STORAGE_KEY, created);
+      localStorage.setItem(CLIENT_INSTANCE_STORAGE_KEY, created);
       this.cachedId = created;
+      void this.platformStorage.setString(CLIENT_INSTANCE_STORAGE_KEY, created);
       return created;
     } catch {
       const fallback = crypto.randomUUID();
@@ -29,6 +37,18 @@ export class ClientInstanceService {
 
   isAvailable(): boolean {
     return !!this.getId();
+  }
+
+  private async hydrateFromPersistentStorage(): Promise<void> {
+    const stored = await this.platformStorage.getString(CLIENT_INSTANCE_STORAGE_KEY);
+    if (stored && this.isValid(stored)) {
+      this.cachedId = stored;
+      try {
+        localStorage.setItem(CLIENT_INSTANCE_STORAGE_KEY, stored);
+      } catch {
+        // ignore
+      }
+    }
   }
 
   private isValid(value: string): boolean {

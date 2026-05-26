@@ -25,9 +25,18 @@ import { TranslocoHttpLoader } from './core/i18n/transloco-loader';
 import { LANG_STORAGE_KEY, DEFAULT_LANG, translocoConfig, type AppLang, APP_LANGS } from './core/i18n/transloco.config';
 import { environment } from '../environments/environment';
 
+function isCapacitorNative(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    (window as Window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor
+      ?.isNativePlatform?.() === true
+  );
+}
+
 /** SW + credentialed API cookies require the same host (localhost vs LAN IP are different sites). */
 function isServiceWorkerEnabled(): boolean {
   if (isDevMode()) return false;
+  if (isCapacitorNative()) return false;
   if (typeof window === 'undefined') return true;
   try {
     const apiHost = new URL(environment.apiUrl).hostname;

@@ -16,6 +16,9 @@
     "build": "ng build",
     "build:pwa": "ng build --configuration=pwa",
     "build:devhost": "ng build --configuration=devhost",
+    "build:capacitor": "ng build --configuration=capacitor",
+    "cap:sync": "npx cap sync",
+    "cap:android": "npx cap open android",
     "serve:pwa": "npx http-server -p 8080 -c-1 ./dist-pwa/browser",
     "serve:devhost": "npx http-server -p 8080 -c-1 ./dist/browser",
     "serve:localhost": "npm run build:pwa && npm run serve:pwa",
@@ -33,6 +36,9 @@
     "@angular/language-service": "^20.3.18",
     "@angular/localize": "^20.3.18",
     "@angular/platform-browser": "^20.3.18",
+    "@capacitor/core": "^7.2.0",
+    "@capacitor/haptics": "^7.0.0",
+    "@capacitor/preferences": "^7.0.0",
     "@angular/platform-browser-dynamic": "^20.3.18",
     "@angular/router": "^20.3.18",
     "@angular/service-worker": "^20.3.18",
@@ -60,6 +66,8 @@
     "zone.js": "~0.15.1"
   },
   "devDependencies": {
+    "@capacitor/android": "^7.2.0",
+    "@capacitor/cli": "^7.2.0",
     "@angular/build": "^20.3.18",
     "@angular/cli": "^20.3.18",
     "@angular/compiler-cli": "^20.3.18",

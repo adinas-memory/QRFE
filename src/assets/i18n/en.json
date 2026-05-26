@@ -503,6 +503,7 @@
     "updated": "Updated:",
     "by": "by",
     "byCardPayment": "card payment",
+    "hapticsToggle": "Vibration on pickup (this device)",
     "kitchenPickup": "Kitchen pickup",
     "barPickup": "Bar pickup",
     "pickedUp": "Picked up",

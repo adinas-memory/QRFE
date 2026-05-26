@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
+import { RuntimePlatformService } from '../../platform/runtime-platform.service';
+import { PlatformStorageService } from '../../platform/platform-storage.service';
 import { ClientInstanceService } from './client-instance.service';
 
-const HAPTICS_ENABLED_KEY = 'hapticsEnabled';
 const PICKUP_VIBRATE_MS = 500;
 const DEBOUNCE_MS = 2000;
 
@@ -15,25 +16,25 @@ export interface PickupReadyNotifyOptions {
 @Injectable({ providedIn: 'root' })
 export class DeviceFeedbackService {
   private readonly lastVibrateAtByTable = new Map<string, number>();
+  private hapticsEnabledCache = true;
 
-  constructor(private readonly clientInstance: ClientInstanceService) {}
+  constructor(
+    private readonly clientInstance: ClientInstanceService,
+    private readonly platform: RuntimePlatformService,
+    private readonly platformStorage: PlatformStorageService,
+  ) {
+    void this.platformStorage.getHapticsEnabled().then((v) => {
+      this.hapticsEnabledCache = v;
+    });
+  }
 
   get hapticsEnabled(): boolean {
-    try {
-      const stored = localStorage.getItem(HAPTICS_ENABLED_KEY);
-      if (stored === '0' || stored === 'false') return false;
-      return true;
-    } catch {
-      return true;
-    }
+    return this.hapticsEnabledCache;
   }
 
   setHapticsEnabled(enabled: boolean): void {
-    try {
-      localStorage.setItem(HAPTICS_ENABLED_KEY, enabled ? '1' : '0');
-    } catch {
-      // ignore
-    }
+    this.hapticsEnabledCache = enabled;
+    void this.platformStorage.setHapticsEnabled(enabled);
   }
 
   /**
@@ -56,17 +57,25 @@ export class DeviceFeedbackService {
     if (now - last < DEBOUNCE_MS) return;
     this.lastVibrateAtByTable.set(`${kind}:${tableId}`, now);
 
-    this.vibrate(PICKUP_VIBRATE_MS);
+    void this.vibrate(PICKUP_VIBRATE_MS);
   }
 
-  /** Web: Vibration API; Capacitor Android will branch here later. */
-  private vibrate(durationMs: number): void {
+  private async vibrate(durationMs: number): Promise<void> {
+    if (this.platform.capabilities.hapticsBackend === 'capacitor-haptics') {
+      try {
+        const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+        await Haptics.impact({ style: ImpactStyle.Medium });
+        return;
+      } catch {
+        // fall through to web vibrate
+      }
+    }
     try {
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         navigator.vibrate(durationMs);
       }
     } catch {
-      // ignore — iOS Safari often has no vibrate support
+      // ignore
     }
   }
 }

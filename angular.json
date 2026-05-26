@@ -132,6 +132,26 @@
               "sourceMap": false,
               "outputHashing": "all",
               "serviceWorker": "ngsw-config.json"
+            },
+            "capacitor": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "7mb",
+                  "maximumError": "8mb"
+                }
+              ],
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.capacitor.ts"
+                }
+              ],
+              "optimization": true,
+              "outputPath": "dist",
+              "extractLicenses": true,
+              "sourceMap": false,
+              "outputHashing": "all"
             }
           },
           "defaultConfiguration": "production"
@@ -146,8 +166,10 @@
               "buildTarget": "qrfe:build:pwa"
             },
             "devhost": {
-              "buildTarget": "qrfe:build:devhost",
-              "proxyConfig": "proxy.devhost.json"
+              "buildTarget": "qrfe:build:devhost"
+            },
+            "capacitor": {
+              "buildTarget": "qrfe:build:capacitor"
             },
             "development": {
               "buildTarget": "qrfe:build:development"

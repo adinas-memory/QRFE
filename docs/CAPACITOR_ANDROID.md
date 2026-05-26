@@ -1,51 +1,56 @@
-# Capacitor Android wrapper (Phase 2)
+# Capacitor Android (derivat din PWA)
 
-Phase 1 (web/PWA) implements pickup haptics via `navigator.vibrate(500)` and a stable `ClientInstanceService` id in `localStorage`. This document describes the follow-up Android app shell.
+Același codebase Angular servește **browser**, **PWA instalată** și **APK Capacitor**.
 
-## Goals
+## Build matrix
 
-- Ship a native Android app that loads the Angular PWA build (`ng build --configuration=pwa`).
-- Reuse the same API, SSE (`fetch-event-source`), and cookie-based staff auth.
-- Replace web-only vibration with `@capacitor/haptics` (or a vibration plugin) while keeping `DeviceFeedbackService` as the single call site.
+| Scop | Comandă | `apiUrl` | Service worker |
+|------|---------|----------|----------------|
+| Producție web/PWA | `npm run build` (production) | `https://unrsystem.go.ro` | da (same host) |
+| LAN dev (nginx) | `npm run build:devhost` | IP LAN, aliniat la origin :80 | da dacă același host |
+| APK Android | `npm run build:capacitor` | prod HTTPS | **nu** |
+| Test PWA local | `npm run build:pwa` + `serve:localhost` | `localhost:7051` | dezactivat pe :8080 |
 
-## Recommended layout
+**Nu folosi `devhost` în APK release.** Pentru debug LAN pe tabletă, setează `server.url` în `capacitor.config.ts` către `http://<IP>/` (same-origin).
 
+## Prima instalare Android
+
+```bash
+npm install
+npm run build:capacitor
+npx cap add android   # o singură dată
+npm run cap:sync
+npm run cap:android   # Android Studio
 ```
-QRFE/
-  src/                 # Angular app (existing)
-  capacitor.config.ts
-  android/             # `npx cap add android`
-```
 
-## Packages
+În `android/app/src/main/AndroidManifest.xml` asigură `android.permission.VIBRATE` și `INTERNET`.
 
-- `@capacitor/core`, `@capacitor/cli`, `@capacitor/android`
-- `@capacitor/preferences` — persist `qrfe-client-instance-id` (migrate from `localStorage` on first launch)
-- `@capacitor/haptics` — `impact({ style: ImpactStyle.Medium })` or duration-based vibration
+## Backend CORS
 
-## Adaptations from Phase 1
+API-ul trebuie să accepte origin Capacitor (`https://localhost`, `capacitor://localhost`) — configurat în `QR.Api/Program.cs`.
 
-| Component | Web (Phase 1) | Android |
-|-----------|---------------|---------|
-| `ClientInstanceService` | `localStorage` | `@capacitor/preferences` |
-| `DeviceFeedbackService` | `navigator.vibrate(500)` | Capacitor Haptics API |
-| HTTP / SSE | Browser | Verify cookies with `CapacitorHttp` if needed |
-| Permissions | — | `android.permission.VIBRATE` in `AndroidManifest.xml` |
+## Componente platformă
 
-## Build pipeline
+| Fișier | Rol |
+|--------|-----|
+| `runtime-platform.service.ts` | browser / PWA standalone / Capacitor |
+| `platform-storage.service.ts` | `localStorage` vs `@capacitor/preferences` |
+| `resolve-api-url.ts` | nu rescrie `apiUrl` pe native |
+| `device-feedback.service.ts` | `navigator.vibrate` vs `@capacitor/haptics` |
+| `pickup-notification.service.ts` | SSE kitchen/bar → haptics |
 
-1. `npm run build:pwa`
-2. `npx cap sync android`
-3. Open `android/` in Android Studio → assemble APK/AAB
+## Pickup haptics
 
-Set `environment.apiUrl` to the production API. Default WebView entry should land on staff routes (e.g. `/staff/manage-orders`) after login.
+Vibrează doar dispozitivul cu `ClientInstanceId` egal cu payload-ul SSE (`X-Client-Instance-Id` la mutații staff). Toggle în **Manage orders**.
 
-## Out of scope (initial Android release)
+## QA minim APK
 
-- iOS / App Store
-- Native push notifications
-- Background SSE (foreground-only at first)
+1. Login staff, fără spinner blocat.
+2. Modifică comandă → header device id la backend.
+3. Kitchen pickup → vibrație doar pe device-ul care a editat comanda.
+4. Toggle haptics off → fără vibrație, toast/badge OK.
 
-## iOS (later)
+## Limitări v1
 
-Safari often blocks `navigator.vibrate`; plan a separate Capacitor iOS target with `@capacitor/haptics` and App Store distribution when ready.
+- SSE în foreground (fără background service nativ).
+- iOS: separat, același pattern Haptics.
