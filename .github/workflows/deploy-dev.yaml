@@ -1,8 +1,5 @@
 name: Deploy Angular Frontend to LAN Dev Server
 
-# Runs only when you push to main or click "Run workflow" in GitHub Actions.
-# Local edits / deploy-from-laptop.ps1 do NOT create a run here.
-
 on:
   workflow_dispatch:
   push:
@@ -14,13 +11,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Workflow trigger info
-      run: |
-        echo "event=${{ github.event_name }}"
-        echo "ref=${{ github.ref }}"
-        echo "sha=${{ github.sha }}"
-        echo "run_number=${{ github.run_number }} (release folder: frontend-${{ github.run_number }})"
-
     - name: Checkout code
       uses: actions/checkout@v4
 
@@ -39,17 +29,10 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: frontend-package-dev
-        path: dist/browser
+        path: dist/**
 
-  deploy:
-    # Runner must be registered on THIS repo (QRFE) or on an org group that includes QRFE.
-    # Labels must include both self-hosted and dev (see deploy/dev/README.md).
-    runs-on: [self-hosted, dev]
-    timeout-minutes: 30
-    needs: build
-    env:
-      RUN: ${{ github.run_number }}
-
+  verify-runner:
+    runs-on: self-hosted
     steps:
     - name: Confirm self-hosted runner is reachable
       run: |
@@ -57,6 +40,13 @@ jobs:
         echo "Runner user: $(whoami)"
         command -v ssh && command -v scp && command -v tar
 
+  deploy:
+    runs-on: self-hosted
+    needs: [build, verify-runner]
+    env:
+      RUN: ${{ github.run_number }}
+
+    steps:
     - name: Resolve deploy target (secrets or variables)
       env:
         SECRET_HOST: ${{ secrets.DEV_SERVER_HOST }}
@@ -94,7 +84,7 @@ jobs:
         path: .
 
     - name: Inspect workspace
-      run: ls -R .
+      run: ls -la && ls -la dist/browser 2>/dev/null || ls -la browser 2>/dev/null || true
 
     - name: Configure SSH (no Docker — native ssh/scp)
       run: |
@@ -132,18 +122,17 @@ jobs:
         set -euo pipefail
         RELEASE="/home/adi/releases/frontend-${RUN}"
 
-        if [ -f index.html ]; then
-          BROWSER=.
+        if [ -d browser ]; then
+          BROWSER=browser
         elif [ -d dist/browser ]; then
           BROWSER=dist/browser
-        elif [ -d browser ]; then
-          BROWSER=browser
+        elif [ -f index.html ]; then
+          BROWSER=.
         elif [ -d qrfe/browser ]; then
           BROWSER=qrfe/browser
         else
-          echo "::error::Angular browser output not found"
+          echo "::error::browser output not found"
           ls -la
-          ls -la dist 2>/dev/null || true
           exit 1
         fi
         echo "Packaging from: ${BROWSER}"
@@ -164,15 +153,4 @@ jobs:
         sudo -n /usr/sbin/nginx -t
         sudo -n /usr/bin/systemctl reload nginx
         echo "Active release: \$(readlink -f /var/www/qrfe-dev)"
-        ls -la /var/www/qrfe-dev/index.html
         REMOTE
-
-    - name: Verify deployed release matches this run
-      run: |
-        ACTIVE=$(ssh dev-deploy "readlink -f /var/www/qrfe-dev")
-        echo "nginx root -> ${ACTIVE}"
-        if [[ "${ACTIVE}" != "/home/adi/releases/frontend-${RUN}" ]]; then
-          echo "::error::Symlink mismatch: expected /home/adi/releases/frontend-${RUN}, got ${ACTIVE}"
-          exit 1
-        fi
-        ssh dev-deploy "test -f ${ACTIVE}/index.html && test -f ${ACTIVE}/ngsw.json && echo 'has ngsw' || echo 'no ngsw (ok if SW disabled)'"

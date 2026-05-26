@@ -10,7 +10,7 @@ Uses Angular configuration `devhost` → `environment.devhost.ts` (`apiUrl: http
 
 - Workflow: `.github/workflows/deploy-dev.yaml` (push `main` or manual dispatch)
 - Prod `deploy.yaml`: manual only (does not run on push to `main`)
-- Requires a **self-hosted** runner on the LAN with labels **`self-hosted`** and **`dev`**
+- Requires a **self-hosted** runner on the LAN (`runs-on: self-hosted` — do not require extra labels unless your runner is configured with them)
 - Runner must be assigned to the **QRFE** repository (or an org runner group that lists QRFE)
 - GitHub secrets on **QRFE**: `DEV_SERVER_HOST`, `DEV_SERVER_USER`, `DEV_SERVER_SSH_KEY`, `DEV_SERVER_SSH_PORT`
 
@@ -30,8 +30,8 @@ Uses Angular configuration `devhost` → `environment.devhost.ts` (`apiUrl: http
 1. **Actions** tab → filter workflow *Deploy Angular Frontend to LAN Dev Server* — any run that day?
 2. If **no run**: no `push` to `main` that day (`git log origin/main --since=...`). Push or use **Run workflow**.
 3. If **build OK, deploy Queued forever**: runner not registered for **QRFE** (backend-only runner does not pick FE jobs), or org **Runner group → Repository access** excludes QRFE, or runner offline (`sudo ~/actions-runner/svc.sh status`).
-4. If **build ~1m30s and deploy never runs / Cancelled**: rapid pushes used to cancel queued deploy jobs; workflow no longer uses `cancel-in-progress`.
-5. If **deploy failed**: open failed step logs (SSH secrets, `dist/browser` artifact, symlink verify).
+4. If **deploy failed**: open failed step logs (SSH secrets, artifact layout — expect `browser/` after `dist/**` upload).
+5. On the runner host: `journalctl -u actions.runner.* -n 30` — you should see `Running job: verify-runner` then `deploy` after each push.
 
 ### Register runner for QRFE (one-time)
 
