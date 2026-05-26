@@ -56,10 +56,18 @@ export class OnlineStateService {
 
     this.heartbeatInProgress = (async () => {
       try {
+        const hasAbortTimeout =
+          typeof AbortSignal !== 'undefined' &&
+          typeof (AbortSignal as unknown as { timeout?: (ms: number) => AbortSignal }).timeout === 'function';
+
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'lan-heartbeat',hypothesisId:'H-ABORT',location:'online-state-service.ts:heartbeat',message:'heartbeat start',data:{apiUrl:this.apiUrl,force,hasAbortTimeout},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+
         const res = await fetch(`${this.apiUrl}/api/ping-lite`, {
           method: 'GET',
           cache: 'no-store',
-          signal: AbortSignal.timeout(8000),
+          ...(hasAbortTimeout ? { signal: AbortSignal.timeout(8000) } : {}),
         });
         if (res.ok || res.status < 500) {
           this.setOnline();
@@ -67,6 +75,9 @@ export class OnlineStateService {
           this.setOffline();
         }
       } catch {
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'lan-heartbeat',hypothesisId:'H-ABORT',location:'online-state-service.ts:heartbeat',message:'heartbeat threw',data:{apiUrl:this.apiUrl},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         this.setOffline();
       } finally {
         this.lastHeartbeat = Date.now();

@@ -92,6 +92,9 @@ export class DashboardComponent implements OnInit {
   loadMetrics(): void {
     const rid = this.#auth.getUserRestaurantId();
     if (typeof rid !== 'string' || !rid) {
+      // #region agent log
+      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'lan-dashboard',hypothesisId:'H-NOCTX',location:'dashboard.component.ts:loadMetrics',message:'no restaurant id; skipping metrics',data:{ridType:typeof rid,ridValue:rid??null},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       this.loadError.set('noRestaurant');
       this.loadingMetrics.set(false);
       this.refreshChartFromMetrics();
@@ -100,16 +103,25 @@ export class DashboardComponent implements OnInit {
 
     this.loadError.set(null);
     this.loadingMetrics.set(true);
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'lan-dashboard',hypothesisId:'H-METRICS',location:'dashboard.component.ts:loadMetrics',message:'requesting dashboard metrics',data:{rid},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     this.#reporting
       .getDashboardMetrics(rid)
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe({
         next: m => {
+          // #region agent log
+          fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'lan-dashboard',hypothesisId:'H-METRICS',location:'dashboard.component.ts:loadMetrics',message:'metrics loaded',data:{hasKpis:!!(m as any)?.kpis},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
           this.metrics.set(m);
           this.loadingMetrics.set(false);
           this.refreshChartFromMetrics();
         },
         error: () => {
+          // #region agent log
+          fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'lan-dashboard',hypothesisId:'H-METRICS',location:'dashboard.component.ts:loadMetrics',message:'metrics request failed',data:{rid},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
           this.loadingMetrics.set(false);
           this.loadError.set('requestFailed');
           this.metrics.set(null);
