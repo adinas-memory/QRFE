@@ -58,4 +58,9 @@ function shouldAlignApiUrlInBrowser(): boolean {
   return pagePort === '' || pagePort === '80' || pagePort === '443';
 }
 
-void alignApiUrlWithPageHost();
+const __alignedApiUrl = alignApiUrlWithPageHost();
+if (typeof window !== 'undefined') {
+  // #region agent log
+  fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'resolve-api-url.ts:boot',message:'api url resolved',data:{pageOrigin:window.location.origin,pageHost:window.location.hostname,pagePort:window.location.port,apiUrl:__alignedApiUrl,swOff:('serviceWorker' in environment && (environment as { serviceWorker?: boolean }).serviceWorker===false)},timestamp:Date.now(),hypothesisId:'H-LAN'})}).catch(()=>{});
+  // #endregion
+}
