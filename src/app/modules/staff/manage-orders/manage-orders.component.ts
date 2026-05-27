@@ -1084,7 +1084,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         const payload = Data as OrderUpdatedSSEPayload;
         const tableId = (this.sseField<string>(payload as any, 'TableId', 'tableId') ?? payload.TableId) as string;
         // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'orderupdated-before',hypothesisId:'H_updated_cleared',location:'manage-orders.component.ts:OrderUpdated',message:'SSE OrderUpdated received',data:{initiatedBy:InitiatedBy,sequence:Sequence,tableId,lastActionAt:(payload as any)?.LastActionAt??(payload as any)?.lastActionAt??null,prevComputedInitiatedBy:this.tableComputed?.[tableId]?.initiatedBy??null},timestamp:Date.now()})}).catch(()=>{});
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'orderupdated-before',hypothesisId:'H_color_open',location:'manage-orders.component.ts:OrderUpdated',message:'SSE OrderUpdated received',data:{initiatedBy:InitiatedBy,sequence:Sequence,tableId,orderId:(payload as any)?.OrderId??null,itemCount:(payload as any)?.ItemCount??null,prevIsTableOpen:this.tables.find(t=>t.tableId===tableId)?.isTableOpen??null,prevHasOrder:!!this.tables.find(t=>t.tableId===tableId)?.order,prevComputedInitiatedBy:this.tableComputed?.[tableId]?.initiatedBy??null},timestamp:Date.now()})}).catch(()=>{});
         // #endregion agent log
         // Nu îmbina starea remote în canvas doar cât timp comanda locală e draft pe *aceeași* masă; altfel blochezi OrderUpdated pentru toate mesele (inclusiv initiatedBy).
         if (this.currentOrderId?.startsWith('local-') && tableId === this.currentTableId) break;
@@ -1101,7 +1101,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         );
         this.tableCarts[tableId] = cart;
         // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'orderupdated-after',hypothesisId:'H_updated_cleared',location:'manage-orders.component.ts:OrderUpdated',message:'Computed updated from OrderUpdated',data:{tableId,nextComputedInitiatedBy:this.tableComputed?.[tableId]?.initiatedBy??null,nextLastActionAt:this.tableComputed?.[tableId]?.lastActionAt??null},timestamp:Date.now()})}).catch(()=>{});
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'orderupdated-after',hypothesisId:'H_color_open',location:'manage-orders.component.ts:OrderUpdated',message:'OrderUpdated handler complete (isTableOpen not mutated)',data:{tableId,nextIsTableOpen:this.tables.find(t=>t.tableId===tableId)?.isTableOpen??null,nextHasOrder:!!this.tables.find(t=>t.tableId===tableId)?.order,cssNow:this.miscService.getTableCss(this.tables.find(t=>t.tableId===tableId) as any,this.waiterState)},timestamp:Date.now()})}).catch(()=>{});
         // #endregion agent log
         break;
       }
