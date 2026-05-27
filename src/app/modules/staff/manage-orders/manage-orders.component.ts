@@ -1039,8 +1039,14 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       }
 
       case 'WaiterCall': {
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'waitercall-before',hypothesisId:'H_updated_cleared',location:'manage-orders.component.ts:WaiterCall',message:'SSE WaiterCall received',data:{eventType:EventType,initiatedBy:InitiatedBy,sequence:Sequence,tableIdPascal:Data?.TableId,tableIdCamel:Data?.tableId,keys:Data&&typeof Data==='object'?Object.keys(Data).slice(0,20):null},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion agent log
         const tableId = this.sseField<string>(Data, 'TableId', 'tableId') ?? Data?.TableId ?? Data?.tableId;
         if (tableId) this.waiterState[tableId] = WaiterCallState.Active;
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'waitercall-after',hypothesisId:'H_updated_cleared',location:'manage-orders.component.ts:WaiterCall',message:'SSE WaiterCall applied to waiterState',data:{tableId,waiterState:tableId?this.waiterState[tableId]:null,currentTableId:this.currentTableId,hasComputed:tableId?!!this.tableComputed?.[tableId]:null,computedInitiatedBy:tableId?(this.tableComputed?.[tableId]?.initiatedBy??null):null},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion agent log
         break;
       }
 
@@ -1077,6 +1083,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       case 'OrderUpdated': {
         const payload = Data as OrderUpdatedSSEPayload;
         const tableId = (this.sseField<string>(payload as any, 'TableId', 'tableId') ?? payload.TableId) as string;
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'orderupdated-before',hypothesisId:'H_updated_cleared',location:'manage-orders.component.ts:OrderUpdated',message:'SSE OrderUpdated received',data:{initiatedBy:InitiatedBy,sequence:Sequence,tableId,lastActionAt:(payload as any)?.LastActionAt??(payload as any)?.lastActionAt??null,prevComputedInitiatedBy:this.tableComputed?.[tableId]?.initiatedBy??null},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion agent log
         // Nu îmbina starea remote în canvas doar cât timp comanda locală e draft pe *aceeași* masă; altfel blochezi OrderUpdated pentru toate mesele (inclusiv initiatedBy).
         if (this.currentOrderId?.startsWith('local-') && tableId === this.currentTableId) break;
         const cart = await this.offlineDB.loadCart(tableId);
@@ -1091,6 +1100,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           payload, this.tables, this.waiterState, InitiatedBy
         );
         this.tableCarts[tableId] = cart;
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'orderupdated-after',hypothesisId:'H_updated_cleared',location:'manage-orders.component.ts:OrderUpdated',message:'Computed updated from OrderUpdated',data:{tableId,nextComputedInitiatedBy:this.tableComputed?.[tableId]?.initiatedBy??null,nextLastActionAt:this.tableComputed?.[tableId]?.lastActionAt??null},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion agent log
         break;
       }
 

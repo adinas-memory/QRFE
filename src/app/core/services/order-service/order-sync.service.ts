@@ -222,6 +222,12 @@ export class OrderSyncService {
             restaurantId;
           const InitiatedBy = raw?.InitiatedBy ?? raw?.initiatedBy ?? 'unknown';
 
+          // #region agent log
+          if (EventType === 'WaiterCall' || EventType === 'OrderUpdated') {
+            fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'sse-parse',hypothesisId:'H_updated_cleared',location:'order-sync.service.ts:onmessage',message:'Parsed SSE message',data:{eventType:EventType,initiatedBy:InitiatedBy,sequence:Sequence,restaurantId:RestaurantId,dataKeys:Data&&typeof Data==='object'?Object.keys(Data).slice(0,20):null},timestamp:Date.now()})}).catch(()=>{});
+          }
+          // #endregion agent log
+
           // ignore "empty" keepalive-like messages
           if (!EventType && (typeof msg.data === 'string') && msg.data.trim() === '') return;
 

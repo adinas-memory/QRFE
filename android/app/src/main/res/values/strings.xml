@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">QR Staff</string>
-    <string name="title_activity_main">QR Staff</string>
+    <string name="app_name">U.R.S. Staff</string>
+    <string name="title_activity_main">U.R.S. Staff</string>
     <string name="package_name">com.universal_restaurant_system.pos</string>
     <string name="custom_url_scheme">com.universal_restaurant_system.pos</string>
 </resources>
