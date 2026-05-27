@@ -1,5 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { DeviceFeedbackService, PickupReadyKind } from '../device/device-feedback.service';
+import { RuntimePlatformService } from '../../platform/runtime-platform.service';
 
 export interface PickupSsePayload {
   tableId: string | null;
@@ -9,6 +10,8 @@ export interface PickupSsePayload {
 /** Normalizes kitchen/bar pickup SSE and triggers device-targeted haptics. */
 @Injectable({ providedIn: 'root' })
 export class PickupNotificationService {
+  readonly #platform = inject(RuntimePlatformService);
+
   constructor(private readonly deviceFeedback: DeviceFeedbackService) {}
 
   parsePickupPayload(data: unknown): PickupSsePayload {
@@ -21,6 +24,11 @@ export class PickupNotificationService {
   handlePickupSse(kind: PickupReadyKind, data: unknown): PickupSsePayload {
     const parsed = this.parsePickupPayload(data);
     if (!parsed.tableId) {
+      return parsed;
+    }
+
+    // Native Android: alerts come from FCM push, not SSE haptics.
+    if (this.#platform.isNative) {
       return parsed;
     }
 

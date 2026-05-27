@@ -45,11 +45,10 @@ export class ReportingService {
    * KPIs: rolling 30 UTC days vs prior 30 days; series for charts.
    */
   getDashboardMetrics(restaurantId: string): Observable<DashboardMetricsResponse> {
-    const url = `${this.apiUrl}/api/restaurants/${restaurantId}/staff/dashboard/metrics`;
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'lan-dashboard',hypothesisId:'H-METRICS-URL',location:'reporting.service.ts:getDashboardMetrics',message:'dispatching metrics request',data:{url,apiUrlField:this.apiUrl,envApiUrl:environment.apiUrl},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-    return this.http.get<DashboardMetricsResponse>(url, { withCredentials: true });
+    return this.http.get<DashboardMetricsResponse>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/staff/dashboard/metrics`,
+      { withCredentials: true }
+    );
   }
 
   getTopProducts(

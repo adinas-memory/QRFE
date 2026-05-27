@@ -1,4 +1,4 @@
-package ro.unrsystem.qrfe.staff;
+package com.universal_restaurant_system.pos;
 
 import com.getcapacitor.BridgeActivity;
 

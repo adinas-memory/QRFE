@@ -172,9 +172,6 @@ export class OrderSyncService {
       onopen: async (response) => {
         if (!response.ok) {
           const www = response.headers.get('www-authenticate');
-          // #region agent log
-          fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'lan-sse',hypothesisId:'H-SSE-401',location:'order-sync.service.ts:onopen',message:'SSE onopen not ok',data:{status:response.status,wwwAuthenticate:www?.slice(0,120)??null,url:url.split('?')[0]},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
           throw this.toSseHttpError(response.status, www);
         }
         const contentType = response.headers.get('content-type');
@@ -255,9 +252,6 @@ export class OrderSyncService {
         const status = (err as { status?: number })?.status;
         const msg = String((err as Error)?.message ?? '');
         const isAuth401 = status === 401 || msg.includes('HTTP 401') || msg.includes('invalid_token');
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'lan-sse',hypothesisId:isAuth401?'H-SSE-401':'H-SSE-NET',location:'order-sync.service.ts:onerror',message:'SSE onerror',data:{status:status??null,isAuth401,message:msg.slice(0,140),online:this.onlineStateService.isOnline},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
 
         // 401 (expired token) is NOT "offline". Let refresh flow handle it.
         if (!isAuth401) {

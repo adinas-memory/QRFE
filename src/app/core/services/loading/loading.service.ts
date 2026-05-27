@@ -13,28 +13,18 @@ export class LoadingService {
     const id = ++this.seq;
     this.inFlight.add(id);
     this.emit();
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'loading.service.ts:begin',message:'loading begin',data:{id,inFlight:this.inFlight.size},timestamp:Date.now(),hypothesisId:'H-COUNTER'})}).catch(()=>{});
-    // #endregion
     return () => this.endRequest(id);
   }
 
   private endRequest(id: number): void {
     this.inFlight.delete(id);
     this.emit();
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'loading.service.ts:end',message:'loading end',data:{id,inFlight:this.inFlight.size,visible:this.inFlight.size>0},timestamp:Date.now(),hypothesisId:'H-COUNTER'})}).catch(()=>{});
-    // #endregion
   }
 
   /** Clears a stuck global spinner (e.g. after route change). */
   reset(_reason?: string): void {
-    const prev = this.inFlight.size;
     this.inFlight.clear();
     this.emit();
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'loading.service.ts:reset',message:'loading reset',data:{prevInFlight:prev},timestamp:Date.now(),hypothesisId:'H-NAV'})}).catch(()=>{});
-    // #endregion
   }
 
   private emit(): void {

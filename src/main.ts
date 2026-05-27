@@ -17,9 +17,6 @@ if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
     void navigator.serviceWorker.getRegistrations().then(regs => {
       if (regs.length) {
         void Promise.all(regs.map(r => r.unregister()));
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'main.ts:sw-cleanup',message:'unregistering stale service workers',data:{count:regs.length},timestamp:Date.now(),hypothesisId:'H-SW'})}).catch(()=>{});
-        // #endregion
       }
     });
   }

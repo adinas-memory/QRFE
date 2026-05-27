@@ -14,6 +14,7 @@ import { OnlineStateService } from './core/offline/online-state-service';
 import { AppToastsComponent } from '../app/shared/components/app-toast/app-toast.component';
 import { LoadingService } from './core/services/loading/loading.service';
 import { HttpNavigationCancelService } from './core/services/http-navigation-cancel.service';
+import { PushRegistrationService } from './core/services/push/push-registration.service';
 
 
 @Component({
@@ -50,6 +51,7 @@ export class AppComponent implements OnInit {
   readonly #onlineStateService = inject(OnlineStateService);
   readonly #loadingService = inject(LoadingService);
   readonly #httpNavCancel = inject(HttpNavigationCancelService);
+  readonly #pushRegistration = inject(PushRegistrationService);
 
   constructor() {
     this.#titleService.setTitle(this.title);
@@ -79,6 +81,8 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.#pushRegistration.init();
+
     this.#onlineStateService.online$.subscribe(isOnline => {
       this.isOffline = !isOnline;
     });

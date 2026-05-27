@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "ro.unrsystem.qrfe.staff"
+    namespace "com.universal_restaurant_system.pos"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "ro.unrsystem.qrfe.staff"
+        applicationId "com.universal_restaurant_system.pos"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

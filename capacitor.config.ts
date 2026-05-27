@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'ro.unrsystem.qrfe.staff',
+  appId: 'com.universal_restaurant_system.pos',
   appName: 'QR Staff',
   webDir: 'dist/browser',
   server: {

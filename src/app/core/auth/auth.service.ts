@@ -1,11 +1,12 @@
 import { Router } from '@angular/router';
-import { Injectable } from '@angular/core';
+import { Injectable, Injector } from '@angular/core';
 import { BehaviorSubject, Observable, Subject, catchError, finalize, map, of, shareReplay, tap, throwError } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { UserContextModel } from '../models/userContextModel';
 import { RegisterUserRequestModel } from '../models/registerUserRequestModel';
 import { environment } from '../../../environments/environment';
 import { LoginUserRequestModel } from '../models/loginUserRequestModel';
+import { PushRegistrationService } from '../services/push/push-registration.service';
 
 export function isHttpAuthFailure(err: unknown): boolean {
   const status = (err as HttpErrorResponse)?.status;
@@ -46,8 +47,11 @@ export class AuthService {
   /** Shared in-flight refresh — prevents parallel refresh-token calls that invalidate each other. */
   private refreshInFlight: Observable<UserContextModel | null> | null = null;
 
-  constructor(private http: HttpClient,
-    private router: Router) { }
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+    private injector: Injector,
+  ) { }
 
   // --- Public API ---
 
@@ -79,9 +83,6 @@ export class AuthService {
       }
       this.userSubject.next(user);
       this.setRestaurantCtx();
-      // #region agent log
-      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'lan-dashboard',hypothesisId:'H-HYDRATE',location:'auth.service.ts:hydrateSessionFromStorageIfNeeded',message:'hydrated userSubject from UserCtx',data:{role:user.role,hasRestaurantId:!!user.restaurantId},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
     } catch {
       // ignore parse errors
     }
@@ -275,16 +276,26 @@ export class AuthService {
   logout(): Observable<void> {
     return this.http.post<void>(`${this.apiUrl}/api/user/logout`, {}, { withCredentials: true }).pipe(
       tap(() => {
+        this.unregisterPushToken();
         this.clearUser();
         this.clearRestaurantCtx();
       }),
       catchError(err => {
         console.error('Logout error', err);
+        this.unregisterPushToken();
         this.clearUser();
         this.clearRestaurantCtx();
         return of(undefined as unknown as void);
       }),
     );
+  }
+
+  private unregisterPushToken(): void {
+    try {
+      void this.injector.get(PushRegistrationService).unregisterCurrentToken();
+    } catch {
+      // optional on web-only bundles
+    }
   }
 
 

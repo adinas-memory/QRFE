@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "95852749604",
+    "project_id": "urs-pos",
+    "storage_bucket": "urs-pos.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:95852749604:android:700db7da5af9f80103c9b1",
+        "android_client_info": {
+          "package_name": "com.universal_restaurant_system.pos"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyADB_HumKcq9lXpjtTxFY2KhfgLkAaN7xk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
