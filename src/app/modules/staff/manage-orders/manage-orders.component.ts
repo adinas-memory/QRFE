@@ -1129,6 +1129,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       }
 
       case 'OrderClosedWithPayment': {
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'orderclosed-before',hypothesisId:'H_color_not_updated',location:'manage-orders.component.ts:OrderClosedWithPayment',message:'SSE OrderClosedWithPayment received',data:{initiatedBy:InitiatedBy,sequence:Sequence,tableId:this.sseField<string>(Data,'TableId','tableId')??null,closedAt:this.sseField<string>(Data,'ClosedAt','closedAt')??null,prevIsOpen:(this.sseField<string>(Data,'TableId','tableId')?this.tables.find(t=>t.tableId===this.sseField<string>(Data,'TableId','tableId'))?.isTableOpen:null)},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion agent log
         const tableId = this.sseField<string>(Data, 'TableId', 'tableId');
         if (!tableId) break;
         delete this.paymentLockedByTable[tableId];
@@ -1151,6 +1154,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         delete this.barPickupRequested[tableId];
         // FIX BUG 3: markTableAsOpen curăță și order → buildAvailabilityMap returnează corect true
         this.markTableAsOpen(tableId);
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'orderclosed-after',hypothesisId:'H_color_not_updated',location:'manage-orders.component.ts:OrderClosedWithPayment',message:'Applied OrderClosedWithPayment (markTableAsOpen)',data:{tableId,nextIsOpen:this.tables.find(t=>t.tableId===tableId)?.isTableOpen??null,nextCss:this.miscService.getTableCss(this.tables.find(t=>t.tableId===tableId) as any,this.waiterState)},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion agent log
         if (this.currentTableId === tableId) {
           this.tableCarts[tableId] = [];
           this.resetCanvasState();
