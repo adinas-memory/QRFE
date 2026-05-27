@@ -1100,6 +1100,23 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           payload, this.tables, this.waiterState, InitiatedBy
         );
         this.tableCarts[tableId] = cart;
+
+        // OrderUpdated implică o comandă activă pe masă → marchează masa ca ocupată local
+        // dacă încă figurează liberă; altfel getTableCss rămâne pe bg-success (verde).
+        if (payload.OrderId) {
+          const existing = this.tables.find(t => t.tableId === tableId);
+          if (existing && (existing.isTableOpen || !existing.order)) {
+            this.tables = this.tables.map(t =>
+              t.tableId === tableId
+                ? { ...t, isTableOpen: false, order: { orderId: payload.OrderId } as unknown as OrderDTO }
+                : t,
+            );
+            this.refreshTableLists();
+          }
+        }
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'post-fix-orderupdated',hypothesisId:'H_color_open',location:'manage-orders.component.ts:OrderUpdated',message:'After fix sync isTableOpen',data:{tableId,isTableOpen:this.tables.find(t=>t.tableId===tableId)?.isTableOpen??null,hasOrder:!!this.tables.find(t=>t.tableId===tableId)?.order,cssNow:this.miscService.getTableCss(this.tables.find(t=>t.tableId===tableId) as any,this.waiterState)},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion agent log
         // #region agent log
         fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'orderupdated-after',hypothesisId:'H_color_open',location:'manage-orders.component.ts:OrderUpdated',message:'OrderUpdated handler complete (isTableOpen not mutated)',data:{tableId,nextIsTableOpen:this.tables.find(t=>t.tableId===tableId)?.isTableOpen??null,nextHasOrder:!!this.tables.find(t=>t.tableId===tableId)?.order,cssNow:this.miscService.getTableCss(this.tables.find(t=>t.tableId===tableId) as any,this.waiterState)},timestamp:Date.now()})}).catch(()=>{});
         // #endregion agent log
