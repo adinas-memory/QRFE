@@ -2,10 +2,12 @@ import { Routes } from '@angular/router';
 import { AuthGuard } from '../../core/auth/auth.guard';
 import { RoleGuard } from '../../core/auth/role.guard';
 import { MenuResolver } from '../../core/services/menu-public/menu-resolver.service';
+import { nativeRootLoginGuard } from '../../core/guards/native-root-login.guard';
 
 export const routes: Routes = [
   {
     path: '',
+    canMatch: [nativeRootLoginGuard],
     children: [
       {
         path: '',

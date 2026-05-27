@@ -16,6 +16,16 @@ export class PrintJobsService {
 
   constructor(private http: HttpClient) {}
 
+  /**
+   * Staff-safe endpoint (no inventory exposure): returns the configured default bill printer id.
+   */
+  getDefaultBillPrinterForStaff(restaurantId: string): Observable<{ defaultBillPrinterId: string | null }> {
+    return this.http.get<{ defaultBillPrinterId: string | null }>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/staff/default-bill-printer`,
+      { withCredentials: true },
+    );
+  }
+
   listAgentPrinters(restaurantId: string): Observable<PrinterAgentPrinterDto[]> {
     return this.http.get<PrinterAgentPrinterDto[]>(
       `${this.apiUrl}/api/restaurants/${restaurantId}/admin/printer-agent/printers`,

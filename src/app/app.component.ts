@@ -15,6 +15,9 @@ import { AppToastsComponent } from '../app/shared/components/app-toast/app-toast
 import { LoadingService } from './core/services/loading/loading.service';
 import { HttpNavigationCancelService } from './core/services/http-navigation-cancel.service';
 import { PushRegistrationService } from './core/services/push/push-registration.service';
+import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
+import { Location } from '@angular/common';
 
 
 @Component({
@@ -39,6 +42,7 @@ export class AppComponent implements OnInit {
   title = 'U.R.S.';
   private sseStarted = false;
   isOffline = false;
+  private navHistory: string[] = [];
 
   readonly #destroyRef: DestroyRef = inject(DestroyRef);
   readonly #activatedRoute: ActivatedRoute = inject(ActivatedRoute);
@@ -52,6 +56,7 @@ export class AppComponent implements OnInit {
   readonly #loadingService = inject(LoadingService);
   readonly #httpNavCancel = inject(HttpNavigationCancelService);
   readonly #pushRegistration = inject(PushRegistrationService);
+  readonly #location = inject(Location);
 
   constructor() {
     this.#titleService.setTitle(this.title);
@@ -82,6 +87,7 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.#pushRegistration.init();
+    this.initNativeBackButton();
 
     this.#onlineStateService.online$.subscribe(isOnline => {
       this.isOffline = !isOnline;
@@ -112,7 +118,10 @@ export class AppComponent implements OnInit {
         filter((evt): evt is NavigationEnd => evt instanceof NavigationEnd),
         takeUntilDestroyed(this.#destroyRef),
       )
-      .subscribe(() => {
+      .subscribe((evt) => {
+        this.navHistory.push(evt.urlAfterRedirects);
+        if (this.navHistory.length > 25) this.navHistory.splice(0, this.navHistory.length - 25);
+
         const deepest = this.getDeepestChild(this.#router.routerState.root.snapshot);
         const isPublic = deepest?.data?.['public'] === true;
 
@@ -123,6 +132,48 @@ export class AppComponent implements OnInit {
           });
         }
       });
+  }
+
+  private initNativeBackButton(): void {
+    if (!Capacitor.isNativePlatform()) return;
+
+    App.addListener('backButton', () => {
+      const current = this.#router.url ?? '';
+      const previous = this.navHistory.length >= 2 ? this.navHistory[this.navHistory.length - 2] : null;
+
+      const isPublicUrl = (u: string | null): boolean => {
+        if (!u) return true;
+        if (u === '/' || u === '') return true;
+        return (
+          u.startsWith('/login') ||
+          u.startsWith('/register') ||
+          u.startsWith('/forgot-password') ||
+          u.startsWith('/reset-password') ||
+          u.startsWith('/verify-email') ||
+          u.startsWith('/faq') ||
+          u.startsWith('/public/')
+        );
+      };
+
+      if (current.startsWith('/login')) {
+        void App.exitApp();
+        return;
+      }
+
+      const currentIsProtected = current.startsWith('/staff') || current.startsWith('/manager') || current.startsWith('/gadmin');
+      if (currentIsProtected) {
+        // Don’t allow backing into public pages (looks like a logout); exit instead.
+        if (!previous || isPublicUrl(previous)) {
+          void App.exitApp();
+          return;
+        }
+        this.#location.back();
+        return;
+      }
+
+      // Any other public page: exit instead of drifting in history.
+      void App.exitApp();
+    });
   }
 
 }

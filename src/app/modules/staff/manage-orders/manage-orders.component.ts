@@ -827,17 +827,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   private async enqueueBillPrintJob(args: { restaurantId: string; orderId: string }): Promise<void> {
     try {
-      // If agent printers list is empty, there's nothing to print to (even if a stale default is set).
-      const printers = await firstValueFrom(this.printJobs.listAgentPrinters(args.restaurantId));
-      if (!printers?.length) {
-        this.appToast.info(
-          this.transloco.translate('manageOrders.printNoPrinterBody'),
-          this.transloco.translate('manageOrders.printNoPrinterTitle'),
-        );
-        return;
-      }
-
-      const cfg = await firstValueFrom(this.printJobs.getDefaultBillPrinter(args.restaurantId));
+      // Staff should not need printer inventory; only the restaurant's configured default bill printer.
+      const cfg = await firstValueFrom(this.printJobs.getDefaultBillPrinterForStaff(args.restaurantId));
       const printerId = (cfg?.defaultBillPrinterId ?? '').trim();
       if (!printerId) {
         this.appToast.info(
@@ -1039,14 +1030,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       }
 
       case 'WaiterCall': {
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'waitercall-before',hypothesisId:'H_updated_cleared',location:'manage-orders.component.ts:WaiterCall',message:'SSE WaiterCall received',data:{eventType:EventType,initiatedBy:InitiatedBy,sequence:Sequence,tableIdPascal:Data?.TableId,tableIdCamel:Data?.tableId,keys:Data&&typeof Data==='object'?Object.keys(Data).slice(0,20):null},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion agent log
         const tableId = this.sseField<string>(Data, 'TableId', 'tableId') ?? Data?.TableId ?? Data?.tableId;
         if (tableId) this.waiterState[tableId] = WaiterCallState.Active;
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'waitercall-after',hypothesisId:'H_updated_cleared',location:'manage-orders.component.ts:WaiterCall',message:'SSE WaiterCall applied to waiterState',data:{tableId,waiterState:tableId?this.waiterState[tableId]:null,currentTableId:this.currentTableId,hasComputed:tableId?!!this.tableComputed?.[tableId]:null,computedInitiatedBy:tableId?(this.tableComputed?.[tableId]?.initiatedBy??null):null},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion agent log
         break;
       }
 
@@ -1083,9 +1068,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       case 'OrderUpdated': {
         const payload = Data as OrderUpdatedSSEPayload;
         const tableId = (this.sseField<string>(payload as any, 'TableId', 'tableId') ?? payload.TableId) as string;
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'orderupdated-before',hypothesisId:'H_color_open',location:'manage-orders.component.ts:OrderUpdated',message:'SSE OrderUpdated received',data:{initiatedBy:InitiatedBy,sequence:Sequence,tableId,orderId:(payload as any)?.OrderId??null,itemCount:(payload as any)?.ItemCount??null,prevIsTableOpen:this.tables.find(t=>t.tableId===tableId)?.isTableOpen??null,prevHasOrder:!!this.tables.find(t=>t.tableId===tableId)?.order,prevComputedInitiatedBy:this.tableComputed?.[tableId]?.initiatedBy??null},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion agent log
         // Nu îmbina starea remote în canvas doar cât timp comanda locală e draft pe *aceeași* masă; altfel blochezi OrderUpdated pentru toate mesele (inclusiv initiatedBy).
         if (this.currentOrderId?.startsWith('local-') && tableId === this.currentTableId) break;
         const cart = await this.offlineDB.loadCart(tableId);
@@ -1114,12 +1096,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
             this.refreshTableLists();
           }
         }
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'post-fix-orderupdated',hypothesisId:'H_color_open',location:'manage-orders.component.ts:OrderUpdated',message:'After fix sync isTableOpen',data:{tableId,isTableOpen:this.tables.find(t=>t.tableId===tableId)?.isTableOpen??null,hasOrder:!!this.tables.find(t=>t.tableId===tableId)?.order,cssNow:this.miscService.getTableCss(this.tables.find(t=>t.tableId===tableId) as any,this.waiterState)},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion agent log
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'orderupdated-after',hypothesisId:'H_color_open',location:'manage-orders.component.ts:OrderUpdated',message:'OrderUpdated handler complete (isTableOpen not mutated)',data:{tableId,nextIsTableOpen:this.tables.find(t=>t.tableId===tableId)?.isTableOpen??null,nextHasOrder:!!this.tables.find(t=>t.tableId===tableId)?.order,cssNow:this.miscService.getTableCss(this.tables.find(t=>t.tableId===tableId) as any,this.waiterState)},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion agent log
         break;
       }
 
@@ -1146,9 +1122,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       }
 
       case 'OrderClosedWithPayment': {
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'orderclosed-before',hypothesisId:'H_color_not_updated',location:'manage-orders.component.ts:OrderClosedWithPayment',message:'SSE OrderClosedWithPayment received',data:{initiatedBy:InitiatedBy,sequence:Sequence,tableId:this.sseField<string>(Data,'TableId','tableId')??null,closedAt:this.sseField<string>(Data,'ClosedAt','closedAt')??null,prevIsOpen:(this.sseField<string>(Data,'TableId','tableId')?this.tables.find(t=>t.tableId===this.sseField<string>(Data,'TableId','tableId'))?.isTableOpen:null)},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion agent log
         const tableId = this.sseField<string>(Data, 'TableId', 'tableId');
         if (!tableId) break;
         delete this.paymentLockedByTable[tableId];
@@ -1171,9 +1144,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         delete this.barPickupRequested[tableId];
         // FIX BUG 3: markTableAsOpen curăță și order → buildAvailabilityMap returnează corect true
         this.markTableAsOpen(tableId);
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'orderclosed-after',hypothesisId:'H_color_not_updated',location:'manage-orders.component.ts:OrderClosedWithPayment',message:'Applied OrderClosedWithPayment (markTableAsOpen)',data:{tableId,nextIsOpen:this.tables.find(t=>t.tableId===tableId)?.isTableOpen??null,nextCss:this.miscService.getTableCss(this.tables.find(t=>t.tableId===tableId) as any,this.waiterState)},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion agent log
         if (this.currentTableId === tableId) {
           this.tableCarts[tableId] = [];
           this.resetCanvasState();
