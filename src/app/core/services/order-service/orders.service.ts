@@ -17,6 +17,7 @@ import { OnlineStateService } from '../../offline/online-state-service';
 })
 export class OrdersService {
   private apiUrl = environment.apiUrl;
+  private readonly initiatedByMapKey = 'tableInitiatedByMap';
 
 
   constructor(private http: HttpClient,
@@ -108,6 +109,32 @@ export class OrdersService {
     } catch (e) {
       console.error('Failed to load tableComputed', e);
       return {};
+    }
+  }
+
+  /** Dedicated store for "updated by" — survives tableComputed overwrites on re-entry. */
+  loadInitiatedByMap(): Record<string, string> {
+    try {
+      const raw = localStorage.getItem(this.initiatedByMapKey);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw) as Record<string, string>;
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (e) {
+      console.error('Failed to load tableInitiatedByMap', e);
+      return {};
+    }
+  }
+
+  saveInitiatedByMap(map: Record<string, string>): void {
+    try {
+      const cleaned: Record<string, string> = {};
+      for (const [tableId, by] of Object.entries(map)) {
+        const v = by?.trim();
+        if (tableId && v) cleaned[tableId] = v;
+      }
+      localStorage.setItem(this.initiatedByMapKey, JSON.stringify(cleaned));
+    } catch (e) {
+      console.error('Failed to save tableInitiatedByMap', e);
     }
   }
 

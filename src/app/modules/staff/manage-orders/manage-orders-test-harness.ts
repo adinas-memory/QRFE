@@ -156,6 +156,8 @@ export interface ManageOrdersMocks {
   ordersService: {
     loadComputed: jasmine.Spy;
     saveComputed: jasmine.Spy;
+    loadInitiatedByMap: jasmine.Spy;
+    saveInitiatedByMap: jasmine.Spy;
     mapComputedDtoToComputed: jasmine.Spy;
     mapPayloadToComputed: jasmine.Spy;
     moveOrder: jasmine.Spy;
@@ -209,6 +211,7 @@ export interface SetupManageOrdersOptions {
   categories?: string[];
   tablesStatusMap?: Record<string, boolean>;
   computed?: Record<string, unknown>;
+  initiatedByMap?: Record<string, string>;
   isOnline?: boolean;
 }
 
@@ -250,6 +253,8 @@ export function createManageOrdersMocks(options: SetupManageOrdersOptions = {}):
     ordersService: {
       loadComputed: jasmine.createSpy('loadComputed').and.returnValue(options.computed ?? {}),
       saveComputed: jasmine.createSpy('saveComputed'),
+      loadInitiatedByMap: jasmine.createSpy('loadInitiatedByMap').and.returnValue(options.initiatedByMap ?? {}),
+      saveInitiatedByMap: jasmine.createSpy('saveInitiatedByMap'),
       mapComputedDtoToComputed: jasmine.createSpy('mapComputedDtoToComputed').and.callFake(
         (dto: TableComputedDTO, _tables: TableDTO[], _waiterState: Record<string, WaiterCallState>, initiatedBy?: string) => ({
           lastActionAt: dto.lastActionAt ?? '',

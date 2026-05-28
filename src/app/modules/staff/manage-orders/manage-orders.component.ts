@@ -177,17 +177,84 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     return raw;
   }
 
-  /** Load tableComputed from storage before SSE can overwrite localStorage on re-entry. */
-  private capturePersistedInitiatedBy(): void {
+  /**
+   * Merge "updated by" from dedicated storage + tableComputed.
+   * @param replaceTableComputed when true (first init), restore full computed blob from localStorage.
+   */
+  private capturePersistedInitiatedBy(options?: { replaceTableComputed?: boolean }): void {
+    const replaceTableComputed = options?.replaceTableComputed !== false;
     const persisted = this.ordersService.loadComputed() || {};
-    this.tableComputed = persisted;
-    this.persistedInitiatedBy = {};
+    const dedicated = this.ordersService.loadInitiatedByMap();
+
+    if (replaceTableComputed) {
+      this.tableComputed = persisted;
+    }
+
+    for (const [tableId, by] of Object.entries(dedicated)) {
+      const v = by?.trim();
+      if (v) this.persistedInitiatedBy[tableId] = v;
+    }
     for (const [tableId, computed] of Object.entries(persisted)) {
       const by = computed?.initiatedBy?.trim();
-      if (by) {
-        this.persistedInitiatedBy[tableId] = by;
+      if (by) this.persistedInitiatedBy[tableId] = by;
+    }
+
+    this.logInitiatedByDebug(replaceTableComputed ? 'capture:init' : 'capture:merge');
+  }
+
+  /** Re-apply persisted names after hydrate/SSE may have cleared initiatedBy on cards. */
+  private applyPersistedInitiatedByToComputed(): void {
+    for (const [tableId, by] of Object.entries(this.persistedInitiatedBy)) {
+      if (!by?.trim()) continue;
+      const table = this.tables.find(t => t.tableId === tableId);
+      if (!table) continue;
+
+      const existing = this.tableComputed[tableId];
+      if (existing) {
+        if (!existing.initiatedBy?.trim()) {
+          this.tableComputed[tableId] = { ...existing, initiatedBy: by };
+        }
+      } else if (!table.isTableOpen || table.order) {
+        this.tableComputed[tableId] = {
+          lastActionAt: '',
+          lastAddedItem: '—',
+          total: 0,
+          currency: '',
+          itemCount: 0,
+          cssClass: this.miscService.getTableCss(table, this.waiterState),
+          initiatedBy: by,
+        };
       }
     }
+    this.logInitiatedByDebug('apply:after-hydrate');
+  }
+
+  private logInitiatedByDebug(phase: string): void {
+    const data = {
+      phase,
+      mapCount: Object.keys(this.persistedInitiatedBy).length,
+      mapSample: Object.entries(this.persistedInitiatedBy).slice(0, 4),
+    };
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7379f5' },
+      body: JSON.stringify({
+        sessionId: '7379f5',
+        runId: 'post-fix',
+        hypothesisId: 'F',
+        location: 'manage-orders.component.ts:logInitiatedByDebug',
+        message: 'initiatedBy persistence state',
+        data,
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    try {
+      localStorage.setItem('qr_debug_initiated_by_last', JSON.stringify({ ...data, t: Date.now() }));
+    } catch {
+      // ignore
+    }
+    // #endregion
   }
 
   private resolveInitiatedBy(tableId: string, sseInitiatedBy?: string | null): string {
@@ -211,6 +278,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     if (this.tableComputed[tableId]) {
       this.tableComputed[tableId] = { ...this.tableComputed[tableId], initiatedBy: by };
     }
+    this.ordersService.saveInitiatedByMap(this.persistedInitiatedBy);
   }
 
   private isPaymentLockedForCurrentTable(): boolean {
@@ -746,8 +814,13 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         currency: '—',
         itemCount: 0,
         cssClass: this.miscService.getTableCss(sourceTable, this.waiterState),
-        initiatedBy: this.tableComputed[sourceId]?.initiatedBy ?? 'system'
+        initiatedBy: this.resolveInitiatedBy(sourceId) || 'system'
       };
+      const movedBy =
+        this.tableComputed[targetId]?.initiatedBy ||
+        this.tableComputed[sourceId]?.initiatedBy ||
+        this.resolveInitiatedBy(sourceId);
+      if (movedBy) this.rememberInitiatedBy(targetId, movedBy);
 
       // FIX BUG 3: buildAvailabilityMap citește !t.order — acum sourceId are order=null → correct true
       await this.offlineDB.upsertTableStatus(targetId, false);
@@ -1394,10 +1467,12 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           this.todaySetMenu = menu.todaySetMenu ?? null;
           this.categories = menu.categories ?? [];
           this.tablesAvailable = await this.offlineDB.loadTablesStatusMap();
-          this.capturePersistedInitiatedBy();
+          this.capturePersistedInitiatedBy({ replaceTableComputed: false });
 
           this.hydrateComputedFromTables();
+          this.applyPersistedInitiatedByToComputed();
           this.initialTablesLoaded = true;
+          this.ordersService.saveComputed(this.tableComputed);
 
           Object.keys(this.tableComputed).forEach(tableId => {
             const table = this.tables.find(t => t.tableId === tableId);
@@ -1438,7 +1513,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.ordersService.saveInitiatedByMap(this.persistedInitiatedBy);
     this.ordersService.saveComputed(this.tableComputed);
+    this.logInitiatedByDebug('destroy');
     this.destroy$.next();
     this.destroy$.complete();
     Object.values(this.kitchenPickupTimers).forEach(t => clearTimeout(t));

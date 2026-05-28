@@ -495,19 +495,10 @@ describe('ManageOrdersComponent', () => {
     });
 
     it('TablesStatusesUpdate before initial load preserves persisted initiatedBy and skips save', async () => {
-      const persisted = {
-        [TABLE_B]: {
-          lastActionAt: '',
-          lastAddedItem: '—',
-          total: 50,
-          currency: 'RON',
-          itemCount: 2,
-          cssClass: 'table-css',
-          initiatedBy: 'waiter',
-        },
-      };
-      mocks.ordersService.loadComputed.and.returnValue(persisted);
-      (component as unknown as { capturePersistedInitiatedBy: () => void }).capturePersistedInitiatedBy();
+      mocks.ordersService.loadInitiatedByMap.and.returnValue({ [TABLE_B]: 'waiter' });
+      mocks.ordersService.loadComputed.and.returnValue({});
+      (component as unknown as { capturePersistedInitiatedBy: (o?: { replaceTableComputed?: boolean }) => void })
+        .capturePersistedInitiatedBy();
       (component as unknown as { initialTablesLoaded: boolean }).initialTablesLoaded = false;
       mocks.ordersService.saveComputed.calls.reset();
 
@@ -524,6 +515,23 @@ describe('ManageOrdersComponent', () => {
 
       expect(mocks.ordersService.saveComputed).not.toHaveBeenCalled();
       expect(component.tableComputed[TABLE_B]?.initiatedBy).toBe('waiter');
+    });
+
+    it('applyPersistedInitiatedByToComputed restores name after hydrate cleared it', async () => {
+      mocks.ordersService.loadInitiatedByMap.and.returnValue({ [TABLE_C]: 'Maria Pop' });
+      seedComponentTables(component);
+      component.tableComputed[TABLE_C] = {
+        lastActionAt: '',
+        lastAddedItem: 'Pizza',
+        total: 40,
+        currency: 'RON',
+        itemCount: 1,
+        cssClass: 'table-css',
+        initiatedBy: '',
+      };
+      (component as unknown as { capturePersistedInitiatedBy: () => void }).capturePersistedInitiatedBy();
+      (component as unknown as { applyPersistedInitiatedByToComputed: () => void }).applyPersistedInitiatedByToComputed();
+      expect(component.tableComputed[TABLE_C]?.initiatedBy).toBe('Maria Pop');
     });
   });
 
