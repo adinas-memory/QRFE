@@ -145,6 +145,48 @@ export class AppComponent implements OnInit {
       const current = this.#router.url ?? '';
       const previous = this.navHistory.length >= 2 ? this.navHistory[this.navHistory.length - 2] : null;
 
+      // #region agent log
+      try {
+        const hasOffcanvas = !!document.querySelector('.offcanvas.show');
+        const hasBackdrop = !!document.querySelector('.offcanvas-backdrop');
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7379f5' },
+          body: JSON.stringify({
+            sessionId: '7379f5',
+            runId: 'pre-fix',
+            hypothesisId: 'E',
+            location: 'app.component.ts:initNativeBackButton',
+            message: 'Hardware back pressed',
+            data: { current, previous, hasOffcanvas, hasBackdrop },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+      } catch {
+        // ignore
+      }
+      // #endregion
+
+      // If a CoreUI offcanvas is open (e.g. ManageOrders canvas), close it first instead of navigating/exiting.
+      try {
+        const offcanvasCloseBtn = document.querySelector('.offcanvas.show .btn-close, .offcanvas.show [aria-label="Close"]') as HTMLElement | null;
+        const hasOffcanvas = !!document.querySelector('.offcanvas.show');
+        if (hasOffcanvas && offcanvasCloseBtn) {
+          offcanvasCloseBtn.click();
+          return;
+        }
+
+        // If a backdrop is stuck without an open offcanvas, clear it.
+        const hasBackdrop = !!document.querySelector('.offcanvas-backdrop');
+        if (!hasOffcanvas && hasBackdrop) {
+          document.querySelectorAll('.offcanvas-backdrop').forEach((el) => el.remove());
+          document.body.classList.remove('offcanvas-backdrop');
+          document.body.classList.remove('modal-open');
+        }
+      } catch {
+        // ignore
+      }
+
       const isPublicUrl = (u: string | null): boolean => {
         if (!u) return true;
         if (u === '/' || u === '') return true;

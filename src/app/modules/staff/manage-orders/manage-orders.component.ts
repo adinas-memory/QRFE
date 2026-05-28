@@ -1265,8 +1265,12 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         for (const c of computedList) {
           const table = this.tables.find(t => t.tableId === c.tableId);
           if (!table) continue;
+          // Use event InitiatedBy to populate "updated by" after move operations.
           this.tableComputed[c.tableId] = this.ordersService.mapComputedDtoToComputed(
-            c, this.tables, this.waiterState, this.tableComputed[c.tableId]?.initiatedBy ?? ''
+            c,
+            this.tables,
+            this.waiterState,
+            (InitiatedBy || this.tableComputed[c.tableId]?.initiatedBy) ?? ''
           );
         }
 
