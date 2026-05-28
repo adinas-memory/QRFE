@@ -31,6 +31,13 @@ import { Location } from '@angular/common';
     </div>
   }
 
+  <!-- #region agent log -->
+  <div style="position:fixed;left:0;bottom:0;z-index:2147483647;background:#1b5e20;color:#fff;font:11px/14px monospace;padding:3px 6px;max-width:100vw;white-space:pre-wrap;word-break:break-all;pointer-events:none;">
+    [3] AppComponent ngOnInit ran (native={{ dbgIsNative }}) url={{ dbgCurrentUrl }}
+    navEvents={{ dbgNavCount }} last={{ dbgLastNav }}
+  </div>
+  <!-- #endregion agent log -->
+
   <app-spinner></app-spinner>
   <app-toasts></app-toasts>
   <router-outlet></router-outlet>
@@ -43,6 +50,13 @@ export class AppComponent implements OnInit {
   private sseStarted = false;
   isOffline = false;
   private navHistory: string[] = [];
+
+  // #region agent log
+  dbgIsNative = false;
+  dbgCurrentUrl = '(init)';
+  dbgNavCount = 0;
+  dbgLastNav = '(none)';
+  // #endregion agent log
 
   readonly #destroyRef: DestroyRef = inject(DestroyRef);
   readonly #activatedRoute: ActivatedRoute = inject(ActivatedRoute);
@@ -86,6 +100,15 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // #region agent log
+    try {
+      this.dbgIsNative = Capacitor.isNativePlatform();
+      this.dbgCurrentUrl = this.#router.url ?? '(no url)';
+      const dbg = (window as unknown as { __dbgOverlay?: (id: string, text: string, color: string, top: number) => void }).__dbgOverlay;
+      if (dbg) dbg('__dbg_app', '[3] AppComponent ngOnInit native=' + this.dbgIsNative + ' url=' + this.dbgCurrentUrl, '#1b5e20', 100);
+    } catch { /* ignore */ }
+    // #endregion agent log
+
     this.#pushRegistration.init();
     this.initNativeBackButton();
 
@@ -113,6 +136,17 @@ export class AppComponent implements OnInit {
         this.#loadingService.reset(`NavigationStart:${evt.url}`);
       });
 
+    // #region agent log
+    this.#router.events
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe((e) => {
+        this.dbgNavCount++;
+        this.dbgLastNav = (e.constructor?.name ?? 'evt') + ' ' + ((e as { url?: string }).url ?? '');
+        const dbg = (window as unknown as { __dbgOverlay?: (id: string, text: string, color: string, top: number) => void }).__dbgOverlay;
+        if (dbg) dbg('__dbg_nav', '[NAV ' + this.dbgNavCount + '] ' + this.dbgLastNav, '#0277bd', 120);
+      });
+    // #endregion agent log
+
     this.#router.events
       .pipe(
         filter((evt): evt is NavigationEnd => evt instanceof NavigationEnd),
@@ -121,6 +155,10 @@ export class AppComponent implements OnInit {
       .subscribe((evt) => {
         this.navHistory.push(evt.urlAfterRedirects);
         if (this.navHistory.length > 25) this.navHistory.splice(0, this.navHistory.length - 25);
+
+        // #region agent log
+        this.dbgCurrentUrl = evt.urlAfterRedirects;
+        // #endregion agent log
 
         const deepest = this.getDeepestChild(this.#router.routerState.root.snapshot);
         const isPublic = deepest?.data?.['public'] === true;
