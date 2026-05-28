@@ -198,13 +198,6 @@ export class KitchenComponent implements OnInit, OnDestroy {
           (menu?.menuItems ?? []).map(mi => [mi.menuItemId, mi])
         );
         this.todaySetMenu = menu?.todaySetMenu ?? null;
-        // #region agent log
-        {
-          const linkedId = this.todaySetMenu?.linkedMenuItemId ?? '';
-          const linkedMi = linkedId ? this.menuItemsById[linkedId] : undefined;
-          fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'kitchen.component.ts:ngOnInit',message:'menu loaded',data:{menuItemCount:(menu?.menuItems??[]).length,hasTodaySetMenu:!!this.todaySetMenu,linkedMenuItemId:linkedId,linkedInCache:!!linkedMi,linkedCacheName:linkedMi?.menuItemName??null,linkedCacheCategory:linkedMi?.category??null,setMenuTitle:this.todaySetMenu?.title??null},timestamp:Date.now(),hypothesisId:'A,C,D'})}).catch(()=>{});
-        }
-        // #endregion
         this.tablesById = Object.fromEntries(tables.map(t => [t.tableId, t]));
         await this.hydrateFromBackend(tables);
         await this.rebuildFromDexie();
@@ -376,11 +369,6 @@ export class KitchenComponent implements OnInit, OnDestroy {
       const rawCategory = (i?.Category ?? i?.category ?? 'Unknown');
       const linkedId = this.todaySetMenu?.linkedMenuItemId ?? '';
       const isLinkedSetMenu = !!linkedId && menuItemId === linkedId;
-      // #region agent log
-      if (isLinkedSetMenu || rawCategory === 16 || rawCategory === '16' || String(rawCategory).toLowerCase() === 'setmenu') {
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'kitchen.component.ts:applyOrderUpdated',message:'set menu line in OrderUpdated',data:{tableId,menuItemId,hasMi:!!mi,miName:mi?.menuItemName??null,rawCategory,isLinkedSetMenu,fallbackName:!mi},timestamp:Date.now(),hypothesisId:'A,B,D'})}).catch(()=>{});
-      }
-      // #endregion
       if (isLinkedSetMenu && this.todaySetMenu) {
         return {
           item: setMenuToMenuItem(this.todaySetMenu, this.transloco.getActiveLang()),
@@ -650,11 +638,6 @@ export class KitchenComponent implements OnInit, OnDestroy {
           mark: mark && mark.until > Date.now() ? mark : undefined,
           opText: opText ?? undefined,
         };
-        // #region agent log
-        if (this.isSetMenuLine(c)) {
-          fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'kitchen.component.ts:mapCartToKitchenItems',message:'kitchen line render post-fix',data:{tableId,menuItemId:line.menuItemId,name:line.name,category:line.category,rawCategory:c.item.category,lang:this.transloco.getActiveLang()},timestamp:Date.now(),runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-        }
-        // #endregion
         return line;
       });
 

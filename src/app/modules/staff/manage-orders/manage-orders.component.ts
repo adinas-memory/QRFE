@@ -297,6 +297,12 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     return (obj[pascal] ?? obj[camel]) as T | undefined;
   }
 
+  private pickupToastMessage(kind: 'kitchen' | 'bar', tableId: string): string {
+    const tableName = this.tables.find(t => t.tableId === tableId)?.tableName ?? tableId;
+    const titleKey = kind === 'kitchen' ? 'push.kitchenTitle' : 'push.barTitle';
+    return `${this.transloco.translate(titleKey)}: ${this.transloco.translate('push.pickupReadyTable', { table: tableName })}`;
+  }
+
   // ─── GETTERS ──────────────────────────────────────────────────────────────────
 
   get isOnline() { return this.onlineStateService.isOnline; }
@@ -1064,7 +1070,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         const tableId = parsed.tableId;
         if (tableId) {
           this.kitchenPickupRequested[tableId] = true;
-          this.appToast.info(`Kitchen requests pickup at table ${this.tables.find(t => t.tableId === tableId)?.tableName ?? tableId}`);
+          this.appToast.info(this.pickupToastMessage('kitchen', tableId));
           if (this.kitchenPickupTimers[tableId]) clearTimeout(this.kitchenPickupTimers[tableId]);
           this.kitchenPickupTimers[tableId] = setTimeout(() => {
             delete this.kitchenPickupRequested[tableId];
@@ -1090,7 +1096,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         const tableId = parsed.tableId;
         if (tableId) {
           this.barPickupRequested[tableId] = true;
-          this.appToast.info(`Bar requests pickup at table ${this.tables.find(t => t.tableId === tableId)?.tableName ?? tableId}`);
+          this.appToast.info(this.pickupToastMessage('bar', tableId));
           if (this.barPickupTimers[tableId]) clearTimeout(this.barPickupTimers[tableId]);
           this.barPickupTimers[tableId] = setTimeout(() => {
             delete this.barPickupRequested[tableId];

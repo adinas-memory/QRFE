@@ -372,6 +372,16 @@
     "toastItemDeletedTitle": "Item deleted",
     "toastItemDeletedBody": "− {{name}} (table {{table}})"
   },
+  "push": {
+    "kitchenTitle": "Kitchen",
+    "barTitle": "Bar",
+    "tableTitle": "Table",
+    "defaultTitle": "Notification",
+    "pickupReady": "Order ready for pickup",
+    "pickupReadyTable": "Order ready for pickup — {{table}}",
+    "guestWaiterCall": "Guest is calling the waiter",
+    "defaultBody": "New event"
+  },
   "bar": {
     "title": "Bar",
     "enableSound": "Enable sound",

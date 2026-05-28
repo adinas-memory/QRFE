@@ -345,6 +345,16 @@
     "toastItemDeletedTitle": "Artikel borttagen",
     "toastItemDeletedBody": "− {{name}} (bord {{table}})"
   },
+  "push": {
+    "kitchenTitle": "Kök",
+    "barTitle": "Bar",
+    "tableTitle": "Bord",
+    "defaultTitle": "Avisering",
+    "pickupReady": "Beställning klar att hämtas",
+    "pickupReadyTable": "Beställning klar att hämtas — {{table}}",
+    "guestWaiterCall": "Gästen ropar på servitör",
+    "defaultBody": "Ny händelse"
+  },
   "bar": {
     "title": "Bar",
     "enableSound": "Aktivera ljud",

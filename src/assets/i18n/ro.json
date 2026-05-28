@@ -372,6 +372,16 @@
     "toastItemDeletedTitle": "Produs șters",
     "toastItemDeletedBody": "− {{name}} (masa {{table}})"
   },
+  "push": {
+    "kitchenTitle": "Bucătărie",
+    "barTitle": "Bar",
+    "tableTitle": "Masă",
+    "defaultTitle": "Notificare",
+    "pickupReady": "Comandă gata de ridicat",
+    "pickupReadyTable": "Comandă gata de ridicat — {{table}}",
+    "guestWaiterCall": "Clientul cheamă ospătarul",
+    "defaultBody": "Eveniment nou"
+  },
   "bar": {
     "title": "Bar",
     "enableSound": "Activează sunetul",

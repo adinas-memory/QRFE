@@ -345,6 +345,16 @@
     "toastItemDeletedTitle": "Artículo eliminado",
     "toastItemDeletedBody": "− {{name}} (mesa {{table}})"
   },
+  "push": {
+    "kitchenTitle": "Cocina",
+    "barTitle": "Bar",
+    "tableTitle": "Mesa",
+    "defaultTitle": "Notificación",
+    "pickupReady": "Pedido listo para recoger",
+    "pickupReadyTable": "Pedido listo para recoger — {{table}}",
+    "guestWaiterCall": "El cliente llama al camarero",
+    "defaultBody": "Nuevo evento"
+  },
   "bar": {
     "title": "Bar",
     "enableSound": "Activar sonido",
