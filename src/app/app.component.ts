@@ -15,6 +15,7 @@ import { AppToastsComponent } from '../app/shared/components/app-toast/app-toast
 import { LoadingService } from './core/services/loading/loading.service';
 import { HttpNavigationCancelService } from './core/services/http-navigation-cancel.service';
 import { PushRegistrationService } from './core/services/push/push-registration.service';
+import { PickupNotificationService } from './core/services/pickup/pickup-notification.service';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { Location } from '@angular/common';
@@ -58,6 +59,7 @@ export class AppComponent implements OnInit {
   readonly #loadingService = inject(LoadingService);
   readonly #httpNavCancel = inject(HttpNavigationCancelService);
   readonly #pushRegistration = inject(PushRegistrationService);
+  readonly #pickupNotification = inject(PickupNotificationService);
   readonly #location = inject(Location);
   readonly #subscriptionService = inject(SubscriptionService);
 
@@ -90,6 +92,7 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.#pushRegistration.init();
+    this.#pickupNotification.initGlobalAlerts();
     this.initNativeBackButton();
     this.initNativeAppLifecycle();
 

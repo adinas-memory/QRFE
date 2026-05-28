@@ -297,8 +297,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     return (obj[pascal] ?? obj[camel]) as T | undefined;
   }
 
-  private pickupToastMessage(kind: 'kitchen' | 'bar', tableId: string): string {
-    const tableName = this.tables.find(t => t.tableId === tableId)?.tableName ?? tableId;
+  private pickupToastMessage(kind: 'kitchen' | 'bar', tableId: string, tableName?: string | null): string {
+    const label = (tableName ?? '').trim() || (this.tables.find(t => t.tableId === tableId)?.tableName ?? tableId);
     const titleKey = kind === 'kitchen' ? 'push.kitchenTitle' : 'push.barTitle';
     return `${this.transloco.translate(titleKey)}: ${this.transloco.translate('push.pickupReadyTable', { table: tableName })}`;
   }
@@ -1066,11 +1066,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     switch (EventType) {
 
       case 'KitchenWaiterCall': {
-        const parsed = this.pickupNotification.handlePickupSse('kitchen', Data);
+        const parsed = this.pickupNotification.parsePickupPayload(Data);
         const tableId = parsed.tableId;
         if (tableId) {
           this.kitchenPickupRequested[tableId] = true;
-          this.appToast.info(this.pickupToastMessage('kitchen', tableId));
+          this.appToast.info(this.pickupToastMessage('kitchen', tableId, parsed.tableName));
           if (this.kitchenPickupTimers[tableId]) clearTimeout(this.kitchenPickupTimers[tableId]);
           this.kitchenPickupTimers[tableId] = setTimeout(() => {
             delete this.kitchenPickupRequested[tableId];
@@ -1092,11 +1092,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       }
 
       case 'BarWaiterCall': {
-        const parsed = this.pickupNotification.handlePickupSse('bar', Data);
+        const parsed = this.pickupNotification.parsePickupPayload(Data);
         const tableId = parsed.tableId;
         if (tableId) {
           this.barPickupRequested[tableId] = true;
-          this.appToast.info(this.pickupToastMessage('bar', tableId));
+          this.appToast.info(this.pickupToastMessage('bar', tableId, parsed.tableName));
           if (this.barPickupTimers[tableId]) clearTimeout(this.barPickupTimers[tableId]);
           this.barPickupTimers[tableId] = setTimeout(() => {
             delete this.barPickupRequested[tableId];

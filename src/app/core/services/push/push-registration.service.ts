@@ -22,6 +22,17 @@ import {
 } from './push-notification-copy.service';
 
 const WAITER_CALL_CHANNEL_ID = 'waiter_call';
+const ALERT_DEBOUNCE_MS = 2000;
+
+export type PickupAlertSource = 'sse' | 'fcm';
+
+export interface DeliverPickupAlertOptions {
+  eventType: WaiterPushEventType;
+  tableId: string;
+  tableName?: string | null;
+  clientInstanceId?: string | null;
+  source: PickupAlertSource;
+}
 
 @Injectable({ providedIn: 'root' })
 export class PushRegistrationService {
@@ -37,6 +48,7 @@ export class PushRegistrationService {
   #currentToken: string | null = null;
   #listenersAttached = false;
   #localNotificationId = 1;
+  readonly #lastAlertAtByKey = new Map<string, number>();
 
   /** Call once after app bootstrap; registers push when user logs in on native Android. */
   init(): void {
@@ -81,6 +93,45 @@ export class PushRegistrationService {
       await PushNotifications.register();
     } catch (err) {
       console.warn('[PushRegistration] setup failed', err);
+    }
+  }
+
+  /**
+   * Haptics + localized tray notification (foreground). Background tray uses FCM notification payload.
+   */
+  async deliverPickupAlert(options: DeliverPickupAlertOptions): Promise<void> {
+    const targetId = (options.clientInstanceId ?? '').trim();
+    const localId = this.#clientInstance.getId();
+    const isTarget = !targetId || (!!localId && targetId === localId);
+
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:deliverPickupAlert',message:'pickup alert',data:{source:options.source,eventType:options.eventType,tableId:options.tableId,isTarget,hidden:document.hidden,isNative:this.#platform.isNative},timestamp:Date.now(),hypothesisId:'H1,H4,H5'})}).catch(()=>{});
+    // #endregion
+
+    if (!isTarget) {
+      return;
+    }
+
+    const debounceKey = `${options.source}:${options.eventType}:${options.tableId}`;
+    const now = Date.now();
+    if (now - (this.#lastAlertAtByKey.get(debounceKey) ?? 0) < ALERT_DEBOUNCE_MS) {
+      return;
+    }
+    this.#lastAlertAtByKey.set(debounceKey, now);
+
+    if (this.#platform.isNative) {
+      try {
+        const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+        await Haptics.impact({ style: ImpactStyle.Heavy });
+      } catch {
+        // optional
+      }
+    }
+
+    // Foreground: localized notification via LocalNotifications.
+    // Background: FCM hybrid payload already shows system tray (English fallback).
+    if (!document.hidden) {
+      await this.showLocalizedNotification(options.eventType, options.tableName);
     }
   }
 
@@ -201,18 +252,15 @@ export class PushRegistrationService {
       return;
     }
 
-    if (!this.isTargetDevice(payload.clientInstanceId)) {
-      return;
-    }
+    const tableId = payload.tableId ?? 'unknown';
 
-    try {
-      const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
-      await Haptics.impact({ style: ImpactStyle.Heavy });
-    } catch {
-      // optional
-    }
-
-    await this.showLocalizedNotification(payload.eventType, payload.tableName);
+    await this.deliverPickupAlert({
+      eventType: payload.eventType,
+      tableId,
+      tableName: payload.tableName,
+      clientInstanceId: payload.clientInstanceId,
+      source: 'fcm',
+    });
   }
 
   private async showLocalizedNotification(
@@ -243,15 +291,18 @@ export class PushRegistrationService {
   private parsePayload(notification: PushNotificationSchema): {
     eventType: WaiterPushEventType | null;
     tableName: string | null;
+    tableId: string | null;
     clientInstanceId: string | null;
   } {
     const raw = (notification.data ?? {}) as Record<string, unknown>;
     const eventType = this.field(raw, 'eventType', 'EventType');
     const tableName = this.field(raw, 'tableName', 'TableName');
+    const tableId = this.field(raw, 'tableId', 'TableId');
     const clientInstanceId = this.field(raw, 'clientInstanceId', 'ClientInstanceId');
     return {
       eventType: eventType as WaiterPushEventType | null,
       tableName,
+      tableId,
       clientInstanceId,
     };
   }
@@ -265,13 +316,6 @@ export class PushRegistrationService {
     if (v == null) return null;
     const s = String(v).trim();
     return s || null;
-  }
-
-  private isTargetDevice(clientInstanceId: string | null): boolean {
-    const targetId = (clientInstanceId ?? '').trim();
-    if (!targetId) return true;
-    const localId = this.#clientInstance.getId();
-    return !!localId && targetId === localId;
   }
 
   private nextLocalNotificationId(): number {
