@@ -139,6 +139,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   paymentLockedByTable: Record<string, { orderId: string; expiresAtUtc?: string }> = {};
   private paymentLockCheckedAtByOrder: Record<string, number> = {};
 
+  /** Survives SSE snapshots that arrive before forkJoin finishes (re-entry race). */
+  private persistedInitiatedBy: Record<string, string> = {};
+  private initialTablesLoaded = false;
+
   constructor(
     private tablesService: TablesService,
     private menuItemService: MenuItemServiceService,
@@ -171,6 +175,42 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     if (!v) return '';
     if (v === 'stripe') return this.transloco.translate('manageOrders.byCardPayment');
     return raw;
+  }
+
+  /** Load tableComputed from storage before SSE can overwrite localStorage on re-entry. */
+  private capturePersistedInitiatedBy(): void {
+    const persisted = this.ordersService.loadComputed() || {};
+    this.tableComputed = persisted;
+    this.persistedInitiatedBy = {};
+    for (const [tableId, computed] of Object.entries(persisted)) {
+      const by = computed?.initiatedBy?.trim();
+      if (by) {
+        this.persistedInitiatedBy[tableId] = by;
+      }
+    }
+  }
+
+  private resolveInitiatedBy(tableId: string, sseInitiatedBy?: string | null): string {
+    const fromSse = sseInitiatedBy?.trim();
+    if (fromSse) {
+      return fromSse;
+    }
+    const fromMemory = this.tableComputed[tableId]?.initiatedBy?.trim();
+    if (fromMemory) {
+      return fromMemory;
+    }
+    return this.persistedInitiatedBy[tableId] ?? '';
+  }
+
+  private rememberInitiatedBy(tableId: string, initiatedBy: string): void {
+    const by = initiatedBy?.trim();
+    if (!by || !tableId) {
+      return;
+    }
+    this.persistedInitiatedBy[tableId] = by;
+    if (this.tableComputed[tableId]) {
+      this.tableComputed[tableId] = { ...this.tableComputed[tableId], initiatedBy: by };
+    }
   }
 
   private isPaymentLockedForCurrentTable(): boolean {
@@ -407,7 +447,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       currency: cart[0]?.item.menuItemPriceCurrency ?? '',
       itemCount: cart.reduce((s, c) => s + c.quantity, 0),
       cssClass: this.miscService.getTableCss(table, this.waiterState),
-      initiatedBy: this.tableComputed[tableId]?.initiatedBy ?? ''
+      initiatedBy: this.resolveInitiatedBy(tableId)
     };
 
     this.ordersService.saveComputed(this.tableComputed);
@@ -425,7 +465,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           { tableId: t.tableId, isTableOpen: !!t.isTableOpen },
           this.tables,
           this.waiterState,
-          this.tableComputed[t.tableId]?.initiatedBy ?? ''
+          this.resolveInitiatedBy(t.tableId)
         );
         continue;
       }
@@ -451,7 +491,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         currency,
         itemCount,
         cssClass: this.miscService.getTableCss(t, this.waiterState),
-        initiatedBy: this.tableComputed[t.tableId]?.initiatedBy ?? ''
+        initiatedBy: this.resolveInitiatedBy(t.tableId)
       };
     }
 
@@ -1096,7 +1136,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.tableComputed[tableId] = this.ordersService.mapPayloadToComputed(
           payload, this.tables, this.waiterState, InitiatedBy
         );
+        this.rememberInitiatedBy(tableId, InitiatedBy);
         this.tableCarts[tableId] = cart;
+        this.ordersService.saveComputed(this.tableComputed);
 
         // OrderUpdated implică o comandă activă pe masă → marchează masa ca ocupată local
         // dacă încă figurează liberă; altfel getTableCss rămâne pe bg-success (verde).
@@ -1215,11 +1257,13 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           }
 
           this.tableComputed[c.tableId] = this.ordersService.mapComputedDtoToComputed(
-            c, this.tables, this.waiterState, this.tableComputed[c.tableId]?.initiatedBy ?? ''
+            c, this.tables, this.waiterState, this.resolveInitiatedBy(c.tableId)
           );
         }
 
-        this.ordersService.saveComputed(this.tableComputed);
+        if (this.initialTablesLoaded) {
+          this.ordersService.saveComputed(this.tableComputed);
+        }
         this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
         break;
       }
@@ -1266,12 +1310,14 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           const table = this.tables.find(t => t.tableId === c.tableId);
           if (!table) continue;
           // Use event InitiatedBy to populate "updated by" after move operations.
+          const by = this.resolveInitiatedBy(c.tableId, InitiatedBy);
           this.tableComputed[c.tableId] = this.ordersService.mapComputedDtoToComputed(
             c,
             this.tables,
             this.waiterState,
-            (InitiatedBy || this.tableComputed[c.tableId]?.initiatedBy) ?? ''
+            by
           );
+          this.rememberInitiatedBy(c.tableId, by);
         }
 
         // #region agent log
@@ -1321,6 +1367,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   // ─── LIFECYCLE ────────────────────────────────────────────────────────────────
 
   ngOnInit(): void {
+    this.initialTablesLoaded = false;
+    this.capturePersistedInitiatedBy();
+
     this.sseService.events$
       .pipe(takeUntil(this.destroy$))
       .subscribe(ev => this.handleSseEvent(ev));
@@ -1345,9 +1394,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           this.todaySetMenu = menu.todaySetMenu ?? null;
           this.categories = menu.categories ?? [];
           this.tablesAvailable = await this.offlineDB.loadTablesStatusMap();
-          this.tableComputed = this.ordersService.loadComputed() || {};
+          this.capturePersistedInitiatedBy();
 
           this.hydrateComputedFromTables();
+          this.initialTablesLoaded = true;
 
           Object.keys(this.tableComputed).forEach(tableId => {
             const table = this.tables.find(t => t.tableId === tableId);
@@ -1388,6 +1438,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.ordersService.saveComputed(this.tableComputed);
     this.destroy$.next();
     this.destroy$.complete();
     Object.values(this.kitchenPickupTimers).forEach(t => clearTimeout(t));
