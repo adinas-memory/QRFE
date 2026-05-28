@@ -965,6 +965,21 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   private async handleSseEvent({ EventType, Data, InitiatedBy, Sequence }: SseEvent<any>): Promise<void> {
     if (!EventType) return;
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7379f5' },
+      body: JSON.stringify({
+        sessionId: '7379f5',
+        runId: 'pre-fix',
+        hypothesisId: 'A',
+        location: 'manage-orders.component.ts:handleSseEvent:entry',
+        message: 'SSE event received (type/seq/by)',
+        data: { EventType, Sequence, InitiatedBy },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
     if (typeof Sequence === 'number' && Sequence > 0) {
       if (this.recentSseSequenceSet.has(Sequence)) return;
       this.recentSseSequenceSet.add(Sequence);
@@ -1212,6 +1227,34 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       case 'MoveOrderAtTableUpdate': {
         const computedList = Data as TableComputedDTO[];
 
+        // #region agent log
+        try {
+          const list = (computedList ?? []).map((c: any) => ({
+            tableId: c?.tableId,
+            isTableOpen: c?.isTableOpen,
+            orderId: c?.orderId,
+            subTotalAmount: c?.subTotal?.amount,
+            itemCount: c?.itemCount,
+            lastActionAt: c?.lastActionAt,
+          }));
+          fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7379f5' },
+            body: JSON.stringify({
+              sessionId: '7379f5',
+              runId: 'pre-fix',
+              hypothesisId: 'B',
+              location: 'manage-orders.component.ts:MoveOrderAtTableUpdate:payload',
+              message: 'MoveOrderAtTableUpdate payload (sanitized)',
+              data: { InitiatedBy, listLen: list.length, list },
+              timestamp: Date.now(),
+            }),
+          }).catch(() => {});
+        } catch {
+          // ignore
+        }
+        // #endregion
+
         this.tables = this.tables.map(t => {
           const c = computedList.find(x => x.tableId === t.tableId);
           if (!c) return t;
@@ -1226,6 +1269,33 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
             c, this.tables, this.waiterState, this.tableComputed[c.tableId]?.initiatedBy ?? ''
           );
         }
+
+        // #region agent log
+        try {
+          const after = (computedList ?? []).map((c: any) => ({
+            tableId: c?.tableId,
+            isTableOpen: this.tables.find(t => t.tableId === c?.tableId)?.isTableOpen,
+            hasOrder: !!this.tables.find(t => t.tableId === c?.tableId)?.order,
+            computedInitiatedBy: this.tableComputed?.[c?.tableId]?.initiatedBy ?? null,
+            computedCss: this.tableComputed?.[c?.tableId]?.cssClass ?? null,
+          }));
+          fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7379f5' },
+            body: JSON.stringify({
+              sessionId: '7379f5',
+              runId: 'pre-fix',
+              hypothesisId: 'C',
+              location: 'manage-orders.component.ts:MoveOrderAtTableUpdate:afterApply',
+              message: 'After applying move update: table flags + computed initiatedBy/css',
+              data: { after },
+              timestamp: Date.now(),
+            }),
+          }).catch(() => {});
+        } catch {
+          // ignore
+        }
+        // #endregion
         
         await this.offlineDB.saveTables(this.tables);
         this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
