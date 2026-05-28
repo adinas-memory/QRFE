@@ -358,6 +358,7 @@
     "colItem": "Produs",
     "colQty": "Cant.",
     "colCategory": "Categorie",
+    "setMenuName": "Meniul zilei",
     "toastWaiterOk": "Ospătarul a fost chemat pentru ridicare.",
     "toastWaiterFail": "Nu s-a putut chema ospătarul.",
     "toastNewOrderTitle": "Comandă nouă",

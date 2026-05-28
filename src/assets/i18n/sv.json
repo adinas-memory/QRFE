@@ -331,6 +331,7 @@
     "colItem": "Artikel",
     "colQty": "Ant.",
     "colCategory": "Kategori",
+    "setMenuName": "Dagens meny",
     "toastWaiterOk": "Servitör tillkallad för upphämtning.",
     "toastWaiterFail": "Kunde inte kalla servitör.",
     "toastNewOrderTitle": "Ny beställning",

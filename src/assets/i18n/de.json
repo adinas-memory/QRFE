@@ -331,6 +331,7 @@
     "colItem": "Artikel",
     "colQty": "Menge",
     "colCategory": "Kategorie",
+    "setMenuName": "Tagesmenü",
     "toastWaiterOk": "Kellner zum Abholen gerufen.",
     "toastWaiterFail": "Kellner konnte nicht gerufen werden.",
     "toastNewOrderTitle": "Neue Bestellung",

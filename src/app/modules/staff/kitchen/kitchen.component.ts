@@ -16,7 +16,7 @@ import {
 } from '../../../core/models/orderingModel';
 import { MenuItemServiceService } from '../../../core/services/menu-item-service/menu-item-service.service';
 import { MenuItem } from '../../../core/models/menu/menuItem';
-import { SetMenuDTO } from '../../../core/models/menu/setMenu';
+import { isSetMenuOrderLine, SetMenuDTO, setMenuToMenuItem } from '../../../core/models/menu/setMenu';
 import { isFoodCategory } from '../../../core/models/menu/menu-item-category';
 import {
   ButtonDirective,
@@ -123,6 +123,28 @@ export class KitchenComponent implements OnInit, OnDestroy {
 
   private tableLabel(tableId: string): string {
     return this.tablesById[tableId]?.tableName ?? tableId;
+  }
+
+  private isSetMenuLine(c: CartItem): boolean {
+    return isSetMenuOrderLine(
+      c.item.menuItemId,
+      c.item.category,
+      this.todaySetMenu?.linkedMenuItemId
+    );
+  }
+
+  private setMenuDisplayName(): string {
+    return this.transloco.translate('kitchen.setMenuName');
+  }
+
+  private displayNameForCartItem(c: CartItem): string {
+    if (this.isSetMenuLine(c)) return this.setMenuDisplayName();
+    const name = (c.item.menuItemName ?? '').trim();
+    return name && name !== '—' ? name : '—';
+  }
+
+  private displayCategoryForCartItem(c: CartItem): string {
+    return this.isSetMenuLine(c) ? '' : (c.item.category ?? '');
   }
 
   get orders(): KitchenOrder[] {
@@ -359,6 +381,13 @@ export class KitchenComponent implements OnInit, OnDestroy {
         fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'kitchen.component.ts:applyOrderUpdated',message:'set menu line in OrderUpdated',data:{tableId,menuItemId,hasMi:!!mi,miName:mi?.menuItemName??null,rawCategory,isLinkedSetMenu,fallbackName:!mi},timestamp:Date.now(),hypothesisId:'A,B,D'})}).catch(()=>{});
       }
       // #endregion
+      if (isLinkedSetMenu && this.todaySetMenu) {
+        return {
+          item: setMenuToMenuItem(this.todaySetMenu, this.transloco.getActiveLang()),
+          quantity: qty,
+          orderItemId,
+        };
+      }
       if (mi) {
         return { item: mi, quantity: qty, orderItemId };
       }
@@ -542,8 +571,8 @@ export class KitchenComponent implements OnInit, OnDestroy {
         id: orderItemId,
         orderItemId,
         menuItemId: cart[idx].item.menuItemId,
-        name: cart[idx].item.menuItemName,
-        category: cart[idx].item.category,
+        name: this.displayNameForCartItem(cart[idx]),
+        category: this.displayCategoryForCartItem(cart[idx]),
         quantity: cart[idx].quantity,
         mark: { kind: 'deleted', until: Date.now() + this.markMs },
         opText: '× removed',
@@ -615,16 +644,15 @@ export class KitchenComponent implements OnInit, OnDestroy {
           id,
           orderItemId: c.orderItemId,
           menuItemId: c.item.menuItemId,
-          name: c.item.menuItemName,
-          category: c.item.category,
+          name: this.displayNameForCartItem(c),
+          category: this.displayCategoryForCartItem(c),
           quantity: c.quantity,
           mark: mark && mark.until > Date.now() ? mark : undefined,
           opText: opText ?? undefined,
         };
         // #region agent log
-        const cat = String(c.item.category ?? '');
-        if (line.name === '—' || cat === '16' || cat.toLowerCase() === 'setmenu') {
-          fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'kitchen.component.ts:mapCartToKitchenItems',message:'kitchen line render',data:{tableId,menuItemId:line.menuItemId,name:line.name,category:line.category,linkedId:this.todaySetMenu?.linkedMenuItemId??null},timestamp:Date.now(),hypothesisId:'A,B,E'})}).catch(()=>{});
+        if (this.isSetMenuLine(c)) {
+          fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'kitchen.component.ts:mapCartToKitchenItems',message:'kitchen line render post-fix',data:{tableId,menuItemId:line.menuItemId,name:line.name,category:line.category,rawCategory:c.item.category,lang:this.transloco.getActiveLang()},timestamp:Date.now(),runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
         }
         // #endregion
         return line;
@@ -709,7 +737,7 @@ export class KitchenComponent implements OnInit, OnDestroy {
           this.toastOnce(`itemAdded:${tableId}:${id}`, 1500, () =>
             this.toast.sticky(
               this.transloco.translate('kitchen.toastNewItemBody', {
-                name: n.item.menuItemName,
+                name: this.displayNameForCartItem(n),
                 qty: String(n.quantity),
                 table: label
               }),
@@ -729,7 +757,7 @@ export class KitchenComponent implements OnInit, OnDestroy {
           this.toastOnce(`qtyUp:${tableId}:${id}`, 1200, () =>
             this.toast.info(
               this.transloco.translate('kitchen.toastQtyUpBody', {
-                name: n.item.menuItemName,
+                name: this.displayNameForCartItem(n),
                 prev: String(prevQty),
                 next: String(nextQty),
                 table: label
@@ -742,7 +770,7 @@ export class KitchenComponent implements OnInit, OnDestroy {
           this.toastOnce(`qtyDown:${tableId}:${id}`, 1200, () =>
             this.toast.info(
               this.transloco.translate('kitchen.toastQtyDownBody', {
-                name: n.item.menuItemName,
+                name: this.displayNameForCartItem(n),
                 prev: String(prevQty),
                 next: String(nextQty),
                 table: label
@@ -762,7 +790,7 @@ export class KitchenComponent implements OnInit, OnDestroy {
           this.setMark(tableId, id, 'deleted');
           const label = this.tableLabel(tableId);
           const prevItem = prevById.get(id);
-          const name = prevItem?.item.menuItemName ?? 'Item';
+          const name = prevItem ? this.displayNameForCartItem(prevItem) : 'Item';
           const qty = prevItem?.quantity ?? 0;
           this.setOpText(tableId, id, '× removed');
           if (prevItem) {
@@ -770,8 +798,8 @@ export class KitchenComponent implements OnInit, OnDestroy {
               id,
               orderItemId: prevItem.orderItemId,
               menuItemId: prevItem.item.menuItemId,
-              name: prevItem.item.menuItemName,
-              category: prevItem.item.category,
+              name: this.displayNameForCartItem(prevItem),
+              category: this.displayCategoryForCartItem(prevItem),
               quantity: prevItem.quantity,
               mark: { kind: 'deleted', until: Date.now() + this.markMs },
               opText: '× removed',

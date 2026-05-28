@@ -331,6 +331,7 @@
     "colItem": "Article",
     "colQty": "Qté",
     "colCategory": "Catégorie",
+    "setMenuName": "Menu du jour",
     "toastWaiterOk": "Le serveur a été appelé pour le ramassage.",
     "toastWaiterFail": "Impossible d'appeler le serveur.",
     "toastNewOrderTitle": "Nouvelle commande",

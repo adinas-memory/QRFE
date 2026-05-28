@@ -331,6 +331,7 @@
     "colItem": "Artículo",
     "colQty": "Cant.",
     "colCategory": "Categoría",
+    "setMenuName": "Menú del día",
     "toastWaiterOk": "Se ha llamado al camarero para recoger.",
     "toastWaiterFail": "No se pudo llamar al camarero.",
     "toastNewOrderTitle": "Nuevo pedido",

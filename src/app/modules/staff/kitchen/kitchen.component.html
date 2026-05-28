@@ -91,7 +91,7 @@
                             <div class="text-muted small" style="font-weight: 600;">{{ it.opText }}</div>
                           }
                         </td>
-                        <td class="text-muted">{{ it.category }}</td>
+                        <td class="text-muted">@if (it.category) { {{ it.category }} }</td>
                       </tr>
                     </tbody>
                   </table>

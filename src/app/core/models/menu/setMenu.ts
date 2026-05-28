@@ -40,6 +40,19 @@ export function setMenuLineTexts(setMenu: SetMenuDTO, locale?: string): string[]
     });
 }
 
+/** True when an order line is the daily set menu (linked placeholder or SetMenu category). */
+export function isSetMenuOrderLine(
+  menuItemId: string,
+  category: string | number | null | undefined,
+  linkedMenuItemId?: string | null
+): boolean {
+  if (linkedMenuItemId && menuItemId === linkedMenuItemId) return true;
+  const raw = String(category ?? '').trim();
+  if (!raw) return false;
+  const lower = raw.toLowerCase();
+  return lower === 'setmenu' || raw === '16';
+}
+
 export function setMenuToMenuItem(setMenu: SetMenuDTO, locale?: string) {
   const lines = setMenuLineTexts(setMenu, locale);
   return {

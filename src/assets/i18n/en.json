@@ -358,6 +358,7 @@
     "colItem": "Item",
     "colQty": "Qty",
     "colCategory": "Category",
+    "setMenuName": "Today's set menu",
     "toastWaiterOk": "Waiter called for pickup.",
     "toastWaiterFail": "Failed to call waiter.",
     "toastNewOrderTitle": "New order",
