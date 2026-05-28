@@ -16,6 +16,7 @@ import {
 } from '../../../core/models/orderingModel';
 import { MenuItemServiceService } from '../../../core/services/menu-item-service/menu-item-service.service';
 import { MenuItem } from '../../../core/models/menu/menuItem';
+import { SetMenuDTO } from '../../../core/models/menu/setMenu';
 import { isFoodCategory } from '../../../core/models/menu/menu-item-category';
 import {
   ButtonDirective,
@@ -94,6 +95,7 @@ export class KitchenComponent implements OnInit, OnDestroy {
   tablesById: Record<string, TableDTO> = {};
   ordersByTableId: Record<string, KitchenOrder> = {}; // derived from Dexie carts
   private menuItemsById: Record<string, MenuItem | undefined> = {};
+  private todaySetMenu: SetMenuDTO | null = null;
 
   private orderIdToTableId: Record<string, string> = {};
   private expandedTableIds = new Set<string>();
@@ -173,6 +175,14 @@ export class KitchenComponent implements OnInit, OnDestroy {
         this.menuItemsById = Object.fromEntries(
           (menu?.menuItems ?? []).map(mi => [mi.menuItemId, mi])
         );
+        this.todaySetMenu = menu?.todaySetMenu ?? null;
+        // #region agent log
+        {
+          const linkedId = this.todaySetMenu?.linkedMenuItemId ?? '';
+          const linkedMi = linkedId ? this.menuItemsById[linkedId] : undefined;
+          fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'kitchen.component.ts:ngOnInit',message:'menu loaded',data:{menuItemCount:(menu?.menuItems??[]).length,hasTodaySetMenu:!!this.todaySetMenu,linkedMenuItemId:linkedId,linkedInCache:!!linkedMi,linkedCacheName:linkedMi?.menuItemName??null,linkedCacheCategory:linkedMi?.category??null,setMenuTitle:this.todaySetMenu?.title??null},timestamp:Date.now(),hypothesisId:'A,C,D'})}).catch(()=>{});
+        }
+        // #endregion
         this.tablesById = Object.fromEntries(tables.map(t => [t.tableId, t]));
         await this.hydrateFromBackend(tables);
         await this.rebuildFromDexie();
@@ -341,6 +351,14 @@ export class KitchenComponent implements OnInit, OnDestroy {
       const orderItemId: string | undefined = i?.OrderItemId ?? i?.orderItemId;
       const qty: number = i?.Quantity ?? i?.quantity ?? 0;
       const mi = this.menuItemsById[menuItemId];
+      const rawCategory = (i?.Category ?? i?.category ?? 'Unknown');
+      const linkedId = this.todaySetMenu?.linkedMenuItemId ?? '';
+      const isLinkedSetMenu = !!linkedId && menuItemId === linkedId;
+      // #region agent log
+      if (isLinkedSetMenu || rawCategory === 16 || rawCategory === '16' || String(rawCategory).toLowerCase() === 'setmenu') {
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'kitchen.component.ts:applyOrderUpdated',message:'set menu line in OrderUpdated',data:{tableId,menuItemId,hasMi:!!mi,miName:mi?.menuItemName??null,rawCategory,isLinkedSetMenu,fallbackName:!mi},timestamp:Date.now(),hypothesisId:'A,B,D'})}).catch(()=>{});
+      }
+      // #endregion
       if (mi) {
         return { item: mi, quantity: qty, orderItemId };
       }
@@ -352,7 +370,7 @@ export class KitchenComponent implements OnInit, OnDestroy {
           menuItemPriceAmount: 0,
           menuItemPriceCurrency: (i?.OrderItemPriceCurrency ?? i?.orderItemPriceCurrency ?? 'EUR'),
           menuItemIconUrl: undefined,
-          category: (i?.Category ?? i?.category ?? 'Unknown'),
+          category: rawCategory,
         },
         quantity: qty,
         orderItemId,
@@ -593,7 +611,7 @@ export class KitchenComponent implements OnInit, OnDestroy {
         const id = c.orderItemId ?? `menu:${c.item.menuItemId}`;
         const mark = this.marksByTableId[tableId]?.[id];
         const opText = this.lastOpTextByTableId[tableId]?.[id];
-        return {
+        const line = {
           id,
           orderItemId: c.orderItemId,
           menuItemId: c.item.menuItemId,
@@ -603,6 +621,13 @@ export class KitchenComponent implements OnInit, OnDestroy {
           mark: mark && mark.until > Date.now() ? mark : undefined,
           opText: opText ?? undefined,
         };
+        // #region agent log
+        const cat = String(c.item.category ?? '');
+        if (line.name === '—' || cat === '16' || cat.toLowerCase() === 'setmenu') {
+          fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'kitchen.component.ts:mapCartToKitchenItems',message:'kitchen line render',data:{tableId,menuItemId:line.menuItemId,name:line.name,category:line.category,linkedId:this.todaySetMenu?.linkedMenuItemId??null},timestamp:Date.now(),hypothesisId:'A,B,E'})}).catch(()=>{});
+        }
+        // #endregion
+        return line;
       });
 
     const liveIds = new Set(live.map(x => x.id));
