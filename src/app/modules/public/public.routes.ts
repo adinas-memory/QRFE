@@ -7,11 +7,11 @@ import { nativeRootLoginGuard } from '../../core/guards/native-root-login.guard'
 export const routes: Routes = [
   {
     path: '',
-    canMatch: [nativeRootLoginGuard],
     children: [
       {
         path: '',
         pathMatch: 'full',
+        canMatch: [nativeRootLoginGuard],
         loadComponent: () =>
           import('./landing/landing.component').then(m => m.LandingComponent),
         data: { title: 'Welcome', public: true }
