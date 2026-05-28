@@ -18,6 +18,8 @@ import { PushRegistrationService } from './core/services/push/push-registration.
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { Location } from '@angular/common';
+import { SubscriptionService } from './core/services/subscription-service/subscription.service';
+import { navigateToRoleHome } from './core/auth/auth-redirect.util';
 
 
 @Component({
@@ -57,6 +59,7 @@ export class AppComponent implements OnInit {
   readonly #httpNavCancel = inject(HttpNavigationCancelService);
   readonly #pushRegistration = inject(PushRegistrationService);
   readonly #location = inject(Location);
+  readonly #subscriptionService = inject(SubscriptionService);
 
   constructor() {
     this.#titleService.setTitle(this.title);
@@ -88,6 +91,7 @@ export class AppComponent implements OnInit {
   ngOnInit(): void {
     this.#pushRegistration.init();
     this.initNativeBackButton();
+    this.initNativeAppLifecycle();
 
     this.#onlineStateService.online$.subscribe(isOnline => {
       this.isOffline = !isOnline;
@@ -156,6 +160,14 @@ export class AppComponent implements OnInit {
       };
 
       if (current.startsWith('/login')) {
+        if (this.#authService.isAuthenticated()) {
+          void navigateToRoleHome(
+            this.#router,
+            this.#subscriptionService,
+            this.#authService.getUserRole(),
+          );
+          return;
+        }
         void App.exitApp();
         return;
       }
@@ -173,6 +185,15 @@ export class AppComponent implements OnInit {
 
       // Any other public page: exit instead of drifting in history.
       void App.exitApp();
+    });
+  }
+
+  private initNativeAppLifecycle(): void {
+    if (!Capacitor.isNativePlatform()) return;
+
+    App.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive || !this.#authService.isAuthenticated()) return;
+      this.#authService.refreshUserContext({ redirectOnFailure: false }).subscribe();
     });
   }
 

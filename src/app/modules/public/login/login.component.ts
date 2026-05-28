@@ -2,7 +2,10 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { NgStyle } from '@angular/common';
 import { IconDirective } from '@coreui/icons-angular';
+import { Capacitor } from '@capacitor/core';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
+import { navigateToRoleHome } from '../../../core/auth/auth-redirect.util';
 import {
   ButtonDirective,
   CardBodyComponent,
@@ -63,26 +66,7 @@ export class LoginComponent implements OnInit, OnDestroy {
           this.authService.setUser(response);
           this.authService.setRestaurantCtx();
           const returnUrl = this.route.snapshot.queryParams['returnUrl'];
-          const pending = this.subscriptionService.getPendingPlan();
-          const userRole = response.role
-
-          if (userRole === 'default' && pending) {
-            void this.router.navigateByUrl('/public/restaurant-setup');
-          } else if (userRole === 'default') {
-            this.router.navigate(['/']);
-          } else if (pending && !userRole) {
-            this.router.navigate(['/register']);
-          } else if (returnUrl) {
-            this.router.navigateByUrl(returnUrl);
-          } else if (userRole === 'staff') {
-            this.router.navigate(['/staff']);
-          } else if (userRole === 'manager') {
-            this.router.navigate(['/manager']);
-          } else if (userRole === 'gadmin') {
-            this.router.navigate(['/gadmin']);
-          } else {
-            this.router.navigate(['/register']);
-          }
+          void navigateToRoleHome(this.router, this.subscriptionService, response.role, returnUrl);
         },
         error: (error: unknown) => {
           console.error('Login failed:', error);
@@ -93,10 +77,22 @@ export class LoginComponent implements OnInit, OnDestroy {
     }
   }
 
-  ngOnInit(): void {
-    this.authService.clearRestaurantCtx();
-    // this.authService.clearUser();    
+  async ngOnInit(): Promise<void> {
+    if (!Capacitor.isNativePlatform()) {
+      return;
+    }
 
+    const returnUrl = this.route.snapshot.queryParams['returnUrl'];
+
+    if (this.authService.isAuthenticated()) {
+      await navigateToRoleHome(this.router, this.subscriptionService, this.authService.getUserRole(), returnUrl);
+      return;
+    }
+
+    const user = await firstValueFrom(this.authService.refreshUserContext({ redirectOnFailure: false }));
+    if (user) {
+      await navigateToRoleHome(this.router, this.subscriptionService, user.role, returnUrl);
+    }
   }
 
   ngOnDestroy(): void {

@@ -1,6 +1,7 @@
 import { Router } from '@angular/router';
 import { Injectable, Injector } from '@angular/core';
-import { BehaviorSubject, Observable, Subject, catchError, finalize, map, of, shareReplay, tap, throwError } from 'rxjs';
+import { Capacitor } from '@capacitor/core';
+import { BehaviorSubject, Observable, Subject, catchError, finalize, firstValueFrom, map, of, shareReplay, tap } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { UserContextModel } from '../models/userContextModel';
 import { RegisterUserRequestModel } from '../models/registerUserRequestModel';
@@ -189,6 +190,15 @@ export class AuthService {
     localStorage.removeItem('UserCtx');
   }
 
+  /**
+   * Native startup: restore local UserCtx then validate/renew via refresh-token cookie (7d).
+   * Does not navigate on failure — caller shows login when unauthenticated.
+   */
+  async tryRestoreNativeSession(): Promise<UserContextModel | null> {
+    await firstValueFrom(this.restoreSession());
+    return firstValueFrom(this.refreshUserContext({ redirectOnFailure: false }));
+  }
+
   restoreSession(): Observable<UserContextModel | null> {
     const raw = localStorage.getItem('UserCtx');
     if (raw) {
@@ -234,7 +244,8 @@ export class AuthService {
     );
   }
 
-  refreshUserContext(): Observable<UserContextModel | null> {
+  refreshUserContext(options?: { redirectOnFailure?: boolean }): Observable<UserContextModel | null> {
+    const redirectOnFailure = options?.redirectOnFailure ?? true;
     if (this.refreshInFlight) {
       return this.refreshInFlight;
     }
@@ -250,7 +261,9 @@ export class AuthService {
           console.error('Refresh failed', err);
           if (isHttpAuthFailure(err)) {
             this.clearUser();
-            this.router.navigate(['/login']);
+            if (redirectOnFailure) {
+              void this.router.navigate(['/login']);
+            }
           }
           return of(null);
         }),

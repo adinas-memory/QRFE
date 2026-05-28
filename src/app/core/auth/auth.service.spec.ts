@@ -93,6 +93,20 @@ describe('AuthService offline session handling', () => {
     expect(service.isAuthenticated()).toBe(false);
   });
 
+  it('refreshUserContext with redirectOnFailure false does not navigate on 401', () => {
+    service.setUser({ id: '1', role: 'manager', restaurantId: 'r1', restaurantName: 'R', restaurantType: 'Small' });
+
+    service.refreshUserContext({ redirectOnFailure: false }).subscribe(result => {
+      expect(result).toBeNull();
+    });
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/user/refresh-token`);
+    req.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+
+    expect(router.navigate).not.toHaveBeenCalled();
+    expect(service.isAuthenticated()).toBe(false);
+  });
+
   it('refreshUserContext deduplicates concurrent calls', () => {
     service.setUser({ id: '1', role: 'manager', restaurantId: 'r1', restaurantName: 'R', restaurantType: 'Small' });
 

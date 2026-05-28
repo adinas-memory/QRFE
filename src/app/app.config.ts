@@ -69,7 +69,13 @@ export function initServiceWorkerCleanup() {
 }
 
 export function initAuth(authService: AuthService) {
-  return () => authService.restoreSession().toPromise();
+  return async () => {
+    if (isCapacitorNative()) {
+      await authService.tryRestoreNativeSession();
+      return;
+    }
+    await firstValueFrom(authService.restoreSession());
+  };
 }
 
 /** Ensures `/assets/i18n/{lang}.json` is loaded before the app renders; avoids Transloco "Missing translation" races. */
