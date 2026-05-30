@@ -104,13 +104,18 @@ export class PushRegistrationService {
     const localId = this.#clientInstance.getId();
     const isTarget = !targetId || (!!localId && targetId === localId);
 
+    const debounceKey = `${options.source}:${options.eventType}:${options.tableId}`;
+    const now = Date.now();
+    const debounced = now - (this.#lastAlertAtByKey.get(debounceKey) ?? 0) < ALERT_DEBOUNCE_MS;
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:deliverPickupAlert',message:'pickup_alert_eval',data:{source:options.source,eventType:options.eventType,tableId:options.tableId,isTarget,debounced,targetId,localId,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId: isTarget ? (debounced ? 'H4' : 'H3') : 'H3'})}).catch(()=>{});
+    // #endregion
+
     if (!isTarget) {
       return;
     }
 
-    const debounceKey = `${options.source}:${options.eventType}:${options.tableId}`;
-    const now = Date.now();
-    if (now - (this.#lastAlertAtByKey.get(debounceKey) ?? 0) < ALERT_DEBOUNCE_MS) {
+    if (debounced) {
       return;
     }
     this.#lastAlertAtByKey.set(debounceKey, now);
@@ -244,6 +249,9 @@ export class PushRegistrationService {
     }
 
     const payload = this.parsePayload(notification);
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:onPushReceived',message:'fcm_push_received',data:{eventType:payload.eventType,tableId:payload.tableId,clientInstanceId:payload.clientInstanceId,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+    // #endregion
     if (!payload.eventType) {
       return;
     }

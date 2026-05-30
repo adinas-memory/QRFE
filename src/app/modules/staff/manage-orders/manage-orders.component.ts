@@ -1097,6 +1097,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       case 'KitchenWaiterCall': {
         const parsed = this.pickupNotification.parsePickupPayload(Data);
         const tableId = parsed.tableId;
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'manage-orders.component.ts:KitchenWaiterCall',message:'snooze_flag_set',data:{tableId,Sequence,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
+        // #endregion
         if (tableId) {
           this.kitchenPickupRequested[tableId] = true;
           this.appToast.info(this.pickupToastMessage('kitchen', tableId, parsed.tableName));

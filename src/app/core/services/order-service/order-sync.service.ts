@@ -267,6 +267,9 @@ export class OrderSyncService {
           const sse: SseEvent<any> = { EventType, Data, Sequence, RestaurantId, InitiatedBy };
 
           if (Sequence && Sequence <= this.watermarkSequence) {
+            // #region agent log
+            fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'order-sync.service.ts:onmessage',message:'sse_watermark_drop',data:{EventType,Sequence,watermarkSequence:this.watermarkSequence,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
+            // #endregion
             // already included in last /api/sync snapshot or previously applied
             return;
           }
@@ -321,6 +324,9 @@ export class OrderSyncService {
         const watermark = json?.Watermark ?? json?.watermark;
         const seq = watermark?.Sequence ?? watermark?.sequence ?? 0;
         if (typeof seq === 'number' && seq > this.watermarkSequence) {
+          // #region agent log
+          fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'order-sync.service.ts:syncRestaurantState',message:'watermark_updated',data:{prevWatermark:this.watermarkSequence,newWatermark:seq,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
+          // #endregion
           this.watermarkSequence = seq;
         }
 
