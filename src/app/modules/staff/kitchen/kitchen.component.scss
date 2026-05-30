@@ -2,6 +2,40 @@ table {
   vertical-align: middle;
 }
 
+.staff-orders-table {
+  width: 100%;
+  table-layout: auto;
+}
+
+.staff-orders-table th,
+.staff-orders-table td {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  vertical-align: middle;
+}
+
+@media (max-width: 767.98px) {
+  .staff-orders-table thead th {
+    font-size: 0.68rem;
+    line-height: 1.15;
+    padding: 0.35rem 0.25rem;
+    white-space: normal;
+    hyphens: auto;
+  }
+
+  .staff-orders-table tbody td {
+    font-size: 0.78rem;
+    padding: 0.35rem 0.25rem;
+  }
+
+  .staff-orders-table .btn {
+    font-size: 0.68rem;
+    padding: 0.2rem 0.35rem;
+    white-space: normal;
+    line-height: 1.1;
+  }
+}
+
 .kitchen-items {
   border-left: 3px solid var(--cui-border-color, #e0e0e0);
   padding-left: 0.75rem;
@@ -20,4 +54,3 @@ table {
   text-decoration: line-through;
   opacity: 0.85;
 }
-

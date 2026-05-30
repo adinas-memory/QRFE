@@ -26,6 +26,10 @@ describe('normalizeUserContext', () => {
       restaurantId: 'r1',
       restaurantName: null,
       restaurantType: null,
+      displayName: null,
+      name: null,
+      surname: null,
+      email: null,
     });
     expect(normalizeUserContext({ Id: '2', Role: 'manager', RestaurantId: 'r2' })).toEqual({
       id: '2',
@@ -33,6 +37,10 @@ describe('normalizeUserContext', () => {
       restaurantId: 'r2',
       restaurantName: null,
       restaurantType: null,
+      displayName: null,
+      name: null,
+      surname: null,
+      email: null,
     });
   });
 });
@@ -142,9 +150,31 @@ describe('AuthService offline session handling', () => {
     service.refreshUserContext().subscribe(result => {
       expect(result?.id).toBe('1');
       expect(result?.role).toBe('staff');
+      expect(result?.restaurantName).toBe('R');
     });
 
     const req = httpMock.expectOne(`${environment.apiUrl}/api/user/refresh-token`);
     req.flush({ isSuccess: true, message: 'refreshed successfully' });
+  });
+
+  it('setUser preserves restaurantName when ping omits it', () => {
+    service.setUser({
+      id: '1',
+      role: 'manager',
+      restaurantId: 'r1',
+      restaurantName: 'Bistro',
+      restaurantType: 'Small',
+    });
+
+    service.setUser({
+      id: '1',
+      role: 'manager',
+      restaurantId: 'r1',
+      restaurantName: null,
+      restaurantType: null,
+    });
+
+    expect(service.getUserSnapshot()?.restaurantName).toBe('Bistro');
+    expect(service.getUserSnapshot()?.restaurantType).toBe('Small');
   });
 });

@@ -1,8 +1,9 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, computed, inject, input } from '@angular/core';
+import { Component, computed, effect, inject, input } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '@app/core/auth/auth.service';
+import { formatStaffDisplayName } from '@app/core/auth/user-display-name';
 import { LANG_STORAGE_KEY, APP_LANGS, type AppLang } from '@app/core/i18n/transloco.config';
 import { FeedbackLaunchComponent } from '@app/shared/components/feedback/feedback-launch.component';
 
@@ -28,7 +29,7 @@ import {
 
 import { IconDirective } from '@coreui/icons-angular';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { map, startWith } from 'rxjs';
+import { map, startWith, take } from 'rxjs';
 
 function flagClassForLang(id: AppLang): string {
   const m: Record<AppLang, string> = {
@@ -56,6 +57,7 @@ export class DefaultHeaderComponent extends HeaderComponent {
   readonly #authService = inject(AuthService);
   readonly #router = inject(Router);
   readonly #transloco = inject(TranslocoService);
+  private profilePingRequested = false;
   readonly colorMode = this.#colorModeService.colorMode;
 
   /** Settings / Payments rows: only manager & global admin */
@@ -65,6 +67,18 @@ export class DefaultHeaderComponent extends HeaderComponent {
   readonly showManagerAccountMenu = computed(() => {
     const r = this.user()?.role?.toLowerCase();
     return r === 'manager' || r === 'gadmin';
+  });
+
+  readonly staffDisplayName = computed(() => {
+    const u = this.user();
+    if (!u) return null;
+    const label = formatStaffDisplayName({
+      displayName: u.displayName,
+      name: u.name,
+      surname: u.surname,
+      email: u.email,
+    });
+    return label || null;
   });
 
   readonly colorModes = [
@@ -113,6 +127,14 @@ export class DefaultHeaderComponent extends HeaderComponent {
 
   constructor() {
     super();
+    effect(() => {
+      const u = this.user();
+      const label = this.staffDisplayName();
+      if (u && !label && !this.profilePingRequested) {
+        this.profilePingRequested = true;
+        this.#authService.pingSession(false).pipe(take(1)).subscribe();
+      }
+    });
   }
 
   sidebarId = input('sidebar1');

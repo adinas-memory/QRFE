@@ -56,5 +56,6 @@ export enum MenuItemCategory {
   Coffee = 'Coffee',
   Tea = 'Tea',
   Pasta = 'Pasta',
-  Salad = 'Salad'
+  Salad = 'Salad',
+  SetMenu = 'SetMenu',
 }

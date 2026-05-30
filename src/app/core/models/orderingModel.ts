@@ -1,3 +1,4 @@
+import { categoryFromOrderLine, lookupMenuItem, menuItemWithNormalizedCategory } from "./menu/cart-item-category";
 import { MenuItem } from "./menu/menuItem";
 import { Currency, SeatDTO } from "./restaurantTablesModel";
 
@@ -53,21 +54,24 @@ export function cartItemFromOrderLine(
   orderItem: OrderItemDTO,
   menuItems?: Iterable<MenuItem>
 ): CartItem {
-  const fromMenu = menuItems
-    ? [...menuItems].find(m => m.menuItemId === orderItem.menuItemId)
-    : undefined;
+  const menuMap = menuItems
+    ? Object.fromEntries([...menuItems].map(m => [m.menuItemId.toLowerCase(), m]))
+    : {};
+  const fromMenu = lookupMenuItem(menuMap, orderItem.menuItemId);
+
+  const baseItem: MenuItem = {
+    menuItemId: orderItem.menuItemId,
+    menuItemName: orderItem.orderItemName,
+    menuItemDescription: orderItem.orderItemDescription,
+    menuItemPriceAmount: orderItem.orderItemPriceAmount ?? fromMenu?.menuItemPriceAmount ?? 0,
+    menuItemPriceCurrency: orderItem.orderItemPriceCurrency ?? fromMenu?.menuItemPriceCurrency,
+    menuItemIconUrl: fromMenu?.menuItemIconUrl,
+    category: categoryFromOrderLine(orderItem.category, fromMenu),
+    isAvailable: fromMenu?.isAvailable,
+  };
 
   return {
-    item: {
-      menuItemId: orderItem.menuItemId,
-      menuItemName: orderItem.orderItemName,
-      menuItemDescription: orderItem.orderItemDescription,
-      menuItemPriceAmount: orderItem.orderItemPriceAmount ?? fromMenu?.menuItemPriceAmount ?? 0,
-      menuItemPriceCurrency: orderItem.orderItemPriceCurrency ?? fromMenu?.menuItemPriceCurrency,
-      menuItemIconUrl: fromMenu?.menuItemIconUrl,
-      category: orderItem.category || fromMenu?.category || '',
-      isAvailable: fromMenu?.isAvailable,
-    },
+    item: menuItemWithNormalizedCategory(baseItem),
     quantity: orderItem.quantity,
     orderItemId: orderItem.orderItemId,
   };

@@ -12,7 +12,7 @@
       <svg cIcon name="cilMenu" size="lg"></svg>
     </button>
     @if (showManagerAccountMenu()) {
-      <c-header-nav class="d-none d-md-flex">
+      <c-header-nav class="d-flex">
         <c-nav-item>
           <a cNavLink routerLink="/manager/settings" routerLinkActive="active">{{ 'header.settings' | transloco }}</a>
         </c-nav-item>
@@ -37,7 +37,18 @@
       </div>
     </c-header-nav>
 
-    <c-header-nav class="mx-0">
+    <c-header-nav class="mx-0 d-flex align-items-center min-w-0">
+      @if (staffDisplayName()) {
+        <div class="nav-item py-1 d-flex align-items-center">
+          <div class="vr h-100 mx-2 text-body text-opacity-75"></div>
+        </div>
+        <span class="header-user-label text-body-secondary text-truncate" [title]="staffDisplayName()!">
+          {{ staffDisplayName() }}
+        </span>
+        <div class="nav-item py-1 d-flex align-items-center">
+          <div class="vr h-100 mx-2 text-body text-opacity-75"></div>
+        </div>
+      }
       <ng-container *ngTemplateOutlet="userDropdown" />
     </c-header-nav>
 

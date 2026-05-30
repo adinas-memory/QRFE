@@ -17,7 +17,13 @@ import {
 import { MenuItemServiceService } from '../../../core/services/menu-item-service/menu-item-service.service';
 import { MenuItem } from '../../../core/models/menu/menuItem';
 import { isSetMenuOrderLine, SetMenuDTO, setMenuToMenuItem } from '../../../core/models/menu/setMenu';
-import { isFoodCategory } from '../../../core/models/menu/menu-item-category';
+import {
+  cartLineFromOrderRaw,
+  isBarCartLine,
+  isKitchenCartLine,
+  menuItemsByIdMap,
+} from '../../../core/models/menu/cart-item-category';
+import { isFoodCategory, normalizeMenuItemCategory } from '../../../core/models/menu/menu-item-category';
 import {
   ButtonDirective,
   CardBodyComponent,
@@ -144,7 +150,8 @@ export class KitchenComponent implements OnInit, OnDestroy {
   }
 
   private displayCategoryForCartItem(c: CartItem): string {
-    return this.isSetMenuLine(c) ? '' : (c.item.category ?? '');
+    if (this.isSetMenuLine(c)) return '';
+    return normalizeMenuItemCategory(c.item.category) ?? c.item.category ?? '';
   }
 
   get orders(): KitchenOrder[] {
@@ -194,9 +201,7 @@ export class KitchenComponent implements OnInit, OnDestroy {
           this.menuItemService.getAllWithFallback(this.restaurantId),
         ]);
 
-        this.menuItemsById = Object.fromEntries(
-          (menu?.menuItems ?? []).map(mi => [mi.menuItemId, mi])
-        );
+        this.menuItemsById = menuItemsByIdMap(menu?.menuItems ?? []);
         this.todaySetMenu = menu?.todaySetMenu ?? null;
         this.tablesById = Object.fromEntries(tables.map(t => [t.tableId, t]));
         await this.hydrateFromBackend(tables);
@@ -324,9 +329,7 @@ export class KitchenComponent implements OnInit, OnDestroy {
   }
 
   private filterFood(items: CartItem[]): CartItem[] {
-    // For notifications/diff: if category is unknown (e.g. menu cache not ready yet),
-    // still treat it as relevant so we don't miss toasts on some browsers.
-    return items.filter(c => isFoodCategory(c.item.category) || !c.item.category || c.item.category === 'Unknown');
+    return items.filter(c => isKitchenCartLine(c));
   }
 
   private async applyOrderUpdated(payload: OrderUpdatedSSEPayload, envelopeSequence?: number) {
@@ -362,36 +365,16 @@ export class KitchenComponent implements OnInit, OnDestroy {
       ?? (payload as unknown as { items?: any[] }).items
       ?? []) as any[];
     const nextCart: CartItem[] = rawItems.map(i => {
-      const menuItemId: string = i?.MenuItemId ?? i?.menuItemId ?? '';
-      const orderItemId: string | undefined = i?.OrderItemId ?? i?.orderItemId;
-      const qty: number = i?.Quantity ?? i?.quantity ?? 0;
-      const mi = this.menuItemsById[menuItemId];
-      const rawCategory = (i?.Category ?? i?.category ?? 'Unknown');
+      const menuItemId: string = String(i?.MenuItemId ?? i?.menuItemId ?? '');
       const linkedId = this.todaySetMenu?.linkedMenuItemId ?? '';
-      const isLinkedSetMenu = !!linkedId && menuItemId === linkedId;
-      if (isLinkedSetMenu && this.todaySetMenu) {
+      if (linkedId && menuItemId.toLowerCase() === linkedId.toLowerCase() && this.todaySetMenu) {
         return {
           item: setMenuToMenuItem(this.todaySetMenu, this.transloco.getActiveLang()),
-          quantity: qty,
-          orderItemId,
+          quantity: Number(i?.Quantity ?? i?.quantity ?? 0),
+          orderItemId: (i?.OrderItemId ?? i?.orderItemId) as string | undefined,
         };
       }
-      if (mi) {
-        return { item: mi, quantity: qty, orderItemId };
-      }
-      return {
-        item: {
-          menuItemId,
-          menuItemName: '—',
-          menuItemDescription: '',
-          menuItemPriceAmount: 0,
-          menuItemPriceCurrency: (i?.OrderItemPriceCurrency ?? i?.orderItemPriceCurrency ?? 'EUR'),
-          menuItemIconUrl: undefined,
-          category: rawCategory,
-        },
-        quantity: qty,
-        orderItemId,
-      } satisfies CartItem;
+      return cartLineFromOrderRaw(i as Record<string, unknown>, this.menuItemsById);
     });
 
     const nextFood = this.filterFood(nextCart);
@@ -623,7 +606,8 @@ export class KitchenComponent implements OnInit, OnDestroy {
 
   private mapCartToKitchenItems(tableId: string, cart: CartItem[]): KitchenLineItem[] {
     const live = cart
-      .filter(c => isFoodCategory(c.item.category))
+      .filter(c => isKitchenCartLine(c));
+    const mapped = live
       .map(c => {
         const id = c.orderItemId ?? `menu:${c.item.menuItemId}`;
         const mark = this.marksByTableId[tableId]?.[id];
@@ -641,12 +625,12 @@ export class KitchenComponent implements OnInit, OnDestroy {
         return line;
       });
 
-    const liveIds = new Set(live.map(x => x.id));
+    const liveIds = new Set(mapped.map(x => x.id));
     const shadows = Object.values(this.deletedShadowsByTableId[tableId] ?? {})
       .filter(s => s._until > Date.now() && !liveIds.has(s.id))
       .map(({ _until, ...it }) => it);
 
-    return [...live, ...shadows];
+    return [...mapped, ...shadows];
   }
 
   private setMark(tableId: string, itemId: string, kind: MarkKind, playSound: boolean = true) {

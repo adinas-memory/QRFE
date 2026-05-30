@@ -18,6 +18,11 @@ import { MenuItemServiceService } from '../../../core/services/menu-item-service
 import { MenuItem } from '../../../core/models/menu/menuItem';
 import { isDrinkCategory } from '../../../core/models/menu/menu-item-category';
 import {
+  cartLineFromOrderRaw,
+  isBarCartLine,
+  menuItemsByIdMap,
+} from '../../../core/models/menu/cart-item-category';
+import {
   ButtonDirective,
   CardBodyComponent,
   CardComponent,
@@ -165,9 +170,7 @@ export class BarComponent implements OnInit, OnDestroy {
           this.menuItemService.getAllWithFallback(this.restaurantId),
         ]);
 
-        this.menuItemsById = Object.fromEntries(
-          (menu?.menuItems ?? []).map(mi => [mi.menuItemId, mi])
-        );
+        this.menuItemsById = menuItemsByIdMap(menu?.menuItems ?? []);
         this.tablesById = Object.fromEntries(tables.map(t => [t.tableId, t]));
         await this.hydrateFromBackend(tables);
         await this.rebuildFromDexie();
@@ -292,9 +295,7 @@ export class BarComponent implements OnInit, OnDestroy {
   }
 
   private filterDrinks(items: CartItem[]): CartItem[] {
-    // For notifications/diff: if category is unknown (e.g. menu cache not ready yet),
-    // still treat it as relevant so we don't miss toasts on some browsers.
-    return items.filter(c => isDrinkCategory(c.item.category) || !c.item.category || c.item.category === 'Unknown');
+    return items.filter(c => isBarCartLine(c));
   }
 
   private async applyOrderUpdated(args: { payload: OrderUpdatedSSEPayload; envelopeSequence?: number }) {
@@ -328,28 +329,9 @@ export class BarComponent implements OnInit, OnDestroy {
     const rawItems = ((payload as unknown as { Items?: any[]; items?: any[] }).Items
       ?? (payload as unknown as { items?: any[] }).items
       ?? []) as any[];
-    const nextCart: CartItem[] = rawItems.map(i => {
-      const menuItemId: string = i?.MenuItemId ?? i?.menuItemId ?? '';
-      const orderItemId: string | undefined = i?.OrderItemId ?? i?.orderItemId;
-      const qty: number = i?.Quantity ?? i?.quantity ?? 0;
-      const mi = this.menuItemsById[menuItemId];
-      if (mi) {
-        return { item: mi, quantity: qty, orderItemId };
-      }
-      return {
-        item: {
-          menuItemId,
-          menuItemName: '—',
-          menuItemDescription: '',
-          menuItemPriceAmount: 0,
-          menuItemPriceCurrency: (i?.OrderItemPriceCurrency ?? i?.orderItemPriceCurrency ?? 'EUR'),
-          menuItemIconUrl: undefined,
-          category: (i?.Category ?? i?.category ?? 'Unknown'),
-        },
-        quantity: qty,
-        orderItemId,
-      } satisfies CartItem;
-    });
+    const nextCart: CartItem[] = rawItems.map(i =>
+      cartLineFromOrderRaw(i as Record<string, unknown>, this.menuItemsById),
+    );
 
     const nextDrinks = this.filterDrinks(nextCart);
     const isServerOrderId = !!orderId && !orderId.startsWith('local-');
@@ -568,8 +550,8 @@ export class BarComponent implements OnInit, OnDestroy {
   }
 
   private mapCartToBarItems(tableId: string, cart: CartItem[]): BarLineItem[] {
-    return cart
-      .filter(c => isDrinkCategory(c.item.category))
+    const drinks = cart.filter(c => isBarCartLine(c));
+    return drinks
       .map(c => {
         const id = c.orderItemId ?? `menu:${c.item.menuItemId}`;
         const mark = this.marksByTableId[tableId]?.[id];

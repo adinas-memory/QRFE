@@ -24,14 +24,15 @@
           {{ 'kitchen.empty' | transloco }}
         </div>
 
-        <table *ngIf="orders.length > 0" cTable hover bordered responsive>
+        <div *ngIf="orders.length > 0" class="staff-orders-table-wrap">
+        <table cTable hover bordered class="staff-orders-table mb-0">
           <thead>
             <tr>
-              <th style="width: 64px;"></th>
-              <th style="width: 140px;">{{ 'kitchen.colTable' | transloco }}</th>
-              <th>{{ 'kitchen.colItems' | transloco }}</th>
-              <th style="width: 190px;">{{ 'kitchen.lastUpdate' | transloco }}</th>
-              <th style="width: 170px;"></th>
+              <th class="col-expand"></th>
+              <th class="col-table">{{ 'kitchen.colTable' | transloco }}</th>
+              <th class="col-items">{{ 'kitchen.colItems' | transloco }}</th>
+              <th class="col-updated d-none d-md-table-cell">{{ 'kitchen.lastUpdate' | transloco }}</th>
+              <th class="col-actions"></th>
             </tr>
           </thead>
           <tbody>
@@ -54,7 +55,7 @@
               <td>
                 <span class="text-muted">{{ 'kitchen.itemsCount' | transloco: { count: o.items.length } }}</span>
               </td>
-              <td class="text-muted small">
+              <td class="text-muted small d-none d-md-table-cell">
                 {{ o.lastActionAt | date:'short' }}
               </td>
               <td class="text-end">
@@ -101,6 +102,7 @@
             </ng-container>
           </tbody>
         </table>
+        </div>
       </c-card-body>
     </c-card>
   </c-col>

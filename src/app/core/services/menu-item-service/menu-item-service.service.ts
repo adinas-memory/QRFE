@@ -6,6 +6,7 @@ import { SetMenuDTO, WeeklySetMenuResponse } from '../../models/menu/setMenu';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { MenuItemEntity, OfflineDbService } from '../../offline/offline-db';
+import { menuItemWithNormalizedCategory } from '../../models/menu/cart-item-category';
 
 
 @Injectable({
@@ -97,7 +98,7 @@ async getAllWithFallback(
   try {
     const response = await firstValueFrom(this.getAll(restaurantId));
 
-    const menuItems = response.menu.menuItems;
+    const menuItems = (response.menu.menuItems ?? []).map(menuItemWithNormalizedCategory);
     todaySetMenu = response.todaySetMenu ?? null;
 
     await this.offlineDB.cacheMenu(menuItems);

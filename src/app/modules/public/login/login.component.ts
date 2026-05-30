@@ -4,7 +4,7 @@ import { NgStyle } from '@angular/common';
 import { IconDirective } from '@coreui/icons-angular';
 import { Capacitor } from '@capacitor/core';
 import { firstValueFrom } from 'rxjs';
-import { AuthService } from '../../../core/auth/auth.service';
+import { AuthService, normalizeUserContext } from '../../../core/auth/auth.service';
 import { navigateToRoleHome } from '../../../core/auth/auth-redirect.util';
 import {
   ButtonDirective,
@@ -62,11 +62,24 @@ export class LoginComponent implements OnInit, OnDestroy {
 
 
       this.authService.loginUser(formValue).subscribe({
-        next: (response: UserContextModel) => {
-          this.authService.setUser(response);
+        next: (response: unknown) => {
+          const user = normalizeUserContext(response);
+          if (!user) {
+            this.toast.error(this.transloco.translate('common.loginFailed'));
+            return;
+          }
+          if (!user.email && formValue.email) {
+            user.email = String(formValue.email).trim();
+          }
+          if (!user.displayName) {
+            user.displayName = user.name && user.surname
+              ? `${user.surname} ${user.name.charAt(0).toUpperCase()}.`
+              : user.email?.split('@')[0] ?? null;
+          }
+          this.authService.setUser(user);
           this.authService.setRestaurantCtx();
           const returnUrl = this.route.snapshot.queryParams['returnUrl'];
-          void navigateToRoleHome(this.router, this.subscriptionService, response.role, returnUrl);
+          void navigateToRoleHome(this.router, this.subscriptionService, user.role, returnUrl);
         },
         error: (error: unknown) => {
           console.error('Login failed:', error);

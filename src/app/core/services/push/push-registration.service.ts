@@ -104,10 +104,6 @@ export class PushRegistrationService {
     const localId = this.#clientInstance.getId();
     const isTarget = !targetId || (!!localId && targetId === localId);
 
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:deliverPickupAlert',message:'pickup alert',data:{source:options.source,eventType:options.eventType,tableId:options.tableId,isTarget,hidden:document.hidden,isNative:this.#platform.isNative},timestamp:Date.now(),hypothesisId:'H1,H4,H5'})}).catch(()=>{});
-    // #endregion
-
     if (!isTarget) {
       return;
     }

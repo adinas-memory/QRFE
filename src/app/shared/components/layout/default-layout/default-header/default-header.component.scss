@@ -5,3 +5,22 @@
   border-radius: 3px;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08) inset;
 }
+
+.header-user-label {
+  max-width: 5.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+@media (min-width: 576px) {
+  .header-user-label {
+    max-width: 7.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .header-user-label {
+    max-width: 11rem;
+    font-size: 0.875rem;
+  }
+}

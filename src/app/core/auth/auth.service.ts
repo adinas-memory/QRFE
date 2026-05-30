@@ -27,6 +27,25 @@ export function normalizeUserContext(raw: unknown): UserContextModel | null {
     restaurantId: (r['restaurantId'] ?? r['RestaurantId'] ?? null) as string | null,
     restaurantName: (r['restaurantName'] ?? r['RestaurantName'] ?? null) as string | null,
     restaurantType: (r['restaurantType'] ?? r['RestaurantType'] ?? null) as string | null,
+    displayName: (r['displayName'] ?? r['DisplayName'] ?? null) as string | null,
+    name: (r['name'] ?? r['Name'] ?? null) as string | null,
+    surname: (r['surname'] ?? r['Surname'] ?? null) as string | null,
+    email: (r['email'] ?? r['Email'] ?? null) as string | null,
+  };
+}
+
+function mergeUserContext(
+  incoming: UserContextModel,
+  previous: UserContextModel | null,
+): UserContextModel {
+  return {
+    ...incoming,
+    restaurantName: incoming.restaurantName ?? previous?.restaurantName ?? null,
+    restaurantType: incoming.restaurantType ?? previous?.restaurantType ?? null,
+    displayName: incoming.displayName ?? previous?.displayName ?? null,
+    name: incoming.name ?? previous?.name ?? null,
+    surname: incoming.surname ?? previous?.surname ?? null,
+    email: incoming.email ?? previous?.email ?? null,
   };
 }
 
@@ -149,10 +168,12 @@ export class AuthService {
   }
 
   // --- Session management ---
-  setUser(user: UserContextModel): void {
-    const wasLoggedOut = !this.userSubject.value;  // era delogat înainte?
-    this.userSubject.next(user);
-    localStorage.setItem('UserCtx', JSON.stringify(user));
+  setUser(raw: UserContextModel | Record<string, unknown>): void {
+    const wasLoggedOut = !this.userSubject.value;
+    const incoming = normalizeUserContext(raw) ?? (raw as UserContextModel);
+    const merged = mergeUserContext(incoming, this.userSubject.value);
+    this.userSubject.next(merged);
+    localStorage.setItem('UserCtx', JSON.stringify(merged));
     this.setRestaurantCtx();
 
     if (wasLoggedOut) {
@@ -223,9 +244,10 @@ export class AuthService {
   // --- Refresh from backend ---
 
   pingSession(isPublic: boolean = false): Observable<UserContextModel | null> {
-    return this.http.get<UserContextModel>(`${this.apiUrl}/api/user/ping`, { withCredentials: true }).pipe(
+    return this.http.get<unknown>(`${this.apiUrl}/api/user/ping`, { withCredentials: true }).pipe(
+      map(raw => normalizeUserContext(raw)),
       tap(user => {
-        this.setUser(user);
+        if (user) this.setUser(user);
       }),
       catchError((error: HttpErrorResponse) => {
         if (error.status === 401 && !isPublic) {
