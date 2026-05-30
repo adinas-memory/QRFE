@@ -23,6 +23,7 @@ import {
 
 const WAITER_CALL_CHANNEL_ID = 'waiter_call';
 const ALERT_DEBOUNCE_MS = 2000;
+const PICKUP_VIBRATE_MS = 500;
 
 export type PickupAlertSource = 'sse' | 'fcm';
 
@@ -49,9 +50,13 @@ export class PushRegistrationService {
   #listenersAttached = false;
   #localNotificationId = 1;
   readonly #lastAlertAtByKey = new Map<string, number>();
+  #pendingPickupHaptic = false;
+  #resumeFlushAttached = false;
 
   /** Call once after app bootstrap; registers push when user logs in on native Android. */
   init(): void {
+    this.ensureHapticResumeFlush();
+
     if (!this.#platform.isNative) {
       return;
     }
@@ -120,20 +125,86 @@ export class PushRegistrationService {
     }
     this.#lastAlertAtByKey.set(debounceKey, now);
 
-    if (this.#platform.isNative) {
-      try {
-        const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
-        await Haptics.impact({ style: ImpactStyle.Heavy });
-      } catch {
-        // optional
-      }
+    // Capacitor Haptics / navigator.vibrate are unreliable while the WebView is hidden.
+    if (document.hidden) {
+      this.#pendingPickupHaptic = true;
+      // #region agent log
+      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:deliverPickupAlert',message:'haptic_deferred_hidden',data:{source:options.source,eventType:options.eventType,tableId:options.tableId},timestamp:Date.now(),hypothesisId:'H7',runId:'post-fix'})}).catch(()=>{});
+      // #endregion
+      return;
     }
+
+    await this.triggerPickupHaptic(options);
 
     // Foreground: localized notification via LocalNotifications.
     // Background: FCM hybrid payload already shows system tray (English fallback).
     if (!document.hidden) {
       await this.showLocalizedNotification(options.eventType, options.tableName);
     }
+  }
+
+  /** Flush haptics queued while the app/tab was hidden (SSE or FCM). */
+  ensureHapticResumeFlush(): void {
+    if (this.#resumeFlushAttached) {
+      return;
+    }
+    this.#resumeFlushAttached = true;
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        void this.flushPendingPickupHaptic();
+      }
+    });
+
+    if (this.#platform.isNative) {
+      void import('@capacitor/app').then(({ App }) => {
+        App.addListener('appStateChange', ({ isActive }) => {
+          if (isActive) {
+            void this.flushPendingPickupHaptic();
+          }
+        });
+      });
+    }
+  }
+
+  private async flushPendingPickupHaptic(): Promise<void> {
+    if (!this.#pendingPickupHaptic) {
+      return;
+    }
+    this.#pendingPickupHaptic = false;
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:flushPendingPickupHaptic',message:'haptic_flush_on_resume',data:{documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H7',runId:'post-fix'})}).catch(()=>{});
+    // #endregion
+    await this.triggerPickupHaptic();
+  }
+
+  private async triggerPickupHaptic(options?: DeliverPickupAlertOptions): Promise<void> {
+    let hapticOk = false;
+
+    if (this.#platform.isNative) {
+      try {
+        const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+        await Haptics.impact({ style: ImpactStyle.Heavy });
+        hapticOk = true;
+      } catch {
+        // fall through to web vibrate
+      }
+    }
+
+    if (!hapticOk) {
+      try {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          navigator.vibrate(PICKUP_VIBRATE_MS);
+          hapticOk = true;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:triggerPickupHaptic',message:'haptic_triggered',data:{hapticOk,source:options?.source,eventType:options?.eventType,documentHidden:document.hidden,isNative:this.#platform.isNative},timestamp:Date.now(),hypothesisId:'H7',runId:'post-fix'})}).catch(()=>{});
+    // #endregion
   }
 
   async unregisterCurrentToken(): Promise<void> {
