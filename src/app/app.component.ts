@@ -217,6 +217,7 @@ export class AppComponent implements OnInit {
     App.addListener('appStateChange', ({ isActive }) => {
       if (!isActive || !this.#authService.isAuthenticated()) return;
       this.#authService.refreshUserContext({ redirectOnFailure: false }).subscribe();
+      this.#onlineStateService.triggerResumeCheck();
     });
   }
 

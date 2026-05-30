@@ -167,6 +167,7 @@ export interface ManageOrdersMocks {
   };
   sseService: {
     events$: Subject<SseEvent<unknown>>;
+    snapshotRefreshed$: Subject<{ restaurantId: string }>;
     listenToRestaurantEvents: jasmine.Spy;
   };
   offlineDb: OfflineDbMock;
@@ -230,6 +231,7 @@ export function createManageOrdersMocks(options: SetupManageOrdersOptions = {}):
 
   const orderConfirmed$ = new Subject<{ tableId: string; orderId: string }>();
   const sseEvents$ = new Subject<SseEvent<unknown>>();
+  const snapshotRefreshed$ = new Subject<{ restaurantId: string }>();
 
   return {
     auth: {
@@ -284,6 +286,7 @@ export function createManageOrdersMocks(options: SetupManageOrdersOptions = {}):
     },
     sseService: {
       events$: sseEvents$,
+      snapshotRefreshed$,
       listenToRestaurantEvents: jasmine.createSpy('listenToRestaurantEvents').and.returnValue(of({})),
     },
     offlineDb,

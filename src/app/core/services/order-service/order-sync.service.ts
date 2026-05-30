@@ -1,7 +1,7 @@
 // order-sync.service.ts
 import { Injectable, NgZone } from '@angular/core';
-import { Observable, Subject, BehaviorSubject, of, timer } from 'rxjs';
-import { switchMap, take, catchError, filter } from 'rxjs/operators';
+import { Observable, Subject, of, timer } from 'rxjs';
+import { take, catchError, filter } from 'rxjs/operators';
 import { fetchEventSource, EventStreamContentType } from '@microsoft/fetch-event-source';
 import { environment } from '../../../../environments/environment';
 import { SseEvent } from '../../models/sseModel';
@@ -9,7 +9,6 @@ import { AuthService } from '../../auth/auth.service';
 import { OfflineQueueProcessor } from '../../offline/offline-queue-processor.service';
 import { OfflineDbService } from '../../offline/offline-db';
 import { OnlineStateService } from '../../offline/online-state-service';
-import { firstValueFrom } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -34,11 +33,16 @@ export class OrderSyncService {
   private baseReconnectDelayMs = 1000;
   private isRefreshing = false;
   private syncInProgress = false;
+  private snapshotRefreshInProgress = false;
   private watermarkSequence = 0;
 
   // event stream
   private eventsSubject = new Subject<SseEvent<any>>();
   public events$ = this.eventsSubject.asObservable();
+
+  private snapshotRefreshedSubject = new Subject<{ restaurantId: string }>();
+  /** Emitted after /api/sync snapshot is applied to Dexie (resume, SSE reconnect, etc.). */
+  readonly snapshotRefreshed$ = this.snapshotRefreshedSubject.asObservable();
 
   // optional buffering while reconnecting
   private bufferWhileReconnecting = true;
@@ -69,26 +73,29 @@ export class OrderSyncService {
       });
     });
 
-    // If app was loaded in a background tab, we might skip SSE open.
-    // When the tab becomes visible, (re)open SSE if needed.
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        const rid = this.pendingOpenRestaurantId ?? this.lastRestaurantId;
-        if (rid && !this.controller) {
-          this.openConnection(rid);
-        }
-      }
-    });
+    this.onlineStateService.resumeConnectivityOk$
+      .subscribe(() => {
+        void this.refreshRestaurantSnapshot({ fromResume: true });
+      });
 
     this.onlineStateService.online$
       .pipe(filter(isOnline => isOnline))
       .subscribe(() => {
-        const rid = this.pendingOpenRestaurantId ?? this.lastRestaurantId;
-        if (rid && !this.controller) {
+        const rid = this.resolveRestaurantId();
+        if (!rid) return;
+        if (!this.controller) {
           this.reconnectAttempts = 0;
           this.openConnection(rid);
+        } else {
+          void this.refreshRestaurantSnapshot();
         }
       });
+  }
+
+  private resolveRestaurantId(): string | null {
+    if (this.lastRestaurantId) return this.lastRestaurantId;
+    const fromAuth = this.auth.getUserRestaurantId();
+    return typeof fromAuth === 'string' && fromAuth ? fromAuth : null;
   }
 
   async trySyncNow() {
@@ -113,6 +120,38 @@ export class OrderSyncService {
 
     } finally {
       this.syncInProgress = false;
+    }
+  }
+
+  /**
+   * Pull authoritative restaurant snapshot from GET /api/sync and apply to Dexie.
+   * Used when returning from background where SSE events may have been missed.
+   */
+  async refreshRestaurantSnapshot(options?: { fromResume?: boolean }): Promise<boolean> {
+    const restaurantId = this.resolveRestaurantId();
+    if (!restaurantId) {
+      return false;
+    }
+    if (!options?.fromResume && !this.onlineStateService.isOnline) {
+      return false;
+    }
+    if (this.snapshotRefreshInProgress) {
+      return false;
+    }
+
+    this.snapshotRefreshInProgress = true;
+    try {
+      await this.trySyncNow();
+      await this.syncRestaurantState(restaurantId);
+      if (!this.controller) {
+        this.openConnection(restaurantId);
+      }
+      return true;
+    } catch (e) {
+      console.warn('[OrderSync] refreshRestaurantSnapshot failed', e);
+      return false;
+    } finally {
+      this.snapshotRefreshInProgress = false;
     }
   }
 
@@ -287,6 +326,9 @@ export class OrderSyncService {
 
         const tables = (json?.Tables ?? json?.tables ?? []) as any[];
         await this.offlineDB.applySyncSnapshot(tables as any);
+        this.ngZone.run(() => {
+          this.snapshotRefreshedSubject.next({ restaurantId });
+        });
         return;
       } catch (e) {
         lastError = e;

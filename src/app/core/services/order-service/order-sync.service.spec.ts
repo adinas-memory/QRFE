@@ -4,37 +4,59 @@ import { AuthService } from '../../auth/auth.service';
 import { OfflineQueueProcessor } from '../../offline/offline-queue-processor.service';
 import { OfflineDbService } from '../../offline/offline-db';
 import { OnlineStateService } from '../../offline/online-state-service';
-import { Observable, of } from 'rxjs';
+import { Observable, Subject, of, firstValueFrom } from 'rxjs';
 
 describe('OrderSyncService', () => {
   let service: OrderSyncService;
   let auth: jasmine.SpyObj<AuthService>;
+  let dbSpy: jasmine.SpyObj<OfflineDbService>;
+  let resumeConnectivityOk$: Subject<void>;
   let onlineState: {
     isOnline: boolean;
     setOffline: jasmine.Spy;
     setOnline: jasmine.Spy;
     online$: Observable<boolean>;
+    resumeConnectivityOk$: Observable<void>;
   };
+  let fetchSpy: jasmine.Spy;
 
   beforeEach(() => {
-    auth = jasmine.createSpyObj('AuthService', ['refreshUserContext', 'clearUser', 'isAuthenticated']);
+    auth = jasmine.createSpyObj('AuthService', [
+      'refreshUserContext',
+      'clearUser',
+      'isAuthenticated',
+      'getUserRestaurantId',
+    ]);
     auth.isAuthenticated.and.returnValue(true);
     auth.refreshUserContext.and.returnValue(of(null));
+    auth.getUserRestaurantId.and.returnValue(null);
 
     const queueSpy = jasmine.createSpyObj('OfflineQueueProcessor', ['processAction', 'processQueue']);
-    const dbSpy = jasmine.createSpyObj('OfflineDbService', [
+    dbSpy = jasmine.createSpyObj('OfflineDbService', [
       'getPendingActions',
       'markActionDone',
       'setOffline',
       'applySyncSnapshot',
     ]);
+    dbSpy.getPendingActions.and.returnValue(Promise.resolve([]));
+    dbSpy.applySyncSnapshot.and.returnValue(Promise.resolve());
 
+    resumeConnectivityOk$ = new Subject<void>();
     onlineState = {
       isOnline: true,
       setOffline: jasmine.createSpy('setOffline'),
       setOnline: jasmine.createSpy('setOnline'),
       online$: of(true),
+      resumeConnectivityOk$: resumeConnectivityOk$.asObservable(),
     };
+
+    fetchSpy = jasmine.createSpy('fetch').and.returnValue(
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ Watermark: { Sequence: 12 }, Tables: [{ tableId: 't1' }] }),
+      }),
+    );
+    spyOn(window, 'fetch').and.callFake(fetchSpy);
 
     TestBed.configureTestingModule({
       providers: [
@@ -103,5 +125,74 @@ describe('OrderSyncService', () => {
       expect(auth.clearUser).not.toHaveBeenCalled();
       expect((service as any).scheduleSseReconnect).toHaveBeenCalledWith('restaurant-1');
     }));
+  });
+
+  describe('refreshRestaurantSnapshot', () => {
+    beforeEach(() => {
+      (service as any).lastRestaurantId = 'restaurant-1';
+      spyOn(service as any, 'openConnection').and.stub();
+    });
+
+    it('calls /api/sync, applies snapshot, and emits snapshotRefreshed$', async () => {
+      const emitted = firstValueFrom(service.snapshotRefreshed$);
+
+      const ok = await service.refreshRestaurantSnapshot();
+
+      expect(ok).toBe(true);
+      expect(fetchSpy).toHaveBeenCalled();
+      expect(fetchSpy.calls.mostRecent().args[0]).toContain('/api/sync?restaurantId=restaurant-1');
+      expect(dbSpy.applySyncSnapshot).toHaveBeenCalled();
+      const tablesArg = dbSpy.applySyncSnapshot.calls.mostRecent().args[0] as { tableId: string }[];
+      expect(tablesArg[0]?.tableId).toBe('t1');
+      await expectAsync(emitted).toBeResolvedTo({ restaurantId: 'restaurant-1' });
+    });
+
+    it('returns false when offline without fromResume', async () => {
+      onlineState.isOnline = false;
+
+      const ok = await service.refreshRestaurantSnapshot();
+
+      expect(ok).toBe(false);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('syncs from resume even when isOnline flag is false', async () => {
+      onlineState.isOnline = false;
+
+      const ok = await service.refreshRestaurantSnapshot({ fromResume: true });
+
+      expect(ok).toBe(true);
+      expect(fetchSpy).toHaveBeenCalled();
+    });
+
+    it('falls back to auth restaurantId when lastRestaurantId is null', async () => {
+      (service as any).lastRestaurantId = null;
+      auth.getUserRestaurantId.and.returnValue('auth-restaurant-id');
+
+      const ok = await service.refreshRestaurantSnapshot({ fromResume: true });
+
+      expect(ok).toBe(true);
+      expect(fetchSpy.calls.mostRecent().args[0]).toContain('restaurantId=auth-restaurant-id');
+    });
+
+    it('returns false when no restaurant id', async () => {
+      (service as any).lastRestaurantId = null;
+      auth.getUserRestaurantId.and.returnValue(null);
+
+      const ok = await service.refreshRestaurantSnapshot();
+
+      expect(ok).toBe(false);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('runs sync after resumeConnectivityOk$', async () => {
+      (service as any).lastRestaurantId = 'restaurant-1';
+      const refreshSpy = spyOn(service, 'refreshRestaurantSnapshot').and.returnValue(Promise.resolve(true));
+
+      resumeConnectivityOk$.next();
+      await Promise.resolve();
+
+      expect(refreshSpy).toHaveBeenCalledWith({ fromResume: true });
+    });
   });
 });

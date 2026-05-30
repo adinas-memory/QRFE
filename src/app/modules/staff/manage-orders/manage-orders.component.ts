@@ -541,6 +541,35 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.ordersService.saveComputed(this.tableComputed);
   }
 
+  /** Reload in-memory state from Dexie after /api/sync (e.g. app resume from background). */
+  private async reloadFromSyncSnapshot(): Promise<void> {
+    if (!this.initialTablesLoaded || !this.restaurantId) return;
+
+    this.tables = await this.offlineDB.loadLocalTables();
+    this.refreshTableLists();
+    this.tableCarts = await this.offlineDB.loadAllCarts();
+    this.tablesAvailable = await this.offlineDB.loadTablesStatusMap();
+    this.hydrateComputedFromTables();
+    this.applyPersistedInitiatedByToComputed();
+    this.ordersService.saveComputed(this.tableComputed);
+
+    for (const tableId of Object.keys(this.tableComputed)) {
+      const table = this.tables.find(t => t.tableId === tableId);
+      if (table && this.tableComputed[tableId]) {
+        this.tableComputed[tableId].cssClass = this.miscService.getTableCss(table, this.waiterState);
+      }
+    }
+
+    if (this.currentTableId && this.canvasVisible) {
+      const record = await this.offlineDB.loadCartRecord(this.currentTableId);
+      if (record) {
+        this.currentOrderId = record.orderId ?? null;
+        this.orderIsConfirmed = !!this.currentOrderId && !this.currentOrderId.startsWith('local-');
+        this.tableCarts[this.currentTableId] = record.items;
+      }
+    }
+  }
+
   isSetMenuCartLine(sel: CartItem): boolean {
     const linkedId = this.todaySetMenu?.linkedMenuItemId;
     return !!linkedId && sel.item.menuItemId === linkedId;
@@ -1351,6 +1380,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.sseService.events$
       .pipe(takeUntil(this.destroy$))
       .subscribe(ev => this.handleSseEvent(ev));
+
+    this.sseService.snapshotRefreshed$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => void this.reloadFromSyncSnapshot());
 
     this.authService.getUserContext()
       .pipe(
