@@ -9,6 +9,7 @@ import { WaiterCallState } from '../../models/callWaiter/callWaiter';
 import { MiscellaneousService } from '../misc/miscellaneous.service';
 import { OfflineDbService } from '../../offline/offline-db';
 import { OnlineStateService } from '../../offline/online-state-service';
+import { PlatformStorageService } from '../../platform/platform-storage.service';
 
 
 
@@ -18,12 +19,27 @@ import { OnlineStateService } from '../../offline/online-state-service';
 export class OrdersService {
   private apiUrl = environment.apiUrl;
   private readonly initiatedByMapKey = 'tableInitiatedByMap';
-
+  private initiatedByCache: Record<string, string> = {};
 
   constructor(private http: HttpClient,
     private miscService: MiscellaneousService,
     private offlineDB: OfflineDbService,
-    private onlineStateService: OnlineStateService) {
+    private onlineStateService: OnlineStateService,
+    private platformStorage: PlatformStorageService) {
+    void this.hydrateInitiatedByCache();
+  }
+
+  private async hydrateInitiatedByCache(): Promise<void> {
+    const raw = await this.platformStorage.getString(this.initiatedByMapKey);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as Record<string, string>;
+      if (parsed && typeof parsed === 'object') {
+        this.initiatedByCache = { ...this.initiatedByCache, ...parsed };
+      }
+    } catch {
+      // ignore corrupt cache
+    }
   }
 
 
@@ -116,12 +132,12 @@ export class OrdersService {
   loadInitiatedByMap(): Record<string, string> {
     try {
       const raw = localStorage.getItem(this.initiatedByMapKey);
-      if (!raw) return {};
-      const parsed = JSON.parse(raw) as Record<string, string>;
-      return parsed && typeof parsed === 'object' ? parsed : {};
+      const fromLocal = raw ? (JSON.parse(raw) as Record<string, string>) : {};
+      const localMap = fromLocal && typeof fromLocal === 'object' ? fromLocal : {};
+      return { ...localMap, ...this.initiatedByCache };
     } catch (e) {
       console.error('Failed to load tableInitiatedByMap', e);
-      return {};
+      return { ...this.initiatedByCache };
     }
   }
 
@@ -133,6 +149,8 @@ export class OrdersService {
         if (tableId && v) cleaned[tableId] = v;
       }
       localStorage.setItem(this.initiatedByMapKey, JSON.stringify(cleaned));
+      this.initiatedByCache = cleaned;
+      void this.platformStorage.setString(this.initiatedByMapKey, JSON.stringify(cleaned));
     } catch (e) {
       console.error('Failed to save tableInitiatedByMap', e);
     }

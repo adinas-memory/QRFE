@@ -541,10 +541,24 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.ordersService.saveComputed(this.tableComputed);
   }
 
+  private reloadPersistedInitiatedByFromStorage(): void {
+    const dedicated = this.ordersService.loadInitiatedByMap();
+    for (const [tableId, by] of Object.entries(dedicated)) {
+      const v = by?.trim();
+      if (v) this.persistedInitiatedBy[tableId] = v;
+    }
+    const persisted = this.ordersService.loadComputed() || {};
+    for (const [tableId, computed] of Object.entries(persisted)) {
+      const by = (computed as { initiatedBy?: string })?.initiatedBy?.trim();
+      if (by) this.persistedInitiatedBy[tableId] = by;
+    }
+  }
+
   /** Reload in-memory state from Dexie after /api/sync (e.g. app resume from background). */
   private async reloadFromSyncSnapshot(): Promise<void> {
     if (!this.initialTablesLoaded || !this.restaurantId) return;
 
+    this.reloadPersistedInitiatedByFromStorage();
     this.tables = await this.offlineDB.loadLocalTables();
     this.refreshTableLists();
     this.tableCarts = await this.offlineDB.loadAllCarts();
@@ -1327,6 +1341,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         }
 
         if (this.initialTablesLoaded) {
+          this.applyPersistedInitiatedByToComputed();
           this.ordersService.saveComputed(this.tableComputed);
         }
         this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
