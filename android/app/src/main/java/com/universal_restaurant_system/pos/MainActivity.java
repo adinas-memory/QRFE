@@ -32,7 +32,7 @@ public class MainActivity extends BridgeActivity {
 
         NotificationChannel existing = manager.getNotificationChannel(WAITER_CALL_CHANNEL_ID);
         if (existing != null) {
-            return;
+            manager.deleteNotificationChannel(WAITER_CALL_CHANNEL_ID);
         }
 
         NotificationChannel channel = new NotificationChannel(
