@@ -20,6 +20,11 @@ describe('OrderSyncService', () => {
   };
   let fetchSpy: jasmine.Spy;
 
+  function lastSyncFetchUrl(): string {
+    const syncCalls = fetchSpy.calls.all().filter(c => String(c.args[0]).includes('/api/sync'));
+    return syncCalls.length ? String(syncCalls[syncCalls.length - 1].args[0]) : '';
+  }
+
   beforeEach(() => {
     auth = jasmine.createSpyObj('AuthService', [
       'refreshUserContext',
@@ -140,7 +145,7 @@ describe('OrderSyncService', () => {
 
       expect(ok).toBe(true);
       expect(fetchSpy).toHaveBeenCalled();
-      expect(fetchSpy.calls.mostRecent().args[0]).toContain('/api/sync?restaurantId=restaurant-1');
+      expect(lastSyncFetchUrl()).toContain('/api/sync?restaurantId=restaurant-1');
       expect(dbSpy.applySyncSnapshot).toHaveBeenCalled();
       const tablesArg = dbSpy.applySyncSnapshot.calls.mostRecent().args[0] as { tableId: string }[];
       expect(tablesArg[0]?.tableId).toBe('t1');
@@ -172,7 +177,7 @@ describe('OrderSyncService', () => {
       const ok = await service.refreshRestaurantSnapshot({ fromResume: true });
 
       expect(ok).toBe(true);
-      expect(fetchSpy.calls.mostRecent().args[0]).toContain('restaurantId=auth-restaurant-id');
+      expect(lastSyncFetchUrl()).toContain('restaurantId=auth-restaurant-id');
     });
 
     it('returns false when no restaurant id', async () => {
