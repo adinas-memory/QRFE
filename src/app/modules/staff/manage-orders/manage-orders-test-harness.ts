@@ -169,6 +169,7 @@ export interface ManageOrdersMocks {
     events$: Subject<SseEvent<unknown>>;
     snapshotRefreshed$: Subject<{ restaurantId: string }>;
     listenToRestaurantEvents: jasmine.Spy;
+    refreshRestaurantSnapshot: jasmine.Spy;
   };
   offlineDb: OfflineDbMock;
   queueProcessor: {
@@ -288,6 +289,7 @@ export function createManageOrdersMocks(options: SetupManageOrdersOptions = {}):
       events$: sseEvents$,
       snapshotRefreshed$,
       listenToRestaurantEvents: jasmine.createSpy('listenToRestaurantEvents').and.returnValue(of({})),
+      refreshRestaurantSnapshot: jasmine.createSpy('refreshRestaurantSnapshot').and.returnValue(Promise.resolve(true)),
     },
     offlineDb,
     queueProcessor: {

@@ -231,11 +231,26 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     if (fromSse) {
       return fromSse;
     }
+    const table = this.tables.find(t => t.tableId === tableId);
+    const fromOrder = table?.order?.lastInitiatedBy?.trim();
+    if (fromOrder) {
+      return fromOrder;
+    }
     const fromMemory = this.tableComputed[tableId]?.initiatedBy?.trim();
     if (fromMemory) {
       return fromMemory;
     }
     return this.persistedInitiatedBy[tableId] ?? '';
+  }
+
+  /** Persist staff names from authoritative order snapshot (/api/sync, REST tables). */
+  private applyInitiatedByFromSyncedOrders(): void {
+    for (const t of this.tables) {
+      const by = t.order?.lastInitiatedBy?.trim();
+      if (by && t.tableId) {
+        this.rememberInitiatedBy(t.tableId, by);
+      }
+    }
   }
 
   private rememberInitiatedBy(tableId: string, initiatedBy: string): void {
@@ -563,6 +578,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.refreshTableLists();
     this.tableCarts = await this.offlineDB.loadAllCarts();
     this.tablesAvailable = await this.offlineDB.loadTablesStatusMap();
+    this.applyInitiatedByFromSyncedOrders();
     this.hydrateComputedFromTables();
     this.applyPersistedInitiatedByToComputed();
     this.ordersService.saveComputed(this.tableComputed);
@@ -1425,10 +1441,13 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           this.tablesAvailable = await this.offlineDB.loadTablesStatusMap();
           this.capturePersistedInitiatedBy({ replaceTableComputed: false });
 
+          this.applyInitiatedByFromSyncedOrders();
           this.hydrateComputedFromTables();
           this.applyPersistedInitiatedByToComputed();
           this.initialTablesLoaded = true;
           this.ordersService.saveComputed(this.tableComputed);
+
+          void this.sseService.refreshRestaurantSnapshot();
 
           Object.keys(this.tableComputed).forEach(tableId => {
             const table = this.tables.find(t => t.tableId === tableId);

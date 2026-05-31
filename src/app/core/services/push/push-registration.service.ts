@@ -21,7 +21,7 @@ import {
   WaiterPushEventType,
 } from './push-notification-copy.service';
 
-const WAITER_CALL_CHANNEL_ID = 'waiter_call';
+const WAITER_CALL_CHANNEL_ID = 'waiter_call_v2';
 const ALERT_DEBOUNCE_MS = 2000;
 const PICKUP_VIBRATE_MS = 500;
 
@@ -109,7 +109,7 @@ export class PushRegistrationService {
     const localId = this.#clientInstance.getId();
     const isTarget = !targetId || (!!localId && targetId === localId);
 
-    const debounceKey = `${options.source}:${options.eventType}:${options.tableId}`;
+    const debounceKey = `${options.eventType}:${options.tableId}`;
     const now = Date.now();
     const debounced = now - (this.#lastAlertAtByKey.get(debounceKey) ?? 0) < ALERT_DEBOUNCE_MS;
     // #region agent log
@@ -137,9 +137,8 @@ export class PushRegistrationService {
       this.#pendingPickupHapticAt = 0;
     }
 
-    // Foreground: localized notification via LocalNotifications.
-    // Background: FCM hybrid payload already shows system tray (English fallback).
-    if (!document.hidden) {
+    // Native: localized tray via LocalNotifications (FCM is data-only). Web: tray only when visible.
+    if (this.#platform.isNative || !document.hidden) {
       await this.showLocalizedNotification(options.eventType, options.tableName);
     }
   }

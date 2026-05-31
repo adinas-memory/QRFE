@@ -29,7 +29,9 @@ export interface OrderDTO {
   currency: Currency;
   isOrderOpen: boolean;
   subTotal?: MoneyDTO;
-  finalTotalPrice?: FinalTotalPrice;  
+  finalTotalPrice?: FinalTotalPrice;
+  /** Staff display name from last order mutation (included in /api/sync). */
+  lastInitiatedBy?: string;
 }
 
 export interface MoneyDTO {
