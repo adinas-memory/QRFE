@@ -1,9 +1,7 @@
 import { DestroyRef, Injectable, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DeviceFeedbackService, PickupReadyKind } from '../device/device-feedback.service';
 import { OrderSyncService } from '../order-service/order-sync.service';
 import { PushRegistrationService } from '../push/push-registration.service';
-import { RuntimePlatformService } from '../../platform/runtime-platform.service';
 import { SseEvent } from '../../models/sseModel';
 import { WaiterPushEventType } from '../push/push-notification-copy.service';
 
@@ -13,16 +11,19 @@ export interface PickupSsePayload {
   clientInstanceId?: string | null;
 }
 
+export type PickupReadyKind = 'kitchen' | 'bar';
+
 /** Kitchen/bar pickup alerts via SSE (any staff route) and shared targeting rules. */
 @Injectable({ providedIn: 'root' })
 export class PickupNotificationService {
-  readonly #platform = inject(RuntimePlatformService);
-  readonly #deviceFeedback = inject(DeviceFeedbackService);
   readonly #pushRegistration = inject(PushRegistrationService);
   readonly #orderSync = inject(OrderSyncService);
   readonly #destroyRef = inject(DestroyRef);
 
   #globalAlertsStarted = false;
+  readonly #recentSseSequenceSet = new Set<number>();
+  readonly #recentSseSequences: number[] = [];
+  readonly #maxRecentSseSequences = 200;
 
   /** Subscribe to pickup SSE app-wide (not only on manage-orders). */
   initGlobalAlerts(): void {
@@ -61,31 +62,48 @@ export class PickupNotificationService {
       source: 'sse',
     });
 
-    this.#deviceFeedback.notifyPickupReady(kind, {
-      tableId: parsed.tableId,
-      clientInstanceId: parsed.clientInstanceId,
-    });
-
     return parsed;
   }
 
   private onSseEvent(ev: SseEvent<unknown>): void {
+    if (!this.shouldProcessPickupEvent(ev.Sequence)) {
+      return;
+    }
+
     switch (ev.EventType) {
       case 'KitchenWaiterCall':
         // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'pickup-notification.service.ts:onSseEvent',message:'pickup_sse_received',data:{eventType:ev.EventType,Sequence:ev.Sequence,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'pickup-notification.service.ts:onSseEvent',message:'pickup_sse_received',data:{eventType:ev.EventType,Sequence:ev.Sequence,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H5',runId:'post-fix-3'})}).catch(()=>{});
         // #endregion
         this.handlePickupSse('kitchen', ev.Data);
         break;
       case 'BarWaiterCall':
         // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'pickup-notification.service.ts:onSseEvent',message:'pickup_sse_received',data:{eventType:ev.EventType,Sequence:ev.Sequence,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'pickup-notification.service.ts:onSseEvent',message:'pickup_sse_received',data:{eventType:ev.EventType,Sequence:ev.Sequence,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H5',runId:'post-fix-3'})}).catch(()=>{});
         // #endregion
         this.handlePickupSse('bar', ev.Data);
         break;
       default:
         break;
     }
+  }
+
+  private shouldProcessPickupEvent(sequence: number | undefined): boolean {
+    if (typeof sequence !== 'number' || sequence <= 0) {
+      return true;
+    }
+    if (this.#recentSseSequenceSet.has(sequence)) {
+      return false;
+    }
+    this.#recentSseSequenceSet.add(sequence);
+    this.#recentSseSequences.push(sequence);
+    if (this.#recentSseSequences.length > this.#maxRecentSseSequences) {
+      const old = this.#recentSseSequences.shift();
+      if (typeof old === 'number') {
+        this.#recentSseSequenceSet.delete(old);
+      }
+    }
+    return true;
   }
 
   private field<T>(obj: unknown, pascal: string, camel: string): T | undefined {

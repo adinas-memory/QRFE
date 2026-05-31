@@ -105,15 +105,16 @@ export class PushRegistrationService {
    * Haptics + localized tray notification (foreground). Background tray uses FCM notification payload.
    */
   async deliverPickupAlert(options: DeliverPickupAlertOptions): Promise<void> {
+    await this.#clientInstance.whenReady();
     const targetId = (options.clientInstanceId ?? '').trim();
     const localId = this.#clientInstance.getId();
-    const isTarget = !targetId || (!!localId && targetId === localId);
+    const isTarget = this.#clientInstance.isPickupTarget(options.clientInstanceId);
 
     const debounceKey = `${options.eventType}:${options.tableId}`;
     const now = Date.now();
     const debounced = now - (this.#lastAlertAtByKey.get(debounceKey) ?? 0) < ALERT_DEBOUNCE_MS;
     // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:deliverPickupAlert',message:'pickup_alert_eval',data:{source:options.source,eventType:options.eventType,tableId:options.tableId,isTarget,debounced,targetId,localId,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId: isTarget ? (debounced ? 'H4' : 'H3') : 'H3'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:deliverPickupAlert',message:'pickup_alert_eval',data:{source:options.source,eventType:options.eventType,tableId:options.tableId,isTarget,debounced,targetId,localId,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId: isTarget ? (debounced ? 'H4' : 'H3') : 'H3',runId:'post-fix-3'})}).catch(()=>{});
     // #endregion
 
     if (!isTarget) {
@@ -312,7 +313,7 @@ export class PushRegistrationService {
     }
 
     this.#currentToken = token;
-    const clientInstanceId = this.#clientInstance.getId();
+    const clientInstanceId = await this.#clientInstance.whenReady();
 
     try {
       await firstValueFrom(
@@ -337,6 +338,11 @@ export class PushRegistrationService {
     fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:onPushReceived',message:'fcm_push_received',data:{eventType:payload.eventType,tableId:payload.tableId,clientInstanceId:payload.clientInstanceId,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
     // #endregion
     if (!payload.eventType) {
+      return;
+    }
+
+    // Foreground: SSE already delivers haptics + tray via deliverPickupAlert.
+    if (!document.hidden) {
       return;
     }
 

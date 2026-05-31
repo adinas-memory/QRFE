@@ -511,6 +511,34 @@ describe('ManageOrdersComponent', () => {
       (component as unknown as { applyPersistedInitiatedByToComputed: () => void }).applyPersistedInitiatedByToComputed();
       expect(component.tableComputed[TABLE_C]?.initiatedBy).toBe('Maria Pop');
     });
+
+    it('resolveInitiatedBy prefers order.lastInitiatedBy over stale tableComputed', () => {
+      component.tables = [{
+        ...createDefaultTables()[0],
+        tableId: TABLE_A,
+        isTableOpen: false,
+        order: {
+          orderId: 'order-a',
+          isOrderOpen: true,
+          lastInitiatedBy: 'Manager Name',
+          createdOn: new Date().toISOString(),
+          currency: 'RON' as import('../../../core/models/restaurantTablesModel').Currency,
+        },
+      }];
+      component.tableComputed[TABLE_A] = {
+        lastActionAt: '',
+        lastAddedItem: 'Pizza',
+        total: 40,
+        currency: 'RON',
+        itemCount: 1,
+        cssClass: 'table-css',
+        initiatedBy: 'Old Staff',
+      };
+      (component as unknown as { persistedInitiatedBy: Record<string, string> }).persistedInitiatedBy[TABLE_A] = 'Old Staff';
+
+      const resolved = (component as unknown as { resolveInitiatedBy: (id: string) => string }).resolveInitiatedBy(TABLE_A);
+      expect(resolved).toBe('Manager Name');
+    });
   });
 
   describe('keyboard and misc', () => {

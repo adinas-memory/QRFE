@@ -1,34 +1,25 @@
 import { TestBed } from '@angular/core/testing';
 import { Subject } from 'rxjs';
 import { PickupNotificationService } from './pickup-notification.service';
-import { DeviceFeedbackService } from '../device/device-feedback.service';
 import { OrderSyncService } from '../order-service/order-sync.service';
 import { PushRegistrationService } from '../push/push-registration.service';
-import { RuntimePlatformService } from '../../platform/runtime-platform.service';
 
 describe('PickupNotificationService', () => {
   let service: PickupNotificationService;
-  let deviceFeedback: jasmine.SpyObj<DeviceFeedbackService>;
   let pushRegistration: jasmine.SpyObj<PushRegistrationService>;
   const sseEvents$ = new Subject<unknown>();
 
   beforeEach(() => {
-    deviceFeedback = jasmine.createSpyObj('DeviceFeedbackService', ['notifyPickupReady']);
     pushRegistration = jasmine.createSpyObj('PushRegistrationService', ['deliverPickupAlert']);
     pushRegistration.deliverPickupAlert.and.returnValue(Promise.resolve());
 
     TestBed.configureTestingModule({
       providers: [
         PickupNotificationService,
-        { provide: DeviceFeedbackService, useValue: deviceFeedback },
         { provide: PushRegistrationService, useValue: pushRegistration },
         {
           provide: OrderSyncService,
           useValue: { events$: sseEvents$.asObservable() },
-        },
-        {
-          provide: RuntimePlatformService,
-          useValue: { isNative: false },
         },
       ],
     });
@@ -47,17 +38,13 @@ describe('PickupNotificationService', () => {
     expect(pascal.clientInstanceId).toBe('dev-1');
   });
 
-  it('handlePickupSse notifies device feedback and deliverPickupAlert', async () => {
+  it('handlePickupSse calls deliverPickupAlert only', async () => {
     const result = service.handlePickupSse('kitchen', {
       TableId: 'table-a',
       TableName: 'Masa 1',
       ClientInstanceId: 'device-x',
     });
     expect(result.tableId).toBe('table-a');
-    expect(deviceFeedback.notifyPickupReady).toHaveBeenCalledWith('kitchen', {
-      tableId: 'table-a',
-      clientInstanceId: 'device-x',
-    });
     expect(pushRegistration.deliverPickupAlert).toHaveBeenCalledWith(
       jasmine.objectContaining({
         eventType: 'KitchenWaiterCall',
@@ -68,13 +55,15 @@ describe('PickupNotificationService', () => {
     );
   });
 
-  it('initGlobalAlerts handles kitchen SSE events', async () => {
+  it('initGlobalAlerts handles kitchen SSE events once per sequence', async () => {
     service.initGlobalAlerts();
-    sseEvents$.next({
+    const payload = {
       EventType: 'KitchenWaiterCall',
       Data: { TableId: 't2', TableName: 'Bar 2', ClientInstanceId: 'dev-2' },
-    });
-    expect(deviceFeedback.notifyPickupReady).toHaveBeenCalled();
-    expect(pushRegistration.deliverPickupAlert).toHaveBeenCalled();
+      Sequence: 42,
+    };
+    sseEvents$.next(payload);
+    sseEvents$.next(payload);
+    expect(pushRegistration.deliverPickupAlert).toHaveBeenCalledTimes(1);
   });
 });

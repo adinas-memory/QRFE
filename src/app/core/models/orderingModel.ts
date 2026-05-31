@@ -32,6 +32,16 @@ export interface OrderDTO {
   finalTotalPrice?: FinalTotalPrice;
   /** Staff display name from last order mutation (included in /api/sync). */
   lastInitiatedBy?: string;
+  /** Device that last mutated this order (pickup haptic targeting). */
+  clientInstanceId?: string;
+}
+
+/** Read LastInitiatedBy from API/Dexie (camelCase or PascalCase). */
+export function readOrderLastInitiatedBy(order: OrderDTO | null | undefined): string {
+  if (!order) return '';
+  const rec = order as unknown as Record<string, unknown>;
+  const v = rec['lastInitiatedBy'] ?? rec['LastInitiatedBy'];
+  return typeof v === 'string' ? v.trim() : '';
 }
 
 export interface MoneyDTO {

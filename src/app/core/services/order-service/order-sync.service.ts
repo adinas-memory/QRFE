@@ -332,6 +332,14 @@ export class OrderSyncService {
 
         const tables = (json?.Tables ?? json?.tables ?? []) as any[];
         await this.offlineDB.applySyncSnapshot(tables as any);
+        // #region agent log
+        const withInitiatedBy = (tables ?? []).filter(t => {
+          const o = t?.order ?? t?.Order;
+          const v = o?.lastInitiatedBy ?? o?.LastInitiatedBy;
+          return typeof v === 'string' && v.trim().length > 0;
+        }).length;
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'order-sync.service.ts:syncRestaurantState',message:'sync_snapshot_applied',data:{tableCount:(tables??[]).length,withInitiatedBy,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H8',runId:'post-fix-initiated-by'})}).catch(()=>{});
+        // #endregion
         this.ngZone.run(() => {
           this.snapshotRefreshedSubject.next({ restaurantId });
         });

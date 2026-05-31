@@ -3,6 +3,7 @@ import {
   CLIENT_INSTANCE_STORAGE_KEY,
   PlatformStorageService,
 } from '../../platform/platform-storage.service';
+import { RuntimePlatformService } from '../../platform/runtime-platform.service';
 
 const MAX_LEN = 64;
 
@@ -36,21 +37,95 @@ function generateUuid(): string {
   });
 }
 
+/** Case-insensitive UUID compare for pickup targeting. */
+export function clientInstanceIdsMatch(
+  targetId: string | null | undefined,
+  localId: string | null | undefined,
+): boolean {
+  const target = (targetId ?? '').trim();
+  if (!target) return true;
+  const local = (localId ?? '').trim();
+  if (!local) return false;
+  return target.toLowerCase() === local.toLowerCase();
+}
+
 /** Stable per-device id (browser localStorage or Capacitor Preferences). */
 @Injectable({ providedIn: 'root' })
 export class ClientInstanceService {
   private cachedId: string | null = null;
+  private readonly ready: Promise<void>;
+  private initialized = false;
 
-  constructor(private readonly platformStorage: PlatformStorageService) {
-    void this.hydrateFromPersistentStorage();
+  constructor(
+    private readonly platformStorage: PlatformStorageService,
+    private readonly platform: RuntimePlatformService,
+  ) {
+    this.ready = this.initialize();
+  }
+
+  /** Prefer this on native before attaching headers or comparing pickup targets. */
+  whenReady(): Promise<string> {
+    return this.ready.then(() => this.getId());
   }
 
   getId(): string {
     if (this.cachedId) return this.cachedId;
+
+    // On Capacitor, Preferences load is async — never mint a new id before initialize() finishes.
+    if (this.platform.capabilities.clientInstanceStorage === 'preferences' && !this.initialized) {
+      return '';
+    }
+
+    return this.ensureIdFromLocalStorage();
+  }
+
+  isAvailable(): boolean {
+    return !!this.getId();
+  }
+
+  isPickupTarget(clientInstanceId: string | null | undefined): boolean {
+    return clientInstanceIdsMatch(clientInstanceId, this.getId());
+  }
+
+  private async initialize(): Promise<void> {
+    try {
+      const fromPrefs = await this.platformStorage.getString(CLIENT_INSTANCE_STORAGE_KEY);
+      if (fromPrefs && this.isValid(fromPrefs)) {
+        this.cachedId = fromPrefs;
+        try {
+          localStorage.setItem(CLIENT_INSTANCE_STORAGE_KEY, fromPrefs);
+        } catch {
+          // ignore
+        }
+        return;
+      }
+
+      const fromLs = this.readLocalStorage();
+      if (fromLs) {
+        this.cachedId = fromLs;
+        await this.platformStorage.setString(CLIENT_INSTANCE_STORAGE_KEY, fromLs);
+        return;
+      }
+
+      const created = generateUuid();
+      this.cachedId = created;
+      await this.platformStorage.setString(CLIENT_INSTANCE_STORAGE_KEY, created);
+      try {
+        localStorage.setItem(CLIENT_INSTANCE_STORAGE_KEY, created);
+      } catch {
+        // ignore
+      }
+    } finally {
+      this.initialized = true;
+    }
+  }
+
+  private ensureIdFromLocalStorage(): string {
     try {
       const stored = localStorage.getItem(CLIENT_INSTANCE_STORAGE_KEY);
       if (stored && this.isValid(stored)) {
         this.cachedId = stored;
+        void this.platformStorage.setString(CLIENT_INSTANCE_STORAGE_KEY, stored);
         return stored;
       }
       const created = generateUuid();
@@ -65,19 +140,12 @@ export class ClientInstanceService {
     }
   }
 
-  isAvailable(): boolean {
-    return !!this.getId();
-  }
-
-  private async hydrateFromPersistentStorage(): Promise<void> {
-    const stored = await this.platformStorage.getString(CLIENT_INSTANCE_STORAGE_KEY);
-    if (stored && this.isValid(stored)) {
-      this.cachedId = stored;
-      try {
-        localStorage.setItem(CLIENT_INSTANCE_STORAGE_KEY, stored);
-      } catch {
-        // ignore
-      }
+  private readLocalStorage(): string | null {
+    try {
+      const stored = localStorage.getItem(CLIENT_INSTANCE_STORAGE_KEY);
+      return stored && this.isValid(stored) ? stored : null;
+    } catch {
+      return null;
     }
   }
 

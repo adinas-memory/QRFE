@@ -43,11 +43,7 @@ export class DeviceFeedbackService {
   notifyPickupReady(kind: PickupReadyKind, options: PickupReadyNotifyOptions): void {
     if (!this.hapticsEnabled) return;
 
-    const targetId = (options.clientInstanceId ?? '').trim();
-    if (!targetId) return;
-
-    const localId = this.clientInstance.getId();
-    if (!localId || targetId !== localId) return;
+    if (!this.clientInstance.isPickupTarget(options.clientInstanceId)) return;
 
     const tableId = options.tableId?.trim();
     if (!tableId) return;

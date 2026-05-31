@@ -240,14 +240,21 @@ export class KitchenComponent implements OnInit, OnDestroy {
     Object.values(this.clearMarkTimers).forEach(t => clearTimeout(t));
   }
 
+  private readonly pickupInFlightByTable = new Set<string>();
+
   async callWaiterForPickup(tableId: string): Promise<void> {
     if (!this.restaurantId) return;
+    const inFlightKey = `${this.restaurantId}:${tableId}`;
+    if (this.pickupInFlightByTable.has(inFlightKey)) return;
+    this.pickupInFlightByTable.add(inFlightKey);
     try {
       await firstValueFrom(this.kitchenApi.callWaiterForPickup(this.restaurantId, tableId));
       this.toast.success(this.transloco.translate('kitchen.toastWaiterOk'));
     } catch (err) {
       console.error('[Kitchen] callWaiterForPickup failed', err);
       this.toast.error(this.transloco.translate('kitchen.toastWaiterFail'));
+    } finally {
+      setTimeout(() => this.pickupInFlightByTable.delete(inFlightKey), 3000);
     }
   }
 

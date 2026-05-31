@@ -19,7 +19,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
 import { filter, Subject, take, takeUntil, debounceTime, forkJoin, from, firstValueFrom } from 'rxjs';
 import { NgFor, NgIf, NgStyle, CurrencyPipe, DecimalPipe, JsonPipe, NgClass } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { cilBellExclamation } from '@coreui/icons';
 import { UserContextModel } from '../../../core/models/userContextModel';
 import { WaiterCallState } from '../../../core/models/callWaiter/callWaiter';
@@ -34,7 +34,8 @@ import {
   TableComputedDTO,
   OrderDTO,
   OrderItemDTO,
-  cartItemFromOrderLine
+  cartItemFromOrderLine,
+  readOrderLastInitiatedBy,
 } from '../../../core/models/orderingModel';
 import { OrderSyncService } from '../../../core/services/order-service/order-sync.service';
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
@@ -160,6 +161,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     private printJobs: PrintJobsService,
     private deviceFeedback: DeviceFeedbackService,
     private pickupNotification: PickupNotificationService,
+    private router: Router,
   ) {}
 
   get hapticsEnabled(): boolean {
@@ -200,12 +202,13 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Re-apply persisted names after hydrate/SSE may have cleared initiatedBy on cards. */
+  /** Re-apply persisted names only when sync/order snapshot has no LastInitiatedBy. */
   private applyPersistedInitiatedByToComputed(): void {
     for (const [tableId, by] of Object.entries(this.persistedInitiatedBy)) {
       if (!by?.trim()) continue;
       const table = this.tables.find(t => t.tableId === tableId);
       if (!table) continue;
+      if (readOrderLastInitiatedBy(table.order)) continue;
 
       const existing = this.tableComputed[tableId];
       if (existing) {
@@ -232,21 +235,21 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       return fromSse;
     }
     const table = this.tables.find(t => t.tableId === tableId);
-    const fromOrder = table?.order?.lastInitiatedBy?.trim();
+    const fromOrder = readOrderLastInitiatedBy(table?.order);
     if (fromOrder) {
       return fromOrder;
     }
-    const fromMemory = this.tableComputed[tableId]?.initiatedBy?.trim();
-    if (fromMemory) {
-      return fromMemory;
+    const fromPersisted = this.persistedInitiatedBy[tableId]?.trim();
+    if (fromPersisted) {
+      return fromPersisted;
     }
-    return this.persistedInitiatedBy[tableId] ?? '';
+    return this.tableComputed[tableId]?.initiatedBy?.trim() ?? '';
   }
 
   /** Persist staff names from authoritative order snapshot (/api/sync, REST tables). */
   private applyInitiatedByFromSyncedOrders(): void {
     for (const t of this.tables) {
-      const by = t.order?.lastInitiatedBy?.trim();
+      const by = readOrderLastInitiatedBy(t.order);
       if (by && t.tableId) {
         this.rememberInitiatedBy(t.tableId, by);
       }
@@ -573,15 +576,24 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   private async reloadFromSyncSnapshot(): Promise<void> {
     if (!this.initialTablesLoaded || !this.restaurantId) return;
 
-    this.reloadPersistedInitiatedByFromStorage();
     this.tables = await this.offlineDB.loadLocalTables();
     this.refreshTableLists();
     this.tableCarts = await this.offlineDB.loadAllCarts();
     this.tablesAvailable = await this.offlineDB.loadTablesStatusMap();
+
     this.applyInitiatedByFromSyncedOrders();
+    this.reloadPersistedInitiatedByFromStorage();
     this.hydrateComputedFromTables();
     this.applyPersistedInitiatedByToComputed();
     this.ordersService.saveComputed(this.tableComputed);
+
+    // #region agent log
+    const sample = this.tables
+      .filter(t => readOrderLastInitiatedBy(t.order))
+      .slice(0, 3)
+      .map(t => ({ tableId: t.tableId, lastInitiatedBy: readOrderLastInitiatedBy(t.order), ui: this.tableComputed[t.tableId!]?.initiatedBy }));
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'manage-orders.component.ts:reloadFromSyncSnapshot',message:'initiated_by_after_sync_reload',data:{tableCount:this.tables.length,sample,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H8',runId:'post-fix-initiated-by'})}).catch(()=>{});
+    // #endregion
 
     for (const tableId of Object.keys(this.tableComputed)) {
       const table = this.tables.find(t => t.tableId === tableId);
@@ -1240,12 +1252,23 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         if (payload.OrderId) {
           const existing = this.tables.find(t => t.tableId === tableId);
           if (existing && (existing.isTableOpen || !existing.order)) {
+            const initiatedByName = InitiatedBy?.trim() || readOrderLastInitiatedBy(existing.order);
             this.tables = this.tables.map(t =>
               t.tableId === tableId
-                ? { ...t, isTableOpen: false, order: { orderId: payload.OrderId } as unknown as OrderDTO }
+                ? {
+                    ...t,
+                    isTableOpen: false,
+                    order: {
+                      ...(t.order ?? {}),
+                      orderId: payload.OrderId,
+                      isOrderOpen: true,
+                      lastInitiatedBy: initiatedByName || readOrderLastInitiatedBy(t.order),
+                    } as OrderDTO,
+                  }
                 : t,
             );
             this.refreshTableLists();
+            void this.offlineDB.saveTables(this.tables);
           }
         }
         break;
@@ -1418,6 +1441,18 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.sseService.snapshotRefreshed$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => void this.reloadFromSyncSnapshot());
+
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        filter(e => e.urlAfterRedirects.includes('manage-orders')),
+        takeUntil(this.destroy$),
+      )
+      .subscribe(() => {
+        if (this.initialTablesLoaded && this.restaurantId) {
+          void this.sseService.refreshRestaurantSnapshot();
+        }
+      });
 
     this.authService.getUserContext()
       .pipe(

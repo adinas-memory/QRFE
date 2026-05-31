@@ -18,7 +18,15 @@ describe('DeviceFeedbackService', () => {
         DeviceFeedbackService,
         {
           provide: ClientInstanceService,
-          useValue: { getId: () => localId, isAvailable: () => true },
+          useValue: {
+            getId: () => localId,
+            isAvailable: () => true,
+            isPickupTarget: (target: string | null | undefined) => {
+              const t = (target ?? '').trim();
+              if (!t) return true;
+              return t === localId;
+            },
+          },
         },
         {
           provide: RuntimePlatformService,
