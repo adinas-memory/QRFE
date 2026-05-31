@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
-import { Observable } from 'rxjs';
+import { EMPTY, Observable, finalize } from 'rxjs';
+import { endStaffPickupCall, tryBeginStaffPickupCall } from '../staff-pickup-call.guard';
 
 @Injectable({
   providedIn: 'root'
@@ -19,11 +20,14 @@ export class KitchenService {
    * so all devices in the restaurant can react (ex: manage-orders highlights the table).
    */
   callWaiterForPickup(restaurantId: string, tableId: string): Observable<void> {
+    if (!tryBeginStaffPickupCall(restaurantId, tableId)) {
+      return EMPTY;
+    }
     return this.http.post<void>(
       `${this.apiUrl}/api/restaurants/${restaurantId}/staff/kitchen/tables/${tableId}/pickup`,
       {},
-      { withCredentials: true }
-    );
+      { withCredentials: true },
+    ).pipe(finalize(() => endStaffPickupCall(restaurantId, tableId)));
   }
 
   /**

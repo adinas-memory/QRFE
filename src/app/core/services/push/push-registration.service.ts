@@ -118,39 +118,42 @@ export class PushRegistrationService {
     const debounced = now - lastAt < ALERT_DEBOUNCE_MS;
     const lastSource = this.#lastAlertSourceByKey.get(debounceKey);
     // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:deliverPickupAlert',message:'pickup_alert_eval',data:{source:options.source,eventType:options.eventType,tableId:options.tableId,isTarget,debounced,lastSource,targetId,localId,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId: debounced ? 'H4' : 'H3',runId:'dedupe-fix'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:deliverPickupAlert',message:'pickup_alert_eval',data:{source:options.source,eventType:options.eventType,tableId:options.tableId,isTarget,debounced,lastSource,targetId,localId,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId: debounced ? 'H4' : 'H3',runId:'notify-fix'})}).catch(()=>{});
     // #endregion
-
-    if (!isTarget) {
-      return;
-    }
 
     if (debounced) {
       return;
     }
 
-    // Foreground: SSE owns tray + haptics; FCM is a duplicate transport for the same event.
-    if (options.source === 'fcm' && !document.hidden) {
-      return;
+    // FCM: background + targeted device only (foreground uses SSE).
+    if (options.source === 'fcm') {
+      if (!isTarget || !document.hidden) {
+        return;
+      }
     }
 
     this.#lastAlertAtByKey.set(debounceKey, now);
     this.#lastAlertSourceByKey.set(debounceKey, options.source);
 
     const hidden = document.hidden;
-    await this.triggerPickupHaptic(options);
-    if (hidden) {
-      this.#pendingPickupHapticAt = now;
-      // #region agent log
-      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:deliverPickupAlert',message:'haptic_retry_scheduled',data:{source:options.source,eventType:options.eventType,tableId:options.tableId},timestamp:Date.now(),hypothesisId:'H7',runId:'post-fix-2'})}).catch(()=>{});
-      console.warn('[DEBUG-7379f5] haptic_retry_scheduled', options.eventType, options.tableId);
-      // #endregion
-    } else {
-      this.#pendingPickupHapticAt = 0;
+
+    // Haptics only for the device that owns the order (ClientInstanceId).
+    if (isTarget) {
+      await this.triggerPickupHaptic(options);
+      if (hidden) {
+        this.#pendingPickupHapticAt = now;
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:deliverPickupAlert',message:'haptic_retry_scheduled',data:{source:options.source,eventType:options.eventType,tableId:options.tableId},timestamp:Date.now(),hypothesisId:'H7',runId:'notify-fix'})}).catch(()=>{});
+        // #endregion
+      } else {
+        this.#pendingPickupHapticAt = 0;
+      }
     }
 
-    // Native: localized tray via LocalNotifications. Web: tray only when visible.
-    if (this.#platform.isNative || !document.hidden) {
+    // Tray: SSE reaches all staff sessions (same as manage-orders toast); FCM when targeted in background.
+    const shouldShowTray =
+      options.source === 'sse' || (options.source === 'fcm' && isTarget);
+    if (shouldShowTray && (this.#platform.isNative || !document.hidden)) {
       await this.showLocalizedNotification(options.eventType, options.tableName);
     }
   }
