@@ -75,11 +75,20 @@ export class PushRegistrationService {
       )
       .subscribe(() => {
         void this.ensureRegistered();
+        void this.postStoredTokenIfReady();
       });
 
     this.#auth.loggedIn$.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe(() => {
       void this.ensureRegistered();
+      void this.postStoredTokenIfReady();
     });
+  }
+
+  /** Retry backend registration when FCM token arrived before auth context was ready. */
+  private async postStoredTokenIfReady(): Promise<void> {
+    const token = this.#currentToken;
+    if (!token) return;
+    await this.sendTokenToBackend(token);
   }
 
   async ensureRegistered(): Promise<void> {
@@ -98,6 +107,10 @@ export class PushRegistrationService {
         perm = await PushNotifications.requestPermissions();
       }
       if (perm.receive !== 'granted') {
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',hypothesisId:'H8',location:'push-registration.service.ts:ensureRegistered',message:'push permission denied',data:{perm},timestamp:Date.now()})}).catch(()=>{});
+        console.warn('[DEBUG-7379f5] push permission denied', perm);
+        // #endregion
         return;
       }
 
@@ -250,12 +263,20 @@ export class PushRegistrationService {
   }
 
   private async onToken(token: string): Promise<void> {
+    this.#currentToken = token;
+    await this.sendTokenToBackend(token);
+  }
+
+  private async sendTokenToBackend(token: string): Promise<void> {
     const restaurantId = this.#auth.getUserRestaurantId();
     if (!token || typeof restaurantId !== 'string' || !restaurantId) {
+      // #region agent log
+      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',hypothesisId:'H8',location:'push-registration.service.ts:sendTokenToBackend',message:'token deferred no restaurantId',data:{hasToken:!!token,restaurantId},timestamp:Date.now()})}).catch(()=>{});
+      console.warn('[DEBUG-7379f5] FCM token deferred', { hasToken: !!token, restaurantId });
+      // #endregion
       return;
     }
 
-    this.#currentToken = token;
     const clientInstanceId = await this.#clientInstance.whenReady();
 
     try {
@@ -266,8 +287,15 @@ export class PushRegistrationService {
           { withCredentials: true },
         ),
       );
+      // #region agent log
+      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',hypothesisId:'H8',location:'push-registration.service.ts:sendTokenToBackend',message:'token registered ok',data:{restaurantId,clientInstanceId,tokenTail:token.slice(-8)},timestamp:Date.now()})}).catch(()=>{});
+      console.warn('[DEBUG-7379f5] FCM token registered', { restaurantId, clientInstanceId });
+      // #endregion
     } catch (err) {
       console.warn('[PushRegistration] token register failed', err);
+      // #region agent log
+      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',hypothesisId:'H8',location:'push-registration.service.ts:sendTokenToBackend',message:'token register failed',data:{restaurantId,error:String(err)},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
     }
   }
 
@@ -277,6 +305,10 @@ export class PushRegistrationService {
     }
 
     const payload = this.parsePayload(notification);
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',hypothesisId:'H10',location:'push-registration.service.ts:onPushReceived',message:'FCM push received in JS',data:{payload,hidden:document.hidden,title:notification.title,body:notification.body},timestamp:Date.now()})}).catch(()=>{});
+    console.warn('[DEBUG-7379f5] FCM received', payload, { hidden: document.hidden });
+    // #endregion
     if (!payload.eventType) {
       return;
     }
