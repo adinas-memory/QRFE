@@ -19,7 +19,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
 import { filter, Subject, take, takeUntil, debounceTime, forkJoin, from, firstValueFrom } from 'rxjs';
 import { NgFor, NgIf, NgStyle, CurrencyPipe, DecimalPipe, JsonPipe, NgClass } from '@angular/common';
-import { NavigationEnd, Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { cilBellExclamation } from '@coreui/icons';
 import { UserContextModel } from '../../../core/models/userContextModel';
 import { WaiterCallState } from '../../../core/models/callWaiter/callWaiter';
@@ -161,7 +161,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     private printJobs: PrintJobsService,
     private deviceFeedback: DeviceFeedbackService,
     private pickupNotification: PickupNotificationService,
-    private router: Router,
   ) {}
 
   get hapticsEnabled(): boolean {
@@ -1441,18 +1440,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.sseService.snapshotRefreshed$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => void this.reloadFromSyncSnapshot());
-
-    this.router.events
-      .pipe(
-        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
-        filter(e => e.urlAfterRedirects.includes('manage-orders')),
-        takeUntil(this.destroy$),
-      )
-      .subscribe(() => {
-        if (this.initialTablesLoaded && this.restaurantId) {
-          void this.sseService.refreshRestaurantSnapshot();
-        }
-      });
 
     this.authService.getUserContext()
       .pipe(

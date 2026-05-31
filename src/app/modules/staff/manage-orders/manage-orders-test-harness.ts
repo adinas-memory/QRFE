@@ -21,7 +21,6 @@ import { MenuItem } from '../../../core/models/menu/menuItem';
 import { SseEvent } from '../../../core/models/sseModel';
 import { WaiterCallState } from '../../../core/models/callWaiter/callWaiter';
 import { of, Subject, Observable } from 'rxjs';
-import { Router } from '@angular/router';
 
 export const TEST_RESTAURANT_ID = '00000000-0000-0000-0000-000000000001';
 export const TABLE_A = '11111111-1111-1111-1111-111111111101';
@@ -353,7 +352,6 @@ export async function setupManageOrdersComponent(
       { provide: BarService, useValue: mocks.barService },
       { provide: PrintJobsService, useValue: mocks.printJobs },
       { provide: DeviceFeedbackService, useValue: mocks.deviceFeedback },
-      { provide: Router, useValue: { events: of() } },
     ],
   }).compileComponents();
 

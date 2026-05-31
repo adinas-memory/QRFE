@@ -190,6 +190,15 @@ describe('OrderSyncService', () => {
       expect(fetchSpy).not.toHaveBeenCalled();
     });
 
+    it('skips duplicate refresh within min interval', async () => {
+      const ok1 = await service.refreshRestaurantSnapshot();
+      const ok2 = await service.refreshRestaurantSnapshot();
+
+      expect(ok1).toBe(true);
+      expect(ok2).toBe(false);
+      expect(fetchSpy.calls.all().filter(c => String(c.args[0]).includes('/api/sync')).length).toBe(1);
+    });
+
     it('runs sync after resumeConnectivityOk$', async () => {
       (service as any).lastRestaurantId = 'restaurant-1';
       const refreshSpy = spyOn(service, 'refreshRestaurantSnapshot').and.returnValue(Promise.resolve(true));

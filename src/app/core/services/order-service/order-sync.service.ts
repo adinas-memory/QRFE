@@ -34,6 +34,8 @@ export class OrderSyncService {
   private isRefreshing = false;
   private syncInProgress = false;
   private snapshotRefreshInProgress = false;
+  private lastSnapshotRefreshAt = 0;
+  private readonly snapshotRefreshMinIntervalMs = 3000;
   private watermarkSequence = 0;
 
   // event stream
@@ -135,23 +137,32 @@ export class OrderSyncService {
     if (!options?.fromResume && !this.onlineStateService.isOnline) {
       return false;
     }
+    const now = Date.now();
+    if (now - this.lastSnapshotRefreshAt < this.snapshotRefreshMinIntervalMs) {
+      return false;
+    }
     if (this.snapshotRefreshInProgress) {
       return false;
     }
 
     this.snapshotRefreshInProgress = true;
+    let succeeded = false;
     try {
       await this.trySyncNow();
       await this.syncRestaurantState(restaurantId);
       if (!this.controller) {
         this.openConnection(restaurantId);
       }
+      succeeded = true;
       return true;
     } catch (e) {
       console.warn('[OrderSync] refreshRestaurantSnapshot failed', e);
       return false;
     } finally {
       this.snapshotRefreshInProgress = false;
+      if (succeeded) {
+        this.lastSnapshotRefreshAt = Date.now();
+      }
     }
   }
 
@@ -323,22 +334,20 @@ export class OrderSyncService {
 
         const watermark = json?.Watermark ?? json?.watermark;
         const seq = watermark?.Sequence ?? watermark?.sequence ?? 0;
+        const prevWatermark = this.watermarkSequence;
         if (typeof seq === 'number' && seq > this.watermarkSequence) {
-          // #region agent log
-          fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'order-sync.service.ts:syncRestaurantState',message:'watermark_updated',data:{prevWatermark:this.watermarkSequence,newWatermark:seq,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-          // #endregion
           this.watermarkSequence = seq;
         }
 
         const tables = (json?.Tables ?? json?.tables ?? []) as any[];
         await this.offlineDB.applySyncSnapshot(tables as any);
-        // #region agent log
         const withInitiatedBy = (tables ?? []).filter(t => {
           const o = t?.order ?? t?.Order;
           const v = o?.lastInitiatedBy ?? o?.LastInitiatedBy;
           return typeof v === 'string' && v.trim().length > 0;
         }).length;
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'order-sync.service.ts:syncRestaurantState',message:'sync_snapshot_applied',data:{tableCount:(tables??[]).length,withInitiatedBy,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H8',runId:'post-fix-initiated-by'})}).catch(()=>{});
+        // #region agent log
+        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'order-sync.service.ts:syncRestaurantState',message:'sync_snapshot_applied',data:{tableCount:(tables??[]).length,withInitiatedBy,prevWatermark,newWatermark:seq,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H8',runId:'post-fix-dedupe'})}).catch(()=>{});
         // #endregion
         this.ngZone.run(() => {
           this.snapshotRefreshedSubject.next({ restaurantId });

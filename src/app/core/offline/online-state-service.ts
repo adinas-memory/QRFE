@@ -2,6 +2,14 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
+function isCapacitorNative(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    (window as Window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor
+      ?.isNativePlatform?.() === true
+  );
+}
+
 @Injectable({ providedIn: 'root' })
 export class OnlineStateService {
   private _isOnline = true;
@@ -21,6 +29,10 @@ export class OnlineStateService {
 
   private resumeCheckTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly resumeCheckDebounceMs = 300;
+  private lastResumePipelineAt = 0;
+  private readonly resumePipelineCooldownMs = 3000;
+  private lastForcedPingAt = 0;
+  private readonly forcedPingMinIntervalMs = 2000;
 
   constructor() {
     this.startHeartbeat();
@@ -34,11 +46,14 @@ export class OnlineStateService {
       void this.runHeartbeat(true);
     });
 
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        this.triggerResumeCheck();
-      }
-    });
+    // Capacitor: app.component appStateChange already calls triggerResumeCheck().
+    if (!isCapacitorNative()) {
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          this.triggerResumeCheck();
+        }
+      });
+    }
   }
 
   /** Debounced resume entry (PWA Alt+Tab, Capacitor appStateChange). */
@@ -53,10 +68,18 @@ export class OnlineStateService {
   }
 
   private async runResumeCheck(): Promise<void> {
-    const ok = await this.confirmConnectivity(true);
-    if (ok) {
-      this.resumeConnectivitySubject.next();
+    const now = Date.now();
+    if (now - this.lastResumePipelineAt < this.resumePipelineCooldownMs) {
+      return;
     }
+
+    const ok = await this.confirmConnectivity(true);
+    if (!ok) {
+      return;
+    }
+
+    this.lastResumePipelineAt = Date.now();
+    this.resumeConnectivitySubject.next();
   }
 
   private startHeartbeat() {
@@ -71,6 +94,10 @@ export class OnlineStateService {
   async confirmConnectivity(force = false): Promise<boolean> {
     const now = Date.now();
 
+    if (force && now - this.lastForcedPingAt < this.forcedPingMinIntervalMs) {
+      return this._isOnline;
+    }
+
     if (!force) {
       if (now - this.lastHeartbeat < this.heartbeatInterval) {
         return this._isOnline;
@@ -79,6 +106,10 @@ export class OnlineStateService {
 
     if (this.heartbeatInProgress) {
       return this.heartbeatInProgress;
+    }
+
+    if (force) {
+      this.lastForcedPingAt = now;
     }
 
     this.heartbeatInProgress = this.executePing();

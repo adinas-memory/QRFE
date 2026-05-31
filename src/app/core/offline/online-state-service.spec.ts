@@ -77,4 +77,14 @@ describe('OnlineStateService', () => {
     expect(service.isOnline).toBe(true);
     expect(fetchSpy).toHaveBeenCalled();
   }));
+
+  it('triggerResumeCheck ignores duplicate resume within cooldown', fakeAsync(() => {
+    service.triggerResumeCheck();
+    tick(300);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+    service.triggerResumeCheck();
+    tick(300);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  }));
 });
