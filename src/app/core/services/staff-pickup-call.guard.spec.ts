@@ -11,8 +11,8 @@ describe('staff-pickup-call.guard', () => {
     expect(tryBeginStaffPickupCall(rid, tid)).toBeTrue();
     expect(tryBeginStaffPickupCall(rid, tid)).toBeFalse();
     endStaffPickupCall(rid, tid);
-    expect(tryBeginStaffPickupCall(rid, tid)).toBeTrue();
-    endStaffPickupCall(rid, tid);
+    // sessionStorage TTL still blocks rapid re-fire after HTTP completes
+    expect(tryBeginStaffPickupCall(rid, tid)).toBeFalse();
   });
 
   it('allows different tables independently', () => {

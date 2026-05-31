@@ -23,7 +23,7 @@ import {
 } from './push-notification-copy.service';
 
 const WAITER_CALL_CHANNEL_ID = 'waiter_call_v2';
-const ALERT_DEBOUNCE_MS = 2000;
+const ALERT_DEBOUNCE_MS = 5000;
 const PICKUP_VIBRATE_MS = 500;
 
 export type PickupAlertSource = 'sse' | 'fcm';
@@ -36,6 +36,12 @@ export interface DeliverPickupAlertOptions {
   source: PickupAlertSource;
 }
 
+/**
+ * Pickup alerts on native Android:
+ * - Background/killed: FCM hybrid (OS tray + vibration) via backend notification payload.
+ * - Foreground: SSE → haptics + in-app toast (manage-orders); Capacitor presentationOptions=[] suppresses FCM banner.
+ * - PWA/browser: SSE → LocalNotifications when tab hidden.
+ */
 @Injectable({ providedIn: 'root' })
 export class PushRegistrationService {
   readonly #http = inject(HttpClient);
@@ -52,11 +58,9 @@ export class PushRegistrationService {
   #listenersAttached = false;
   #localNotificationId = 1;
   readonly #lastAlertAtByKey = new Map<string, number>();
-  readonly #lastAlertSourceByKey = new Map<string, PickupAlertSource>();
   #pendingPickupHapticAt = 0;
   #resumeFlushAttached = false;
 
-  /** Call once after app bootstrap; registers push when user logs in on native Android. */
   init(): void {
     this.ensureHapticResumeFlush();
 
@@ -105,76 +109,38 @@ export class PushRegistrationService {
     }
   }
 
-  /**
-   * Haptics + localized tray via LocalNotifications (single channel — no FCM notification payload).
-   */
+  /** SSE path (and PWA). FCM hybrid tray is handled by the OS in onPushReceived. */
   async deliverPickupAlert(options: DeliverPickupAlertOptions): Promise<void> {
-    await this.#clientInstance.whenReady();
-    const targetId = (options.clientInstanceId ?? '').trim();
-    const localId = this.#clientInstance.getId();
-    const isTarget = this.#clientInstance.isPickupTarget(options.clientInstanceId);
-
-    const debounceKey = `${options.eventType}:${options.tableId}`;
-    const now = Date.now();
-    const lastAt = this.#lastAlertAtByKey.get(debounceKey) ?? 0;
-    const debounced = now - lastAt < ALERT_DEBOUNCE_MS;
-    const lastSource = this.#lastAlertSourceByKey.get(debounceKey);
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:deliverPickupAlert',message:'pickup_alert_eval',data:{source:options.source,eventType:options.eventType,tableId:options.tableId,isTarget,debounced,lastSource,targetId,localId,hapticsEnabled:this.#deviceFeedback.hapticsEnabled,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId: debounced ? 'H4' : 'H3',runId:'haptic-dedupe-v2'})}).catch(()=>{});
-    console.warn('[DEBUG-7379f5] pickup_alert_eval', { source: options.source, isTarget, hapticsEnabled: this.#deviceFeedback.hapticsEnabled, debounced });
-    // #endregion
-
-    if (debounced) {
+    if (options.source === 'fcm') {
       return;
     }
+
+    await this.#clientInstance.whenReady();
+
+    const debounceKey = `${options.eventType}:${options.tableId}`;
+    if (this.isDebounced(debounceKey)) {
+      return;
+    }
+
+    this.markHandled(debounceKey);
 
     const foreground = !document.hidden;
 
-    // Foreground: SSE owns alerts; FCM data-only is a background fallback.
-    if (options.source === 'fcm' && foreground) {
-      return;
-    }
-
-    // FCM targets order owner; SSE reaches all staff sessions.
-    if (options.source === 'fcm' && !isTarget) {
-      return;
-    }
-
-    this.#lastAlertAtByKey.set(debounceKey, now);
-    this.#lastAlertSourceByKey.set(debounceKey, options.source);
-
-    const hidden = document.hidden;
-    const shouldHaptic =
-      this.#deviceFeedback.hapticsEnabled &&
-      (options.source === 'sse' || isTarget);
-
-    if (shouldHaptic) {
+    if (this.#deviceFeedback.hapticsEnabled) {
       await this.triggerPickupHaptic(options);
-      if (hidden) {
-        this.#pendingPickupHapticAt = now;
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:deliverPickupAlert',message:'haptic_retry_scheduled',data:{source:options.source,eventType:options.eventType,tableId:options.tableId,shouldHaptic,foreground},timestamp:Date.now(),hypothesisId:'H7',runId:'haptic-dedupe-v2'})}).catch(()=>{});
-        // #endregion
-      } else {
-        this.#pendingPickupHapticAt = 0;
-      }
+      this.#pendingPickupHapticAt = foreground ? 0 : Date.now();
     }
 
-    // Native foreground: in-app toast on manage-orders; tray only when backgrounded.
-    const shouldShowTray = options.source === 'sse' && (!this.#platform.isNative || hidden);
-    if (shouldShowTray) {
+    // Native: background tray comes from FCM hybrid only (no LocalNotifications duplicate).
+    if (!this.#platform.isNative && !foreground) {
       await this.showLocalizedNotification(options.eventType, options.tableName);
     }
   }
 
-  /** SSE path won for this event — FCM handler can skip duplicate work. */
   wasPickupAlertHandledRecently(eventType: WaiterPushEventType, tableId: string): boolean {
-    const debounceKey = `${eventType}:${tableId}`;
-    const lastAt = this.#lastAlertAtByKey.get(debounceKey) ?? 0;
-    return Date.now() - lastAt < ALERT_DEBOUNCE_MS;
+    return this.isDebounced(`${eventType}:${tableId}`);
   }
 
-  /** Flush haptics queued while the app/tab was hidden (SSE or FCM). */
   ensureHapticResumeFlush(): void {
     if (this.#resumeFlushAttached) {
       return;
@@ -199,6 +165,15 @@ export class PushRegistrationService {
     }
   }
 
+  private isDebounced(debounceKey: string): boolean {
+    const lastAt = this.#lastAlertAtByKey.get(debounceKey) ?? 0;
+    return Date.now() - lastAt < ALERT_DEBOUNCE_MS;
+  }
+
+  private markHandled(debounceKey: string): void {
+    this.#lastAlertAtByKey.set(debounceKey, Date.now());
+  }
+
   private async clearDeliveredPushNotifications(): Promise<void> {
     if (!this.#platform.isNative) return;
     try {
@@ -218,47 +193,33 @@ export class PushRegistrationService {
       return;
     }
     this.#pendingPickupHapticAt = 0;
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:flushPendingPickupHaptic',message:'haptic_flush_on_resume',data:{documentHidden:document.hidden,ageMs},timestamp:Date.now(),hypothesisId:'H7',runId:'post-fix-2'})}).catch(()=>{});
-    console.warn('[DEBUG-7379f5] haptic_flush_on_resume', ageMs);
-    // #endregion
     await this.triggerPickupHaptic();
   }
 
   private async triggerPickupHaptic(options?: DeliverPickupAlertOptions): Promise<void> {
-    let hapticOk = false;
-
     if (this.#platform.isNative) {
       try {
         const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
         await Haptics.impact({ style: ImpactStyle.Heavy });
-        hapticOk = true;
+        return;
       } catch {
         try {
           const { Haptics } = await import('@capacitor/haptics');
           await Haptics.vibrate({ duration: PICKUP_VIBRATE_MS });
-          hapticOk = true;
+          return;
         } catch {
-          // fall through to web vibrate
+          // fall through
         }
       }
     }
 
-    if (!hapticOk) {
-      try {
-        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-          navigator.vibrate(PICKUP_VIBRATE_MS);
-          hapticOk = true;
-        }
-      } catch {
-        // ignore
+    try {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate(PICKUP_VIBRATE_MS);
       }
+    } catch {
+      // ignore
     }
-
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:triggerPickupHaptic',message:'haptic_triggered',data:{hapticOk,source:options?.source,eventType:options?.eventType,documentHidden:document.hidden,isNative:this.#platform.isNative},timestamp:Date.now(),hypothesisId:'H7',runId:'post-fix-2'})}).catch(()=>{});
-    console.warn('[DEBUG-7379f5] haptic_triggered', { hapticOk, eventType: options?.eventType, hidden: document.hidden });
-    // #endregion
   }
 
   async unregisterCurrentToken(): Promise<void> {
@@ -368,33 +329,45 @@ export class PushRegistrationService {
     }
   }
 
+  /**
+   * Hybrid FCM: OS shows tray + vibration when backgrounded.
+   * JS only adds extra haptics when WebView wakes and this device owns the order.
+   */
   private async onPushReceived(notification: PushNotificationSchema): Promise<void> {
     if (!this.#platform.isNative) {
       return;
     }
 
     const payload = this.parsePayload(notification);
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:onPushReceived',message:'fcm_push_received',data:{eventType:payload.eventType,tableId:payload.tableId,clientInstanceId:payload.clientInstanceId,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
-    // #endregion
     if (!payload.eventType) {
       return;
     }
 
     const tableId = payload.tableId ?? 'unknown';
+    const debounceKey = `${payload.eventType}:${tableId}`;
 
-    if (this.wasPickupAlertHandledRecently(payload.eventType, tableId)) {
+    if (this.isDebounced(debounceKey)) {
       return;
     }
 
-    // Background/killed: hybrid FCM shows OS tray; JS adds haptics when the WebView wakes.
-    await this.deliverPickupAlert({
-      eventType: payload.eventType,
-      tableId,
-      tableName: payload.tableName,
-      clientInstanceId: payload.clientInstanceId,
-      source: 'fcm',
-    });
+    // Foreground: SSE + Capacitor presentationOptions=[] — skip FCM JS work.
+    if (!document.hidden) {
+      return;
+    }
+
+    this.markHandled(debounceKey);
+
+    await this.#clientInstance.whenReady();
+    const isTarget = this.#clientInstance.isPickupTarget(payload.clientInstanceId);
+    if (isTarget && this.#deviceFeedback.hapticsEnabled) {
+      await this.triggerPickupHaptic({
+        eventType: payload.eventType,
+        tableId,
+        tableName: payload.tableName,
+        clientInstanceId: payload.clientInstanceId,
+        source: 'fcm',
+      });
+    }
   }
 
   private async showLocalizedNotification(

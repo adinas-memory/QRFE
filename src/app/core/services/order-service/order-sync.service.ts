@@ -217,10 +217,6 @@ export class OrderSyncService {
     }
     if (this.deferSseWhileHidden()) {
       this.pendingOpenRestaurantId = restaurantId;
-      // #region agent log
-      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'order-sync.service.ts:openConnection',message:'sse_open_deferred_hidden',data:{restaurantId,isNative:Capacitor.isNativePlatform(),documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H4',runId:'sse-fcm-fix'})}).catch(()=>{});
-      console.warn('[DEBUG-7379f5] sse_open_deferred_hidden', restaurantId);
-      // #endregion
       return;
     }
     if (!this.onlineStateService.isOnline) {
@@ -229,10 +225,6 @@ export class OrderSyncService {
       return;
     }
     this.pendingOpenRestaurantId = null;
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'order-sync.service.ts:openConnection',message:'sse_open_start',data:{restaurantId,isNative:Capacitor.isNativePlatform(),documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H4',runId:'sse-fcm-fix'})}).catch(()=>{});
-    console.warn('[DEBUG-7379f5] sse_open_start', restaurantId);
-    // #endregion
     // ensure single controller/connection (switching restaurants)
     if (this.controller) this.close();
     this.controller = new AbortController();
@@ -264,11 +256,12 @@ export class OrderSyncService {
         }
         this.onlineStateService.setOnline();
 
-        // Hybrid reconnect: apply authoritative snapshot + watermark
-        try {
-          await this.syncRestaurantState(restaurantId);
-        } catch (e) {
-          console.warn('[SSE][internal] /api/sync failed (continuing live SSE only)', e);
+        if (Date.now() - this.lastSnapshotRefreshAt >= this.snapshotRefreshMinIntervalMs) {
+          try {
+            await this.syncRestaurantState(restaurantId);
+          } catch (e) {
+            console.warn('[SSE][internal] /api/sync failed (continuing live SSE only)', e);
+          }
         }
 
         this.ngZone.run(() => {
@@ -312,9 +305,6 @@ export class OrderSyncService {
           const sse: SseEvent<any> = { EventType, Data, Sequence, RestaurantId, InitiatedBy };
 
           if (Sequence && Sequence <= this.watermarkSequence) {
-            // #region agent log
-            fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'order-sync.service.ts:onmessage',message:'sse_watermark_drop',data:{EventType,Sequence,watermarkSequence:this.watermarkSequence,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-            // #endregion
             // already included in last /api/sync snapshot or previously applied
             return;
           }
@@ -368,21 +358,13 @@ export class OrderSyncService {
 
         const watermark = json?.Watermark ?? json?.watermark;
         const seq = watermark?.Sequence ?? watermark?.sequence ?? 0;
-        const prevWatermark = this.watermarkSequence;
         if (typeof seq === 'number' && seq > this.watermarkSequence) {
           this.watermarkSequence = seq;
         }
 
         const tables = (json?.Tables ?? json?.tables ?? []) as any[];
         await this.offlineDB.applySyncSnapshot(tables as any);
-        const withInitiatedBy = (tables ?? []).filter(t => {
-          const o = t?.order ?? t?.Order;
-          const v = o?.lastInitiatedBy ?? o?.LastInitiatedBy;
-          return typeof v === 'string' && v.trim().length > 0;
-        }).length;
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'order-sync.service.ts:syncRestaurantState',message:'sync_snapshot_applied',data:{tableCount:(tables??[]).length,withInitiatedBy,prevWatermark,newWatermark:seq,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H8',runId:'post-fix-dedupe'})}).catch(()=>{});
-        // #endregion
+        this.lastSnapshotRefreshAt = Date.now();
         this.ngZone.run(() => {
           this.snapshotRefreshedSubject.next({ restaurantId });
         });

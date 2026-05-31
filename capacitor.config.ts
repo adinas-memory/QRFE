@@ -9,6 +9,12 @@ const config: CapacitorConfig = {
     cleartext: true,
     androidScheme: 'http',
   },
+  plugins: {
+    PushNotifications: {
+      // Foreground: no OS banner (SSE handles haptics + in-app toast). Background: hybrid FCM shows tray.
+      presentationOptions: [],
+    },
+  },
 };
 
 export default config;

@@ -588,14 +588,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.applyPersistedInitiatedByToComputed();
     this.ordersService.saveComputed(this.tableComputed);
 
-    // #region agent log
-    const sample = this.tables
-      .filter(t => readOrderLastInitiatedBy(t.order))
-      .slice(0, 3)
-      .map(t => ({ tableId: t.tableId, lastInitiatedBy: readOrderLastInitiatedBy(t.order), ui: this.tableComputed[t.tableId!]?.initiatedBy }));
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'manage-orders.component.ts:reloadFromSyncSnapshot',message:'initiated_by_after_sync_reload',data:{tableCount:this.tables.length,sample,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H8',runId:'post-fix-initiated-by'})}).catch(()=>{});
-    // #endregion
-
     for (const tableId of Object.keys(this.tableComputed)) {
       const table = this.tables.find(t => t.tableId === tableId);
       if (table && this.tableComputed[tableId]) {
@@ -1140,9 +1132,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       case 'KitchenWaiterCall': {
         const parsed = this.pickupNotification.parsePickupPayload(Data);
         const tableId = parsed.tableId;
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'manage-orders.component.ts:KitchenWaiterCall',message:'snooze_flag_set',data:{tableId,Sequence,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
-        // #endregion
         if (tableId) {
           this.kitchenPickupRequested[tableId] = true;
           this.appToast.info(this.pickupToastMessage('kitchen', tableId, parsed.tableName));
@@ -1476,16 +1465,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           this.initialTablesLoaded = true;
           this.ordersService.saveComputed(this.tableComputed);
 
-          // Force sync after subscribe is active (cold start / missed resume refresh).
-          await this.sseService.refreshRestaurantSnapshot({ force: true });
-          await this.reloadFromSyncSnapshot();
-
-          // #region agent log
-          const withBy = this.tables.filter(t => readOrderLastInitiatedBy(t.order)).length;
-          const uiWithBy = Object.values(this.tableComputed).filter(c => (c as { initiatedBy?: string }).initiatedBy?.trim()).length;
-          fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'manage-orders.component.ts:ngOnInit',message:'cold_start_initiated_by',data:{tableCount:this.tables.length,ordersWithLastInitiatedBy:withBy,uiWithInitiatedBy:uiWithBy,sample:this.tables.filter(t=>readOrderLastInitiatedBy(t.order)).slice(0,2).map(t=>({tableId:t.tableId,lastInitiatedBy:readOrderLastInitiatedBy(t.order),ui:this.tableComputed[t.tableId]?.initiatedBy}))},timestamp:Date.now(),hypothesisId:'H9',runId:'cold-start-fix'})}).catch(()=>{});
-          console.warn('[DEBUG-7379f5] cold_start_initiated_by', { withBy, uiWithBy });
-          // #endregion
+          // Sync if SSE onopen has not refreshed recently (snapshotRefreshed$ reloads UI).
+          await this.sseService.refreshRestaurantSnapshot();
 
           Object.keys(this.tableComputed).forEach(tableId => {
             const table = this.tables.find(t => t.tableId === tableId);

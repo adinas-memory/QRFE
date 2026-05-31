@@ -75,15 +75,9 @@ export class PickupNotificationService {
 
     switch (ev.EventType) {
       case 'KitchenWaiterCall':
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'pickup-notification.service.ts:onSseEvent',message:'pickup_sse_received',data:{eventType:ev.EventType,Sequence:ev.Sequence,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H5',runId:'post-fix-3'})}).catch(()=>{});
-        // #endregion
         this.handlePickupSse('kitchen', ev.Data);
         break;
       case 'BarWaiterCall':
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'pickup-notification.service.ts:onSseEvent',message:'pickup_sse_received',data:{eventType:ev.EventType,Sequence:ev.Sequence,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H5',runId:'post-fix-3'})}).catch(()=>{});
-        // #endregion
         this.handlePickupSse('bar', ev.Data);
         break;
       default:

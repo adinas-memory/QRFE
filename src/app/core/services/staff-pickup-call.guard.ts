@@ -1,4 +1,4 @@
-const TTL_MS = 5000;
+const TTL_MS = 15_000;
 const inFlightKeys = new Set<string>();
 
 function storageKey(restaurantId: string, tableId: string): string {
@@ -14,11 +14,14 @@ export function tryBeginStaffPickupCall(restaurantId: string, tableId: string): 
     return false;
   }
 
+  inFlightKeys.add(key);
+
   try {
     const raw = sessionStorage.getItem(key);
     if (raw) {
       const at = Number(raw);
       if (Number.isFinite(at) && now - at < TTL_MS) {
+        inFlightKeys.delete(key);
         return false;
       }
     }
@@ -27,16 +30,11 @@ export function tryBeginStaffPickupCall(restaurantId: string, tableId: string): 
     // ignore storage errors (private mode)
   }
 
-  inFlightKeys.add(key);
   return true;
 }
 
 export function endStaffPickupCall(restaurantId: string, tableId: string): void {
   const key = storageKey(restaurantId, tableId);
   inFlightKeys.delete(key);
-  try {
-    sessionStorage.removeItem(key);
-  } catch {
-    // ignore
-  }
+  // Keep sessionStorage entry until TTL expires — blocks rapid double-tap after slow responses.
 }
