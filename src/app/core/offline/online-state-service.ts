@@ -33,6 +33,7 @@ export class OnlineStateService {
   private readonly resumePipelineCooldownMs = 3000;
   private lastForcedPingAt = 0;
   private readonly forcedPingMinIntervalMs = 2000;
+  private resumeCheckInProgress = false;
 
   constructor() {
     this.startHeartbeat();
@@ -72,14 +73,22 @@ export class OnlineStateService {
     if (now - this.lastResumePipelineAt < this.resumePipelineCooldownMs) {
       return;
     }
-
-    const ok = await this.confirmConnectivity(true);
-    if (!ok) {
+    if (this.resumeCheckInProgress) {
       return;
     }
 
-    this.lastResumePipelineAt = Date.now();
-    this.resumeConnectivitySubject.next();
+    this.resumeCheckInProgress = true;
+    this.lastResumePipelineAt = now;
+
+    try {
+      const ok = await this.confirmConnectivity(true);
+      if (!ok) {
+        return;
+      }
+      this.resumeConnectivitySubject.next();
+    } finally {
+      this.resumeCheckInProgress = false;
+    }
   }
 
   private startHeartbeat() {

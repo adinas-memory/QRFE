@@ -13,6 +13,8 @@ export interface PickupSsePayload {
 
 export type PickupReadyKind = 'kitchen' | 'bar';
 
+const PICKUP_SEQ_STORAGE_KEY = 'qrfe-pickup-seq';
+
 /** Kitchen/bar pickup alerts via SSE (any staff route) and shared targeting rules. */
 @Injectable({ providedIn: 'root' })
 export class PickupNotificationService {
@@ -31,6 +33,7 @@ export class PickupNotificationService {
       return;
     }
     this.#globalAlertsStarted = true;
+    this.loadPersistedSequences();
 
     this.#orderSync.events$
       .pipe(takeUntilDestroyed(this.#destroyRef))
@@ -103,7 +106,33 @@ export class PickupNotificationService {
         this.#recentSseSequenceSet.delete(old);
       }
     }
+    this.persistSequences();
     return true;
+  }
+
+  private loadPersistedSequences(): void {
+    try {
+      const raw = sessionStorage.getItem(PICKUP_SEQ_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as unknown;
+      if (!Array.isArray(parsed)) return;
+      for (const n of parsed) {
+        if (typeof n !== 'number' || n <= 0 || this.#recentSseSequenceSet.has(n)) continue;
+        this.#recentSseSequenceSet.add(n);
+        this.#recentSseSequences.push(n);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  private persistSequences(): void {
+    try {
+      const tail = this.#recentSseSequences.slice(-50);
+      sessionStorage.setItem(PICKUP_SEQ_STORAGE_KEY, JSON.stringify(tail));
+    } catch {
+      // ignore
+    }
   }
 
   private field<T>(obj: unknown, pascal: string, camel: string): T | undefined {
