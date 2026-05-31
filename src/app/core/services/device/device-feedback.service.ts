@@ -45,6 +45,11 @@ export class DeviceFeedbackService {
     void this.deliverPickupReady(kind, options);
   }
 
+  /** FCM/SSE on this device — token or connection already implies delivery; skip ClientInstanceId gate. */
+  notifyPickupFromPush(kind: PickupReadyKind, tableId: string): void {
+    void this.deliverPickupFromPush(kind, tableId);
+  }
+
   private async deliverPickupReady(
     kind: PickupReadyKind,
     options: PickupReadyNotifyOptions,
@@ -80,14 +85,46 @@ export class DeviceFeedbackService {
     // #endregion
   }
 
+  private async deliverPickupFromPush(kind: PickupReadyKind, tableId: string): Promise<void> {
+    const normalizedTableId = tableId?.trim();
+    let outcome = 'unknown';
+
+    if (!this.hapticsEnabled) {
+      outcome = 'haptics_disabled';
+    } else if (!normalizedTableId) {
+      outcome = 'no_table_id';
+    } else {
+      const now = Date.now();
+      const last = this.lastVibrateAtByTable.get(`${kind}:${normalizedTableId}`) ?? 0;
+      if (now - last < DEBOUNCE_MS) {
+        outcome = 'debounced';
+      } else {
+        this.lastVibrateAtByTable.set(`${kind}:${normalizedTableId}`, now);
+        await this.vibrate(PICKUP_VIBRATE_MS);
+        outcome = 'vibrated_push';
+      }
+    }
+
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'post-fix-vibrate',hypothesisId:'H11',location:'device-feedback.service.ts:deliverPickupFromPush',message:'push haptic decision',data:{kind,tableId:normalizedTableId,outcome,hapticsEnabled:this.hapticsEnabled},timestamp:Date.now()})}).catch(()=>{});
+    console.warn('[DEBUG-7379f5] push haptic', outcome, { kind, tableId: normalizedTableId });
+    // #endregion
+  }
+
   private async vibrate(durationMs: number): Promise<void> {
     if (this.platform.capabilities.hapticsBackend === 'capacitor-haptics') {
       try {
         const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
-        await Haptics.impact({ style: ImpactStyle.Medium });
+        await Haptics.vibrate({ duration: durationMs });
         return;
       } catch {
-        // fall through to web vibrate
+        try {
+          const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+          await Haptics.impact({ style: ImpactStyle.Heavy });
+          return;
+        } catch {
+          // fall through to web vibrate
+        }
       }
     }
     try {

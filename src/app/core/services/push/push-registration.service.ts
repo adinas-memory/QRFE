@@ -137,9 +137,11 @@ export class PushRegistrationService {
       await this.showLocalizedNotification(options.eventType, options.tableName);
     }
 
-    // Native: SSE may still arrive briefly when screen locked — show tray if FCM missed.
+    // Native: SSE may still arrive briefly when screen locked — tray + haptic fallback.
     if (this.#platform.isNative && document.hidden) {
       await this.showLocalizedNotification(options.eventType, options.tableName);
+      const kind = options.eventType === 'BarWaiterCall' ? 'bar' : 'kitchen';
+      this.#deviceFeedback.notifyPickupFromPush(kind, options.tableId);
     }
   }
 
@@ -333,10 +335,7 @@ export class PushRegistrationService {
     this.markHandled(debounceKey);
 
     const kind = payload.eventType === 'BarWaiterCall' ? 'bar' : 'kitchen';
-    this.#deviceFeedback.notifyPickupReady(kind, {
-      tableId,
-      clientInstanceId: payload.clientInstanceId,
-    });
+    this.#deviceFeedback.notifyPickupFromPush(kind, tableId);
   }
 
   private async showLocalizedNotification(
