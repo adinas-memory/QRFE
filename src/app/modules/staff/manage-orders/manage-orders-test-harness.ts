@@ -101,6 +101,7 @@ export interface OfflineDbMock {
   deleteCart: jasmine.Spy;
   loadAllCarts: jasmine.Spy;
   loadTablesStatusMap: jasmine.Spy;
+  loadLocalTables: jasmine.Spy;
   upsertTableStatus: jasmine.Spy;
   saveTables: jasmine.Spy;
   saveTablesStatus: jasmine.Spy;
@@ -136,6 +137,7 @@ export function createOfflineDbMock(): OfflineDbMock {
       return result;
     }),
     loadTablesStatusMap: jasmine.createSpy('loadTablesStatusMap').and.resolveTo({}),
+    loadLocalTables: jasmine.createSpy('loadLocalTables').and.resolveTo([]),
     upsertTableStatus: jasmine.createSpy('upsertTableStatus').and.resolveTo(undefined),
     saveTables: jasmine.createSpy('saveTables').and.resolveTo(undefined),
     saveTablesStatus: jasmine.createSpy('saveTablesStatus').and.resolveTo(undefined),
@@ -230,6 +232,7 @@ export function createManageOrdersMocks(options: SetupManageOrdersOptions = {}):
   const categories = options.categories ?? ['Main', 'Starters'];
   const offlineDb = createOfflineDbMock();
   offlineDb.loadTablesStatusMap.and.resolveTo(options.tablesStatusMap ?? buildAvailabilityMap(tables));
+  offlineDb.loadLocalTables.and.resolveTo(tables);
 
   const orderConfirmed$ = new Subject<{ tableId: string; orderId: string }>();
   const sseEvents$ = new Subject<SseEvent<unknown>>();

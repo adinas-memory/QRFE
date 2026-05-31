@@ -9,6 +9,7 @@ import { AuthService } from '../../auth/auth.service';
 import { OfflineQueueProcessor } from '../../offline/offline-queue-processor.service';
 import { OfflineDbService } from '../../offline/offline-db';
 import { OnlineStateService } from '../../offline/online-state-service';
+import { Capacitor } from '@capacitor/core';
 
 @Injectable({
   providedIn: 'root'
@@ -78,7 +79,16 @@ export class OrderSyncService {
     this.onlineStateService.resumeConnectivityOk$
       .subscribe(() => {
         void this.refreshRestaurantSnapshot({ fromResume: true });
+        this.flushPendingSseConnection();
       });
+
+    if (!Capacitor.isNativePlatform()) {
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          this.flushPendingSseConnection();
+        }
+      });
+    }
 
     this.onlineStateService.online$
       .pipe(filter(isOnline => isOnline))
@@ -184,13 +194,33 @@ export class OrderSyncService {
     this.eventBuffer = [];
   }
 
+  /** PWA tabs defer SSE while hidden; native keeps the stream alive for instant pickup alerts. */
+  private deferSseWhileHidden(): boolean {
+    if (Capacitor.isNativePlatform()) {
+      return false;
+    }
+    return document.hidden;
+  }
+
+  private flushPendingSseConnection(): void {
+    const rid = this.pendingOpenRestaurantId ?? this.resolveRestaurantId();
+    if (!rid || this.controller) {
+      return;
+    }
+    this.openConnection(rid);
+  }
+
   private openConnection(restaurantId: string) {
     // already connected to the same restaurant
     if (this.controller && this.connectedRestaurantId === restaurantId) {
       return;
     }
-    if (document.hidden) {
+    if (this.deferSseWhileHidden()) {
       this.pendingOpenRestaurantId = restaurantId;
+      // #region agent log
+      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'order-sync.service.ts:openConnection',message:'sse_open_deferred_hidden',data:{restaurantId,isNative:Capacitor.isNativePlatform(),documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H4',runId:'sse-fcm-fix'})}).catch(()=>{});
+      console.warn('[DEBUG-7379f5] sse_open_deferred_hidden', restaurantId);
+      // #endregion
       return;
     }
     if (!this.onlineStateService.isOnline) {
@@ -199,6 +229,10 @@ export class OrderSyncService {
       return;
     }
     this.pendingOpenRestaurantId = null;
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'order-sync.service.ts:openConnection',message:'sse_open_start',data:{restaurantId,isNative:Capacitor.isNativePlatform(),documentHidden:document.hidden},timestamp:Date.now(),hypothesisId:'H4',runId:'sse-fcm-fix'})}).catch(()=>{});
+    console.warn('[DEBUG-7379f5] sse_open_start', restaurantId);
+    // #endregion
     // ensure single controller/connection (switching restaurants)
     if (this.controller) this.close();
     this.controller = new AbortController();
@@ -377,7 +411,8 @@ export class OrderSyncService {
   }
 
   private handleSseError(restaurantId: string, err: any) {
-    if (document.hidden) {
+    if (this.deferSseWhileHidden()) {
+      this.pendingOpenRestaurantId = restaurantId;
       return;
     }
     if (this.isRefreshing) return;
@@ -430,7 +465,8 @@ export class OrderSyncService {
       const delay = Math.min(30000, this.baseReconnectDelayMs * Math.pow(2, this.reconnectAttempts - 1));
       console.warn(`[OrderSync] scheduling reconnect attempt ${this.reconnectAttempts} in ${delay}ms`);
       timer(delay).pipe(take(1)).subscribe(() => {
-        if (document.hidden) {
+        if (this.deferSseWhileHidden()) {
+          this.pendingOpenRestaurantId = restaurantId;
           return;
         }
         if (!this.onlineStateService.isOnline) {

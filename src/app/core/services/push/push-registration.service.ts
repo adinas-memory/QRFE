@@ -125,11 +125,14 @@ export class PushRegistrationService {
       return;
     }
 
-    // FCM: background + targeted device only (foreground uses SSE).
-    if (options.source === 'fcm') {
-      if (!isTarget || !document.hidden) {
-        return;
-      }
+    // Foreground: SSE handles alerts; hybrid FCM OS notification is suppressed by skipping JS work.
+    if (options.source === 'fcm' && !document.hidden) {
+      return;
+    }
+
+    // FCM is targeted at the order owner device (server filters tokens too).
+    if (options.source === 'fcm' && !isTarget) {
+      return;
     }
 
     this.#lastAlertAtByKey.set(debounceKey, now);
@@ -150,9 +153,8 @@ export class PushRegistrationService {
       }
     }
 
-    // Tray: SSE reaches all staff sessions (same as manage-orders toast); FCM when targeted in background.
-    const shouldShowTray =
-      options.source === 'sse' || (options.source === 'fcm' && isTarget);
+    // Tray: SSE via LocalNotifications; FCM uses hybrid OS notification payload in background.
+    const shouldShowTray = options.source === 'sse';
     if (shouldShowTray && (this.#platform.isNative || !document.hidden)) {
       await this.showLocalizedNotification(options.eventType, options.tableName);
     }
@@ -364,14 +366,11 @@ export class PushRegistrationService {
 
     const tableId = payload.tableId ?? 'unknown';
 
-    if (!document.hidden) {
-      return;
-    }
-
     if (this.wasPickupAlertHandledRecently(payload.eventType, tableId)) {
       return;
     }
 
+    // Background/killed: hybrid FCM shows OS tray; JS adds haptics when the WebView wakes.
     await this.deliverPickupAlert({
       eventType: payload.eventType,
       tableId,

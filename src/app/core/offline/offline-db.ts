@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import Dexie, { Table } from 'dexie';
 import { Subject } from 'rxjs';
-import { cartItemFromOrderLine, OrderDTO, OrderItemDTO, TableCart } from '../../core/models/orderingModel';
+import { cartItemFromOrderLine, OrderDTO, OrderItemDTO, TableCart, tableHasActiveOrder } from '../../core/models/orderingModel';
 import { MenuItem } from '../models/menu/menuItem';
 import { Currency, TableDTO } from '../models/restaurantTablesModel';
 export interface MenuItemEntity extends MenuItem { }
@@ -233,9 +233,9 @@ export class OfflineDbService {
         for (const t of tables ?? []) {
             if (!t?.tableId) continue;
             const order = (t as any).order as OrderDTO | undefined;
-            if (order?.orderId && order?.isOrderOpen) {
+            if (tableHasActiveOrder(order)) {
                 openOrderTableIds.add(t.tableId);
-                await this.saveOrderSnapshot(t.tableId, order);
+                await this.saveOrderSnapshot(t.tableId, order!);
             } else {
                 // If server says it's open/no order, delete local cart snapshot *unless*
                 // we have a locally confirmed order that hasn't been reconciled yet.

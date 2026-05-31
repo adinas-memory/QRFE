@@ -1478,6 +1478,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
           // Force sync after subscribe is active (cold start / missed resume refresh).
           await this.sseService.refreshRestaurantSnapshot({ force: true });
+          await this.reloadFromSyncSnapshot();
 
           // #region agent log
           const withBy = this.tables.filter(t => readOrderLastInitiatedBy(t.order)).length;
