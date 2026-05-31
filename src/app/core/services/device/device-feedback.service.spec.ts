@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, flushMicrotasks } from '@angular/core/testing';
 import { DeviceFeedbackService } from './device-feedback.service';
 import { ClientInstanceService } from './client-instance.service';
 import { RuntimePlatformService } from '../../platform/runtime-platform.service';
@@ -21,11 +21,7 @@ describe('DeviceFeedbackService', () => {
           useValue: {
             getId: () => localId,
             isAvailable: () => true,
-            isPickupTarget: (target: string | null | undefined) => {
-              const t = (target ?? '').trim();
-              if (!t) return true;
-              return t === localId;
-            },
+            whenReady: () => Promise.resolve(localId),
           },
         },
         {
@@ -52,18 +48,27 @@ describe('DeviceFeedbackService', () => {
     service = TestBed.inject(DeviceFeedbackService);
   });
 
-  it('vibrates when client instance id matches', () => {
+  it('vibrates when client instance id matches', fakeAsync(() => {
     service.notifyPickupReady('kitchen', {
       tableId: 'table-1',
       clientInstanceId: localId,
     });
+    flushMicrotasks();
     expect(vibrateSpy).toHaveBeenCalledWith(500);
-  });
+  }));
 
   it('does not vibrate when client instance id differs', () => {
     service.notifyPickupReady('bar', {
       tableId: 'table-1',
       clientInstanceId: 'other-device',
+    });
+    expect(vibrateSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not vibrate when client instance id is missing', () => {
+    service.notifyPickupReady('kitchen', {
+      tableId: 'table-1',
+      clientInstanceId: null,
     });
     expect(vibrateSpy).not.toHaveBeenCalled();
   });
@@ -77,9 +82,11 @@ describe('DeviceFeedbackService', () => {
     expect(vibrateSpy).not.toHaveBeenCalled();
   });
 
-  it('debounces repeat pickup for same table', () => {
+  it('debounces repeat pickup for same table', fakeAsync(() => {
     service.notifyPickupReady('kitchen', { tableId: 'table-1', clientInstanceId: localId });
+    flushMicrotasks();
     service.notifyPickupReady('kitchen', { tableId: 'table-1', clientInstanceId: localId });
+    flushMicrotasks();
     expect(vibrateSpy).toHaveBeenCalledTimes(1);
-  });
+  }));
 });

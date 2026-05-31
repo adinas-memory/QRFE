@@ -43,7 +43,7 @@ export function clientInstanceIdsMatch(
   localId: string | null | undefined,
 ): boolean {
   const target = (targetId ?? '').trim();
-  if (!target) return true;
+  if (!target) return false;
   const local = (localId ?? '').trim();
   if (!local) return false;
   return target.toLowerCase() === local.toLowerCase();

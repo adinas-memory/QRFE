@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { RuntimePlatformService } from '../../platform/runtime-platform.service';
 import { PlatformStorageService } from '../../platform/platform-storage.service';
-import { ClientInstanceService } from './client-instance.service';
+import { ClientInstanceService, clientInstanceIdsMatch } from './client-instance.service';
 
 const PICKUP_VIBRATE_MS = 500;
 const DEBOUNCE_MS = 2000;
@@ -38,22 +38,34 @@ export class DeviceFeedbackService {
   }
 
   /**
-   * Vibrate only when the SSE payload targets this device's client instance id.
+   * Vibrate only when the SSE/FCM payload targets this device's client instance id.
+   * Waits for Capacitor Preferences id before comparing (same rules as b8e1d845).
    */
   notifyPickupReady(kind: PickupReadyKind, options: PickupReadyNotifyOptions): void {
+    void this.deliverPickupReady(kind, options);
+  }
+
+  private async deliverPickupReady(
+    kind: PickupReadyKind,
+    options: PickupReadyNotifyOptions,
+  ): Promise<void> {
     if (!this.hapticsEnabled) return;
 
-    if (!this.clientInstance.isPickupTarget(options.clientInstanceId)) return;
+    const targetId = (options.clientInstanceId ?? '').trim();
+    if (!targetId) return;
 
     const tableId = options.tableId?.trim();
     if (!tableId) return;
+
+    const localId = await this.clientInstance.whenReady();
+    if (!localId || !clientInstanceIdsMatch(targetId, localId)) return;
 
     const now = Date.now();
     const last = this.lastVibrateAtByTable.get(`${kind}:${tableId}`) ?? 0;
     if (now - last < DEBOUNCE_MS) return;
     this.lastVibrateAtByTable.set(`${kind}:${tableId}`, now);
 
-    void this.vibrate(PICKUP_VIBRATE_MS);
+    await this.vibrate(PICKUP_VIBRATE_MS);
   }
 
   private async vibrate(durationMs: number): Promise<void> {

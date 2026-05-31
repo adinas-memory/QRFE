@@ -24,7 +24,6 @@ import {
 
 const WAITER_CALL_CHANNEL_ID = 'waiter_call_v2';
 const ALERT_DEBOUNCE_MS = 5000;
-const PICKUP_VIBRATE_MS = 500;
 
 export type PickupAlertSource = 'sse' | 'fcm';
 
@@ -58,7 +57,6 @@ export class PushRegistrationService {
   #listenersAttached = false;
   #localNotificationId = 1;
   readonly #lastAlertAtByKey = new Map<string, number>();
-  #pendingPickupHapticAt = 0;
   #resumeFlushAttached = false;
 
   init(): void {
@@ -109,13 +107,11 @@ export class PushRegistrationService {
     }
   }
 
-  /** SSE path (and PWA). FCM hybrid tray is handled by the OS in onPushReceived. */
+  /** PWA background tray only; haptics go through DeviceFeedbackService (SSE / FCM). */
   async deliverPickupAlert(options: DeliverPickupAlertOptions): Promise<void> {
     if (options.source === 'fcm') {
       return;
     }
-
-    await this.#clientInstance.whenReady();
 
     const debounceKey = `${options.eventType}:${options.tableId}`;
     if (this.isDebounced(debounceKey)) {
@@ -124,15 +120,7 @@ export class PushRegistrationService {
 
     this.markHandled(debounceKey);
 
-    const foreground = !document.hidden;
-
-    if (this.#deviceFeedback.hapticsEnabled) {
-      await this.triggerPickupHaptic(options);
-      this.#pendingPickupHapticAt = foreground ? 0 : Date.now();
-    }
-
-    // Native: background tray comes from FCM hybrid only (no LocalNotifications duplicate).
-    if (!this.#platform.isNative && !foreground) {
+    if (!this.#platform.isNative && document.hidden) {
       await this.showLocalizedNotification(options.eventType, options.tableName);
     }
   }
@@ -147,18 +135,11 @@ export class PushRegistrationService {
     }
     this.#resumeFlushAttached = true;
 
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        void this.flushPendingPickupHaptic();
-      }
-    });
-
     if (this.#platform.isNative) {
       void import('@capacitor/app').then(({ App }) => {
         App.addListener('appStateChange', ({ isActive }) => {
           if (isActive) {
             void this.clearDeliveredPushNotifications();
-            void this.flushPendingPickupHaptic();
           }
         });
       });
@@ -178,45 +159,6 @@ export class PushRegistrationService {
     if (!this.#platform.isNative) return;
     try {
       await PushNotifications.removeAllDeliveredNotifications();
-    } catch {
-      // ignore
-    }
-  }
-
-  private async flushPendingPickupHaptic(): Promise<void> {
-    if (!this.#pendingPickupHapticAt) {
-      return;
-    }
-    const ageMs = Date.now() - this.#pendingPickupHapticAt;
-    if (ageMs > 60_000) {
-      this.#pendingPickupHapticAt = 0;
-      return;
-    }
-    this.#pendingPickupHapticAt = 0;
-    await this.triggerPickupHaptic();
-  }
-
-  private async triggerPickupHaptic(options?: DeliverPickupAlertOptions): Promise<void> {
-    if (this.#platform.isNative) {
-      try {
-        const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
-        await Haptics.impact({ style: ImpactStyle.Heavy });
-        return;
-      } catch {
-        try {
-          const { Haptics } = await import('@capacitor/haptics');
-          await Haptics.vibrate({ duration: PICKUP_VIBRATE_MS });
-          return;
-        } catch {
-          // fall through
-        }
-      }
-    }
-
-    try {
-      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-        navigator.vibrate(PICKUP_VIBRATE_MS);
-      }
     } catch {
       // ignore
     }
@@ -329,10 +271,6 @@ export class PushRegistrationService {
     }
   }
 
-  /**
-   * Hybrid FCM: OS shows tray + vibration when backgrounded.
-   * JS only adds extra haptics when WebView wakes and this device owns the order.
-   */
   private async onPushReceived(notification: PushNotificationSchema): Promise<void> {
     if (!this.#platform.isNative) {
       return;
@@ -357,17 +295,11 @@ export class PushRegistrationService {
 
     this.markHandled(debounceKey);
 
-    await this.#clientInstance.whenReady();
-    const isTarget = this.#clientInstance.isPickupTarget(payload.clientInstanceId);
-    if (isTarget && this.#deviceFeedback.hapticsEnabled) {
-      await this.triggerPickupHaptic({
-        eventType: payload.eventType,
-        tableId,
-        tableName: payload.tableName,
-        clientInstanceId: payload.clientInstanceId,
-        source: 'fcm',
-      });
-    }
+    const kind = payload.eventType === 'BarWaiterCall' ? 'bar' : 'kitchen';
+    this.#deviceFeedback.notifyPickupReady(kind, {
+      tableId,
+      clientInstanceId: payload.clientInstanceId,
+    });
   }
 
   private async showLocalizedNotification(

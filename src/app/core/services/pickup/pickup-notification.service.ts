@@ -1,6 +1,7 @@
 import { DestroyRef, Injectable, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { OrderSyncService } from '../order-service/order-sync.service';
+import { DeviceFeedbackService } from '../device/device-feedback.service';
 import { PushRegistrationService } from '../push/push-registration.service';
 import { SseEvent } from '../../models/sseModel';
 import { WaiterPushEventType } from '../push/push-notification-copy.service';
@@ -18,6 +19,7 @@ const PICKUP_SEQ_STORAGE_KEY = 'qrfe-pickup-seq';
 /** Kitchen/bar pickup alerts via SSE (any staff route) and shared targeting rules. */
 @Injectable({ providedIn: 'root' })
 export class PickupNotificationService {
+  readonly #deviceFeedback = inject(DeviceFeedbackService);
   readonly #pushRegistration = inject(PushRegistrationService);
   readonly #orderSync = inject(OrderSyncService);
   readonly #destroyRef = inject(DestroyRef);
@@ -56,6 +58,11 @@ export class PickupNotificationService {
 
     const eventType: WaiterPushEventType =
       kind === 'kitchen' ? 'KitchenWaiterCall' : 'BarWaiterCall';
+
+    this.#deviceFeedback.notifyPickupReady(kind, {
+      tableId: parsed.tableId,
+      clientInstanceId: parsed.clientInstanceId,
+    });
 
     void this.#pushRegistration.deliverPickupAlert({
       eventType,
