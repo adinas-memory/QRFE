@@ -50,6 +50,7 @@ export class PushRegistrationService {
   #listenersAttached = false;
   #localNotificationId = 1;
   readonly #lastAlertAtByKey = new Map<string, number>();
+  readonly #lastAlertSourceByKey = new Map<string, PickupAlertSource>();
   #pendingPickupHapticAt = 0;
   #resumeFlushAttached = false;
 
@@ -103,7 +104,7 @@ export class PushRegistrationService {
   }
 
   /**
-   * Haptics + localized tray notification (foreground). Background tray uses FCM notification payload.
+   * Haptics + localized tray via LocalNotifications (single channel — no FCM notification payload).
    */
   async deliverPickupAlert(options: DeliverPickupAlertOptions): Promise<void> {
     await this.#clientInstance.whenReady();
@@ -113,9 +114,11 @@ export class PushRegistrationService {
 
     const debounceKey = `${options.eventType}:${options.tableId}`;
     const now = Date.now();
-    const debounced = now - (this.#lastAlertAtByKey.get(debounceKey) ?? 0) < ALERT_DEBOUNCE_MS;
+    const lastAt = this.#lastAlertAtByKey.get(debounceKey) ?? 0;
+    const debounced = now - lastAt < ALERT_DEBOUNCE_MS;
+    const lastSource = this.#lastAlertSourceByKey.get(debounceKey);
     // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:deliverPickupAlert',message:'pickup_alert_eval',data:{source:options.source,eventType:options.eventType,tableId:options.tableId,isTarget,debounced,targetId,localId,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId: isTarget ? (debounced ? 'H4' : 'H3') : 'H3',runId:'post-fix-3'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'push-registration.service.ts:deliverPickupAlert',message:'pickup_alert_eval',data:{source:options.source,eventType:options.eventType,tableId:options.tableId,isTarget,debounced,lastSource,targetId,localId,documentHidden:document.hidden},timestamp:Date.now(),hypothesisId: debounced ? 'H4' : 'H3',runId:'dedupe-fix'})}).catch(()=>{});
     // #endregion
 
     if (!isTarget) {
@@ -125,7 +128,14 @@ export class PushRegistrationService {
     if (debounced) {
       return;
     }
+
+    // Foreground: SSE owns tray + haptics; FCM is a duplicate transport for the same event.
+    if (options.source === 'fcm' && !document.hidden) {
+      return;
+    }
+
     this.#lastAlertAtByKey.set(debounceKey, now);
+    this.#lastAlertSourceByKey.set(debounceKey, options.source);
 
     const hidden = document.hidden;
     await this.triggerPickupHaptic(options);
@@ -139,10 +149,17 @@ export class PushRegistrationService {
       this.#pendingPickupHapticAt = 0;
     }
 
-    // Native: localized tray via LocalNotifications (FCM is data-only). Web: tray only when visible.
+    // Native: localized tray via LocalNotifications. Web: tray only when visible.
     if (this.#platform.isNative || !document.hidden) {
       await this.showLocalizedNotification(options.eventType, options.tableName);
     }
+  }
+
+  /** SSE path won for this event — FCM handler can skip duplicate work. */
+  wasPickupAlertHandledRecently(eventType: WaiterPushEventType, tableId: string): boolean {
+    const debounceKey = `${eventType}:${tableId}`;
+    const lastAt = this.#lastAlertAtByKey.get(debounceKey) ?? 0;
+    return Date.now() - lastAt < ALERT_DEBOUNCE_MS;
   }
 
   /** Flush haptics queued while the app/tab was hidden (SSE or FCM). */
@@ -342,13 +359,15 @@ export class PushRegistrationService {
       return;
     }
 
-    // Foreground: SSE delivers haptics + LocalNotifications; skip JS handler to avoid duplicates.
-    // Background: OS notification channel vibrates; JS may still run on some devices for extra haptics.
+    const tableId = payload.tableId ?? 'unknown';
+
     if (!document.hidden) {
       return;
     }
 
-    const tableId = payload.tableId ?? 'unknown';
+    if (this.wasPickupAlertHandledRecently(payload.eventType, tableId)) {
+      return;
+    }
 
     await this.deliverPickupAlert({
       eventType: payload.eventType,
