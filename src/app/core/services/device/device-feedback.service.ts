@@ -49,23 +49,35 @@ export class DeviceFeedbackService {
     kind: PickupReadyKind,
     options: PickupReadyNotifyOptions,
   ): Promise<void> {
-    if (!this.hapticsEnabled) return;
-
     const targetId = (options.clientInstanceId ?? '').trim();
-    if (!targetId) return;
-
     const tableId = options.tableId?.trim();
-    if (!tableId) return;
-
     const localId = await this.clientInstance.whenReady();
-    if (!localId || !clientInstanceIdsMatch(targetId, localId)) return;
+    let outcome = 'unknown';
 
-    const now = Date.now();
-    const last = this.lastVibrateAtByTable.get(`${kind}:${tableId}`) ?? 0;
-    if (now - last < DEBOUNCE_MS) return;
-    this.lastVibrateAtByTable.set(`${kind}:${tableId}`, now);
+    if (!this.hapticsEnabled) {
+      outcome = 'haptics_disabled';
+    } else if (!targetId) {
+      outcome = 'no_target_id';
+    } else if (!tableId) {
+      outcome = 'no_table_id';
+    } else if (!localId || !clientInstanceIdsMatch(targetId, localId)) {
+      outcome = 'id_mismatch';
+    } else {
+      const now = Date.now();
+      const last = this.lastVibrateAtByTable.get(`${kind}:${tableId}`) ?? 0;
+      if (now - last < DEBOUNCE_MS) {
+        outcome = 'debounced';
+      } else {
+        this.lastVibrateAtByTable.set(`${kind}:${tableId}`, now);
+        await this.vibrate(PICKUP_VIBRATE_MS);
+        outcome = 'vibrated';
+      }
+    }
 
-    await this.vibrate(PICKUP_VIBRATE_MS);
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',hypothesisId:'H2',location:'device-feedback.service.ts:deliverPickupReady',message:'pickup haptic decision',data:{kind,tableId,targetId,localId,outcome,hapticsEnabled:this.hapticsEnabled},timestamp:Date.now()})}).catch(()=>{});
+    console.warn('[DEBUG-7379f5] haptic', outcome, { kind, tableId, targetId, localId });
+    // #endregion
   }
 
   private async vibrate(durationMs: number): Promise<void> {
