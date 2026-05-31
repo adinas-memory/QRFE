@@ -22,7 +22,7 @@ import {
   WaiterPushEventType,
 } from './push-notification-copy.service';
 
-const WAITER_CALL_CHANNEL_ID = 'waiter_call_v2';
+const WAITER_CALL_CHANNEL_ID = 'waiter_call_v3';
 const ALERT_DEBOUNCE_MS = 5000;
 
 export type PickupAlertSource = 'sse' | 'fcm';
