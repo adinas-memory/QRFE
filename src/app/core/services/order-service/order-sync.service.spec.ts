@@ -199,6 +199,14 @@ describe('OrderSyncService', () => {
       expect(fetchSpy.calls.all().filter(c => String(c.args[0]).includes('/api/sync')).length).toBe(1);
     });
 
+    it('force refresh bypasses min interval', async () => {
+      await service.refreshRestaurantSnapshot();
+      const ok = await service.refreshRestaurantSnapshot({ force: true });
+
+      expect(ok).toBe(true);
+      expect(fetchSpy.calls.all().filter(c => String(c.args[0]).includes('/api/sync')).length).toBe(2);
+    });
+
     it('runs sync after resumeConnectivityOk$', async () => {
       (service as any).lastRestaurantId = 'restaurant-1';
       const refreshSpy = spyOn(service, 'refreshRestaurantSnapshot').and.returnValue(Promise.resolve(true));

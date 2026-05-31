@@ -86,6 +86,7 @@ export class PushRegistrationService {
       await this.attachListeners();
       await this.createAndroidChannels();
       await this.ensureLocalNotificationPermission();
+      await this.#clientInstance.whenReady();
 
       let perm = await PushNotifications.checkPermissions();
       if (perm.receive === 'prompt') {
@@ -341,7 +342,8 @@ export class PushRegistrationService {
       return;
     }
 
-    // Foreground: SSE already delivers haptics + tray via deliverPickupAlert.
+    // Foreground: SSE delivers haptics + LocalNotifications; skip JS handler to avoid duplicates.
+    // Background: OS notification channel vibrates; JS may still run on some devices for extra haptics.
     if (!document.hidden) {
       return;
     }

@@ -36,6 +36,7 @@ import {
   OrderItemDTO,
   cartItemFromOrderLine,
   readOrderLastInitiatedBy,
+  tableHasActiveOrder,
 } from '../../../core/models/orderingModel';
 import { OrderSyncService } from '../../../core/services/order-service/order-sync.service';
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
@@ -520,7 +521,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       const order = t.order;
 
       // no order -> keep / ensure empty computed
-      if (!order || !order.isOrderOpen) {
+      if (!tableHasActiveOrder(order)) {
         this.tableComputed[t.tableId] = this.ordersService.mapComputedDtoToComputed(
           { tableId: t.tableId, isTableOpen: !!t.isTableOpen },
           this.tables,
@@ -530,16 +531,17 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         continue;
       }
 
-      const items = (order.orderItems ?? []).filter((x): x is NonNullable<typeof x> => !!x);
+      const activeOrder = order!;
+      const items = (activeOrder.orderItems ?? []).filter((x): x is NonNullable<typeof x> => !!x);
       const itemCount = items.reduce((s, i) => s + (i.quantity ?? 0), 0);
 
       const subtotalAmount =
-        order.subTotal?.amount ??
-        order.finalTotalPrice?.amount ??
+        activeOrder.subTotal?.amount ??
+        activeOrder.finalTotalPrice?.amount ??
         items.reduce((s, i) => s + ((i.orderItemPriceAmount ?? 0) * (i.quantity ?? 0)), 0);
 
       const currency =
-        (order.subTotal?.currency ?? order.finalTotalPrice?.currency)?.toString?.() ?? '';
+        (activeOrder.subTotal?.currency ?? activeOrder.finalTotalPrice?.currency)?.toString?.() ?? '';
 
       const lastAddedItem =
         (items.length ? items[items.length - 1].orderItemName : null) ?? '—';
@@ -1374,7 +1376,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           }
 
           this.tableComputed[c.tableId] = this.ordersService.mapComputedDtoToComputed(
-            c, this.tables, this.waiterState, this.resolveInitiatedBy(c.tableId)
+            c,
+            this.tables,
+            this.waiterState,
+            this.resolveInitiatedBy(c.tableId) || this.tableComputed[c.tableId]?.initiatedBy?.trim() || '',
           );
         }
 
@@ -1431,7 +1436,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.initialTablesLoaded = false;
-    this.capturePersistedInitiatedBy();
 
     this.sseService.events$
       .pipe(takeUntil(this.destroy$))
@@ -1454,6 +1458,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           tables: from(this.tablesService.getAllWithFallback(this.restaurantId)),
           menu: from(this.menuItemService.getAllWithFallback(this.restaurantId))
         }).subscribe(async ({ tables, menu }) => {
+          await this.ordersService.ensureInitiatedByCacheReady();
+          this.capturePersistedInitiatedBy();
+
           this.tables = tables;
           this.refreshTableLists();
 
@@ -1469,7 +1476,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           this.initialTablesLoaded = true;
           this.ordersService.saveComputed(this.tableComputed);
 
-          void this.sseService.refreshRestaurantSnapshot();
+          // Force sync after subscribe is active (cold start / missed resume refresh).
+          await this.sseService.refreshRestaurantSnapshot({ force: true });
+
+          // #region agent log
+          const withBy = this.tables.filter(t => readOrderLastInitiatedBy(t.order)).length;
+          const uiWithBy = Object.values(this.tableComputed).filter(c => (c as { initiatedBy?: string }).initiatedBy?.trim()).length;
+          fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',location:'manage-orders.component.ts:ngOnInit',message:'cold_start_initiated_by',data:{tableCount:this.tables.length,ordersWithLastInitiatedBy:withBy,uiWithInitiatedBy:uiWithBy,sample:this.tables.filter(t=>readOrderLastInitiatedBy(t.order)).slice(0,2).map(t=>({tableId:t.tableId,lastInitiatedBy:readOrderLastInitiatedBy(t.order),ui:this.tableComputed[t.tableId]?.initiatedBy}))},timestamp:Date.now(),hypothesisId:'H9',runId:'cold-start-fix'})}).catch(()=>{});
+          console.warn('[DEBUG-7379f5] cold_start_initiated_by', { withBy, uiWithBy });
+          // #endregion
 
           Object.keys(this.tableComputed).forEach(tableId => {
             const table = this.tables.find(t => t.tableId === tableId);

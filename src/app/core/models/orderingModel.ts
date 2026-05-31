@@ -44,6 +44,16 @@ export function readOrderLastInitiatedBy(order: OrderDTO | null | undefined): st
   return typeof v === 'string' ? v.trim() : '';
 }
 
+/** True when table snapshot includes an open order (tolerant of PascalCase / missing flag). */
+export function tableHasActiveOrder(order: OrderDTO | null | undefined): boolean {
+  if (!order) return false;
+  const rec = order as unknown as Record<string, unknown>;
+  const orderId = rec['orderId'] ?? rec['OrderId'];
+  if (typeof orderId !== 'string' || !orderId.trim()) return false;
+  const open = rec['isOrderOpen'] ?? rec['IsOrderOpen'];
+  return open !== false && open !== 'false' && open !== 0;
+}
+
 export interface MoneyDTO {
   amount?: number;
   currency: Currency;

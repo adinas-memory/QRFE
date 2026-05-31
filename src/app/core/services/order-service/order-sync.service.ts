@@ -129,7 +129,7 @@ export class OrderSyncService {
    * Pull authoritative restaurant snapshot from GET /api/sync and apply to Dexie.
    * Used when returning from background where SSE events may have been missed.
    */
-  async refreshRestaurantSnapshot(options?: { fromResume?: boolean }): Promise<boolean> {
+  async refreshRestaurantSnapshot(options?: { fromResume?: boolean; force?: boolean }): Promise<boolean> {
     const restaurantId = this.resolveRestaurantId();
     if (!restaurantId) {
       return false;
@@ -138,7 +138,7 @@ export class OrderSyncService {
       return false;
     }
     const now = Date.now();
-    if (now - this.lastSnapshotRefreshAt < this.snapshotRefreshMinIntervalMs) {
+    if (!options?.force && now - this.lastSnapshotRefreshAt < this.snapshotRefreshMinIntervalMs) {
       return false;
     }
     if (this.snapshotRefreshInProgress) {

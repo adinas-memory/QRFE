@@ -20,13 +20,19 @@ export class OrdersService {
   private apiUrl = environment.apiUrl;
   private readonly initiatedByMapKey = 'tableInitiatedByMap';
   private initiatedByCache: Record<string, string> = {};
+  private initiatedByCacheReady: Promise<void>;
 
   constructor(private http: HttpClient,
     private miscService: MiscellaneousService,
     private offlineDB: OfflineDbService,
     private onlineStateService: OnlineStateService,
     private platformStorage: PlatformStorageService) {
-    void this.hydrateInitiatedByCache();
+    this.initiatedByCacheReady = this.hydrateInitiatedByCache();
+  }
+
+  /** Wait for Preferences/local initiatedBy map before first UI hydrate (cold install). */
+  ensureInitiatedByCacheReady(): Promise<void> {
+    return this.initiatedByCacheReady;
   }
 
   private async hydrateInitiatedByCache(): Promise<void> {

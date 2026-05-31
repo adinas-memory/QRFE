@@ -158,6 +158,7 @@ export interface ManageOrdersMocks {
     saveComputed: jasmine.Spy;
     loadInitiatedByMap: jasmine.Spy;
     saveInitiatedByMap: jasmine.Spy;
+    ensureInitiatedByCacheReady: jasmine.Spy;
     mapComputedDtoToComputed: jasmine.Spy;
     mapPayloadToComputed: jasmine.Spy;
     moveOrder: jasmine.Spy;
@@ -258,6 +259,7 @@ export function createManageOrdersMocks(options: SetupManageOrdersOptions = {}):
       saveComputed: jasmine.createSpy('saveComputed'),
       loadInitiatedByMap: jasmine.createSpy('loadInitiatedByMap').and.returnValue(options.initiatedByMap ?? {}),
       saveInitiatedByMap: jasmine.createSpy('saveInitiatedByMap'),
+      ensureInitiatedByCacheReady: jasmine.createSpy('ensureInitiatedByCacheReady').and.returnValue(Promise.resolve()),
       mapComputedDtoToComputed: jasmine.createSpy('mapComputedDtoToComputed').and.callFake(
         (dto: TableComputedDTO, _tables: TableDTO[], _waiterState: Record<string, WaiterCallState>, initiatedBy?: string) => ({
           lastActionAt: dto.lastActionAt ?? '',
