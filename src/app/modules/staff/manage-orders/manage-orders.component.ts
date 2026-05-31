@@ -601,8 +601,23 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.currentOrderId = record.orderId ?? null;
         this.orderIsConfirmed = !!this.currentOrderId && !this.currentOrderId.startsWith('local-');
         this.tableCarts[this.currentTableId] = record.items;
+        if (this.orderIsConfirmed) {
+          this.claimPickupTargetForTable(this.currentTableId);
+        }
       }
     }
+  }
+
+  /** Bind pickup haptics/FCM to this device while the waiter actively serves the table. */
+  private claimPickupTargetForTable(tableId: string): void {
+    if (!this.onlineStateService.isOnline || !tableId || !this.restaurantId) {
+      return;
+    }
+    this.ordersService.claimPickupTarget(this.restaurantId, tableId)
+      .pipe(take(1))
+      .subscribe({
+        error: (err: unknown) => console.warn('[ManageOrders] claim pickup target failed', err),
+      });
   }
 
   isSetMenuCartLine(sel: CartItem): boolean {
@@ -739,6 +754,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.currentOrderId = record.orderId ?? null;
       this.orderIsConfirmed = !!this.currentOrderId && !this.currentOrderId.startsWith('local-');
       this.tableCarts[tableId] = record.items;
+      if (this.orderIsConfirmed) {
+        this.claimPickupTargetForTable(tableId);
+      }
       return;
     }
 
@@ -760,6 +778,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     if (order) {
       this.currentOrderId = order.orderId;
       this.orderIsConfirmed = true;
+      this.claimPickupTargetForTable(this.currentTableId);
       const record = await this.offlineDB.loadCartRecord(this.currentTableId);
       if (record?.items?.length) {
         this.tableCarts[this.currentTableId] = record.items;
@@ -1223,6 +1242,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         if (this.currentTableId === tableId) {
           this.currentOrderId = realId;
           this.orderIsConfirmed = true;
+          this.claimPickupTargetForTable(tableId);
         }
         const record = await this.offlineDB.loadCartRecord(tableId);
         if (record) await this.offlineDB.saveCart(tableId, record.items, realId);

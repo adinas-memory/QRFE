@@ -136,6 +136,11 @@ export class PushRegistrationService {
     if (!this.#platform.isNative && document.hidden) {
       await this.showLocalizedNotification(options.eventType, options.tableName);
     }
+
+    // Native: SSE may still arrive briefly when screen locked — show tray if FCM missed.
+    if (this.#platform.isNative && document.hidden) {
+      await this.showLocalizedNotification(options.eventType, options.tableName);
+    }
   }
 
   wasPickupAlertHandledRecently(eventType: WaiterPushEventType, tableId: string): boolean {

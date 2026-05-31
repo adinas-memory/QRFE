@@ -67,6 +67,14 @@ export class OrdersService {
     return this.http.get<OrderDTO>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/${tableId}/list-open-order`, { withCredentials: true });
   }
 
+  claimPickupTarget(restaurantId: string, tableId: string): Observable<void> {
+    return this.http.post<void>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/${tableId}/claim-pickup-target`,
+      {},
+      { withCredentials: true },
+    );
+  }
+
   //confirm order
   updateOrderItem(restaurantId: string, tableId: string, orderId: string, body: { orderItems: { menuItemId: string; quantity: number }[], seatId: string | null }): Observable<InitAddOrderResponse> {
     return this.http.put<InitAddOrderResponse>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${orderId}/init-add-order-items`, body, { withCredentials: true });
