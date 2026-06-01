@@ -6,6 +6,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.os.PowerManager;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
@@ -33,20 +34,23 @@ public class WaiterMessagingService extends FirebaseMessagingService {
 
     @Override
     public void onMessageReceived(@NonNull RemoteMessage remoteMessage) {
+        Map<String, String> data = remoteMessage.getData();
+        boolean pickup = isWaiterPickupEvent(data);
+
+        if (pickup) {
+            boolean foreground = isAppInForeground();
+            Log.w(DEBUG_TAG, "FCM pickup received foreground=" + foreground + " data=" + data);
+
+            boolean vibrated = vibrateDevice();
+            if (!foreground) {
+                showPickupNotification(data);
+            }
+
+            String eventType = data.get("eventType");
+            NativeDebugHelper.logPickupFcm(getApplicationContext(), foreground, vibrated, eventType);
+        }
+
         PushNotificationsPlugin.sendRemoteMessage(remoteMessage);
-
-        if (!isWaiterPickupEvent(remoteMessage.getData())) {
-            return;
-        }
-
-        boolean foreground = isAppInForeground();
-        Log.w(DEBUG_TAG, "FCM pickup received foreground=" + foreground + " data=" + remoteMessage.getData());
-
-        if (!foreground) {
-            showPickupNotification(remoteMessage.getData());
-        }
-
-        vibrateDevice();
     }
 
     @Override
@@ -94,11 +98,11 @@ public class WaiterMessagingService extends FirebaseMessagingService {
             .setSmallIcon(context.getApplicationInfo().icon)
             .setContentTitle(title)
             .setContentText(body)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setAutoCancel(true)
             .setContentIntent(pending)
-            .setDefaults(NotificationCompat.DEFAULT_VIBRATE | NotificationCompat.DEFAULT_SOUND)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setVibrate(PICKUP_VIBRATE_PATTERN);
 
         NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -107,14 +111,22 @@ public class WaiterMessagingService extends FirebaseMessagingService {
         }
     }
 
-    private void vibrateDevice() {
+    private boolean vibrateDevice() {
         Context context = getApplicationContext();
+        PowerManager powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+        PowerManager.WakeLock wakeLock = null;
+        if (powerManager != null) {
+            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "QRFE:PickupVibrate");
+            wakeLock.acquire(3_000L);
+        }
+
         Vibrator vibrator;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             VibratorManager manager = (VibratorManager) context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE);
             if (manager == null) {
                 Log.w(DEBUG_TAG, "VibratorManager unavailable");
-                return;
+                releaseWakeLock(wakeLock);
+                return false;
             }
             vibrator = manager.getDefaultVibrator();
         } else {
@@ -122,7 +134,8 @@ public class WaiterMessagingService extends FirebaseMessagingService {
         }
         if (vibrator == null || !vibrator.hasVibrator()) {
             Log.w(DEBUG_TAG, "No vibrator hardware");
-            return;
+            releaseWakeLock(wakeLock);
+            return false;
         }
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -131,12 +144,27 @@ public class WaiterMessagingService extends FirebaseMessagingService {
                 vibrator.vibrate(PICKUP_VIBRATE_PATTERN, -1);
             }
             Log.w(DEBUG_TAG, "Native pickup vibrate triggered");
+            return true;
         } catch (Exception ex) {
             Log.w(DEBUG_TAG, "Native vibrate failed: " + ex.getMessage());
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     vibrator.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
+                    return true;
                 }
+            } catch (Exception ignored) {
+                // ignore
+            }
+            return false;
+        } finally {
+            releaseWakeLock(wakeLock);
+        }
+    }
+
+    private static void releaseWakeLock(PowerManager.WakeLock wakeLock) {
+        if (wakeLock != null && wakeLock.isHeld()) {
+            try {
+                wakeLock.release();
             } catch (Exception ignored) {
                 // ignore
             }

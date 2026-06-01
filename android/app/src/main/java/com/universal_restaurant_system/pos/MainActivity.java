@@ -45,6 +45,9 @@ public class MainActivity extends BridgeActivity {
         channel.setVibrationPattern(new long[] { 0, 500, 200, 500, 200, 500 });
         channel.enableLights(true);
         channel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            channel.setAllowBubbles(true);
+        }
 
         Uri sound = android.provider.Settings.System.DEFAULT_NOTIFICATION_URI;
         AudioAttributes audioAttributes = new AudioAttributes.Builder()

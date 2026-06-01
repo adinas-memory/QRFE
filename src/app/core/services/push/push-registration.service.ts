@@ -61,6 +61,7 @@ export class PushRegistrationService {
 
   init(): void {
     this.ensureHapticResumeFlush();
+    void this.flushNativeDebugLog();
 
     if (!this.#platform.isNative) {
       return;
@@ -160,9 +161,43 @@ export class PushRegistrationService {
         App.addListener('appStateChange', ({ isActive }) => {
           if (isActive) {
             void this.clearDeliveredPushNotifications();
+            void this.flushNativeDebugLog();
           }
         });
       });
+    }
+  }
+
+  /** Flush native FCM vibrate evidence written by WaiterMessagingService (phone cannot reach 127.0.0.1 ingest). */
+  private async flushNativeDebugLog(): Promise<void> {
+    if (!this.#platform.isNative) {
+      return;
+    }
+    try {
+      const { Preferences } = await import('@capacitor/preferences');
+      const { value } = await Preferences.get({ key: 'debug7379f5_native' });
+      if (!value) {
+        return;
+      }
+      await firstValueFrom(
+        this.#http.post(
+          `${this.#apiUrl}/api/debug/agent-log`,
+          {
+            sessionId: '7379f5',
+            hypothesisId: 'H12',
+            location: 'WaiterMessagingService',
+            message: 'native pickup FCM handled',
+            data: JSON.parse(value) as unknown,
+          },
+          { withCredentials: true },
+        ),
+      );
+      await Preferences.remove({ key: 'debug7379f5_native' });
+      // #region agent log
+      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',hypothesisId:'H12',location:'push-registration.service.ts:flushNativeDebugLog',message:'native debug flushed to backend',data:JSON.parse(value),timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+    } catch (err) {
+      console.warn('[DEBUG-7379f5] native debug flush failed', err);
     }
   }
 
@@ -236,26 +271,7 @@ export class PushRegistrationService {
     if (this.#platform.capabilities.surface !== 'capacitor-android') {
       return;
     }
-    try {
-      await PushNotifications.createChannel({
-        id: WAITER_CALL_CHANNEL_ID,
-        name: 'Waiter calls',
-        description: 'Kitchen, bar, and table waiter alerts',
-        importance: 5,
-        vibration: true,
-        visibility: 1,
-      });
-      await LocalNotifications.createChannel({
-        id: WAITER_CALL_CHANNEL_ID,
-        name: 'Waiter calls',
-        description: 'Kitchen, bar, and table waiter alerts',
-        importance: 5,
-        vibration: true,
-        visibility: 1,
-      });
-    } catch {
-      // channel may already exist
-    }
+    // waiter_call_v3 channel is created in MainActivity with vibration pattern — do not recreate here.
   }
 
   private async ensureLocalNotificationPermission(): Promise<void> {
@@ -354,6 +370,7 @@ export class PushRegistrationService {
             title,
             body,
             channelId: WAITER_CALL_CHANNEL_ID,
+            sound: 'default',
             extra: { eventType, tableName: tableName ?? '' },
           },
         ],
