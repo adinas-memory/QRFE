@@ -10,8 +10,7 @@ public class PickupVibratePlugin extends Plugin {
 
     @PluginMethod
     public void pulse(PluginCall call) {
-        boolean ok = PickupVibrator.pulse(getContext());
-        NativeDebugHelper.logPickupFcm(getContext(), true, ok, "JsPulse");
+        PickupVibrator.pulse(getContext());
         call.resolve();
     }
 }

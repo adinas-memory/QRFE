@@ -61,7 +61,6 @@ export class PushRegistrationService {
 
   init(): void {
     this.ensureHapticResumeFlush();
-    void this.flushNativeDebugLog();
 
     if (!this.#platform.isNative) {
       return;
@@ -108,10 +107,6 @@ export class PushRegistrationService {
         perm = await PushNotifications.requestPermissions();
       }
       if (perm.receive !== 'granted') {
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',hypothesisId:'H8',location:'push-registration.service.ts:ensureRegistered',message:'push permission denied',data:{perm},timestamp:Date.now()})}).catch(()=>{});
-        console.warn('[DEBUG-7379f5] push permission denied', perm);
-        // #endregion
         return;
       }
 
@@ -161,43 +156,9 @@ export class PushRegistrationService {
         App.addListener('appStateChange', ({ isActive }) => {
           if (isActive) {
             void this.clearDeliveredPushNotifications();
-            void this.flushNativeDebugLog();
           }
         });
       });
-    }
-  }
-
-  /** Flush native FCM vibrate evidence written by WaiterMessagingService (phone cannot reach 127.0.0.1 ingest). */
-  private async flushNativeDebugLog(): Promise<void> {
-    if (!this.#platform.isNative) {
-      return;
-    }
-    try {
-      const { Preferences } = await import('@capacitor/preferences');
-      const { value } = await Preferences.get({ key: 'debug7379f5_native' });
-      if (!value) {
-        return;
-      }
-      await firstValueFrom(
-        this.#http.post(
-          `${this.#apiUrl}/api/debug/agent-log`,
-          {
-            sessionId: '7379f5',
-            hypothesisId: 'H12',
-            location: 'WaiterMessagingService',
-            message: 'native pickup FCM handled',
-            data: JSON.parse(value) as unknown,
-          },
-          { withCredentials: true },
-        ),
-      );
-      await Preferences.remove({ key: 'debug7379f5_native' });
-      // #region agent log
-      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',hypothesisId:'H12',location:'push-registration.service.ts:flushNativeDebugLog',message:'native debug flushed to backend',data:JSON.parse(value),timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
-    } catch (err) {
-      console.warn('[DEBUG-7379f5] native debug flush failed', err);
     }
   }
 
@@ -293,10 +254,6 @@ export class PushRegistrationService {
   private async sendTokenToBackend(token: string): Promise<void> {
     const restaurantId = this.#auth.getUserRestaurantId();
     if (!token || typeof restaurantId !== 'string' || !restaurantId) {
-      // #region agent log
-      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',hypothesisId:'H8',location:'push-registration.service.ts:sendTokenToBackend',message:'token deferred no restaurantId',data:{hasToken:!!token,restaurantId},timestamp:Date.now()})}).catch(()=>{});
-      console.warn('[DEBUG-7379f5] FCM token deferred', { hasToken: !!token, restaurantId });
-      // #endregion
       return;
     }
 
@@ -310,15 +267,8 @@ export class PushRegistrationService {
           { withCredentials: true },
         ),
       );
-      // #region agent log
-      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',hypothesisId:'H8',location:'push-registration.service.ts:sendTokenToBackend',message:'token registered ok',data:{restaurantId,clientInstanceId,tokenTail:token.slice(-8)},timestamp:Date.now()})}).catch(()=>{});
-      console.warn('[DEBUG-7379f5] FCM token registered', { restaurantId, clientInstanceId });
-      // #endregion
     } catch (err) {
       console.warn('[PushRegistration] token register failed', err);
-      // #region agent log
-      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',hypothesisId:'H8',location:'push-registration.service.ts:sendTokenToBackend',message:'token register failed',data:{restaurantId,error:String(err)},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
     }
   }
 
@@ -328,10 +278,6 @@ export class PushRegistrationService {
     }
 
     const payload = this.parsePayload(notification);
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',hypothesisId:'H10',location:'push-registration.service.ts:onPushReceived',message:'FCM push received in JS',data:{payload,hidden:document.hidden,title:notification.title,body:notification.body},timestamp:Date.now()})}).catch(()=>{});
-    console.warn('[DEBUG-7379f5] FCM received', payload, { hidden: document.hidden });
-    // #endregion
     if (!payload.eventType) {
       return;
     }

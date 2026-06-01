@@ -5,54 +5,36 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 
-import com.capacitorjs.plugins.pushnotifications.PushNotificationsPlugin;
-import com.google.firebase.messaging.FirebaseMessagingService;
+import com.capacitorjs.plugins.pushnotifications.MessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Data-only FCM: onMessageReceived runs in background (hybrid notification payload does not).
- * Shows tray when app is not in foreground; always vibrates on pickup FCM.
+ * Extends Capacitor MessagingService so Firebase + PushNotificationsPlugin stay on the same classpath.
+ * Data-only FCM: vibrates on pickup; shows tray when app is not in foreground.
  */
-public class WaiterMessagingService extends FirebaseMessagingService {
+public class WaiterMessagingService extends MessagingService {
 
-    private static final String DEBUG_TAG = "DEBUG-7379f5";
     private static final AtomicInteger NOTIFICATION_ID = new AtomicInteger(1000);
 
     @Override
     public void onMessageReceived(@NonNull RemoteMessage remoteMessage) {
         Map<String, String> data = remoteMessage.getData();
-        boolean pickup = isWaiterPickupEvent(data);
-
-        if (pickup) {
+        if (isWaiterPickupEvent(data)) {
             boolean foreground = isAppInForeground();
-            Log.w(DEBUG_TAG, "FCM pickup received foreground=" + foreground + " data=" + data);
-
-            boolean vibrated = PickupVibrator.pulse(getApplicationContext());
+            PickupVibrator.pulse(getApplicationContext());
             if (!foreground) {
                 showPickupNotification(data);
             }
-
-            String eventType = data.get("eventType");
-            NativeDebugHelper.logPickupFcm(getApplicationContext(), foreground, vibrated, eventType);
-        } else if (data != null && !data.isEmpty()) {
-            Log.w(DEBUG_TAG, "FCM data ignored keys=" + data.keySet());
         }
 
-        PushNotificationsPlugin.sendRemoteMessage(remoteMessage);
-    }
-
-    @Override
-    public void onNewToken(@NonNull String token) {
-        super.onNewToken(token);
-        PushNotificationsPlugin.onNewToken(token);
+        super.onMessageReceived(remoteMessage);
     }
 
     private static boolean isWaiterPickupEvent(Map<String, String> data) {

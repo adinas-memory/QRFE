@@ -51,8 +51,6 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { PrintJobsService } from '../../../core/services/print-jobs/print-jobs.service';
 import { DeviceFeedbackService } from '../../../core/services/device/device-feedback.service';
 import { PickupNotificationService } from '../../../core/services/pickup/pickup-notification.service';
-import { ClientInstanceService } from '../../../core/services/device/client-instance.service';
-import { RuntimePlatformService } from '../../../core/platform/runtime-platform.service';
 
 @Component({
   selector: 'app-manage-orders',
@@ -164,8 +162,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     private printJobs: PrintJobsService,
     private deviceFeedback: DeviceFeedbackService,
     private pickupNotification: PickupNotificationService,
-    private clientInstanceService: ClientInstanceService,
-    private runtimePlatform: RuntimePlatformService,
   ) {}
 
   get hapticsEnabled(): boolean {
@@ -620,14 +616,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.ordersService.claimPickupTarget(this.restaurantId, tableId)
       .pipe(take(1))
       .subscribe({
-        next: () => {
-          // #region agent log
-          void this.clientInstanceService.whenReady().then((localId) => {
-            fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',hypothesisId:'H2',location:'manage-orders.component.ts:claimPickupTargetForTable',message:'pickup target claim ok',data:{tableId,localId,native:this.runtimePlatform.isNative},timestamp:Date.now()})}).catch(()=>{});
-            console.warn('[DEBUG-7379f5] claim ok', { tableId, localId });
-          });
-          // #endregion
-        },
         error: (err: unknown) => console.warn('[ManageOrders] claim pickup target failed', err),
       });
   }
@@ -1163,10 +1151,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       case 'KitchenWaiterCall': {
         const parsed = this.pickupNotification.parsePickupPayload(Data);
         const tableId = parsed.tableId;
-        // #region agent log
-        fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',hypothesisId:'H3',location:'manage-orders.component.ts:KitchenWaiterCall',message:'SSE kitchen pickup received',data:{tableId,clientInstanceId:parsed.clientInstanceId,rawKeys:Data&&typeof Data==='object'?Object.keys(Data as object):[]},timestamp:Date.now()})}).catch(()=>{});
-        console.warn('[DEBUG-7379f5] KitchenWaiterCall SSE', parsed);
-        // #endregion
         if (tableId) {
           this.kitchenPickupRequested[tableId] = true;
           this.appToast.info(this.pickupToastMessage('kitchen', tableId, parsed.tableName));

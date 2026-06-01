@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
-import { environment } from '../../../../environments/environment';
 import { RuntimePlatformService } from '../../platform/runtime-platform.service';
 import { PlatformStorageService } from '../../platform/platform-storage.service';
 import { ClientInstanceService, clientInstanceIdsMatch } from './client-instance.service';
@@ -59,71 +58,38 @@ export class DeviceFeedbackService {
     const targetId = (options.clientInstanceId ?? '').trim();
     const tableId = options.tableId?.trim();
     const localId = await this.clientInstance.whenReady();
-    let outcome = 'unknown';
 
-    if (!this.hapticsEnabled) {
-      outcome = 'haptics_disabled';
-    } else if (!targetId) {
-      outcome = 'no_target_id';
-    } else if (!tableId) {
-      outcome = 'no_table_id';
-    } else if (!localId || !clientInstanceIdsMatch(targetId, localId)) {
-      outcome = 'id_mismatch';
-    } else {
-      const now = Date.now();
-      const last = this.lastVibrateAtByTable.get(`${kind}:${tableId}`) ?? 0;
-      if (now - last < DEBOUNCE_MS) {
-        outcome = 'debounced';
-      } else {
-        this.lastVibrateAtByTable.set(`${kind}:${tableId}`, now);
-        await this.vibrate(PICKUP_VIBRATE_MS);
-        outcome = 'vibrated';
-      }
+    if (!this.hapticsEnabled || !targetId || !tableId) {
+      return;
+    }
+    if (!localId || !clientInstanceIdsMatch(targetId, localId)) {
+      return;
     }
 
-    // #region agent log
-    this.postAgentDebug('H2', 'device-feedback.service.ts:deliverPickupReady', 'pickup haptic decision', { kind, tableId, targetId, localId, outcome, hapticsEnabled: this.hapticsEnabled, native: Capacitor.isNativePlatform() });
-    console.warn('[DEBUG-7379f5] haptic', outcome, { kind, tableId, targetId, localId });
-    // #endregion
+    const now = Date.now();
+    const last = this.lastVibrateAtByTable.get(`${kind}:${tableId}`) ?? 0;
+    if (now - last < DEBOUNCE_MS) {
+      return;
+    }
+
+    this.lastVibrateAtByTable.set(`${kind}:${tableId}`, now);
+    await this.vibrate(PICKUP_VIBRATE_MS);
   }
 
   private async deliverPickupFromPush(kind: PickupReadyKind, tableId: string): Promise<void> {
     const normalizedTableId = tableId?.trim();
-    let outcome = 'unknown';
-
-    if (!this.hapticsEnabled) {
-      outcome = 'haptics_disabled';
-    } else if (!normalizedTableId) {
-      outcome = 'no_table_id';
-    } else {
-      const now = Date.now();
-      const last = this.lastVibrateAtByTable.get(`${kind}:${normalizedTableId}`) ?? 0;
-      if (now - last < DEBOUNCE_MS) {
-        outcome = 'debounced';
-      } else {
-        this.lastVibrateAtByTable.set(`${kind}:${normalizedTableId}`, now);
-        await this.vibrate(PICKUP_VIBRATE_MS);
-        outcome = 'vibrated_push';
-      }
+    if (!this.hapticsEnabled || !normalizedTableId) {
+      return;
     }
 
-    // #region agent log
-    this.postAgentDebug('H11', 'device-feedback.service.ts:deliverPickupFromPush', 'push haptic decision', { kind, tableId: normalizedTableId, outcome, hapticsEnabled: this.hapticsEnabled, native: Capacitor.isNativePlatform() });
-    console.warn('[DEBUG-7379f5] push haptic', outcome, { kind, tableId: normalizedTableId });
-    // #endregion
-  }
-
-  private postAgentDebug(hypothesisId: string, location: string, message: string, data: unknown): void {
-    const payload = { sessionId: '7379f5', hypothesisId, location, message, data, timestamp: Date.now() };
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify(payload)}).catch(()=>{});
-    if (Capacitor.isNativePlatform()) {
-      fetch(`${environment.apiUrl}/api/debug/agent-log`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ sessionId: '7379f5', hypothesisId, location, message, data }),
-      }).catch(() => {});
+    const now = Date.now();
+    const last = this.lastVibrateAtByTable.get(`${kind}:${normalizedTableId}`) ?? 0;
+    if (now - last < DEBOUNCE_MS) {
+      return;
     }
+
+    this.lastVibrateAtByTable.set(`${kind}:${normalizedTableId}`, now);
+    await this.vibrate(PICKUP_VIBRATE_MS);
   }
 
   private async vibrate(durationMs: number): Promise<void> {

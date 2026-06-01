@@ -64,10 +64,6 @@ export class PickupNotificationService {
       clientInstanceId: parsed.clientInstanceId,
     });
 
-    // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',hypothesisId:'H3',location:'pickup-notification.service.ts:handlePickupSse',message:'global pickup SSE',data:{kind,tableId:parsed.tableId,clientInstanceId:parsed.clientInstanceId},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-
     void this.#pushRegistration.deliverPickupAlert({
       eventType,
       tableId: parsed.tableId,

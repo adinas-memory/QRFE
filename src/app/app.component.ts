@@ -16,7 +16,6 @@ import { LoadingService } from './core/services/loading/loading.service';
 import { HttpNavigationCancelService } from './core/services/http-navigation-cancel.service';
 import { PushRegistrationService } from './core/services/push/push-registration.service';
 import { PickupNotificationService } from './core/services/pickup/pickup-notification.service';
-import { ClientInstanceService } from './core/services/device/client-instance.service';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { Location } from '@angular/common';
@@ -61,7 +60,6 @@ export class AppComponent implements OnInit {
   readonly #httpNavCancel = inject(HttpNavigationCancelService);
   readonly #pushRegistration = inject(PushRegistrationService);
   readonly #pickupNotification = inject(PickupNotificationService);
-  readonly #clientInstance = inject(ClientInstanceService);
   readonly #location = inject(Location);
   readonly #subscriptionService = inject(SubscriptionService);
 
@@ -106,12 +104,6 @@ export class AppComponent implements OnInit {
     this.#authService.getUserContext()
       .pipe(filter(user => !!user?.restaurantId), take(1))
       .subscribe(user => {
-        void this.#clientInstance.whenReady().then((localId) => {
-          // #region agent log
-          fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',hypothesisId:'H2',location:'app.component.ts:ngOnInit',message:'device client instance ready',data:{localId,native:Capacitor.isNativePlatform()},timestamp:Date.now()})}).catch(()=>{});
-          console.warn('[DEBUG-7379f5] localClientInstanceId', localId);
-          // #endregion
-        });
         if (!this.sseStarted) {
           this.sseStarted = true;
           this.#orderSyncService.listenToRestaurantEvents(user!.restaurantId!);

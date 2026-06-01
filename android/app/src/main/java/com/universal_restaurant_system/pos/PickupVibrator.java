@@ -6,12 +6,10 @@ import android.os.PowerManager;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
-import android.util.Log;
 
 /** Shared pickup alert vibration for FCM service and Capacitor plugin. */
 public final class PickupVibrator {
 
-    private static final String DEBUG_TAG = "DEBUG-7379f5";
     static final long[] PICKUP_VIBRATE_PATTERN = { 0, 500, 200, 500, 200, 500 };
 
     private PickupVibrator() {
@@ -27,7 +25,6 @@ public final class PickupVibrator {
 
         Vibrator vibrator = getVibrator(context);
         if (vibrator == null || !vibrator.hasVibrator()) {
-            Log.w(DEBUG_TAG, "No vibrator hardware");
             releaseWakeLock(wakeLock);
             return false;
         }
@@ -38,10 +35,8 @@ public final class PickupVibrator {
             } else {
                 vibrator.vibrate(PICKUP_VIBRATE_PATTERN, -1);
             }
-            Log.w(DEBUG_TAG, "Native pickup vibrate triggered");
             return true;
         } catch (Exception ex) {
-            Log.w(DEBUG_TAG, "Native vibrate failed: " + ex.getMessage());
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     vibrator.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
