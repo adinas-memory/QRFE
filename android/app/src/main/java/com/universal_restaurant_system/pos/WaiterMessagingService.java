@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Extends Capacitor MessagingService so Firebase + PushNotificationsPlugin stay on the same classpath.
- * Data-only FCM: vibrates on pickup; shows tray when app is not in foreground.
+ * Data-only FCM: shows tray + vibrates when app is not in foreground.
  */
 public class WaiterMessagingService extends MessagingService {
 
@@ -30,20 +30,25 @@ public class WaiterMessagingService extends MessagingService {
         Map<String, String> data = remoteMessage.getData();
         if (isWaiterPickupEvent(data)) {
             boolean foreground = isAppInForeground();
-            boolean vibrated = PickupVibrator.pulse(getApplicationContext());
             boolean showedTray = false;
+            boolean vibratedAfterTray = false;
             if (!foreground) {
+                WaiterCallNotificationChannels.ensure(getApplicationContext());
                 showPickupNotification(data);
                 showedTray = true;
+                // Android 13+ requires a visible notification before background vibration is allowed.
+                vibratedAfterTray = PickupVibrator.pulse(getApplicationContext(), "after-tray");
+            } else {
+                PickupVibrator.pulse(getApplicationContext(), "foreground");
             }
             try {
                 JSONObject dbg = new JSONObject();
                 dbg.put("foreground", foreground);
                 dbg.put("importance", getProcessImportance());
-                dbg.put("vibrated", vibrated);
+                dbg.put("vibratedAfterTray", vibratedAfterTray);
                 dbg.put("showedTray", showedTray);
                 dbg.put("eventType", data.get("eventType"));
-                dbg.put("runId", "post-fix-vib");
+                dbg.put("runId", "post-fix-vib2");
                 PickupDebugNative.log(getApplicationContext(), "H-VIB1", "WaiterMessagingService.onMessageReceived", "FCM pickup native", dbg);
             } catch (Exception ignored) {
                 // ignore
@@ -102,13 +107,11 @@ public class WaiterMessagingService extends MessagingService {
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setAutoCancel(true)
             .setContentIntent(pending)
-            .setDefaults(NotificationCompat.DEFAULT_ALL)
-            .setVibrate(PickupVibrator.PICKUP_VIBRATE_PATTERN);
+            .setOnlyAlertOnce(false);
 
         NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (manager != null) {
             manager.notify(NOTIFICATION_ID.incrementAndGet(), builder.build());
         }
-        PickupVibrator.pulse(context);
     }
 }
