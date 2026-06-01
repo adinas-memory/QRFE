@@ -43,7 +43,8 @@ public class WaiterMessagingService extends MessagingService {
                 dbg.put("vibrated", vibrated);
                 dbg.put("showedTray", showedTray);
                 dbg.put("eventType", data.get("eventType"));
-                PickupDebugNative.log(getApplicationContext(), "H-DUP1", "WaiterMessagingService.onMessageReceived", "FCM pickup native", dbg);
+                dbg.put("runId", "post-fix-vib");
+                PickupDebugNative.log(getApplicationContext(), "H-VIB1", "WaiterMessagingService.onMessageReceived", "FCM pickup native", dbg);
             } catch (Exception ignored) {
                 // ignore
             }
@@ -108,5 +109,6 @@ public class WaiterMessagingService extends MessagingService {
         if (manager != null) {
             manager.notify(NOTIFICATION_ID.incrementAndGet(), builder.build());
         }
+        PickupVibrator.pulse(context);
     }
 }

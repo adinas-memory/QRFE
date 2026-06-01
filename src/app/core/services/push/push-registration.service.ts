@@ -59,6 +59,8 @@ export class PushRegistrationService {
   #localNotificationId = 1;
   readonly #lastAlertAtByKey = new Map<string, number>();
   #resumeFlushAttached = false;
+  /** Cached from App.getState / appStateChange — getState() can be stale in background. */
+  #appIsActive: boolean | null = null;
 
   init(): void {
     this.ensureHapticResumeFlush();
@@ -140,7 +142,7 @@ export class PushRegistrationService {
       documentHidden: document.hidden,
       appActive,
       native: this.#platform.isNative,
-      runId: 'post-fix-dup',
+      runId: 'post-fix-vib',
     });
 
     if (!this.#platform.isNative) {
@@ -152,19 +154,27 @@ export class PushRegistrationService {
       return;
     }
 
-    // Native Android: tray comes from WaiterMessagingService (FCM, English backend copy).
-    // Do NOT schedule LocalNotifications here — caused duplicate RO + EN trays.
-    if (appActive === false) {
-      if (this.isDebounced(debounceKey)) {
-        pickupDebugLog('H-DUP1', 'push-registration:deliverPickupAlert', 'SSE haptic debounced', {
-          eventType: options.eventType, tableId: options.tableId, runId: 'post-fix-dup',
-        });
-        return;
-      }
-      this.markHandled(debounceKey);
+    // Native Android: tray from WaiterMessagingService (FCM). Haptic fallback when not in foreground.
+    if (this.isNativeInBackground(appActive)) {
       const kind = options.eventType === 'BarWaiterCall' ? 'bar' : 'kitchen';
+      pickupDebugLog('H-VIB3', 'push-registration:deliverPickupAlert', 'SSE haptic attempt', {
+        eventType: options.eventType, tableId: options.tableId, appActive, cachedAppActive: this.#appIsActive,
+        runId: 'post-fix-vib',
+      });
       this.#deviceFeedback.notifyPickupFromPush(kind, options.tableId);
+      if (!this.isDebounced(debounceKey)) {
+        this.markHandled(debounceKey);
+      }
     }
+  }
+
+  /** Native background: not explicitly active (null/undefined/false when another app is in front). */
+  private isNativeInBackground(appActive: boolean | null): boolean {
+    if (!this.#platform.isNative) {
+      return false;
+    }
+    const active = appActive ?? this.#appIsActive;
+    return active !== true;
   }
 
   wasPickupAlertHandledRecently(eventType: WaiterPushEventType, tableId: string): boolean {
@@ -179,7 +189,11 @@ export class PushRegistrationService {
 
     if (this.#platform.isNative) {
       void import('@capacitor/app').then(({ App }) => {
+        void App.getState().then((state) => {
+          this.#appIsActive = state.isActive;
+        });
         App.addListener('appStateChange', ({ isActive }) => {
+          this.#appIsActive = isActive;
           if (isActive) {
             void this.clearDeliveredPushNotifications();
           }
@@ -317,7 +331,9 @@ export class PushRegistrationService {
       tableId: payload.tableId,
       documentHidden: document.hidden,
       appActive,
-      runId: 'post-fix-dup',
+      cachedAppActive: this.#appIsActive,
+      inBackground: this.isNativeInBackground(appActive),
+      runId: 'post-fix-vib',
     });
     if (!payload.eventType) {
       return;
@@ -326,21 +342,18 @@ export class PushRegistrationService {
     const tableId = payload.tableId ?? 'unknown';
     const debounceKey = `${payload.eventType}:${tableId}`;
 
-    if (this.isDebounced(debounceKey)) {
-      return;
-    }
-
-    if (appActive) {
+    if (!this.isNativeInBackground(appActive)) {
       pickupDebugLog('H-DUP2', 'push-registration:onPushReceived', 'FCM JS skipped app active', {
-        eventType: payload.eventType, runId: 'post-fix-dup',
+        eventType: payload.eventType, runId: 'post-fix-vib',
       });
       return;
     }
 
-    this.markHandled(debounceKey);
-
     const kind = payload.eventType === 'BarWaiterCall' ? 'bar' : 'kitchen';
     this.#deviceFeedback.notifyPickupFromPush(kind, tableId);
+    if (!this.isDebounced(debounceKey)) {
+      this.markHandled(debounceKey);
+    }
   }
 
   private async showLocalizedNotification(
