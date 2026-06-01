@@ -4,4 +4,6 @@
     <string name="title_activity_main">U.R.S. Staff</string>
     <string name="package_name">com.universal_restaurant_system.pos</string>
     <string name="custom_url_scheme">com.universal_restaurant_system.pos</string>
+    <!-- LAN nginx API base (matches environment.capacitor.ts apiUrl) -->
+    <string name="debug_api_base">http://192.168.43.142</string>
 </resources>

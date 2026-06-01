@@ -5,7 +5,13 @@ import android.util.Log;
 
 import org.json.JSONObject;
 
-/** Writes native debug events to Capacitor Preferences storage for JS flush to backend. */
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Executors;
+
+/** Writes native debug events to Capacitor Preferences and POSTs to backend agent-log. */
 final class NativeDebugHelper {
 
     private static final String DEBUG_TAG = "DEBUG-7379f5";
@@ -29,8 +35,45 @@ final class NativeDebugHelper {
                 .putString(KEY, payload)
                 .apply();
             Log.w(DEBUG_TAG, payload);
+            postAgentLogAsync(context, payload);
         } catch (Exception ex) {
             Log.w(DEBUG_TAG, "native debug log failed: " + ex.getMessage());
         }
+    }
+
+    private static void postAgentLogAsync(Context context, String dataJson) {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                String base = context.getString(R.string.debug_api_base).trim();
+                if (base.isEmpty()) {
+                    return;
+                }
+                URL url = new URL(base + "/api/debug/agent-log");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setConnectTimeout(4_000);
+                conn.setReadTimeout(4_000);
+                conn.setDoOutput(true);
+                conn.setRequestProperty("Content-Type", "application/json");
+
+                JSONObject body = new JSONObject();
+                body.put("sessionId", "7379f5");
+                body.put("hypothesisId", "H12");
+                body.put("location", "WaiterMessagingService");
+                body.put("message", "native pickup handled");
+                body.put("data", new JSONObject(dataJson));
+
+                byte[] bytes = body.toString().getBytes(StandardCharsets.UTF_8);
+                conn.setFixedLengthStreamingMode(bytes.length);
+                try (OutputStream os = conn.getOutputStream()) {
+                    os.write(bytes);
+                }
+                int code = conn.getResponseCode();
+                Log.w(DEBUG_TAG, "agent-log POST " + code);
+                conn.disconnect();
+            } catch (Exception ex) {
+                Log.w(DEBUG_TAG, "agent-log POST failed: " + ex.getMessage());
+            }
+        });
     }
 }

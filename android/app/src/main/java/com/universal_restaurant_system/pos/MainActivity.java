@@ -16,6 +16,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        registerPlugin(PickupVibratePlugin.class);
         super.onCreate(savedInstanceState);
         createWaiterCallNotificationChannel();
     }

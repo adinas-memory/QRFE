@@ -1,4 +1,6 @@
 import { Injectable } from '@angular/core';
+import { Capacitor } from '@capacitor/core';
+import { environment } from '../../../../environments/environment';
 import { RuntimePlatformService } from '../../platform/runtime-platform.service';
 import { PlatformStorageService } from '../../platform/platform-storage.service';
 import { ClientInstanceService, clientInstanceIdsMatch } from './client-instance.service';
@@ -80,7 +82,7 @@ export class DeviceFeedbackService {
     }
 
     // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',hypothesisId:'H2',location:'device-feedback.service.ts:deliverPickupReady',message:'pickup haptic decision',data:{kind,tableId,targetId,localId,outcome,hapticsEnabled:this.hapticsEnabled},timestamp:Date.now()})}).catch(()=>{});
+    this.postAgentDebug('H2', 'device-feedback.service.ts:deliverPickupReady', 'pickup haptic decision', { kind, tableId, targetId, localId, outcome, hapticsEnabled: this.hapticsEnabled, native: Capacitor.isNativePlatform() });
     console.warn('[DEBUG-7379f5] haptic', outcome, { kind, tableId, targetId, localId });
     // #endregion
   }
@@ -106,12 +108,35 @@ export class DeviceFeedbackService {
     }
 
     // #region agent log
-    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'post-fix-vibrate',hypothesisId:'H11',location:'device-feedback.service.ts:deliverPickupFromPush',message:'push haptic decision',data:{kind,tableId:normalizedTableId,outcome,hapticsEnabled:this.hapticsEnabled},timestamp:Date.now()})}).catch(()=>{});
+    this.postAgentDebug('H11', 'device-feedback.service.ts:deliverPickupFromPush', 'push haptic decision', { kind, tableId: normalizedTableId, outcome, hapticsEnabled: this.hapticsEnabled, native: Capacitor.isNativePlatform() });
     console.warn('[DEBUG-7379f5] push haptic', outcome, { kind, tableId: normalizedTableId });
     // #endregion
   }
 
+  private postAgentDebug(hypothesisId: string, location: string, message: string, data: unknown): void {
+    const payload = { sessionId: '7379f5', hypothesisId, location, message, data, timestamp: Date.now() };
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify(payload)}).catch(()=>{});
+    if (Capacitor.isNativePlatform()) {
+      fetch(`${environment.apiUrl}/api/debug/agent-log`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ sessionId: '7379f5', hypothesisId, location, message, data }),
+      }).catch(() => {});
+    }
+  }
+
   private async vibrate(durationMs: number): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { PickupVibrate } = await import('../../plugins/pickup-vibrate.plugin');
+        await PickupVibrate.pulse();
+        return;
+      } catch {
+        // fall through to Capacitor Haptics
+      }
+    }
+
     if (this.platform.capabilities.hapticsBackend === 'capacitor-haptics') {
       try {
         const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
