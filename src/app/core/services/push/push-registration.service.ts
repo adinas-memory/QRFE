@@ -14,7 +14,6 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../auth/auth.service';
 import { ClientInstanceService } from '../device/client-instance.service';
-import { DeviceFeedbackService } from '../device/device-feedback.service';
 import { RuntimePlatformService } from '../../platform/runtime-platform.service';
 import { HttpClient } from '@angular/common/http';
 import {
@@ -49,7 +48,6 @@ export class PushRegistrationService {
   readonly #router = inject(Router);
   readonly #platform = inject(RuntimePlatformService);
   readonly #clientInstance = inject(ClientInstanceService);
-  readonly #deviceFeedback = inject(DeviceFeedbackService);
   readonly #copy = inject(PushNotificationCopyService);
   readonly #destroyRef = inject(DestroyRef);
 
@@ -119,30 +117,20 @@ export class PushRegistrationService {
     }
   }
 
-  /** PWA: LocalNotifications when tab hidden. Native: haptics only — FCM service shows tray. */
+  /** PWA: LocalNotifications when tab hidden. Native: hybrid FCM OS tray (no duplicate here). */
   async deliverPickupAlert(options: DeliverPickupAlertOptions): Promise<void> {
     if (options.source === 'fcm') {
       return;
     }
 
     const debounceKey = `${options.eventType}:${options.tableId}`;
-    let appActive: boolean | null = null;
-    if (this.#platform.isNative) {
-      try {
-        const { App } = await import('@capacitor/app');
-        appActive = (await App.getState()).isActive;
-      } catch {
-        // ignore
-      }
-    }
 
     pickupDebugLog('H-DUP1', 'push-registration:deliverPickupAlert', 'SSE alert path', {
       eventType: options.eventType,
       tableId: options.tableId,
       documentHidden: document.hidden,
-      appActive,
       native: this.#platform.isNative,
-      runId: 'post-fix-vib',
+      runId: 'fcm-hybrid',
     });
 
     if (!this.#platform.isNative) {
@@ -154,17 +142,9 @@ export class PushRegistrationService {
       return;
     }
 
-    // Native Android: tray from WaiterMessagingService (FCM). Haptic fallback when not in foreground.
-    if (this.isNativeInBackground(appActive)) {
-      const kind = options.eventType === 'BarWaiterCall' ? 'bar' : 'kitchen';
-      pickupDebugLog('H-VIB3', 'push-registration:deliverPickupAlert', 'SSE haptic attempt', {
-        eventType: options.eventType, tableId: options.tableId, appActive, cachedAppActive: this.#appIsActive,
-        runId: 'post-fix-vib',
-      });
-      this.#deviceFeedback.notifyPickupFromPush(kind, options.tableId);
-      if (!this.isDebounced(debounceKey)) {
-        this.markHandled(debounceKey);
-      }
+    // Native: background tray + vibration from hybrid FCM; foreground from SSE haptics.
+    if (!this.isDebounced(debounceKey)) {
+      this.markHandled(debounceKey);
     }
   }
 
@@ -272,7 +252,18 @@ export class PushRegistrationService {
     if (this.#platform.capabilities.surface !== 'capacitor-android') {
       return;
     }
-    // waiter_call_v3 channel is created in MainActivity with vibration pattern — do not recreate here.
+    try {
+      await PushNotifications.createChannel({
+        id: WAITER_CALL_CHANNEL_ID,
+        name: 'Waiter calls',
+        description: 'Kitchen, bar, and table waiter alerts',
+        importance: 5,
+        vibration: true,
+        visibility: 1,
+      });
+    } catch {
+      // channel may already exist (MainActivity also ensures waiter_call_v3)
+    }
   }
 
   private async ensureLocalNotificationPermission(): Promise<void> {
@@ -329,30 +320,24 @@ export class PushRegistrationService {
     pickupDebugLog('H-DUP2', 'push-registration:onPushReceived', 'FCM JS received', {
       eventType: payload.eventType,
       tableId: payload.tableId,
-      documentHidden: document.hidden,
       appActive,
-      cachedAppActive: this.#appIsActive,
       inBackground: this.isNativeInBackground(appActive),
-      runId: 'post-fix-vib',
+      runId: 'fcm-hybrid',
     });
     if (!payload.eventType) {
       return;
     }
 
-    const tableId = payload.tableId ?? 'unknown';
-    const debounceKey = `${payload.eventType}:${tableId}`;
-
-    if (!this.isNativeInBackground(appActive)) {
-      pickupDebugLog('H-DUP2', 'push-registration:onPushReceived', 'FCM JS skipped app active', {
-        eventType: payload.eventType, runId: 'post-fix-vib',
-      });
+    // Background: hybrid FCM channel already vibrates via OS.
+    if (this.isNativeInBackground(appActive)) {
       return;
     }
 
-    const kind = payload.eventType === 'BarWaiterCall' ? 'bar' : 'kitchen';
-    this.#deviceFeedback.notifyPickupFromPush(kind, tableId);
-    if (!this.isDebounced(debounceKey)) {
-      this.markHandled(debounceKey);
+    try {
+      const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+      await Haptics.impact({ style: ImpactStyle.Heavy });
+    } catch {
+      // ignore — SSE haptics may already have fired
     }
   }
 
