@@ -12,6 +12,8 @@ import androidx.core.app.NotificationCompat;
 import com.capacitorjs.plugins.pushnotifications.MessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
+import org.json.JSONObject;
+
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -28,9 +30,22 @@ public class WaiterMessagingService extends MessagingService {
         Map<String, String> data = remoteMessage.getData();
         if (isWaiterPickupEvent(data)) {
             boolean foreground = isAppInForeground();
-            PickupVibrator.pulse(getApplicationContext());
+            boolean vibrated = PickupVibrator.pulse(getApplicationContext());
+            boolean showedTray = false;
             if (!foreground) {
                 showPickupNotification(data);
+                showedTray = true;
+            }
+            try {
+                JSONObject dbg = new JSONObject();
+                dbg.put("foreground", foreground);
+                dbg.put("importance", getProcessImportance());
+                dbg.put("vibrated", vibrated);
+                dbg.put("showedTray", showedTray);
+                dbg.put("eventType", data.get("eventType"));
+                PickupDebugNative.log(getApplicationContext(), "H-DUP1", "WaiterMessagingService.onMessageReceived", "FCM pickup native", dbg);
+            } catch (Exception ignored) {
+                // ignore
             }
         }
 
@@ -50,6 +65,12 @@ public class WaiterMessagingService extends MessagingService {
         ActivityManager.getMyMemoryState(info);
         return info.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
             || info.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE;
+    }
+
+    private int getProcessImportance() {
+        ActivityManager.RunningAppProcessInfo info = new ActivityManager.RunningAppProcessInfo();
+        ActivityManager.getMyMemoryState(info);
+        return info.importance;
     }
 
     private void showPickupNotification(Map<String, String> data) {

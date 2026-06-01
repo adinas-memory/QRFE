@@ -21,6 +21,7 @@ import {
   PushNotificationCopyService,
   WaiterPushEventType,
 } from './push-notification-copy.service';
+import { pickupDebugLog } from '../../debug/pickup-debug.log';
 
 const WAITER_CALL_CHANNEL_ID = 'waiter_call_v3';
 const ALERT_DEBOUNCE_MS = 5000;
@@ -124,18 +125,39 @@ export class PushRegistrationService {
 
     const debounceKey = `${options.eventType}:${options.tableId}`;
     if (this.isDebounced(debounceKey)) {
+      pickupDebugLog('H-DUP1', 'push-registration:deliverPickupAlert', 'SSE alert debounced', {
+        eventType: options.eventType, tableId: options.tableId, documentHidden: document.hidden,
+      });
       return;
     }
 
     this.markHandled(debounceKey);
 
-    if (!this.#platform.isNative && document.hidden) {
-      await this.showLocalizedNotification(options.eventType, options.tableName);
+    let appActive: boolean | null = null;
+    if (this.#platform.isNative) {
+      try {
+        const { App } = await import('@capacitor/app');
+        const state = await App.getState();
+        appActive = state.isActive;
+      } catch {
+        // ignore
+      }
     }
 
-    // Native: SSE may still arrive briefly when screen locked — tray + haptic fallback.
+    pickupDebugLog('H-DUP1', 'push-registration:deliverPickupAlert', 'SSE alert path', {
+      eventType: options.eventType,
+      tableId: options.tableId,
+      documentHidden: document.hidden,
+      appActive,
+      native: this.#platform.isNative,
+    });
+
+    if (!this.#platform.isNative && document.hidden) {
+      await this.showLocalizedNotification(options.eventType, options.tableName, 'pwa-sse');
+    }
+
     if (this.#platform.isNative && document.hidden) {
-      await this.showLocalizedNotification(options.eventType, options.tableName);
+      await this.showLocalizedNotification(options.eventType, options.tableName, 'native-sse');
       const kind = options.eventType === 'BarWaiterCall' ? 'bar' : 'kitchen';
       this.#deviceFeedback.notifyPickupFromPush(kind, options.tableId);
     }
@@ -278,6 +300,12 @@ export class PushRegistrationService {
     }
 
     const payload = this.parsePayload(notification);
+    pickupDebugLog('H-DUP2', 'push-registration:onPushReceived', 'FCM JS received', {
+      eventType: payload.eventType,
+      tableId: payload.tableId,
+      documentHidden: document.hidden,
+      debounced: this.isDebounced(`${payload.eventType}:${payload.tableId ?? 'unknown'}`),
+    });
     if (!payload.eventType) {
       return;
     }
@@ -291,6 +319,7 @@ export class PushRegistrationService {
 
     // Foreground: SSE + Capacitor presentationOptions=[] — skip FCM JS work.
     if (!document.hidden) {
+      pickupDebugLog('H-DUP2', 'push-registration:onPushReceived', 'FCM JS skipped foreground', { eventType: payload.eventType });
       return;
     }
 
@@ -303,10 +332,15 @@ export class PushRegistrationService {
   private async showLocalizedNotification(
     eventType: WaiterPushEventType,
     tableName?: string | null,
+    source = 'unknown',
   ): Promise<void> {
     const title = this.#copy.titleFor(eventType);
     const body = this.#copy.bodyFor(eventType, tableName);
     const id = this.nextLocalNotificationId();
+
+    pickupDebugLog('H-DUP1', 'push-registration:showLocalizedNotification', 'LocalNotification schedule', {
+      source, eventType, id, documentHidden: document.hidden,
+    });
 
     try {
       await LocalNotifications.schedule({

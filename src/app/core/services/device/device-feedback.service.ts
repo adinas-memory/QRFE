@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
+import { pickupDebugLog } from '../../debug/pickup-debug.log';
 import { RuntimePlatformService } from '../../platform/runtime-platform.service';
 import { PlatformStorageService } from '../../platform/platform-storage.service';
 import { ClientInstanceService, clientInstanceIdsMatch } from './client-instance.service';
@@ -60,70 +61,86 @@ export class DeviceFeedbackService {
     const localId = await this.clientInstance.whenReady();
 
     if (!this.hapticsEnabled || !targetId || !tableId) {
+      pickupDebugLog('H-VIB2', 'device-feedback:deliverPickupReady', 'haptic skip', {
+        reason: !this.hapticsEnabled ? 'disabled' : !targetId ? 'no_target' : 'no_table',
+        kind, tableId, targetId,
+      });
       return;
     }
     if (!localId || !clientInstanceIdsMatch(targetId, localId)) {
+      pickupDebugLog('H-VIB2', 'device-feedback:deliverPickupReady', 'haptic skip', {
+        reason: 'id_mismatch', kind, tableId, targetId, localId,
+      });
       return;
     }
 
     const now = Date.now();
     const last = this.lastVibrateAtByTable.get(`${kind}:${tableId}`) ?? 0;
     if (now - last < DEBOUNCE_MS) {
+      pickupDebugLog('H-VIB2', 'device-feedback:deliverPickupReady', 'haptic skip', { reason: 'debounced', kind, tableId });
       return;
     }
 
     this.lastVibrateAtByTable.set(`${kind}:${tableId}`, now);
-    await this.vibrate(PICKUP_VIBRATE_MS);
+    const via = await this.vibrate(PICKUP_VIBRATE_MS);
+    pickupDebugLog('H-VIB2', 'device-feedback:deliverPickupReady', 'haptic fired', { kind, tableId, via });
   }
 
   private async deliverPickupFromPush(kind: PickupReadyKind, tableId: string): Promise<void> {
     const normalizedTableId = tableId?.trim();
     if (!this.hapticsEnabled || !normalizedTableId) {
+      pickupDebugLog('H-VIB3', 'device-feedback:deliverPickupFromPush', 'haptic skip', {
+        reason: !this.hapticsEnabled ? 'disabled' : 'no_table', kind, tableId: normalizedTableId,
+      });
       return;
     }
 
     const now = Date.now();
     const last = this.lastVibrateAtByTable.get(`${kind}:${normalizedTableId}`) ?? 0;
     if (now - last < DEBOUNCE_MS) {
+      pickupDebugLog('H-VIB3', 'device-feedback:deliverPickupFromPush', 'haptic skip', { reason: 'debounced', kind, tableId: normalizedTableId });
       return;
     }
 
     this.lastVibrateAtByTable.set(`${kind}:${normalizedTableId}`, now);
-    await this.vibrate(PICKUP_VIBRATE_MS);
+    const via = await this.vibrate(PICKUP_VIBRATE_MS);
+    pickupDebugLog('H-VIB3', 'device-feedback:deliverPickupFromPush', 'haptic fired', { kind, tableId: normalizedTableId, via });
   }
 
-  private async vibrate(durationMs: number): Promise<void> {
+  private async vibrate(durationMs: number): Promise<string> {
     if (Capacitor.isNativePlatform()) {
       try {
         const { PickupVibrate } = await import('../../plugins/pickup-vibrate.plugin');
         await PickupVibrate.pulse();
-        return;
+        return 'native-plugin';
       } catch {
-        // fall through to Capacitor Haptics
+        // fall through
       }
     }
 
     if (this.platform.capabilities.hapticsBackend === 'capacitor-haptics') {
       try {
-        const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+        const { Haptics } = await import('@capacitor/haptics');
         await Haptics.vibrate({ duration: durationMs });
-        return;
+        return 'capacitor-haptics';
       } catch {
         try {
           const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
           await Haptics.impact({ style: ImpactStyle.Heavy });
-          return;
+          return 'capacitor-impact';
         } catch {
-          // fall through to web vibrate
+          // fall through
         }
       }
     }
     try {
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         navigator.vibrate(durationMs);
+        return 'navigator';
       }
     } catch {
       // ignore
     }
+    return 'none';
   }
 }
