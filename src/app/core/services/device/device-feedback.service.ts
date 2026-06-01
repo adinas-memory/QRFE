@@ -108,6 +108,15 @@ export class DeviceFeedbackService {
   }
 
   private async vibrate(durationMs: number): Promise<string> {
+    try {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate(durationMs);
+        return 'navigator';
+      }
+    } catch {
+      // ignore
+    }
+
     if (Capacitor.isNativePlatform()) {
       try {
         const { PickupVibrate } = await import('../../plugins/pickup-vibrate.plugin');
@@ -132,14 +141,6 @@ export class DeviceFeedbackService {
           // fall through
         }
       }
-    }
-    try {
-      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-        navigator.vibrate(durationMs);
-        return 'navigator';
-      }
-    } catch {
-      // ignore
     }
     return 'none';
   }

@@ -24,10 +24,6 @@ public final class WaiterCallNotificationChannels {
         }
 
         NotificationChannel existing = manager.getNotificationChannel(MainActivity.WAITER_CALL_CHANNEL_ID);
-        if (existing != null && channelOk(existing)) {
-            return;
-        }
-
         if (existing != null) {
             manager.deleteNotificationChannel(MainActivity.WAITER_CALL_CHANNEL_ID);
         }
@@ -55,9 +51,5 @@ public final class WaiterCallNotificationChannels {
         channel.setSound(sound, audioAttributes);
 
         manager.createNotificationChannel(channel);
-    }
-
-    private static boolean channelOk(NotificationChannel channel) {
-        return channel.getImportance() >= NotificationManager.IMPORTANCE_HIGH && channel.shouldVibrate();
     }
 }
