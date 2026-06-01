@@ -117,28 +117,18 @@ export class PushRegistrationService {
     }
   }
 
-  /** PWA background tray only; haptics go through DeviceFeedbackService (SSE / FCM). */
+  /** PWA: LocalNotifications when tab hidden. Native: haptics only — FCM service shows tray. */
   async deliverPickupAlert(options: DeliverPickupAlertOptions): Promise<void> {
     if (options.source === 'fcm') {
       return;
     }
 
     const debounceKey = `${options.eventType}:${options.tableId}`;
-    if (this.isDebounced(debounceKey)) {
-      pickupDebugLog('H-DUP1', 'push-registration:deliverPickupAlert', 'SSE alert debounced', {
-        eventType: options.eventType, tableId: options.tableId, documentHidden: document.hidden,
-      });
-      return;
-    }
-
-    this.markHandled(debounceKey);
-
     let appActive: boolean | null = null;
     if (this.#platform.isNative) {
       try {
         const { App } = await import('@capacitor/app');
-        const state = await App.getState();
-        appActive = state.isActive;
+        appActive = (await App.getState()).isActive;
       } catch {
         // ignore
       }
@@ -150,14 +140,28 @@ export class PushRegistrationService {
       documentHidden: document.hidden,
       appActive,
       native: this.#platform.isNative,
+      runId: 'post-fix-dup',
     });
 
-    if (!this.#platform.isNative && document.hidden) {
+    if (!this.#platform.isNative) {
+      if (!document.hidden || this.isDebounced(debounceKey)) {
+        return;
+      }
+      this.markHandled(debounceKey);
       await this.showLocalizedNotification(options.eventType, options.tableName, 'pwa-sse');
+      return;
     }
 
-    if (this.#platform.isNative && document.hidden) {
-      await this.showLocalizedNotification(options.eventType, options.tableName, 'native-sse');
+    // Native Android: tray comes from WaiterMessagingService (FCM, English backend copy).
+    // Do NOT schedule LocalNotifications here — caused duplicate RO + EN trays.
+    if (appActive === false) {
+      if (this.isDebounced(debounceKey)) {
+        pickupDebugLog('H-DUP1', 'push-registration:deliverPickupAlert', 'SSE haptic debounced', {
+          eventType: options.eventType, tableId: options.tableId, runId: 'post-fix-dup',
+        });
+        return;
+      }
+      this.markHandled(debounceKey);
       const kind = options.eventType === 'BarWaiterCall' ? 'bar' : 'kitchen';
       this.#deviceFeedback.notifyPickupFromPush(kind, options.tableId);
     }
@@ -300,11 +304,20 @@ export class PushRegistrationService {
     }
 
     const payload = this.parsePayload(notification);
+    let appActive = true;
+    try {
+      const { App } = await import('@capacitor/app');
+      appActive = (await App.getState()).isActive;
+    } catch {
+      // ignore
+    }
+
     pickupDebugLog('H-DUP2', 'push-registration:onPushReceived', 'FCM JS received', {
       eventType: payload.eventType,
       tableId: payload.tableId,
       documentHidden: document.hidden,
-      debounced: this.isDebounced(`${payload.eventType}:${payload.tableId ?? 'unknown'}`),
+      appActive,
+      runId: 'post-fix-dup',
     });
     if (!payload.eventType) {
       return;
@@ -317,9 +330,10 @@ export class PushRegistrationService {
       return;
     }
 
-    // Foreground: SSE + Capacitor presentationOptions=[] — skip FCM JS work.
-    if (!document.hidden) {
-      pickupDebugLog('H-DUP2', 'push-registration:onPushReceived', 'FCM JS skipped foreground', { eventType: payload.eventType });
+    if (appActive) {
+      pickupDebugLog('H-DUP2', 'push-registration:onPushReceived', 'FCM JS skipped app active', {
+        eventType: payload.eventType, runId: 'post-fix-dup',
+      });
       return;
     }
 
