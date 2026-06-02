@@ -1,6 +1,7 @@
 package com.universal_restaurant_system.pos;
 
 import android.content.Context;
+import android.media.AudioManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -22,15 +23,16 @@ public final class PickupVibrator {
     private PickupVibrator() {
     }
 
-    static boolean pulse(Context context) {
-        return pulse(context, "unknown");
+    static boolean pulse(Context context, String source) {
+        AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        int ringerMode = am != null ? am.getRingerMode() : AudioManager.RINGER_MODE_NORMAL;
+        return pulse(context, source, ringerMode);
     }
 
-    static boolean pulse(Context context, String source) {
+    static boolean pulse(Context context, String source, int ringerMode) {
         Vibrator vibrator = getVibrator(context);
-        boolean hasVibrator = vibrator != null && vibrator.hasVibrator();
-        if (!hasVibrator) {
-            logPulse(context, source, false, "no_vibrator");
+        if (vibrator == null || !vibrator.hasVibrator()) {
+            logPulse(context, source, false, "no_vibrator", ringerMode);
             return false;
         }
 
@@ -45,9 +47,10 @@ public final class PickupVibrator {
         PowerManager.WakeLock lockToRelease = wakeLock;
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                VibrationAttributes attrs = new VibrationAttributes.Builder()
-                    .setUsage(VibrationAttributes.USAGE_NOTIFICATION)
-                    .build();
+                int usage = ringerMode == AudioManager.RINGER_MODE_NORMAL
+                    ? VibrationAttributes.USAGE_RINGTONE
+                    : VibrationAttributes.USAGE_NOTIFICATION;
+                VibrationAttributes attrs = new VibrationAttributes.Builder().setUsage(usage).build();
                 vibrator.vibrate(
                     VibrationEffect.createWaveform(PICKUP_VIBRATE_PATTERN, PICKUP_VIBRATE_AMPLITUDES, -1),
                     attrs
@@ -57,33 +60,34 @@ public final class PickupVibrator {
             } else {
                 vibrator.vibrate(PICKUP_VIBRATE_PATTERN, -1);
             }
-            logPulse(context, source, true, "waveform");
+            logPulse(context, source, true, "waveform", ringerMode);
             scheduleWakeLockRelease(lockToRelease, patternMs + 300L);
             return true;
         } catch (Exception ex) {
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     vibrator.vibrate(VibrationEffect.createOneShot(800, VibrationEffect.DEFAULT_AMPLITUDE));
-                    logPulse(context, source, true, "one_shot_fallback");
+                    logPulse(context, source, true, "one_shot_fallback", ringerMode);
                     scheduleWakeLockRelease(lockToRelease, 1_100L);
                     return true;
                 }
             } catch (Exception ignored) {
                 // ignore
             }
-            logPulse(context, source, false, ex.getClass().getSimpleName());
+            logPulse(context, source, false, ex.getClass().getSimpleName(), ringerMode);
             releaseWakeLock(lockToRelease);
             return false;
         }
     }
 
-    private static void logPulse(Context context, String source, boolean ok, String detail) {
+    private static void logPulse(Context context, String source, boolean ok, String detail, int ringerMode) {
         try {
             JSONObject dbg = new JSONObject();
             dbg.put("source", source);
             dbg.put("ok", ok);
             dbg.put("detail", detail);
-            dbg.put("runId", "notif-stream");
+            dbg.put("ringerMode", ringerMode);
+            dbg.put("runId", "sound-fix-v1");
             PickupDebugNative.log(context, "H-VIB1", "PickupVibrator.pulse", "native vibrate", dbg);
         } catch (Exception ignored) {
             // ignore

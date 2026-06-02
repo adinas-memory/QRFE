@@ -4,6 +4,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.media.AudioAttributes;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 
@@ -43,9 +44,12 @@ public final class WaiterCallNotificationChannels {
             channel.setAllowBubbles(true);
         }
 
-        Uri sound = android.provider.Settings.System.DEFAULT_NOTIFICATION_URI;
+        Uri sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        if (sound == null) {
+            sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+        }
         AudioAttributes audioAttributes = new AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+            .setUsage(AudioAttributes.USAGE_NOTIFICATION)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
             .build();
         channel.setSound(sound, audioAttributes);

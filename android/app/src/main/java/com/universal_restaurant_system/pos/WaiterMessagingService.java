@@ -106,7 +106,7 @@ public class WaiterMessagingService extends MessagingService {
             manager.notify(NOTIFICATION_ID.incrementAndGet(), builder.build());
         }
 
-        // Extra vibrator pulse for devices that ignore builder vibration when sound plays.
-        PickupVibrator.pulse(context, "after-tray");
+        // Channel sound/vibrate is ignored on some OEMs — explicit feedback after tray.
+        PickupAlertFeedback.alert(context, "after-tray");
     }
 }

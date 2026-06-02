@@ -69,6 +69,14 @@ export class PushRegistrationService {
       return;
     }
 
+    void this.#clientInstance.whenReady().then((clientInstanceId) => {
+      pickupDebugLog('H-VIB4', 'push-registration:init', 'native startup', {
+        native: true,
+        clientInstanceId,
+        runId: 'sound-fix-v1',
+      });
+    });
+
     this.#auth
       .getUserContext()
       .pipe(
