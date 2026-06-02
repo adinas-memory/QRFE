@@ -98,6 +98,16 @@ public class WaiterMessagingService extends MessagingService {
         }
         // #endregion
 
+        // Attempt explicit sound/vibration and surface outcome for runtime evidence.
+        String feedbackSuffix = "";
+        try {
+            String fb = PickupAlertFeedback.alertAndDescribe(context, "after-tray");
+            // keep notification short-ish
+            feedbackSuffix = " [" + fb + "]";
+        } catch (Exception ignored) {
+            // ignore
+        }
+
         Intent launch = new Intent(context, MainActivity.class);
         launch.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pending = PendingIntent.getActivity(
@@ -115,7 +125,7 @@ public class WaiterMessagingService extends MessagingService {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, MainActivity.WAITER_CALL_CHANNEL_ID)
             .setSmallIcon(context.getApplicationInfo().icon)
             .setContentTitle(title)
-            .setContentText(body + audioSuffix)
+            .setContentText(body + audioSuffix + feedbackSuffix)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -130,7 +140,5 @@ public class WaiterMessagingService extends MessagingService {
         if (manager != null) {
             manager.notify(NOTIFICATION_ID.incrementAndGet(), builder.build());
         }
-
-        PickupAlertFeedback.alert(context, "after-tray");
     }
 }

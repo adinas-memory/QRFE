@@ -32,6 +32,41 @@ public final class PickupAlertFeedback {
         logFeedback(context, source, ringerMode, notifVolume, alarmVolume, playedSound, vibrated, sound);
     }
 
+    static String alertAndDescribe(Context context, String source) {
+        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        int ringerMode = audioManager != null ? audioManager.getRingerMode() : AudioManager.RINGER_MODE_NORMAL;
+        int notifVolume = audioManager != null ? audioManager.getStreamVolume(AudioManager.STREAM_NOTIFICATION) : -1;
+        int alarmVolume = audioManager != null ? audioManager.getStreamVolume(AudioManager.STREAM_ALARM) : -1;
+
+        JSONObject sound = buildAndPlaySound(context, ringerMode, alarmVolume, notifVolume);
+        boolean vibrated = PickupVibrator.pulse(context, source);
+
+        try {
+            sound.put("vibrated", vibrated);
+            sound.put("onMain", Looper.myLooper() == Looper.getMainLooper());
+        } catch (Exception ignored) {
+            // ignore
+        }
+
+        // Compact string for notification text (avoid huge URIs).
+        String reason = sound.optString("reason", "");
+        String path = sound.optString("path", "");
+        String ex = sound.optString("ex", "");
+        int stream = sound.optInt("stream", -1);
+        int uriType = sound.optInt("uriType", -1);
+        boolean played = sound.optBoolean("playedSound", false);
+        boolean onMain = sound.optBoolean("onMain", false);
+        boolean vib = sound.optBoolean("vibrated", false);
+        return "ps=" + (played ? 1 : 0)
+            + " vib=" + (vib ? 1 : 0)
+            + " st=" + stream
+            + " ut=" + uriType
+            + " p=" + (path.isEmpty() ? "-" : path)
+            + " r=" + (reason.isEmpty() ? "-" : reason)
+            + " ex=" + (ex.isEmpty() ? "-" : ex)
+            + " main=" + (onMain ? 1 : 0);
+    }
+
     private static JSONObject buildAndPlaySound(
         Context context,
         int ringerMode,
@@ -43,6 +78,7 @@ public final class PickupAlertFeedback {
             dbg.put("ringerMode", ringerMode);
             dbg.put("alarmVolume", alarmVolume);
             dbg.put("notifVolume", notifVolume);
+            dbg.put("onMain", Looper.myLooper() == Looper.getMainLooper());
         } catch (Exception ignored) {
             // ignore
         }
