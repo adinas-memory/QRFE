@@ -7,7 +7,7 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
 
     /** Must match FCM channel_id and Capacitor PushNotifications.createChannel id. */
-    public static final String WAITER_CALL_CHANNEL_ID = "waiter_call_v4";
+    public static final String WAITER_CALL_CHANNEL_ID = "waiter_call_v5";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -16,7 +16,7 @@ public class MainActivity extends BridgeActivity {
         WaiterCallNotificationChannels.ensure(this);
         try {
             org.json.JSONObject dbg = new org.json.JSONObject();
-            dbg.put("runId", "post-fix-vib2");
+            dbg.put("runId", "sound-fix-v2");
             PickupDebugNative.log(this, "H-VIB1", "MainActivity.onCreate", "native app started", dbg);
         } catch (Exception ignored) {
             // ignore

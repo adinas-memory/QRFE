@@ -47,10 +47,9 @@ public final class PickupVibrator {
         PowerManager.WakeLock lockToRelease = wakeLock;
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                int usage = ringerMode == AudioManager.RINGER_MODE_NORMAL
-                    ? VibrationAttributes.USAGE_RINGTONE
-                    : VibrationAttributes.USAGE_NOTIFICATION;
-                VibrationAttributes attrs = new VibrationAttributes.Builder().setUsage(usage).build();
+                VibrationAttributes attrs = new VibrationAttributes.Builder()
+                    .setUsage(VibrationAttributes.USAGE_ALARM)
+                    .build();
                 vibrator.vibrate(
                     VibrationEffect.createWaveform(PICKUP_VIBRATE_PATTERN, PICKUP_VIBRATE_AMPLITUDES, -1),
                     attrs
@@ -60,7 +59,7 @@ public final class PickupVibrator {
             } else {
                 vibrator.vibrate(PICKUP_VIBRATE_PATTERN, -1);
             }
-            logPulse(context, source, true, "waveform", ringerMode);
+            logPulse(context, source, true, "waveform-alarm", ringerMode);
             scheduleWakeLockRelease(lockToRelease, patternMs + 300L);
             return true;
         } catch (Exception ex) {
@@ -87,7 +86,7 @@ public final class PickupVibrator {
             dbg.put("ok", ok);
             dbg.put("detail", detail);
             dbg.put("ringerMode", ringerMode);
-            dbg.put("runId", "sound-fix-v1");
+            dbg.put("runId", "sound-fix-v2");
             PickupDebugNative.log(context, "H-VIB1", "PickupVibrator.pulse", "native vibrate", dbg);
         } catch (Exception ignored) {
             // ignore

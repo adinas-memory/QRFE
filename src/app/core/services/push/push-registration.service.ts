@@ -23,7 +23,7 @@ import {
 } from './push-notification-copy.service';
 import { pickupDebugLog } from '../../debug/pickup-debug.log';
 
-const WAITER_CALL_CHANNEL_ID = 'waiter_call_v4';
+const WAITER_CALL_CHANNEL_ID = 'waiter_call_v5';
 const ALERT_DEBOUNCE_MS = 5000;
 
 export type PickupAlertSource = 'sse' | 'fcm';
@@ -38,7 +38,7 @@ export interface DeliverPickupAlertOptions {
 
 /**
  * Pickup alerts on native Android:
- * - Background/killed: data-only FCM → native tray (sound + vibration via waiter_call_v4 channel).
+ * - Background/killed: hybrid FCM → OS tray (sound + vibration via waiter_call_v5 channel).
  * - Foreground: SSE → haptics + in-app toast; Capacitor presentationOptions=[] suppresses FCM banner.
  * - PWA/browser: SSE → LocalNotifications when tab hidden.
  */
@@ -73,7 +73,7 @@ export class PushRegistrationService {
       pickupDebugLog('H-VIB4', 'push-registration:init', 'native startup', {
         native: true,
         clientInstanceId,
-        runId: 'sound-fix-v1',
+        runId: 'sound-fix-v2',
       });
     });
 
@@ -150,7 +150,7 @@ export class PushRegistrationService {
       documentHidden: document.hidden,
       appActive,
       native: this.#platform.isNative,
-      runId: 'fcm-hybrid-fallback',
+      runId: 'sound-fix-v2',
     });
 
     if (!this.#platform.isNative) {
@@ -166,7 +166,7 @@ export class PushRegistrationService {
     if (this.isNativeInBackground(appActive)) {
       const kind = options.eventType === 'BarWaiterCall' ? 'bar' : 'kitchen';
       pickupDebugLog('H-VIB3', 'push-registration:deliverPickupAlert', 'SSE haptic fallback', {
-        eventType: options.eventType, tableId: options.tableId, appActive, runId: 'fcm-hybrid-fallback',
+        eventType: options.eventType, tableId: options.tableId, appActive, runId: 'sound-fix-v2',
       });
       this.#deviceFeedback.notifyPickupFromPush(kind, options.tableId);
     }
@@ -276,7 +276,7 @@ export class PushRegistrationService {
   }
 
   private async createAndroidChannels(): Promise<void> {
-    // Channel is created in MainActivity (waiter_call_v4) with sound + vibration — do not overwrite via Capacitor.
+    // Channel is created in MainActivity (waiter_call_v5) with sound + vibration — do not overwrite via Capacitor.
   }
 
   private async ensureLocalNotificationPermission(): Promise<void> {
@@ -335,7 +335,7 @@ export class PushRegistrationService {
       tableId: payload.tableId,
       appActive,
       inBackground: this.isNativeInBackground(appActive),
-      runId: 'fcm-hybrid-fallback',
+      runId: 'sound-fix-v2',
     });
     if (!payload.eventType) {
       return;
@@ -346,7 +346,7 @@ export class PushRegistrationService {
 
     if (this.isNativeInBackground(appActive)) {
       pickupDebugLog('H-VIB3', 'push-registration:onPushReceived', 'FCM haptic fallback', {
-        eventType: payload.eventType, tableId, runId: 'fcm-hybrid-fallback',
+        eventType: payload.eventType, tableId, runId: 'sound-fix-v2',
       });
       this.#deviceFeedback.notifyPickupFromPush(kind, tableId);
       return;

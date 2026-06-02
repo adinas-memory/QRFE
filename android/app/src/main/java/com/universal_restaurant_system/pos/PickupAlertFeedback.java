@@ -13,7 +13,7 @@ import android.os.Looper;
 
 import org.json.JSONObject;
 
-/** Pickup alert: adaptive sound + vibration for silent vs normal ringer. */
+/** Pickup alert: alarm-stream sound (normal mode) + vibration in all ringer modes. */
 public final class PickupAlertFeedback {
 
     private PickupAlertFeedback() {
@@ -23,20 +23,23 @@ public final class PickupAlertFeedback {
         AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         int ringerMode = audioManager != null ? audioManager.getRingerMode() : AudioManager.RINGER_MODE_NORMAL;
         int notifVolume = audioManager != null ? audioManager.getStreamVolume(AudioManager.STREAM_NOTIFICATION) : -1;
+        int alarmVolume = audioManager != null ? audioManager.getStreamVolume(AudioManager.STREAM_ALARM) : -1;
 
-        boolean playedSound = playPickupSound(context, ringerMode, audioManager);
-        boolean vibrated = PickupVibrator.pulse(context, source, ringerMode);
+        boolean playedSound = playPickupSound(context, ringerMode);
+        boolean vibrated = PickupVibrator.pulse(context, source);
 
-        logFeedback(context, source, ringerMode, notifVolume, playedSound, vibrated);
+        logFeedback(context, source, ringerMode, notifVolume, alarmVolume, playedSound, vibrated);
     }
 
-    /** After native tray notification — explicit sound + vibrate (channel alone is unreliable on some OEMs). */
-    private static boolean playPickupSound(Context context, int ringerMode, AudioManager audioManager) {
+    private static boolean playPickupSound(Context context, int ringerMode) {
         if (ringerMode == AudioManager.RINGER_MODE_SILENT) {
             return false;
         }
 
-        Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+        if (uri == null) {
+            uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        }
         if (uri == null) {
             uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
         }
@@ -44,24 +47,18 @@ public final class PickupAlertFeedback {
             return false;
         }
 
-        // Prefer notification stream; fall back to media if notification volume is zero.
-        int stream = AudioManager.STREAM_NOTIFICATION;
-        if (audioManager != null
-            && audioManager.getStreamVolume(AudioManager.STREAM_NOTIFICATION) <= 0
-            && audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) > 0) {
-            stream = AudioManager.STREAM_MUSIC;
-        }
-
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                MediaPlayer player = MediaPlayer.create(context.getApplicationContext(), uri, null,
+                MediaPlayer player = MediaPlayer.create(
+                    context.getApplicationContext(),
+                    uri,
+                    null,
                     new AudioAttributes.Builder()
-                        .setUsage(stream == AudioManager.STREAM_NOTIFICATION
-                            ? AudioAttributes.USAGE_NOTIFICATION
-                            : AudioAttributes.USAGE_MEDIA)
+                        .setUsage(AudioAttributes.USAGE_ALARM)
                         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                         .build(),
-                    stream);
+                    AudioManager.STREAM_ALARM
+                );
                 if (player != null) {
                     player.setOnCompletionListener(MediaPlayer::release);
                     player.start();
@@ -75,12 +72,12 @@ public final class PickupAlertFeedback {
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 ringtone.setAudioAttributes(new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setUsage(AudioAttributes.USAGE_ALARM)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .setLegacyStreamType(stream)
+                    .setLegacyStreamType(AudioManager.STREAM_ALARM)
                     .build());
             } else {
-                ringtone.setStreamType(stream);
+                ringtone.setStreamType(AudioManager.STREAM_ALARM);
             }
             ringtone.play();
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
@@ -103,6 +100,7 @@ public final class PickupAlertFeedback {
         String source,
         int ringerMode,
         int notifVolume,
+        int alarmVolume,
         boolean playedSound,
         boolean vibrated
     ) {
@@ -111,9 +109,10 @@ public final class PickupAlertFeedback {
             dbg.put("source", source);
             dbg.put("ringerMode", ringerMode);
             dbg.put("notifVolume", notifVolume);
+            dbg.put("alarmVolume", alarmVolume);
             dbg.put("playedSound", playedSound);
             dbg.put("vibrated", vibrated);
-            dbg.put("runId", "sound-fix-v1");
+            dbg.put("runId", "sound-fix-v2");
             PickupDebugNative.log(context, "H-SOUND", "PickupAlertFeedback.alert", "pickup feedback", dbg);
         } catch (Exception ignored) {
             // ignore

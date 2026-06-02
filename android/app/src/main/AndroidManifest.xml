@@ -25,7 +25,7 @@
 
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="waiter_call_v4" />
+            android:value="waiter_call_v5" />
 
         <service
             android:name="com.capacitorjs.plugins.pushnotifications.MessagingService"

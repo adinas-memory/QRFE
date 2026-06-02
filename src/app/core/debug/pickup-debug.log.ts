@@ -18,7 +18,7 @@ export function pickupDebugLog(
   if (Capacitor.isNativePlatform()) {
     fetch(`${environment.apiUrl}/api/debug/agent-log`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7379f5' },
       credentials: 'include',
       body: JSON.stringify(payload),
     }).catch(() => {});

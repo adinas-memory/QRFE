@@ -40,6 +40,7 @@ final class PickupDebugNative {
             conn.setReadTimeout(4_000);
             conn.setDoOutput(true);
             conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("X-Debug-Session-Id", "7379f5");
 
             byte[] bytes = body.toString().getBytes(StandardCharsets.UTF_8);
             conn.setFixedLengthStreamingMode(bytes.length);

@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Data-only FCM: native tray with channel sound + vibration (all ringer modes).
+ * Hybrid + data FCM: OS tray in background; explicit alarm feedback when JS service runs.
  */
 public class WaiterMessagingService extends MessagingService {
 
@@ -30,17 +30,23 @@ public class WaiterMessagingService extends MessagingService {
         Map<String, String> data = remoteMessage.getData();
         if (isWaiterPickupEvent(data)) {
             boolean foreground = isAppInForeground();
-            if (!foreground) {
+            boolean hasOsNotification = remoteMessage.getNotification() != null;
+
+            if (foreground) {
+                PickupAlertFeedback.alert(getApplicationContext(), "fcm-foreground");
+            } else if (!hasOsNotification) {
                 WaiterCallNotificationChannels.ensure(getApplicationContext());
                 showPickupNotification(data);
             } else {
-                PickupAlertFeedback.alert(getApplicationContext(), "fcm-foreground");
+                PickupAlertFeedback.alert(getApplicationContext(), "fcm-hybrid-bg");
             }
+
             try {
                 JSONObject dbg = new JSONObject();
                 dbg.put("foreground", foreground);
+                dbg.put("hasOsNotification", hasOsNotification);
                 dbg.put("eventType", data.get("eventType"));
-                dbg.put("runId", "data-only-native");
+                dbg.put("runId", "sound-fix-v2");
                 PickupDebugNative.log(getApplicationContext(), "H-VIB1", "WaiterMessagingService.onMessageReceived", "FCM pickup native", dbg);
             } catch (Exception ignored) {
                 // ignore
@@ -85,7 +91,10 @@ public class WaiterMessagingService extends MessagingService {
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        android.net.Uri sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        android.net.Uri sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+        if (sound == null) {
+            sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        }
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, MainActivity.WAITER_CALL_CHANNEL_ID)
             .setSmallIcon(context.getApplicationInfo().icon)
@@ -106,7 +115,6 @@ public class WaiterMessagingService extends MessagingService {
             manager.notify(NOTIFICATION_ID.incrementAndGet(), builder.build());
         }
 
-        // Channel sound/vibrate is ignored on some OEMs — explicit feedback after tray.
         PickupAlertFeedback.alert(context, "after-tray");
     }
 }
