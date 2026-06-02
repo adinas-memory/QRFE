@@ -25,26 +25,80 @@ public final class PickupAlertFeedback {
         int notifVolume = audioManager != null ? audioManager.getStreamVolume(AudioManager.STREAM_NOTIFICATION) : -1;
         int alarmVolume = audioManager != null ? audioManager.getStreamVolume(AudioManager.STREAM_ALARM) : -1;
 
-        boolean playedSound = playPickupSound(context, ringerMode);
+        JSONObject sound = buildAndPlaySound(context, ringerMode, alarmVolume, notifVolume);
+        boolean playedSound = sound.optBoolean("playedSound", false);
         boolean vibrated = PickupVibrator.pulse(context, source);
 
-        logFeedback(context, source, ringerMode, notifVolume, alarmVolume, playedSound, vibrated);
+        logFeedback(context, source, ringerMode, notifVolume, alarmVolume, playedSound, vibrated, sound);
     }
 
-    private static boolean playPickupSound(Context context, int ringerMode) {
-        if (ringerMode == AudioManager.RINGER_MODE_SILENT) {
-            return false;
+    private static JSONObject buildAndPlaySound(
+        Context context,
+        int ringerMode,
+        int alarmVolume,
+        int notifVolume
+    ) {
+        JSONObject dbg = new JSONObject();
+        try {
+            dbg.put("ringerMode", ringerMode);
+            dbg.put("alarmVolume", alarmVolume);
+            dbg.put("notifVolume", notifVolume);
+        } catch (Exception ignored) {
+            // ignore
         }
 
-        Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+        if (ringerMode == AudioManager.RINGER_MODE_SILENT) {
+            try {
+                dbg.put("playedSound", false);
+                dbg.put("reason", "ringer_silent");
+            } catch (Exception ignored) {
+                // ignore
+            }
+            return dbg;
+        }
+
+        if (alarmVolume <= 0 && notifVolume <= 0) {
+            try {
+                dbg.put("playedSound", false);
+                dbg.put("reason", "both_streams_muted");
+            } catch (Exception ignored) {
+                // ignore
+            }
+            return dbg;
+        }
+
+        int uriType = RingtoneManager.TYPE_ALARM;
+        Uri uri = RingtoneManager.getDefaultUri(uriType);
         if (uri == null) {
-            uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            uriType = RingtoneManager.TYPE_NOTIFICATION;
+            uri = RingtoneManager.getDefaultUri(uriType);
         }
         if (uri == null) {
-            uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+            uriType = RingtoneManager.TYPE_RINGTONE;
+            uri = RingtoneManager.getDefaultUri(uriType);
         }
         if (uri == null) {
-            return false;
+            try {
+                dbg.put("playedSound", false);
+                dbg.put("reason", "no_default_uri");
+            } catch (Exception ignored) {
+                // ignore
+            }
+            return dbg;
+        }
+
+        try {
+            dbg.put("uriType", uriType);
+            dbg.put("uri", String.valueOf(uri));
+        } catch (Exception ignored) {
+            // ignore
+        }
+
+        final int stream = (alarmVolume > 0) ? AudioManager.STREAM_ALARM : AudioManager.STREAM_NOTIFICATION;
+        try {
+            dbg.put("stream", stream);
+        } catch (Exception ignored) {
+            // ignore
         }
 
         try {
@@ -54,30 +108,35 @@ public final class PickupAlertFeedback {
                     uri,
                     null,
                     new AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setUsage(stream == AudioManager.STREAM_ALARM ? AudioAttributes.USAGE_ALARM : AudioAttributes.USAGE_NOTIFICATION)
                         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                         .build(),
-                    AudioManager.STREAM_ALARM
+                    stream
                 );
                 if (player != null) {
                     player.setOnCompletionListener(MediaPlayer::release);
                     player.start();
-                    return true;
+                    dbg.put("playedSound", true);
+                    dbg.put("path", "mediaplayer");
+                    return dbg;
                 }
+                dbg.put("path", "mediaplayer_null");
             }
 
             Ringtone ringtone = RingtoneManager.getRingtone(context.getApplicationContext(), uri);
             if (ringtone == null) {
-                return false;
+                dbg.put("playedSound", false);
+                dbg.put("reason", "ringtone_null");
+                return dbg;
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 ringtone.setAudioAttributes(new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setUsage(stream == AudioManager.STREAM_ALARM ? AudioAttributes.USAGE_ALARM : AudioAttributes.USAGE_NOTIFICATION)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .setLegacyStreamType(AudioManager.STREAM_ALARM)
+                    .setLegacyStreamType(stream)
                     .build());
             } else {
-                ringtone.setStreamType(AudioManager.STREAM_ALARM);
+                ringtone.setStreamType(stream);
             }
             ringtone.play();
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
@@ -89,9 +148,18 @@ public final class PickupAlertFeedback {
                     // ignore
                 }
             }, 3_000L);
-            return true;
-        } catch (Exception ignored) {
-            return false;
+            dbg.put("playedSound", true);
+            dbg.put("path", "ringtone");
+            return dbg;
+        } catch (Exception ex) {
+            try {
+                dbg.put("playedSound", false);
+                dbg.put("reason", "exception");
+                dbg.put("ex", ex.getClass().getSimpleName());
+            } catch (Exception ignored) {
+                // ignore
+            }
+            return dbg;
         }
     }
 
@@ -102,7 +170,8 @@ public final class PickupAlertFeedback {
         int notifVolume,
         int alarmVolume,
         boolean playedSound,
-        boolean vibrated
+        boolean vibrated,
+        JSONObject sound
     ) {
         try {
             JSONObject dbg = new JSONObject();
@@ -113,6 +182,7 @@ public final class PickupAlertFeedback {
             dbg.put("playedSound", playedSound);
             dbg.put("vibrated", vibrated);
             dbg.put("runId", "sound-fix-v2");
+            dbg.put("sound", sound);
             PickupDebugNative.log(context, "H-SOUND", "PickupAlertFeedback.alert", "pickup feedback", dbg);
         } catch (Exception ignored) {
             // ignore
