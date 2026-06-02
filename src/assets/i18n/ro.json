@@ -196,7 +196,11 @@
     "reset": "Reset",
     "resetConfirm": "Resetezi cartul local (Dexie) și starea formularului pentru masa curentă?",
     "moveTo": "Mută la",
-    "snoozeWaiter": "Rezolvat"
+    "snoozeWaiter": "Rezolvat",
+    "notifications": {
+      "enableSoundTitle": "Activează sunetul pentru apeluri",
+      "enableSoundBody": "Pentru alerte cu sunet, activează opțiunea Sunet la canalul „Apeluri ospătar” în ecranul de setări care s-a deschis."
+    }
   },
   "sidebar": {
     "manage": "Administrare",

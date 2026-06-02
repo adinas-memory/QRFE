@@ -11,8 +11,6 @@ import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
 
-import org.json.JSONObject;
-
 /** Shared pickup alert vibration for FCM service and Capacitor plugin. */
 public final class PickupVibrator {
 
@@ -32,7 +30,6 @@ public final class PickupVibrator {
     static boolean pulse(Context context, String source, int ringerMode) {
         Vibrator vibrator = getVibrator(context);
         if (vibrator == null || !vibrator.hasVibrator()) {
-            logPulse(context, source, false, "no_vibrator", ringerMode);
             return false;
         }
 
@@ -59,37 +56,20 @@ public final class PickupVibrator {
             } else {
                 vibrator.vibrate(PICKUP_VIBRATE_PATTERN, -1);
             }
-            logPulse(context, source, true, "waveform-alarm", ringerMode);
             scheduleWakeLockRelease(lockToRelease, patternMs + 300L);
             return true;
         } catch (Exception ex) {
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     vibrator.vibrate(VibrationEffect.createOneShot(800, VibrationEffect.DEFAULT_AMPLITUDE));
-                    logPulse(context, source, true, "one_shot_fallback", ringerMode);
                     scheduleWakeLockRelease(lockToRelease, 1_100L);
                     return true;
                 }
             } catch (Exception ignored) {
                 // ignore
             }
-            logPulse(context, source, false, ex.getClass().getSimpleName(), ringerMode);
             releaseWakeLock(lockToRelease);
             return false;
-        }
-    }
-
-    private static void logPulse(Context context, String source, boolean ok, String detail, int ringerMode) {
-        try {
-            JSONObject dbg = new JSONObject();
-            dbg.put("source", source);
-            dbg.put("ok", ok);
-            dbg.put("detail", detail);
-            dbg.put("ringerMode", ringerMode);
-            dbg.put("runId", "sound-fix-v2");
-            PickupDebugNative.log(context, "H-VIB1", "PickupVibrator.pulse", "native vibrate", dbg);
-        } catch (Exception ignored) {
-            // ignore
         }
     }
 

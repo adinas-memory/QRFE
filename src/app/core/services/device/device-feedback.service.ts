@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
-import { pickupDebugLog } from '../../debug/pickup-debug.log';
 import { RuntimePlatformService } from '../../platform/runtime-platform.service';
 import { PlatformStorageService } from '../../platform/platform-storage.service';
 import { ClientInstanceService, clientInstanceIdsMatch } from './client-instance.service';
@@ -61,50 +60,36 @@ export class DeviceFeedbackService {
     const localId = await this.clientInstance.whenReady();
 
     if (!this.hapticsEnabled || !targetId || !tableId) {
-      pickupDebugLog('H-VIB2', 'device-feedback:deliverPickupReady', 'haptic skip', {
-        reason: !this.hapticsEnabled ? 'disabled' : !targetId ? 'no_target' : 'no_table',
-        kind, tableId, targetId,
-      });
       return;
     }
     if (!localId || !clientInstanceIdsMatch(targetId, localId)) {
-      pickupDebugLog('H-VIB2', 'device-feedback:deliverPickupReady', 'haptic skip', {
-        reason: 'id_mismatch', kind, tableId, targetId, localId,
-      });
       return;
     }
 
     const now = Date.now();
     const last = this.lastVibrateAtByTable.get(`${kind}:${tableId}`) ?? 0;
     if (now - last < DEBOUNCE_MS) {
-      pickupDebugLog('H-VIB2', 'device-feedback:deliverPickupReady', 'haptic skip', { reason: 'debounced', kind, tableId });
       return;
     }
 
     this.lastVibrateAtByTable.set(`${kind}:${tableId}`, now);
-    const via = await this.vibrate(PICKUP_VIBRATE_MS);
-    pickupDebugLog('H-VIB2', 'device-feedback:deliverPickupReady', 'haptic fired', { kind, tableId, via });
+    await this.vibrate(PICKUP_VIBRATE_MS);
   }
 
   private async deliverPickupFromPush(kind: PickupReadyKind, tableId: string): Promise<void> {
     const normalizedTableId = tableId?.trim();
     if (!this.hapticsEnabled || !normalizedTableId) {
-      pickupDebugLog('H-VIB3', 'device-feedback:deliverPickupFromPush', 'haptic skip', {
-        reason: !this.hapticsEnabled ? 'disabled' : 'no_table', kind, tableId: normalizedTableId,
-      });
       return;
     }
 
     const now = Date.now();
     const last = this.lastVibrateAtByTable.get(`${kind}:${normalizedTableId}`) ?? 0;
     if (now - last < DEBOUNCE_MS) {
-      pickupDebugLog('H-VIB3', 'device-feedback:deliverPickupFromPush', 'haptic skip', { reason: 'debounced', kind, tableId: normalizedTableId });
       return;
     }
 
     this.lastVibrateAtByTable.set(`${kind}:${normalizedTableId}`, now);
-    const via = await this.vibrate(PICKUP_VIBRATE_MS);
-    pickupDebugLog('H-VIB3', 'device-feedback:deliverPickupFromPush', 'haptic fired', { kind, tableId: normalizedTableId, via });
+    await this.vibrate(PICKUP_VIBRATE_MS);
   }
 
   private async vibrate(durationMs: number): Promise<string> {

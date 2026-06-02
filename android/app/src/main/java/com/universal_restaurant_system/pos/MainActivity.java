@@ -14,12 +14,5 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(PickupVibratePlugin.class);
         super.onCreate(savedInstanceState);
         WaiterCallNotificationChannels.ensure(this);
-        try {
-            org.json.JSONObject dbg = new org.json.JSONObject();
-            dbg.put("runId", "sound-fix-v2");
-            PickupDebugNative.log(this, "H-VIB1", "MainActivity.onCreate", "native app started", dbg);
-        } catch (Exception ignored) {
-            // ignore
-        }
     }
 }

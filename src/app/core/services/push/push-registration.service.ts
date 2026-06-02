@@ -21,11 +21,13 @@ import {
   PushNotificationCopyService,
   WaiterPushEventType,
 } from './push-notification-copy.service';
-import { pickupDebugLog } from '../../debug/pickup-debug.log';
 import { PickupVibrate } from '../../plugins/pickup-vibrate.plugin';
+import { AppToastService } from '../toast-service/toast-service.service';
+import { TranslocoService } from '@jsverse/transloco';
 
 const WAITER_CALL_CHANNEL_ID = 'waiter_call_v5';
 const ALERT_DEBOUNCE_MS = 5000;
+const WAITER_CHANNEL_SOUND_PROMPT_KEY = 'qrfe.waiterCallChannelSoundPrompted';
 
 export type PickupAlertSource = 'sse' | 'fcm';
 
@@ -39,7 +41,7 @@ export interface DeliverPickupAlertOptions {
 
 /**
  * Pickup alerts on native Android:
- * - Background/killed: hybrid FCM → OS tray (sound + vibration via waiter_call_v5 channel).
+ * - Background/killed: data-only FCM → native tray (sound + vibration via waiter_call_v5 channel).
  * - Foreground: SSE → haptics + in-app toast; Capacitor presentationOptions=[] suppresses FCM banner.
  * - PWA/browser: SSE → LocalNotifications when tab hidden.
  */
@@ -52,6 +54,8 @@ export class PushRegistrationService {
   readonly #clientInstance = inject(ClientInstanceService);
   readonly #deviceFeedback = inject(DeviceFeedbackService);
   readonly #copy = inject(PushNotificationCopyService);
+  readonly #toast = inject(AppToastService);
+  readonly #transloco = inject(TranslocoService);
   readonly #destroyRef = inject(DestroyRef);
 
   readonly #apiUrl = environment.apiUrl;
@@ -69,14 +73,6 @@ export class PushRegistrationService {
     if (!this.#platform.isNative) {
       return;
     }
-
-    void this.#clientInstance.whenReady().then((clientInstanceId) => {
-      pickupDebugLog('H-VIB4', 'push-registration:init', 'native startup', {
-        native: true,
-        clientInstanceId,
-        runId: 'sound-fix-v2',
-      });
-    });
 
     this.#auth
       .getUserContext()
@@ -132,21 +128,28 @@ export class PushRegistrationService {
   private async ensureWaiterCallChannelAudible(): Promise<void> {
     try {
       const status = await PickupVibrate.getWaiterCallChannelStatus();
-      pickupDebugLog('H-SOUND', 'push-registration:ensureWaiterCallChannelAudible', 'channel status', {
-        runId: 'sound-fix-v2',
-        status,
-      });
-
-      // importance=0 means NONE (blocked). sound empty means user disabled sound for the channel.
-      if (status?.supported && status.channelExists && (status.importance === 0 || !status.sound)) {
-        // Best-effort: open the channel settings so the user can enable sound.
-        await PickupVibrate.openWaiterCallChannelSettings();
+      if (!status?.supported || !status.channelExists) {
+        return;
       }
-    } catch (err) {
-      pickupDebugLog('H-SOUND', 'push-registration:ensureWaiterCallChannelAudible', 'channel status failed', {
-        runId: 'sound-fix-v2',
-        err: String((err as any)?.message ?? err),
-      });
+
+      const soundDisabled = status.importance === 0 || !status.sound;
+      if (!soundDisabled) {
+        return;
+      }
+
+      if (localStorage.getItem(WAITER_CHANNEL_SOUND_PROMPT_KEY) === '1') {
+        return;
+      }
+      localStorage.setItem(WAITER_CHANNEL_SOUND_PROMPT_KEY, '1');
+
+      this.#toast.info(
+        this.#transloco.translate('staff.notifications.enableSoundBody'),
+        this.#transloco.translate('staff.notifications.enableSoundTitle'),
+        10_000,
+      );
+      await PickupVibrate.openWaiterCallChannelSettings();
+    } catch {
+      // ignore
     }
   }
 
@@ -167,15 +170,6 @@ export class PushRegistrationService {
       }
     }
 
-    pickupDebugLog('H-DUP1', 'push-registration:deliverPickupAlert', 'SSE alert path', {
-      eventType: options.eventType,
-      tableId: options.tableId,
-      documentHidden: document.hidden,
-      appActive,
-      native: this.#platform.isNative,
-      runId: 'sound-fix-v2',
-    });
-
     if (!this.#platform.isNative) {
       if (!document.hidden || this.isDebounced(debounceKey)) {
         return;
@@ -185,12 +179,9 @@ export class PushRegistrationService {
       return;
     }
 
-    // Hybrid OS tray in background; SSE may still run — pulse if WebView is alive and app not in foreground.
+    // Native background: SSE may still run — pulse if WebView is alive and app not in foreground.
     if (this.isNativeInBackground(appActive)) {
       const kind = options.eventType === 'BarWaiterCall' ? 'bar' : 'kitchen';
-      pickupDebugLog('H-VIB3', 'push-registration:deliverPickupAlert', 'SSE haptic fallback', {
-        eventType: options.eventType, tableId: options.tableId, appActive, runId: 'sound-fix-v2',
-      });
       this.#deviceFeedback.notifyPickupFromPush(kind, options.tableId);
     }
     if (!this.isDebounced(debounceKey)) {
@@ -353,13 +344,6 @@ export class PushRegistrationService {
       // ignore
     }
 
-    pickupDebugLog('H-DUP2', 'push-registration:onPushReceived', 'FCM JS received', {
-      eventType: payload.eventType,
-      tableId: payload.tableId,
-      appActive,
-      inBackground: this.isNativeInBackground(appActive),
-      runId: 'sound-fix-v2',
-    });
     if (!payload.eventType) {
       return;
     }
@@ -368,9 +352,6 @@ export class PushRegistrationService {
     const kind = payload.eventType === 'BarWaiterCall' ? 'bar' : 'kitchen';
 
     if (this.isNativeInBackground(appActive)) {
-      pickupDebugLog('H-VIB3', 'push-registration:onPushReceived', 'FCM haptic fallback', {
-        eventType: payload.eventType, tableId, runId: 'sound-fix-v2',
-      });
       this.#deviceFeedback.notifyPickupFromPush(kind, tableId);
       return;
     }
@@ -391,10 +372,6 @@ export class PushRegistrationService {
     const title = this.#copy.titleFor(eventType);
     const body = this.#copy.bodyFor(eventType, tableName);
     const id = this.nextLocalNotificationId();
-
-    pickupDebugLog('H-DUP1', 'push-registration:showLocalizedNotification', 'LocalNotification schedule', {
-      source, eventType, id, documentHidden: document.hidden,
-    });
 
     try {
       await LocalNotifications.schedule({

@@ -196,7 +196,11 @@
     "reset": "Reset",
     "resetConfirm": "Reset local cart (Dexie) and form state for current table?",
     "moveTo": "Move to",
-    "snoozeWaiter": "Dismiss"
+    "snoozeWaiter": "Dismiss",
+    "notifications": {
+      "enableSoundTitle": "Enable sound for waiter alerts",
+      "enableSoundBody": "To hear pickup alerts, turn on Sound for the “Waiter calls” channel in the settings screen that opened."
+    }
   },
   "sidebar": {
     "manage": "Manage",

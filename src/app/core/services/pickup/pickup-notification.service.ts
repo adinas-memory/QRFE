@@ -5,8 +5,6 @@ import { DeviceFeedbackService } from '../device/device-feedback.service';
 import { PushRegistrationService } from '../push/push-registration.service';
 import { SseEvent } from '../../models/sseModel';
 import { WaiterPushEventType } from '../push/push-notification-copy.service';
-import { pickupDebugLog } from '../../debug/pickup-debug.log';
-
 export interface PickupSsePayload {
   tableId: string | null;
   tableName?: string | null;
@@ -59,10 +57,6 @@ export class PickupNotificationService {
 
     const eventType: WaiterPushEventType =
       kind === 'kitchen' ? 'KitchenWaiterCall' : 'BarWaiterCall';
-
-    pickupDebugLog('H-DUP1', 'pickup-notification:handlePickupSse', 'SSE pickup global', {
-      kind, tableId: parsed.tableId, clientInstanceId: parsed.clientInstanceId, documentHidden: document.hidden,
-    });
 
     this.#deviceFeedback.notifyPickupReady(kind, {
       tableId: parsed.tableId,
