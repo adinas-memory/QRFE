@@ -46,7 +46,7 @@ public final class PickupVibrator {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 VibrationAttributes attrs = new VibrationAttributes.Builder()
-                    .setUsage(VibrationAttributes.USAGE_ALARM)
+                    .setUsage(VibrationAttributes.USAGE_NOTIFICATION)
                     .build();
                 vibrator.vibrate(
                     VibrationEffect.createWaveform(PICKUP_VIBRATE_PATTERN, PICKUP_VIBRATE_AMPLITUDES, -1),
@@ -83,7 +83,7 @@ public final class PickupVibrator {
             dbg.put("source", source);
             dbg.put("ok", ok);
             dbg.put("detail", detail);
-            dbg.put("runId", "post-fix-vib2");
+            dbg.put("runId", "notif-stream");
             PickupDebugNative.log(context, "H-VIB1", "PickupVibrator.pulse", "native vibrate", dbg);
         } catch (Exception ignored) {
             // ignore

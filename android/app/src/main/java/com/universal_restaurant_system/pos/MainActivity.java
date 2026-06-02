@@ -7,7 +7,7 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
 
     /** Must match FCM channel_id and Capacitor PushNotifications.createChannel id. */
-    public static final String WAITER_CALL_CHANNEL_ID = "waiter_call_v3";
+    public static final String WAITER_CALL_CHANNEL_ID = "waiter_call_v4";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

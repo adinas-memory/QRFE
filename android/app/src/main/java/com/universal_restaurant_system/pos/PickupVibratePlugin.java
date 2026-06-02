@@ -10,7 +10,7 @@ public class PickupVibratePlugin extends Plugin {
 
     @PluginMethod
     public void pulse(PluginCall call) {
-        boolean ok = PickupVibrator.pulse(getContext(), "js-plugin");
-        call.resolve(new com.getcapacitor.JSObject().put("ok", ok));
+        PickupAlertFeedback.alert(getContext(), "js-plugin");
+        call.resolve();
     }
 }

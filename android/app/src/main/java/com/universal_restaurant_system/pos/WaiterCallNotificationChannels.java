@@ -45,7 +45,7 @@ public final class WaiterCallNotificationChannels {
 
         Uri sound = android.provider.Settings.System.DEFAULT_NOTIFICATION_URI;
         AudioAttributes audioAttributes = new AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+            .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
             .build();
         channel.setSound(sound, audioAttributes);

@@ -23,7 +23,7 @@ import {
 } from './push-notification-copy.service';
 import { pickupDebugLog } from '../../debug/pickup-debug.log';
 
-const WAITER_CALL_CHANNEL_ID = 'waiter_call_v3';
+const WAITER_CALL_CHANNEL_ID = 'waiter_call_v4';
 const ALERT_DEBOUNCE_MS = 5000;
 
 export type PickupAlertSource = 'sse' | 'fcm';
@@ -38,8 +38,8 @@ export interface DeliverPickupAlertOptions {
 
 /**
  * Pickup alerts on native Android:
- * - Background/killed: FCM hybrid (OS tray + vibration) via backend notification payload.
- * - Foreground: SSE → haptics + in-app toast (manage-orders); Capacitor presentationOptions=[] suppresses FCM banner.
+ * - Background/killed: data-only FCM → native tray (sound + vibration via waiter_call_v4 channel).
+ * - Foreground: SSE → haptics + in-app toast; Capacitor presentationOptions=[] suppresses FCM banner.
  * - PWA/browser: SSE → LocalNotifications when tab hidden.
  */
 @Injectable({ providedIn: 'root' })
@@ -268,21 +268,7 @@ export class PushRegistrationService {
   }
 
   private async createAndroidChannels(): Promise<void> {
-    if (this.#platform.capabilities.surface !== 'capacitor-android') {
-      return;
-    }
-    try {
-      await PushNotifications.createChannel({
-        id: WAITER_CALL_CHANNEL_ID,
-        name: 'Waiter calls',
-        description: 'Kitchen, bar, and table waiter alerts',
-        importance: 5,
-        vibration: true,
-        visibility: 1,
-      });
-    } catch {
-      // channel may already exist (MainActivity also ensures waiter_call_v3)
-    }
+    // Channel is created in MainActivity (waiter_call_v4) with sound + vibration — do not overwrite via Capacitor.
   }
 
   private async ensureLocalNotificationPermission(): Promise<void> {
