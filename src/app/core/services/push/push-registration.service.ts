@@ -22,6 +22,7 @@ import {
   WaiterPushEventType,
 } from './push-notification-copy.service';
 import { pickupDebugLog } from '../../debug/pickup-debug.log';
+import { PickupVibrate } from '../../plugins/pickup-vibrate.plugin';
 
 const WAITER_CALL_CHANNEL_ID = 'waiter_call_v5';
 const ALERT_DEBOUNCE_MS = 5000;
@@ -112,6 +113,7 @@ export class PushRegistrationService {
       await this.createAndroidChannels();
       await this.ensureLocalNotificationPermission();
       await this.#clientInstance.whenReady();
+      await this.ensureWaiterCallChannelAudible();
 
       let perm = await PushNotifications.checkPermissions();
       if (perm.receive === 'prompt') {
@@ -124,6 +126,27 @@ export class PushRegistrationService {
       await PushNotifications.register();
     } catch (err) {
       console.warn('[PushRegistration] setup failed', err);
+    }
+  }
+
+  private async ensureWaiterCallChannelAudible(): Promise<void> {
+    try {
+      const status = await PickupVibrate.getWaiterCallChannelStatus();
+      pickupDebugLog('H-SOUND', 'push-registration:ensureWaiterCallChannelAudible', 'channel status', {
+        runId: 'sound-fix-v2',
+        status,
+      });
+
+      // importance=0 means NONE (blocked). sound empty means user disabled sound for the channel.
+      if (status?.supported && status.channelExists && (status.importance === 0 || !status.sound)) {
+        // Best-effort: open the channel settings so the user can enable sound.
+        await PickupVibrate.openWaiterCallChannelSettings();
+      }
+    } catch (err) {
+      pickupDebugLog('H-SOUND', 'push-registration:ensureWaiterCallChannelAudible', 'channel status failed', {
+        runId: 'sound-fix-v2',
+        err: String((err as any)?.message ?? err),
+      });
     }
   }
 
