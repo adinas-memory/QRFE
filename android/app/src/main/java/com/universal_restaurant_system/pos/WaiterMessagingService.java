@@ -5,6 +5,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioManager;
 import android.media.RingtoneManager;
 
 import androidx.annotation.NonNull;
@@ -82,6 +83,21 @@ public class WaiterMessagingService extends MessagingService {
             body = "Order ready for pickup";
         }
 
+        // #region agent log (debug evidence in UI)
+        // We cannot always capture native debug logs from the device; surface audio state in the tray text.
+        // Do NOT include PII/secrets.
+        String audioSuffix = "";
+        try {
+            AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            int rm = am != null ? am.getRingerMode() : -1;
+            int aVol = am != null ? am.getStreamVolume(AudioManager.STREAM_ALARM) : -1;
+            int nVol = am != null ? am.getStreamVolume(AudioManager.STREAM_NOTIFICATION) : -1;
+            audioSuffix = " (rm=" + rm + " aVol=" + aVol + " nVol=" + nVol + ")";
+        } catch (Exception ignored) {
+            // ignore
+        }
+        // #endregion
+
         Intent launch = new Intent(context, MainActivity.class);
         launch.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pending = PendingIntent.getActivity(
@@ -99,7 +115,7 @@ public class WaiterMessagingService extends MessagingService {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, MainActivity.WAITER_CALL_CHANNEL_ID)
             .setSmallIcon(context.getApplicationInfo().icon)
             .setContentTitle(title)
-            .setContentText(body)
+            .setContentText(body + audioSuffix)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
