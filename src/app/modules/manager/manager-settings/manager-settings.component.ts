@@ -24,6 +24,7 @@ import { Currency } from '../../../core/models/restaurantTablesModel';
 import { Router } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { PrintJobsService, PrinterAgentPrinterDto } from '../../../core/services/print-jobs/print-jobs.service';
+import { printerSettingsDebugLog } from '../../../core/debug/printer-settings-debug.log';
 
 export interface PrinterAgentEnrollmentCodeRow {
   id: string;
@@ -361,6 +362,18 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
       next: ({ printers, defaults }) => {
         this.billPrinters = printers ?? [];
         this.defaultBillPrinterId = defaults?.defaultBillPrinterId ?? null;
+        // #region agent log
+        printerSettingsDebugLog('H-PRN-UI', 'manager-settings:fetchBillPrinters', 'loaded bill printers', {
+          restaurantId: rid,
+          silent: options.silent,
+          printerCount: this.billPrinters.length,
+          printerIds: this.billPrinters.map(p => p.id),
+          defaultBillPrinterId: this.defaultBillPrinterId,
+          defaultInList: this.defaultBillPrinterId
+            ? this.billPrinters.some(p => p.id === this.defaultBillPrinterId)
+            : false,
+        });
+        // #endregion
         this.loadingBillPrinters = false;
 
         if (options.silent && this.billPrinters.length > 0) {
@@ -397,9 +410,22 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     if (!rid) return;
     this.savingDefaultBillPrinter = true;
 
+    // #region agent log
+    printerSettingsDebugLog('H-PRN-SAVE', 'manager-settings:saveDefaultBillPrinter', 'saving default bill printer', {
+      restaurantId: rid,
+      defaultBillPrinterId: this.defaultBillPrinterId,
+    });
+    // #endregion
+
     this.printJobs.updateDefaultBillPrinter(rid, this.defaultBillPrinterId).subscribe({
       next: res => {
         this.defaultBillPrinterId = res?.defaultBillPrinterId ?? null;
+        // #region agent log
+        printerSettingsDebugLog('H-PRN-SAVE', 'manager-settings:saveDefaultBillPrinter', 'saved default bill printer', {
+          restaurantId: rid,
+          defaultBillPrinterId: this.defaultBillPrinterId,
+        });
+        // #endregion
         this.savingDefaultBillPrinter = false;
         this.toast.success(
           this.transloco.translate('restaurantSettings.billPrinter.toastSavedBody'),

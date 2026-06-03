@@ -2,7 +2,6 @@ import { TestBed, fakeAsync, flushMicrotasks } from '@angular/core/testing';
 import { DeviceFeedbackService } from './device-feedback.service';
 import { ClientInstanceService } from './client-instance.service';
 import { RuntimePlatformService } from '../../platform/runtime-platform.service';
-import { PlatformStorageService } from '../../platform/platform-storage.service';
 
 describe('DeviceFeedbackService', () => {
   let service: DeviceFeedbackService;
@@ -28,13 +27,6 @@ describe('DeviceFeedbackService', () => {
           provide: RuntimePlatformService,
           useValue: {
             capabilities: { hapticsBackend: 'vibrate' },
-          },
-        },
-        {
-          provide: PlatformStorageService,
-          useValue: {
-            getHapticsEnabled: () => Promise.resolve(true),
-            setHapticsEnabled: () => Promise.resolve(),
           },
         },
       ],
@@ -69,15 +61,6 @@ describe('DeviceFeedbackService', () => {
     service.notifyPickupReady('kitchen', {
       tableId: 'table-1',
       clientInstanceId: null,
-    });
-    expect(vibrateSpy).not.toHaveBeenCalled();
-  });
-
-  it('does not vibrate when haptics disabled', () => {
-    service.setHapticsEnabled(false);
-    service.notifyPickupReady('kitchen', {
-      tableId: 'table-1',
-      clientInstanceId: localId,
     });
     expect(vibrateSpy).not.toHaveBeenCalled();
   });

@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 import { RuntimePlatformService } from '../../platform/runtime-platform.service';
-import { PlatformStorageService } from '../../platform/platform-storage.service';
 import { ClientInstanceService, clientInstanceIdsMatch } from './client-instance.service';
 
 const PICKUP_VIBRATE_MS = 500;
@@ -17,26 +16,11 @@ export interface PickupReadyNotifyOptions {
 @Injectable({ providedIn: 'root' })
 export class DeviceFeedbackService {
   private readonly lastVibrateAtByTable = new Map<string, number>();
-  private hapticsEnabledCache = true;
 
   constructor(
     private readonly clientInstance: ClientInstanceService,
     private readonly platform: RuntimePlatformService,
-    private readonly platformStorage: PlatformStorageService,
-  ) {
-    void this.platformStorage.getHapticsEnabled().then((v) => {
-      this.hapticsEnabledCache = v;
-    });
-  }
-
-  get hapticsEnabled(): boolean {
-    return this.hapticsEnabledCache;
-  }
-
-  setHapticsEnabled(enabled: boolean): void {
-    this.hapticsEnabledCache = enabled;
-    void this.platformStorage.setHapticsEnabled(enabled);
-  }
+  ) {}
 
   /**
    * Vibrate only when the SSE/FCM payload targets this device's client instance id.
@@ -59,7 +43,7 @@ export class DeviceFeedbackService {
     const tableId = options.tableId?.trim();
     const localId = await this.clientInstance.whenReady();
 
-    if (!this.hapticsEnabled || !targetId || !tableId) {
+    if (!targetId || !tableId) {
       return;
     }
     if (!localId || !clientInstanceIdsMatch(targetId, localId)) {
@@ -78,7 +62,7 @@ export class DeviceFeedbackService {
 
   private async deliverPickupFromPush(kind: PickupReadyKind, tableId: string): Promise<void> {
     const normalizedTableId = tableId?.trim();
-    if (!this.hapticsEnabled || !normalizedTableId) {
+    if (!normalizedTableId) {
       return;
     }
 

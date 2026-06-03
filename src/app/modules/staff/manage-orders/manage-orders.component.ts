@@ -164,14 +164,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     private pickupNotification: PickupNotificationService,
   ) {}
 
-  get hapticsEnabled(): boolean {
-    return this.deviceFeedback.hapticsEnabled;
-  }
-
-  onHapticsToggle(enabled: boolean): void {
-    this.deviceFeedback.setHapticsEnabled(enabled);
-  }
-
   formatInitiatedBy(raw: string): string {
     const v = (raw ?? '').trim().toLowerCase();
     if (!v) return '';
