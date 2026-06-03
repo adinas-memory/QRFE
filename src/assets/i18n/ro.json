@@ -566,7 +566,7 @@
         "aIntro": "Pașii de mai jos presupun un PC Windows x64 la restaurant, conectat la aceeași rețea cu imprimanta (Wi‑Fi sau cablu).",
         "step1": "Descărcați pachetul oficial (linkul de mai sus) și rulați instalarea.",
         "step2": "Windows poate recomanda să nu instalați aplicația pentru că nu este semnată digital — puteți continua instalarea.",
-        "step3": "Se instalează automat și WireGuard. Dacă se deschide fereastra WireGuard, închideți-o; serviciul rămâne configurat în fundal.",
+        "step3": "Se instalează automat WireGuard. Dacă se deschide aplicația WireGuard, activați tunelul „urs-printer-agent” (trebuie să fie conectat / Active) — apoi puteți închide fereastra. Fără tunel activ, agentul nu ajunge la Redis și notele de plată rămân blocate la „Received”.",
         "step4": "Din contul de Manager mergeți la Setări → Configurare Printer Agent, apăsați Generează cod de unică folosință și copiați codul de 10 caractere.",
         "step5": "Apăsați tasta Windows, căutați „URS Printer Agent Configurator” și deschideți aplicația.",
         "step6": "Introduceți codul de înrolare copiat, bifați că ați înțeles că rețeaua va fi scanată, selectați IP-ul imprimantei găsite în rețea și apăsați Next.",
