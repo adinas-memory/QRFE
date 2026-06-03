@@ -134,6 +134,56 @@
               </table>
             </div>
           }
+
+          <hr class="my-4" />
+          <h6 class="mb-2">{{ 'restaurantSettings.printerAgentEnrollment.installationsTitle' | transloco }}</h6>
+          <p class="text-body-secondary small mb-3">
+            {{ 'restaurantSettings.printerAgentEnrollment.installationsHint' | transloco }}
+          </p>
+          @if (loadingAgentInstallations) {
+            <p class="text-body-secondary small mb-0">{{ 'restaurantSettings.printerAgentEnrollment.installationsLoading' | transloco }}</p>
+          } @else if (agentInstallations.length === 0) {
+            <p class="text-body-secondary small mb-0">{{ 'restaurantSettings.printerAgentEnrollment.installationsEmpty' | transloco }}</p>
+          } @else {
+            <div class="table-responsive">
+              <table class="table table-sm table-striped align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>{{ 'restaurantSettings.printerAgentEnrollment.installationsAgentId' | transloco }}</th>
+                    <th>{{ 'restaurantSettings.printerAgentEnrollment.installationsEnrolled' | transloco }}</th>
+                    <th>{{ 'restaurantSettings.printerAgentEnrollment.installationsHeartbeat' | transloco }}</th>
+                    <th>{{ 'restaurantSettings.printerAgentEnrollment.installationsPrinters' | transloco }}</th>
+                    <th>{{ 'restaurantSettings.printerAgentEnrollment.installationsVpn' | transloco }}</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of agentInstallations; track row.agentId) {
+                    <tr>
+                      <td><code class="small user-select-all">{{ row.agentId }}</code></td>
+                      <td>{{ row.enrolledAtUtc | date: 'short' }}</td>
+                      <td>{{ row.lastHeartbeatUtc ? (row.lastHeartbeatUtc | date: 'short') : '—' }}</td>
+                      <td class="small">{{ formatPrinterIds(row.printerIds) }}</td>
+                      <td class="small">{{ row.wireGuardAddressCidr || '—' }}</td>
+                      <td class="text-end">
+                        <button
+                          cButton
+                          color="danger"
+                          variant="outline"
+                          size="sm"
+                          type="button"
+                          [disabled]="removingAgentId === row.agentId"
+                          (click)="removeAgentInstallation(row.agentId)"
+                        >
+                          {{ 'restaurantSettings.printerAgentEnrollment.installationsRemove' | transloco }}
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
         }
       </c-card-body>
     </c-card>

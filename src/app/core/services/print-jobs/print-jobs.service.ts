@@ -10,6 +10,15 @@ export interface PrinterAgentPrinterDto {
   port: number;
 }
 
+export interface PrinterAgentInstallationDto {
+  agentId: string;
+  enrolledAtUtc: string;
+  lastHeartbeatUtc: string | null;
+  version: string | null;
+  printerIds: string[];
+  wireGuardAddressCidr: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PrintJobsService {
   private apiUrl = environment.apiUrl;
@@ -29,6 +38,20 @@ export class PrintJobsService {
   listAgentPrinters(restaurantId: string): Observable<PrinterAgentPrinterDto[]> {
     return this.http.get<PrinterAgentPrinterDto[]>(
       `${this.apiUrl}/api/restaurants/${restaurantId}/admin/printer-agent/printers`,
+      { withCredentials: true },
+    );
+  }
+
+  listAgentInstallations(restaurantId: string): Observable<PrinterAgentInstallationDto[]> {
+    return this.http.get<PrinterAgentInstallationDto[]>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/admin/printer-agent/installations`,
+      { withCredentials: true },
+    );
+  }
+
+  removeAgentInstallation(restaurantId: string, agentId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/admin/printer-agent/installations/${encodeURIComponent(agentId)}`,
       { withCredentials: true },
     );
   }

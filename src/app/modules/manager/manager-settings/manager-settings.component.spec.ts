@@ -20,12 +20,14 @@ describe('ManagerSettingsComponent bill printer', () => {
   beforeEach(async () => {
     printJobs = jasmine.createSpyObj('PrintJobsService', [
       'listAgentPrinters',
+      'listAgentInstallations',
       'getDefaultBillPrinter',
       'updateDefaultBillPrinter',
     ]);
     printJobs.listAgentPrinters.and.returnValue(
       of([{ id: 'main-prnt', name: 'main-prnt', ipAddress: '192.168.1.1', port: 9100 }]),
     );
+    printJobs.listAgentInstallations.and.returnValue(of([]));
     printJobs.getDefaultBillPrinter.and.returnValue(of({ defaultBillPrinterId: 'main-printer' }));
 
     await TestBed.configureTestingModule({

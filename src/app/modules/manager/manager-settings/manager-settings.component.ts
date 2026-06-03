@@ -23,7 +23,11 @@ import { AppToastService } from '../../../core/services/toast-service/toast-serv
 import { Currency } from '../../../core/models/restaurantTablesModel';
 import { Router } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { PrintJobsService, PrinterAgentPrinterDto } from '../../../core/services/print-jobs/print-jobs.service';
+import {
+  PrintJobsService,
+  PrinterAgentInstallationDto,
+  PrinterAgentPrinterDto
+} from '../../../core/services/print-jobs/print-jobs.service';
 
 export interface PrinterAgentEnrollmentCodeRow {
   id: string;
@@ -78,6 +82,10 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
   generatingEnrollmentCode = false;
   lastGeneratedCode: string | null = null;
 
+  agentInstallations: PrinterAgentInstallationDto[] = [];
+  loadingAgentInstallations = false;
+  removingAgentId: string | null = null;
+
   stripeConnectLoading = false;
   stripeConnectStatus: string | null = null;
   stripeConnectedAccountId: string | null = null;
@@ -116,6 +124,7 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
       }
     });
     this.loadEnrollmentCodes();
+    this.loadAgentInstallations();
     this.loadStripeConnectStatus();
     this.loadBillPrinters();
   }
@@ -337,7 +346,7 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
             this.transloco.translate('restaurantSettings.printerAgentEnrollment.toastDeletedTitle'),
           );
         },
-        error: err => {
+        error: (err: unknown) => {
           console.error('Failed to delete enrollment code', err);
           this.toast.error(
             this.miscellaneousService.getFirstErrorMessage(err),
@@ -345,6 +354,59 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
           );
         }
       });
+  }
+
+  loadAgentInstallations(): void {
+    const rid = this.restaurantId;
+    if (!rid) return;
+    this.loadingAgentInstallations = true;
+    this.printJobs.listAgentInstallations(rid).subscribe({
+      next: rows => {
+        this.agentInstallations = rows ?? [];
+        this.loadingAgentInstallations = false;
+      },
+      error: err => {
+        console.error('Failed to load agent installations', err);
+        this.loadingAgentInstallations = false;
+        this.toast.error(
+          this.miscellaneousService.getFirstErrorMessage(err),
+          this.transloco.translate('restaurantSettings.printerAgentEnrollment.installationsLoadError'),
+        );
+      },
+    });
+  }
+
+  removeAgentInstallation(agentId: string): void {
+    if (!confirm(this.transloco.translate('restaurantSettings.printerAgentEnrollment.installationsRemoveConfirm'))) {
+      return;
+    }
+    const rid = this.restaurantId;
+    if (!rid) return;
+    this.removingAgentId = agentId;
+    this.printJobs.removeAgentInstallation(rid, agentId).subscribe({
+      next: () => {
+        this.removingAgentId = null;
+        this.loadAgentInstallations();
+        this.fetchBillPrinters({ silent: true });
+        this.toast.success(
+          this.transloco.translate('restaurantSettings.printerAgentEnrollment.installationsRemovedBody'),
+          this.transloco.translate('restaurantSettings.printerAgentEnrollment.installationsRemovedTitle'),
+        );
+      },
+      error: err => {
+        console.error('Failed to remove agent installation', err);
+        this.removingAgentId = null;
+        this.toast.error(
+          this.miscellaneousService.getFirstErrorMessage(err),
+          this.transloco.translate('restaurantSettings.printerAgentEnrollment.installationsRemoveError'),
+        );
+      },
+    });
+  }
+
+  formatPrinterIds(ids: string[] | null | undefined): string {
+    if (!ids?.length) return '—';
+    return ids.join(', ');
   }
 
   loadBillPrinters(): void {
