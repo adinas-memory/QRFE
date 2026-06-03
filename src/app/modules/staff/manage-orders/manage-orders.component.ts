@@ -1004,6 +1004,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       const payload = {
         type: 'bill',
         orderId: args.orderId,
+        restaurantName: this.authService.getUserSnapshot()?.restaurantName ?? '',
+        tableName: (this.tableName ?? '').trim() || null,
         currency: this.cartCurrency ?? null,
         subTotal: this.cartSubTotal ?? 0,
         finalTotal: this.cartSubTotal ?? 0,
