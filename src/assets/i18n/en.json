@@ -561,6 +561,18 @@
         "linkLabel": "Download URSPrinterAgentSetup.exe (Windows x64)",
         "linkUnset": "Download URL is not configured for this deployment — ask your administrator or open your organisation’s Printer Agent GitHub Releases page."
       },
+      "printerAgentInstall": {
+        "q": "How do I set up the bill printer?",
+        "aIntro": "These steps assume a Windows x64 PC at the restaurant on the same network as the printer (Wi‑Fi or cable).",
+        "step1": "Download the official package (link above) and run the installer.",
+        "step2": "Windows may warn that the app is not digitally signed — you can continue the installation.",
+        "step3": "WireGuard is installed automatically. If a WireGuard window opens, close it; the tunnel service stays configured in the background.",
+        "step4": "In Manager go to Settings → Printer Agent setup, click Generate one-time code, and copy the 10-character code.",
+        "step5": "Press the Windows key, search for “URS Printer Agent Configurator”, and open the app.",
+        "step6": "Paste the enrollment code, confirm you understand the network will be scanned, select the printer IP found on the network, and click Next.",
+        "step7": "Name the main printer (for example bill-printer), then Save and close the Configurator.",
+        "step8": "Back in Settings under Bill (non-fiscal) — default printer, wait up to about 30 seconds for the printer to appear in the list, select it, and click Save."
+      },
       "printerAgentReconnectAfterNetwork": {
         "q": "Bill printing or the Printer Agent stopped working after Wi‑Fi or a hotspot dropped. Do I need to reboot the PC?",
         "a": "Usually not. First restart the Windows service URS Printer Agent (services.msc) — that restarts the agent process and reconnects to the backend and Redis. If the agent uses a WireGuard VPN tunnel, restart the WireGuard tunnel service for your tunnel, wait until it is active, then restart URS Printer Agent again so the tunnel is ready before the agent connects. Reboot the whole PC only if those steps still fail; it resets the entire network stack and all services."

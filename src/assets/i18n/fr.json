@@ -522,6 +522,18 @@
         "linkLabel": "Télécharger URSPrinterAgentSetup.exe (Windows x64)",
         "linkUnset": "L’URL de téléchargement n’est pas configurée — demandez à votre administrateur ou ouvrez la page GitHub Releases de Printer Agent."
       },
+      "printerAgentInstall": {
+        "q": "Comment installer l’imprimante pour l’addition ?",
+        "aIntro": "Ces étapes supposent un PC Windows x64 au restaurant sur le même réseau que l’imprimante (Wi‑Fi ou câble).",
+        "step1": "Téléchargez le package officiel (lien ci-dessus) et lancez l’installation.",
+        "step2": "Windows peut recommander de ne pas installer l’application car elle n’est pas signée numériquement — vous pouvez continuer.",
+        "step3": "WireGuard s’installe automatiquement. Si une fenêtre WireGuard s’ouvre, fermez-la ; le service de tunnel reste configuré en arrière-plan.",
+        "step4": "Dans Manager : Paramètres → Configuration Printer Agent, générez un code à usage unique et copiez le code à 10 caractères.",
+        "step5": "Appuyez sur la touche Windows, recherchez « URS Printer Agent Configurator » et ouvrez l’application.",
+        "step6": "Collez le code, confirmez que le réseau sera scanné, sélectionnez l’IP de l’imprimante trouvée et cliquez sur Suivant.",
+        "step7": "Nommez l’imprimante principale (par ex. bill-printer), puis Enregistrer et fermez le Configurator.",
+        "step8": "Retournez dans Paramètres, section Addition (non fiscale) — imprimante par défaut : attendez environ 30 secondes que l’imprimante apparaisse, sélectionnez-la et Enregistrer."
+      },
       "printerAgentReconnectAfterNetwork": {
         "q": "L’impression de l’addition ou Printer Agent ne fonctionne plus après une coupure Wi‑Fi ou du point d’accès. Dois-je redémarrer le PC ?",
         "a": "En général non. Redémarrez d’abord le service Windows URS Printer Agent (services.msc) — cela relance le processus de l’agent et reconnecte au backend et à Redis. Si l’agent utilise un tunnel VPN WireGuard, redémarrez le service de tunnel WireGuard de votre tunnel, attendez qu’il soit actif, puis redémarrez à nouveau URS Printer Agent afin que le tunnel soit prêt avant la connexion. Ne redémarrez tout le PC qu’en dernier recours si ces étapes échouent : cela réinitialise toute la pile réseau et les services."

@@ -561,6 +561,18 @@
         "linkLabel": "Descarcă URSPrinterAgentSetup.exe (Windows x64)",
         "linkUnset": "Linkul de descărcare nu este configurat pentru acest mediu — întreabă administratorul sau deschide pagina de Releases GitHub a Printer Agent."
       },
+      "printerAgentInstall": {
+        "q": "Cum instalez imprimanta pentru nota de plată?",
+        "aIntro": "Pașii de mai jos presupun un PC Windows x64 la restaurant, conectat la aceeași rețea cu imprimanta (Wi‑Fi sau cablu).",
+        "step1": "Descărcați pachetul oficial (linkul de mai sus) și rulați instalarea.",
+        "step2": "Windows poate recomanda să nu instalați aplicația pentru că nu este semnată digital — puteți continua instalarea.",
+        "step3": "Se instalează automat și WireGuard. Dacă se deschide fereastra WireGuard, închideți-o; serviciul rămâne configurat în fundal.",
+        "step4": "Din contul de Manager mergeți la Setări → Configurare Printer Agent, apăsați Generează cod de unică folosință și copiați codul de 10 caractere.",
+        "step5": "Apăsați tasta Windows, căutați „URS Printer Agent Configurator” și deschideți aplicația.",
+        "step6": "Introduceți codul de înrolare copiat, bifați că ați înțeles că rețeaua va fi scanată, selectați IP-ul imprimantei găsite în rețea și apăsați Next.",
+        "step7": "Denumiți imprimanta principală (de exemplu bill-printer), apoi Salvează și închideți Configuratorul.",
+        "step8": "Reveniți în Setări la Notă de plată — imprimantă implicită. Așteptați până la aproximativ 30 de secunde ca imprimanta să apară în listă, selectați-o și apăsați Salvează."
+      },
       "printerAgentReconnectAfterNetwork": {
         "q": "Nota de plată sau Printer Agent nu mai merg după ce Wi‑Fi-ul sau hotspot-ul a picat. Trebuie să repornesc PC-ul?",
         "a": "De obicei nu. Repornește mai întâi serviciul Windows URS Printer Agent (services.msc) — repornește procesul agentului și reconectează la backend și Redis. Dacă agentul folosește tunel VPN WireGuard, repornește serviciul de tunel WireGuard pentru tunelul tău, așteaptă să fie activ, apoi repornește din nou URS Printer Agent, ca tunelul să fie gata înainte de conexiunea agentului. Repornirea întregului PC doar dacă pașii de mai sus nu rezolvă — resetează stiva de rețea și toate serviciile."

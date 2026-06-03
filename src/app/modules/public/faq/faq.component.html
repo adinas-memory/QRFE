@@ -45,6 +45,22 @@
                 } @else {
                   <p class="mb-0 text-muted">{{ 'faq.items.printerAgentDownload.linkUnset' | transloco }}</p>
                 }
+              } @else if (id === 'printerAgentInstall') {
+                <p class="mb-2">{{ 'faq.items.printerAgentInstall.aIntro' | transloco }}</p>
+                @if (printerAgentDownloadUrl) {
+                  <p class="mb-3">
+                    <a [href]="printerAgentDownloadUrl" target="_blank" rel="noopener noreferrer">
+                      {{ 'faq.items.printerAgentDownload.linkLabel' | transloco }}
+                    </a>
+                  </p>
+                } @else {
+                  <p class="mb-3 text-muted">{{ 'faq.items.printerAgentDownload.linkUnset' | transloco }}</p>
+                }
+                <ol class="mb-0 ps-3">
+                  @for (step of printerAgentInstallSteps; track step) {
+                    <li class="mb-2">{{ ('faq.items.printerAgentInstall.' + step) | transloco }}</li>
+                  }
+                </ol>
               } @else {
                 {{ ('faq.items.' + id + '.a') | transloco }}
               }

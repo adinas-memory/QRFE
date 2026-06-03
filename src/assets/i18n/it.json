@@ -522,6 +522,18 @@
         "linkLabel": "Scarica URSPrinterAgentSetup.exe (Windows x64)",
         "linkUnset": "URL di download non configurato — chiedi all’amministratore o apri la pagina GitHub Releases di Printer Agent."
       },
+      "printerAgentInstall": {
+        "q": "Come installo la stampante per il conto?",
+        "aIntro": "Questi passaggi presuppongono un PC Windows x64 nel ristorante sulla stessa rete della stampante (Wi‑Fi o cavo).",
+        "step1": "Scarica il pacchetto ufficiale (link sopra) ed esegui l’installazione.",
+        "step2": "Windows può avvisare che l’app non è firmata digitalmente — puoi continuare l’installazione.",
+        "step3": "WireGuard viene installato automaticamente. Se si apre una finestra WireGuard, chiudila; il servizio tunnel resta configurato in background.",
+        "step4": "In Manager: Impostazioni → Configurazione Printer Agent, genera codice monouso e copia il codice a 10 caratteri.",
+        "step5": "Premi il tasto Windows, cerca « URS Printer Agent Configurator » e apri l’app.",
+        "step6": "Incolla il codice, conferma che la rete verrà scansionata, seleziona l’IP della stampante trovata e clicca Avanti.",
+        "step7": "Assegna un nome alla stampante principale (es. bill-printer), poi Salva e chiudi il Configurator.",
+        "step8": "Torna in Impostazioni, sezione Conto (non fiscale) — stampante predefinita: attendi fino a circa 30 secondi che compaia in elenco, selezionala e Salva."
+      },
       "printerAgentReconnectAfterNetwork": {
         "q": "La stampa del conto o Printer Agent non funziona più dopo un calo di Wi‑Fi o dell’hotspot. Devo riavviare il PC?",
         "a": "Di solito no. Prima riavvia il servizio Windows URS Printer Agent (services.msc): riavvia il processo dell’agente e si riconnette a backend e Redis. Se l’agente usa un tunnel VPN WireGuard, riavvia il servizio tunnel WireGuard del tuo tunnel, attendi che sia attivo, poi riavvia di nuovo URS Printer Agent così il tunnel è pronto prima della connessione. Riavvia l’intero PC solo se quei passaggi non bastano: azzera l’intero stack di rete e i servizi."

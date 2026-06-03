@@ -522,6 +522,18 @@
         "linkLabel": "Descargar URSPrinterAgentSetup.exe (Windows x64)",
         "linkUnset": "La URL de descarga no está configurada — consulta al administrador o abre la página de GitHub Releases de Printer Agent."
       },
+      "printerAgentInstall": {
+        "q": "¿Cómo instalo la impresora para la cuenta?",
+        "aIntro": "Estos pasos suponen un PC Windows x64 en el restaurante en la misma red que la impresora (Wi‑Fi o cable).",
+        "step1": "Descarga el paquete oficial (enlace de arriba) y ejecuta el instalador.",
+        "step2": "Windows puede avisar de que la app no está firmada digitalmente — puedes continuar la instalación.",
+        "step3": "WireGuard se instala automáticamente. Si se abre una ventana de WireGuard, ciérrala; el servicio de túnel sigue configurado en segundo plano.",
+        "step4": "En Manager: Ajustes → Configuración Printer Agent, genera código de un solo uso y copia el código de 10 caracteres.",
+        "step5": "Pulsa la tecla Windows, busca « URS Printer Agent Configurator » y abre la aplicación.",
+        "step6": "Pega el código, confirma que se escaneará la red, selecciona la IP de la impresora encontrada y pulsa Siguiente.",
+        "step7": "Nombra la impresora principal (p. ej. bill-printer), guarda y cierra el Configurator.",
+        "step8": "Vuelve a Ajustes, sección Cuenta (no fiscal) — impresora predeterminada: espera hasta unos 30 segundos a que aparezca en la lista, selecciónala y Guardar."
+      },
       "printerAgentReconnectAfterNetwork": {
         "q": "La impresión de la cuenta o Printer Agent dejó de funcionar tras un corte de Wi‑Fi o del hotspot. ¿Tengo que reiniciar el PC?",
         "a": "Normalmente no. Primero reinicia el servicio de Windows URS Printer Agent (services.msc): reinicia el proceso del agente y vuelve a conectar con el backend y Redis. Si el agente usa un túnel VPN WireGuard, reinicia el servicio de túnel WireGuard de tu túnel, espera a que esté activo y luego reinicia de nuevo URS Printer Agent para que el túnel esté listo antes de la conexión. Reinicia el PC entero solo si esos pasos siguen fallando: restablece toda la pila de red y los servicios."

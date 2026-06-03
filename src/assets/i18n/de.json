@@ -522,6 +522,18 @@
         "linkLabel": "URSPrinterAgentSetup.exe herunterladen (Windows x64)",
         "linkUnset": "Download-URL ist nicht konfiguriert — wenden Sie sich an den Administrator oder öffnen Sie die GitHub-Releases-Seite von Printer Agent."
       },
+      "printerAgentInstall": {
+        "q": "Wie richte ich den Rechnungsdrucker ein?",
+        "aIntro": "Diese Schritte setzen einen Windows-x64-PC im Restaurant voraus, im selben Netzwerk wie der Drucker (WLAN oder Kabel).",
+        "step1": "Laden Sie das offizielle Paket (Link oben) herunter und starten Sie die Installation.",
+        "step2": "Windows kann warnen, dass die App nicht digital signiert ist — Sie können die Installation fortsetzen.",
+        "step3": "WireGuard wird automatisch installiert. Schließt sich ein WireGuard-Fenster, schließen Sie es; der Tunnel-Dienst bleibt im Hintergrund konfiguriert.",
+        "step4": "Im Manager: Einstellungen → Printer Agent-Konfiguration, Einmalcode erzeugen und den 10-stelligen Code kopieren.",
+        "step5": "Windows-Taste drücken, „URS Printer Agent Configurator“ suchen und die App öffnen.",
+        "step6": "Einmalcode einfügen, bestätigen, dass das Netzwerk gescannt wird, Drucker-IP auswählen und Weiter klicken.",
+        "step7": "Hauptdrucker benennen (z. B. bill-printer), speichern und den Configurator schließen.",
+        "step8": "Zurück in Einstellungen unter Rechnung (nicht steuerlich) — Standarddrucker: bis zu ca. 30 Sekunden warten, bis der Drucker in der Liste erscheint, auswählen und Speichern."
+      },
       "printerAgentReconnectAfterNetwork": {
         "q": "Rechnungsdruck oder Printer Agent funktionieren nach einem Wi‑Fi- oder Hotspot-Ausfall nicht mehr. Muss ich den PC neu starten?",
         "a": "Meistens nein. Starten Sie zuerst den Windows-Dienst URS Printer Agent neu (services.msc) — damit startet der Agent-Prozess neu und verbindet sich erneut mit Backend und Redis. Nutzt der Agent einen WireGuard-VPN-Tunnel, starten Sie den WireGuard-Tunnel-Dienst für Ihren Tunnel neu, warten Sie bis er aktiv ist, und starten Sie danach erneut URS Printer Agent, damit der Tunnel vor der Agent-Verbindung bereit ist. Ein kompletter PC-Neustart nur, wenn diese Schritte nicht helfen — er setzt den gesamten Netzwerk-Stack und alle Dienste zurück."

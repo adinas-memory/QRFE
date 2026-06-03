@@ -16,6 +16,7 @@ const FAQ_ITEM_IDS = [
   'pwaSupportedBrowsers',
   'settingsCurrencyBeforeUse',
   'printerAgentDownload',
+  'printerAgentInstall',
   'printerAgentReconnectAfterNetwork',
   'byodStaffDevices',
   'qrSignedSecurity',
@@ -58,6 +59,17 @@ export type FaqItemId = (typeof FAQ_ITEM_IDS)[number];
 })
 export class FaqComponent {
   protected readonly printerAgentDownloadUrl = environment.printerAgentDownloadUrl?.trim() ?? '';
+
+  protected readonly printerAgentInstallSteps = [
+    'step1',
+    'step2',
+    'step3',
+    'step4',
+    'step5',
+    'step6',
+    'step7',
+    'step8',
+  ] as const;
 
   /** On the landing page: show only the first questions + link to `/faq`. */
   readonly compact = input(false);

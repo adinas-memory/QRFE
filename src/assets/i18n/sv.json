@@ -522,6 +522,18 @@
         "linkLabel": "Ladda ner URSPrinterAgentSetup.exe (Windows x64)",
         "linkUnset": "Nedladdnings-URL är inte konfigurerad — fråga administratören eller öppna organisationens Printer Agent GitHub Releases."
       },
+      "printerAgentInstall": {
+        "q": "Hur installerar jag skrivaren för notan?",
+        "aIntro": "Stegen förutsätter en Windows x64-dator i restaurangen på samma nätverk som skrivaren (Wi‑Fi eller kabel).",
+        "step1": "Ladda ner det officiella paketet (länken ovan) och kör installationen.",
+        "step2": "Windows kan varna att appen inte är digitalt signerad — du kan fortsätta installationen.",
+        "step3": "WireGuard installeras automatiskt. Om ett WireGuard-fönster öppnas, stäng det; tunnel-tjänsten förblir konfigurerad i bakgrunden.",
+        "step4": "I Manager: Inställningar → Printer Agent-konfiguration, generera engångskod och kopiera den 10-teckens koden.",
+        "step5": "Tryck Windows-tangenten, sök efter ”URS Printer Agent Configurator” och öppna appen.",
+        "step6": "Klistra in koden, bekräfta att nätverket ska skannas, välj skrivarens IP och klicka Nästa.",
+        "step7": "Namnge huvudskrivaren (t.ex. bill-printer), spara och stäng Configurator.",
+        "step8": "Tillbaka i Inställningar under Nota (ej fiskal) — standardskrivare: vänta upp till cirka 30 sekunder tills skrivaren visas i listan, välj den och Spara."
+      },
       "printerAgentReconnectAfterNetwork": {
         "q": "Kvitto-/räkningsutskrift eller Printer Agent slutade fungera efter att Wi‑Fi eller hotspot tappats. Måste jag starta om datorn?",
         "a": "Oftast inte. Starta om Windows-tjänsten URS Printer Agent först (services.msc) — det startar om agentprocessen och återansluter till backend och Redis. Om agenten använder en WireGuard-VPN-tunnel: starta om WireGuard-tunneltjänsten för din tunnel, vänta tills den är aktiv och starta sedan URS Printer Agent igen så att tunneln är klar före anslutningen. Starta om hela datorn först om stegen inte hjälper — det nollställer hela nätverksstacken och alla tjänster."
