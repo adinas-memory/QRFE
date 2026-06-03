@@ -148,8 +148,18 @@
         </p>
         @if (billPrintersAutoRefreshActive) {
           <p class="text-body-secondary small mb-3 mb-md-2" role="status">
-            {{ 'restaurantSettings.billPrinter.autoRefreshHint' | transloco }}
+            @if (isDefaultBillPrinterMismatch || billPrinters.length === 0) {
+              {{ 'restaurantSettings.billPrinter.autoRefreshFastHint' | transloco }}
+            } @else {
+              {{ 'restaurantSettings.billPrinter.autoRefreshHint' | transloco }}
+            }
           </p>
+        }
+
+        @if (isDefaultBillPrinterMismatch) {
+          <div class="alert alert-warning small py-2 mb-3" role="alert">
+            {{ 'restaurantSettings.billPrinter.mismatchWarning' | transloco: { id: defaultBillPrinterId } }}
+          </div>
         }
 
         @if (!restaurantId) {
@@ -160,14 +170,27 @@
           @if (billPrinters.length === 0) {
             <p class="text-body-secondary small mb-3">{{ 'restaurantSettings.billPrinter.noPrinters' | transloco }}</p>
           }
-          <div class="mb-3">
-            <label cLabel for="billPrinter">{{ 'restaurantSettings.billPrinter.label' | transloco }}</label>
-            <select cSelect id="billPrinter" [(ngModel)]="defaultBillPrinterId">
-              <option [ngValue]="null">—</option>
-              @for (p of billPrinterOptions; track p.id) {
-                <option [ngValue]="p.id">{{ p.name }} ({{ p.id }})</option>
-              }
-            </select>
+          <div class="d-flex flex-wrap gap-2 align-items-start mb-3">
+            <div class="flex-grow-1" style="min-width: 12rem">
+              <label cLabel for="billPrinter">{{ 'restaurantSettings.billPrinter.label' | transloco }}</label>
+              <select cSelect id="billPrinter" [(ngModel)]="defaultBillPrinterId">
+                <option [ngValue]="null">—</option>
+                @for (p of billPrinterOptions; track p.id) {
+                  <option [ngValue]="p.id">{{ p.name }} ({{ p.id }})</option>
+                }
+              </select>
+            </div>
+            <button
+              cButton
+              color="secondary"
+              variant="outline"
+              type="button"
+              class="mt-4"
+              [disabled]="loadingBillPrinters"
+              (click)="loadBillPrinters()"
+            >
+              {{ 'restaurantSettings.billPrinter.refresh' | transloco }}
+            </button>
           </div>
 
           <button

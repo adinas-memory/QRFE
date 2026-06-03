@@ -457,7 +457,10 @@
       "toastErrorTitle": "Impossible d'enregistrer l'imprimante",
       "toastErrorBody": "Veuillez réessayer.",
       "pendingPrinterName": "Imprimante enregistrée (en attente du heartbeat agent)",
-      "autoRefreshHint": "Vérification automatique toutes les 10 secondes jusqu'à ce qu'un agent signale une imprimante."
+      "autoRefreshHint": "La liste se met à jour automatiquement toutes les 30 secondes.",
+      "autoRefreshFastHint": "Vérification toutes les 10 secondes jusqu'à ce que l'agent signale une imprimante ou que l'écart d'identifiant soit résolu.",
+      "mismatchWarning": "L'imprimante enregistrée ({{id}}) n'est pas signalée par le Printer Agent. Les additions ne seront pas imprimées tant que vous n'aurez pas sélectionné une imprimante dans la liste et cliqué sur Enregistrer.",
+      "refresh": "Actualiser la liste"
     }
   },
   "feedbackModal": {

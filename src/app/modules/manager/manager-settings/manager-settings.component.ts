@@ -24,7 +24,6 @@ import { Currency } from '../../../core/models/restaurantTablesModel';
 import { Router } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { PrintJobsService, PrinterAgentPrinterDto } from '../../../core/services/print-jobs/print-jobs.service';
-import { printerSettingsDebugLog } from '../../../core/debug/printer-settings-debug.log';
 
 export interface PrinterAgentEnrollmentCodeRow {
   id: string;
@@ -56,9 +55,12 @@ export interface PrinterAgentEnrollmentCodeRow {
 })
 export class ManagerSettingsComponent implements OnInit, OnDestroy {
   private readonly apiUrl = environment.apiUrl;
-  private static readonly billPrinterPollIntervalMs = 10_000;
+  private static readonly billPrinterPollIntervalMs = 30_000;
+  /** Faster polling while waiting for first printer or fixing a default/id mismatch. */
+  private static readonly billPrinterPollFastIntervalMs = 10_000;
 
   private billPrinterPollSub: Subscription | null = null;
+  private activeBillPrinterPollMs = 0;
   readonly printerAgentDownloadUrl = environment.printerAgentDownloadUrl?.trim() ?? '';
 
   readonly fallbackCurrencies = Object.values(Currency) as string[];
@@ -85,7 +87,7 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
 
   billPrinters: PrinterAgentPrinterDto[] = [];
   loadingBillPrinters = false;
-  /** True while polling every 10s until at least one agent printer is returned. */
+  /** True while the bill-printer section auto-refreshes on an interval. */
   billPrintersAutoRefreshActive = false;
   savingDefaultBillPrinter = false;
   defaultBillPrinterId: string | null = null;
@@ -129,6 +131,15 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
   get restaurantId(): string | null {
     const id = this.authService.getUserRestaurantId();
     return typeof id === 'string' ? id : Array.isArray(id) ? id[0] ?? null : null;
+  }
+
+  /** Saved default is set but not present in the latest agent heartbeat list. */
+  get isDefaultBillPrinterMismatch(): boolean {
+    const id = this.defaultBillPrinterId;
+    if (!id || this.billPrinters.length === 0) {
+      return false;
+    }
+    return !this.billPrinters.some(p => p.id === id);
   }
 
   /** Printers from agent heartbeat, plus a synthetic row when DB has a default id not yet in the list. */
@@ -362,26 +373,9 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
       next: ({ printers, defaults }) => {
         this.billPrinters = printers ?? [];
         this.defaultBillPrinterId = defaults?.defaultBillPrinterId ?? null;
-        // #region agent log
-        printerSettingsDebugLog('H-PRN-UI', 'manager-settings:fetchBillPrinters', 'loaded bill printers', {
-          restaurantId: rid,
-          silent: options.silent,
-          printerCount: this.billPrinters.length,
-          printerIds: this.billPrinters.map(p => p.id),
-          defaultBillPrinterId: this.defaultBillPrinterId,
-          defaultInList: this.defaultBillPrinterId
-            ? this.billPrinters.some(p => p.id === this.defaultBillPrinterId)
-            : false,
-        });
-        // #endregion
         this.loadingBillPrinters = false;
-
-        if (options.silent && this.billPrinters.length > 0) {
-          this.stopBillPrinterPolling();
-        }
-        if (!options.silent && this.billPrinters.length === 0) {
-          this.startBillPrinterPolling();
-        }
+        this.maybeAutoSelectBillPrinter();
+        this.syncBillPrinterPolling();
       },
       error: () => {
         this.loadingBillPrinters = false;
@@ -389,19 +383,46 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     });
   }
 
-  private startBillPrinterPolling(): void {
-    if (this.billPrinterPollSub || !this.restaurantId) {
+  /** Pre-select the sole agent printer when the saved default is missing or invalid. */
+  private maybeAutoSelectBillPrinter(): void {
+    if (this.billPrinters.length !== 1) {
       return;
     }
+    const onlyId = this.billPrinters[0].id;
+    if (!this.defaultBillPrinterId || this.isDefaultBillPrinterMismatch) {
+      this.defaultBillPrinterId = onlyId;
+    }
+  }
+
+  private syncBillPrinterPolling(): void {
+    if (!this.restaurantId) {
+      this.stopBillPrinterPolling();
+      return;
+    }
+
+    const intervalMs = this.billPrinters.length === 0 || this.isDefaultBillPrinterMismatch
+      ? ManagerSettingsComponent.billPrinterPollFastIntervalMs
+      : ManagerSettingsComponent.billPrinterPollIntervalMs;
+
+    if (this.billPrinterPollSub && this.activeBillPrinterPollMs === intervalMs) {
+      this.billPrintersAutoRefreshActive = true;
+      return;
+    }
+
+    this.stopBillPrinterPolling();
+    this.activeBillPrinterPollMs = intervalMs;
     this.billPrintersAutoRefreshActive = true;
-    this.billPrinterPollSub = interval(ManagerSettingsComponent.billPrinterPollIntervalMs).subscribe(() => {
-      this.fetchBillPrinters({ silent: true });
+    this.billPrinterPollSub = interval(intervalMs).subscribe(() => {
+      if (!this.loadingBillPrinters) {
+        this.fetchBillPrinters({ silent: true });
+      }
     });
   }
 
   private stopBillPrinterPolling(): void {
     this.billPrinterPollSub?.unsubscribe();
     this.billPrinterPollSub = null;
+    this.activeBillPrinterPollMs = 0;
     this.billPrintersAutoRefreshActive = false;
   }
 
@@ -410,23 +431,11 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     if (!rid) return;
     this.savingDefaultBillPrinter = true;
 
-    // #region agent log
-    printerSettingsDebugLog('H-PRN-SAVE', 'manager-settings:saveDefaultBillPrinter', 'saving default bill printer', {
-      restaurantId: rid,
-      defaultBillPrinterId: this.defaultBillPrinterId,
-    });
-    // #endregion
-
     this.printJobs.updateDefaultBillPrinter(rid, this.defaultBillPrinterId).subscribe({
       next: res => {
         this.defaultBillPrinterId = res?.defaultBillPrinterId ?? null;
-        // #region agent log
-        printerSettingsDebugLog('H-PRN-SAVE', 'manager-settings:saveDefaultBillPrinter', 'saved default bill printer', {
-          restaurantId: rid,
-          defaultBillPrinterId: this.defaultBillPrinterId,
-        });
-        // #endregion
         this.savingDefaultBillPrinter = false;
+        this.syncBillPrinterPolling();
         this.toast.success(
           this.transloco.translate('restaurantSettings.billPrinter.toastSavedBody'),
           this.transloco.translate('restaurantSettings.billPrinter.toastSavedTitle'),

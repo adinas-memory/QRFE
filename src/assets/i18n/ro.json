@@ -488,7 +488,10 @@
       "toastErrorTitle": "Nu s-a putut salva imprimanta",
       "toastErrorBody": "Încearcă din nou.",
       "pendingPrinterName": "Imprimantă salvată (așteaptă heartbeat agent)",
-      "autoRefreshHint": "Se verifică automat la fiecare 10 secunde până apare o imprimantă raportată de agent."
+      "autoRefreshHint": "Lista se actualizează automat la fiecare 30 de secunde.",
+      "autoRefreshFastHint": "Se verifică la fiecare 10 secunde până apare imprimanta agentului sau se rezolvă nepotrivirea de id.",
+      "mismatchWarning": "Imprimanta salvată ({{id}}) nu este raportată de Printer Agent. Bonurile nu se vor printa până nu selectezi o imprimantă din listă și apeși Salvează.",
+      "refresh": "Reîmprospătează lista"
     }
   },
   "feedbackModal": {

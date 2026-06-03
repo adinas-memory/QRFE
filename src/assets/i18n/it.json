@@ -457,7 +457,10 @@
       "toastErrorTitle": "Impossibile salvare la stampante",
       "toastErrorBody": "Riprova.",
       "pendingPrinterName": "Stampante salvata (in attesa heartbeat agent)",
-      "autoRefreshHint": "Controllo automatico ogni 10 secondi finché un agent segnala una stampante."
+      "autoRefreshHint": "L'elenco si aggiorna automaticamente ogni 30 secondi.",
+      "autoRefreshFastHint": "Controllo ogni 10 secondi finché l'agent segnala una stampante o la discrepanza dell'id è risolta.",
+      "mismatchWarning": "La stampante salvata ({{id}}) non è segnalata dal Printer Agent. I conti non verranno stampati finché non selezioni una stampante dall'elenco e clicchi Salva.",
+      "refresh": "Aggiorna elenco"
     }
   },
   "feedbackModal": {

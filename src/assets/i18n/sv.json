@@ -457,7 +457,10 @@
       "toastErrorTitle": "Kunde inte spara skrivare",
       "toastErrorBody": "Försök igen.",
       "pendingPrinterName": "Sparad skrivare (väntar på agent-heartbeat)",
-      "autoRefreshHint": "Kontrollerar automatiskt var 10:e sekund tills en agent rapporterar en skrivare."
+      "autoRefreshHint": "Listan uppdateras automatiskt var 30:e sekund.",
+      "autoRefreshFastHint": "Kontroll var 10:e sekund tills agenten rapporterar en skrivare eller id-avvikelsen är löst.",
+      "mismatchWarning": "Den sparade skrivaren ({{id}}) rapporteras inte av Printer Agent. Notor skrivs inte ut förrän du väljer en skrivare i listan och klickar på Spara.",
+      "refresh": "Uppdatera lista"
     }
   },
   "feedbackModal": {

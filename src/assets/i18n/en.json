@@ -488,7 +488,10 @@
       "toastErrorTitle": "Could not save printer",
       "toastErrorBody": "Please try again.",
       "pendingPrinterName": "Saved printer (pending agent heartbeat)",
-      "autoRefreshHint": "Automatically checking every 10 seconds until a printer is reported by the agent."
+      "autoRefreshHint": "The list refreshes automatically every 30 seconds.",
+      "autoRefreshFastHint": "Checking every 10 seconds until the agent reports a printer or the id mismatch is resolved.",
+      "mismatchWarning": "The saved printer ({{id}}) is not reported by the Printer Agent. Bills will not print until you select a printer from the list and click Save.",
+      "refresh": "Refresh list"
     }
   },
   "feedbackModal": {

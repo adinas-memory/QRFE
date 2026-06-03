@@ -457,7 +457,10 @@
       "toastErrorTitle": "Drucker konnte nicht gespeichert werden",
       "toastErrorBody": "Bitte erneut versuchen.",
       "pendingPrinterName": "Gespeicherter Drucker (wartet auf Agent-Heartbeat)",
-      "autoRefreshHint": "Automatische Prüfung alle 10 Sekunden, bis ein Agent einen Drucker meldet."
+      "autoRefreshHint": "Die Liste wird automatisch alle 30 Sekunden aktualisiert.",
+      "autoRefreshFastHint": "Prüfung alle 10 Sekunden, bis der Agent einen Drucker meldet oder die ID-Abweichung behoben ist.",
+      "mismatchWarning": "Der gespeicherte Drucker ({{id}}) wird vom Printer Agent nicht gemeldet. Rechnungen werden nicht gedruckt, bis du einen Drucker aus der Liste wählst und auf Speichern klickst.",
+      "refresh": "Liste aktualisieren"
     }
   },
   "feedbackModal": {
