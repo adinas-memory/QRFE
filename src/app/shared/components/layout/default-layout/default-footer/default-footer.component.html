@@ -1,12 +1,6 @@
-<!--<c-footer>-->
-<div>
-  <a href="https://unrsystem.go.ro/" target="_blank">Universal Restaurant System</a>
-  <span> &copy; {{ year }}</span>
-</div>
-<div class="ms-auto">
-  Powered by
-  <a href="https://unrsystem.go.ro/" target="_blank">
-    <span>Universal Restaurant System</span>
-  </a>
-</div>
-<!--</c-footer>-->
+<app-footer-content
+  [year]="year"
+  [poweredByLabel]="poweredBy"
+  [poweredByUrl]="poweredByUrl"
+  [fluid]="true"
+/>

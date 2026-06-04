@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
+import { COMMON_TEST_PROVIDERS } from '@app/testing/common-test-providers';
 import { DefaultFooterComponent } from './default-footer.component';
 
 describe('DefaultFooterComponent', () => {
@@ -8,9 +8,9 @@ describe('DefaultFooterComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-    imports: [DefaultFooterComponent]
-})
-    .compileComponents();
+      imports: [DefaultFooterComponent],
+      providers: [...COMMON_TEST_PROVIDERS],
+    }).compileComponents();
   });
 
   beforeEach(() => {

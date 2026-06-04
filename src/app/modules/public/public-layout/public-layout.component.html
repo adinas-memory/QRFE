@@ -23,13 +23,13 @@
 
           <!-- Language picker -->
           <h6 cDropdownHeader class="small text-uppercase">{{ 'landing.language' | transloco }}</h6>
-          <button cDropdownItem (click)="setLanguage('ro')"><span class="lang-flag me-2 cif-ro"></span> RO</button>
-          <button cDropdownItem (click)="setLanguage('en')"><span class="lang-flag me-2 cif-gb"></span> EN</button>
+          <button cDropdownItem (click)="setLanguage('en')"><span class="lang-flag me-2 cif-us"></span> EN</button>
           <button cDropdownItem (click)="setLanguage('it')"><span class="lang-flag me-2 cif-it"></span> IT</button>
           <button cDropdownItem (click)="setLanguage('fr')"><span class="lang-flag me-2 cif-fr"></span> FR</button>
           <button cDropdownItem (click)="setLanguage('es')"><span class="lang-flag me-2 cif-es"></span> ES</button>
           <button cDropdownItem (click)="setLanguage('de')"><span class="lang-flag me-2 cif-de"></span> DE</button>
           <button cDropdownItem (click)="setLanguage('sv')"><span class="lang-flag me-2 cif-se"></span> SV</button>
+          <button cDropdownItem (click)="setLanguage('ro')"><span class="lang-flag me-2 cif-ro"></span> RO</button>
         </div>
       </c-dropdown>
 
@@ -110,12 +110,10 @@
   }
 
   <c-footer class="public-footer">
-    <div class="small">
-      <span>{{year}} - &copy; Universal Restaurant System</span>
-    </div>
-    <div class="ms-auto small">
-      <span>Powered by </span>
-      <a [href]="frontendPubicUrl" target="_blank">{{ poweredBy }}</a>
-    </div>
+    <app-footer-content
+      [year]="year"
+      [poweredByLabel]="poweredBy"
+      [poweredByUrl]="frontendPubicUrl"
+    />
   </c-footer>
 </div>

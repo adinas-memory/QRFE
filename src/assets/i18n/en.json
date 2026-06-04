@@ -18,6 +18,13 @@
     "subscribe": "Subscribe",
     "language": "Language"
   },
+  "footer": {
+    "copyright": "© Universal Restaurant System",
+    "poweredBy": "Powered by",
+    "piva": "P.IVA: 03084340995 (registered in Italy — Genoa)",
+    "phoneWhatsapp": "+39 353 213 26 36 (WhatsApp)",
+    "whatsappAria": "Contact us on WhatsApp"
+  },
   "dashboard": {
     "kpiUsers": "Users",
     "kpiIncome": "Income",
@@ -156,7 +163,8 @@
     "cardPaymentsPendingBody": "This restaurant still needs to finish Stripe onboarding. Please ask staff for another payment method.",
     "theme": "Theme",
     "light": "Light",
-    "dark": "Dark"
+    "dark": "Dark",
+    "delete": "Delete"
   },
   "forgotPassword": {
     "title": "Reset password",
@@ -337,6 +345,7 @@
     "openUserMenu": "Open user menu",
     "openLanguagePicker": "Open language picker",
     "openThemePicker": "Open theme picker",
+    "sendFeedback": "Send feedback",
     "userAvatarAlt": "User avatar",
     "themeLight": "Light",
     "themeDark": "Dark",

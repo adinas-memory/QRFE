@@ -7,8 +7,12 @@
         </div>
       </c-header-brand>
       <c-header-nav class="ms-auto align-items-center">
-        <div class="me-2 d-flex align-items-center landing-feedback-wrap">
-          <app-feedback-launch [allowAnonymous]="true" />
+        <div class="me-2 d-flex align-items-center">
+          <app-feedback-launch
+            [allowAnonymous]="true"
+            appearance="outline"
+            [outlineColor]="outlineBtnColor"
+          />
         </div>
         <c-dropdown class="me-3">
           <button cButton cDropdownToggle [color]="outlineBtnColor" variant="outline" class="d-flex align-items-center gap-2 landing-header-btn">
@@ -16,13 +20,13 @@
             <span class="text-uppercase">{{ activeLang }}</span>
           </button>
           <ul cDropdownMenu>
-            <li><button cDropdownItem (click)="setLanguage('ro')"><span class="lang-flag me-2 cif-ro"></span> RO</button></li>
-            <li><button cDropdownItem (click)="setLanguage('en')"><span class="lang-flag me-2 cif-gb"></span> EN</button></li>
+            <li><button cDropdownItem (click)="setLanguage('en')"><span class="lang-flag me-2 cif-us"></span> EN</button></li>
             <li><button cDropdownItem (click)="setLanguage('it')"><span class="lang-flag me-2 cif-it"></span> IT</button></li>
             <li><button cDropdownItem (click)="setLanguage('fr')"><span class="lang-flag me-2 cif-fr"></span> FR</button></li>
             <li><button cDropdownItem (click)="setLanguage('es')"><span class="lang-flag me-2 cif-es"></span> ES</button></li>
             <li><button cDropdownItem (click)="setLanguage('de')"><span class="lang-flag me-2 cif-de"></span> DE</button></li>
             <li><button cDropdownItem (click)="setLanguage('sv')"><span class="lang-flag me-2 cif-se"></span> SV</button></li>
+            <li><button cDropdownItem (click)="setLanguage('ro')"><span class="lang-flag me-2 cif-ro"></span> RO</button></li>
           </ul>
         </c-dropdown>
         <c-dropdown class="me-3">
@@ -136,15 +140,11 @@
   </main>
 
   <c-footer class="landing-footer">
-    <c-container fluid class="d-flex flex-wrap align-items-center gap-2 py-3">
-      <div class="small">
-        <span>{{ year }} - &copy; Universal Restaurant System</span>
-      </div>
-      <div class="ms-md-auto small">
-        <span>Powered by </span>
-        <a [href]="frontendPublicUrl" target="_blank" rel="noopener noreferrer">{{ poweredBy }}</a>
-      </div>
-    </c-container>
+    <app-footer-content
+      [year]="year"
+      [poweredByLabel]="poweredBy"
+      [poweredByUrl]="frontendPublicUrl"
+    />
   </c-footer>
 
   <app-feedback-modal />

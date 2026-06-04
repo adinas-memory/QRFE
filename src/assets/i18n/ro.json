@@ -18,6 +18,13 @@
     "subscribe": "Abonează-te",
     "language": "Limbă"
   },
+  "footer": {
+    "copyright": "© Universal Restaurant System",
+    "poweredBy": "Powered by",
+    "piva": "P.IVA: 03084340995 (înregistrată în Italia — Genova)",
+    "phoneWhatsapp": "+39 353 213 26 36 (WhatsApp)",
+    "whatsappAria": "Contactează-ne pe WhatsApp"
+  },
   "dashboard": {
     "kpiUsers": "Utilizatori",
     "kpiIncome": "Venituri",
@@ -156,7 +163,8 @@
     "cardPaymentsPendingBody": "Restaurantul trebuie să finalizeze înrolarea Stripe. Te rugăm să ceri personalului o altă metodă de plată.",
     "theme": "Temă",
     "light": "Luminos",
-    "dark": "Întunecat"
+    "dark": "Întunecat",
+    "delete": "Șterge"
   },
   "forgotPassword": {
     "title": "Resetare parolă",
@@ -337,6 +345,7 @@
     "openUserMenu": "Deschide meniul utilizatorului",
     "openLanguagePicker": "Deschide selectorul de limbă",
     "openThemePicker": "Deschide selectorul de temă",
+    "sendFeedback": "Trimite feedback",
     "userAvatarAlt": "Avatar utilizator",
     "themeLight": "Luminos",
     "themeDark": "Întunecat",

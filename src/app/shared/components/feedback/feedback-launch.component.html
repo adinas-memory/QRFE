@@ -1,13 +1,26 @@
 @if (showLaunch()) {
-  <div class="nav-item py-1 d-inline-flex align-items-center">
+  @if (appearance() === 'outline') {
     <button
       type="button"
-      class="btn btn-ghost-secondary btn-sm px-2"
+      cButton
+      [color]="outlineColor()"
+      variant="outline"
+      class="landing-header-btn d-inline-flex align-items-center px-2"
       (click)="open()"
-      aria-label="Send feedback"
+      [attr.aria-label]="'header.sendFeedback' | transloco"
     >
-      <svg cIcon name="cilSpeech" class="me-md-1" size="sm"></svg>
-      <span class="d-none d-lg-inline">Feedback</span>
+      <svg cIcon name="cilSpeech" size="lg"></svg>
     </button>
-  </div>
+  } @else {
+    <c-nav-item class="d-flex align-items-center">
+      <button
+        type="button"
+        class="nav-link py-1 px-2 d-inline-flex align-items-center border-0 bg-transparent"
+        (click)="open()"
+        [attr.aria-label]="'header.sendFeedback' | transloco"
+      >
+        <svg cIcon name="cilSpeech" size="lg"></svg>
+      </button>
+    </c-nav-item>
+  }
 }

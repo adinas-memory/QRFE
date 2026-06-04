@@ -14,6 +14,7 @@ import { OrderDTO } from '../../../core/models/orderingModel';
 import { NgClass } from '@angular/common';
 import { environment } from '../../../../environments/environment';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { AppFooterContentComponent } from '@app/shared/components/layout/app-footer-content.component';
 import { LANG_STORAGE_KEY, type AppLang } from '../../../core/i18n/transloco.config';
 import {
   BehaviorSubject,
@@ -41,6 +42,7 @@ import {
     DropdownComponent, DropdownDividerDirective, DropdownHeaderDirective,
     DropdownItemDirective, DropdownMenuDirective, DropdownToggleDirective,
     TranslocoPipe,
+    AppFooterContentComponent,
   ],
   standalone: true,
   templateUrl: './public-layout.component.html',

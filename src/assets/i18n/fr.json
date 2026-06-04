@@ -18,6 +18,13 @@
     "subscribe": "S’abonner",
     "language": "Langue"
   },
+  "footer": {
+    "copyright": "© Universal Restaurant System",
+    "poweredBy": "Powered by",
+    "piva": "P.IVA : 03084340995 (enregistrée en Italie — Gênes)",
+    "phoneWhatsapp": "+39 353 213 26 36 (WhatsApp)",
+    "whatsappAria": "Nous contacter sur WhatsApp"
+  },
   "dashboard": {
     "kpiUsers": "Utilisateurs",
     "kpiIncome": "Revenus",
@@ -151,7 +158,8 @@
     "subtotal": "Sous-total",
     "theme": "Thème",
     "light": "Clair",
-    "dark": "Sombre"
+    "dark": "Sombre",
+    "delete": "Supprimer"
   },
   "forgotPassword": {
     "title": "Réinitialiser le mot de passe",
@@ -306,6 +314,7 @@
     "openUserMenu": "Ouvrir le menu utilisateur",
     "openLanguagePicker": "Ouvrir le sélecteur de langue",
     "openThemePicker": "Ouvrir le sélecteur de thème",
+    "sendFeedback": "Envoyer un commentaire",
     "userAvatarAlt": "Avatar utilisateur",
     "themeLight": "Clair",
     "themeDark": "Sombre",

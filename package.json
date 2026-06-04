@@ -15,6 +15,7 @@
     "start": "ng serve -o",
     "build": "ng build",
     "build:pwa": "ng build --configuration=pwa",
+    "pwa:icons": "powershell -ExecutionPolicy Bypass -File scripts/generate-pwa-icons.ps1",
     "build:devhost": "ng build --configuration=devhost",
     "build:capacitor": "ng build --configuration=capacitor",
     "cap:sync": "npx cap sync",

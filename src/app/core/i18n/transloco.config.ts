@@ -1,6 +1,6 @@
 import { isDevMode } from '@angular/core';
 
-export const APP_LANGS = ['ro', 'en', 'it', 'fr', 'es', 'de', 'sv'] as const;
+export const APP_LANGS = ['en', 'it', 'fr', 'es', 'de', 'sv', 'ro'] as const;
 export type AppLang = (typeof APP_LANGS)[number];
 
 export const DEFAULT_LANG: AppLang = 'ro';

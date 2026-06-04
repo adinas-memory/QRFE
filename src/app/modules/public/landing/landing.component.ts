@@ -34,6 +34,7 @@ import { FooterComponent } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { FeedbackLaunchComponent } from '@app/shared/components/feedback/feedback-launch.component';
 import { FeedbackModalComponent } from '@app/shared/components/feedback/feedback-modal.component';
+import { AppFooterContentComponent } from '@app/shared/components/layout/app-footer-content.component';
 
 @Component({
   selector: 'app-landing',
@@ -63,6 +64,7 @@ import { FeedbackModalComponent } from '@app/shared/components/feedback/feedback
     IconDirective,
     FeedbackLaunchComponent,
     FeedbackModalComponent,
+    AppFooterContentComponent,
   ],
   styleUrls: ['./landing.component.scss'],
   templateUrl: './landing.component.html'
@@ -95,10 +97,10 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
     return (l === 'ro' || l === 'en' || l === 'it' || l === 'fr' || l === 'es' || l === 'de' || l === 'sv') ? l : 'ro';
   }
 
-  /** CoreUI Icons flag sprites: locale `en` uses `cif-gb`, not `cif-en`. */
+  /** CoreUI Icons flag sprites: locale `en` uses `cif-us`, not `cif-en`. */
   private readonly langFlagClass: Record<AppLang, string> = {
     ro: 'cif-ro',
-    en: 'cif-gb',
+    en: 'cif-us',
     it: 'cif-it',
     fr: 'cif-fr',
     es: 'cif-es',

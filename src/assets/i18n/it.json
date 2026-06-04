@@ -18,6 +18,13 @@
     "subscribe": "Abbonati",
     "language": "Lingua"
   },
+  "footer": {
+    "copyright": "© Universal Restaurant System",
+    "poweredBy": "Powered by",
+    "piva": "P.IVA: 03084340995 (iscritta in Italia — Genova)",
+    "phoneWhatsapp": "+39 353 213 26 36 (WhatsApp)",
+    "whatsappAria": "Contattaci su WhatsApp"
+  },
   "dashboard": {
     "kpiUsers": "Utenti",
     "kpiIncome": "Ricavi",
@@ -151,7 +158,8 @@
     "subtotal": "Subtotale",
     "theme": "Tema",
     "light": "Chiaro",
-    "dark": "Scuro"
+    "dark": "Scuro",
+    "delete": "Elimina"
   },
   "forgotPassword": {
     "title": "Reimposta password",
@@ -306,6 +314,7 @@
     "openUserMenu": "Apri menu utente",
     "openLanguagePicker": "Apri selettore lingua",
     "openThemePicker": "Apri selettore tema",
+    "sendFeedback": "Invia feedback",
     "userAvatarAlt": "Avatar utente",
     "themeLight": "Chiaro",
     "themeDark": "Scuro",

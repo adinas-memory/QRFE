@@ -34,7 +34,7 @@ import { map, startWith, take } from 'rxjs';
 function flagClassForLang(id: AppLang): string {
   const m: Record<AppLang, string> = {
     ro: 'cif-ro',
-    en: 'cif-gb',
+    en: 'cif-us',
     it: 'cif-it',
     fr: 'cif-fr',
     es: 'cif-es',
