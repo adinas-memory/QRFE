@@ -103,6 +103,8 @@
       "modeSetMenu": "Menu du jour",
       "addMenuItem": "Ajouter un plat",
       "hideAddItem": "Masquer le formulaire",
+      "iconRequired": "Sélectionnez une image pour le plat.",
+      "formInvalid": "Veuillez remplir tous les champs obligatoires.",
       "weeklySetMenuListTitle": "Menus du jour configurés",
       "weeklySetMenuEmpty": "Aucun menu du jour enregistré pour cette semaine.",
       "saveSetMenuDay": "Enregistrer le jour",

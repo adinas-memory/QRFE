@@ -386,12 +386,27 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
 
   onSubmit(): void {
     this.formatMenuItemName();
+
+    const iconFile = this.selectedFile ?? this.menuItemsForm.value.menuItemIcon;
+    if (!(iconFile instanceof File) && !this.selectedItem) {
+      this.menuItemsForm.get('menuItemIcon')?.markAsTouched();
+    }
+
+    if (!this.menuItemsForm.valid) {
+      this.menuItemsForm.markAllAsTouched();
+      if (!(iconFile instanceof File) && !this.selectedItem) {
+        this.appToast.error(this.transloco.translate('menu.manageMenu.iconRequired'));
+      } else {
+        this.appToast.error(this.transloco.translate('menu.manageMenu.formInvalid'));
+      }
+      return;
+    }
+
     const formData = new FormData();
     formData.append('menuItemName', this.menuItemsForm.value.menuItemName);
     formData.append('menuItemDescription', this.menuItemsForm.value.menuItemDescription);
     formData.append('menuItemPriceAmount', this.menuItemsForm.value.menuItemPriceAmount);
     formData.append('menuItemCategory', canonicalMenuItemCategory(this.menuItemsForm.value.menuItemCategory));
-    const iconFile = this.selectedFile ?? this.menuItemsForm.value.menuItemIcon;
     if (iconFile instanceof File) {
       formData.append('menuItemIcon', iconFile);
     }

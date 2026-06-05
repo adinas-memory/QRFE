@@ -103,6 +103,8 @@
       "modeSetMenu": "Menu del giorno",
       "addMenuItem": "Aggiungi piatto",
       "hideAddItem": "Nascondi modulo",
+      "iconRequired": "Seleziona un'immagine per la pietanza.",
+      "formInvalid": "Compila tutti i campi obbligatori.",
       "weeklySetMenuListTitle": "Menu del giorno configurati",
       "weeklySetMenuEmpty": "Nessun menu del giorno salvato per questa settimana.",
       "saveSetMenuDay": "Salva giorno",

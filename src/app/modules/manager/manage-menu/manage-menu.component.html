@@ -36,8 +36,12 @@
         id="menuItemIcon"
         placeholder="Choose an icon file"
         type="file"
+        accept="image/*"
         (change)="onFileSelected($event)"
       />
+      <div class="form-text text-danger small" *ngIf="menuItemsForm.get('menuItemIcon')?.touched && !selectedFile">
+        {{ 'menu.manageMenu.iconRequired' | transloco }}
+      </div>
     </div>
     <div class="mb-3">
       <label cLabel for="menuItemName">Menu Item Name</label>
@@ -79,7 +83,7 @@
         type="text"
       />
     </div>
-    <button type="submit" class="btn btn-primary me-2">Add Item</button>
+    <button type="submit" class="btn btn-primary me-2" [disabled]="menuItemsForm.invalid">Add Item</button>
     <button type="button" class="btn btn-secondary" (click)="resetForm()">Reset</button>
   </form>
 

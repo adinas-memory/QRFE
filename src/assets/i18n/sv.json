@@ -103,6 +103,8 @@
       "modeSetMenu": "Dagens meny",
       "addMenuItem": "Lägg till rätt",
       "hideAddItem": "Dölj formulär",
+      "iconRequired": "Välj en bild för rätten.",
+      "formInvalid": "Fyll i alla obligatoriska fält.",
       "weeklySetMenuListTitle": "Konfigurerade dagmenyer",
       "weeklySetMenuEmpty": "Inga dagmenyer sparade för denna vecka ännu.",
       "saveSetMenuDay": "Spara dag",

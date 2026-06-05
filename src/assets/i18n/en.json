@@ -80,6 +80,8 @@
       "modeSetMenu": "Set menu of the day",
       "addMenuItem": "Add menu item",
       "hideAddItem": "Hide form",
+      "iconRequired": "Select an image for the menu item.",
+      "formInvalid": "Please fill in all required fields.",
       "weeklySetMenuListTitle": "Configured set menus",
       "weeklySetMenuEmpty": "No set menus saved for this week yet.",
       "savePresentation": "Save menu mode",

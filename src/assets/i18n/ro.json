@@ -80,6 +80,8 @@
       "modeSetMenu": "Meniul zilei",
       "addMenuItem": "Adaugă fel",
       "hideAddItem": "Ascunde formularul",
+      "iconRequired": "Selectați o imagine pentru felul de meniu.",
+      "formInvalid": "Completați toate câmpurile obligatorii.",
       "weeklySetMenuListTitle": "Meniuri configurate",
       "weeklySetMenuEmpty": "Nu există încă meniuri salvate pentru această săptămână.",
       "savePresentation": "Salvează modul meniului",
