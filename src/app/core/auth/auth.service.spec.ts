@@ -157,6 +157,21 @@ describe('AuthService offline session handling', () => {
     req.flush({ isSuccess: true, message: 'refreshed successfully' });
   });
 
+  it('refreshUserContext hydrates UserCtx when body has isSuccess only and subject is empty', () => {
+    localStorage.setItem(
+      'UserCtx',
+      JSON.stringify({ id: '1', role: 'staff', restaurantId: 'r1', restaurantName: 'R', restaurantType: 'Small' }),
+    );
+
+    service.refreshUserContext().subscribe(result => {
+      expect(result?.id).toBe('1');
+      expect(result?.restaurantName).toBe('R');
+    });
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/user/refresh-token`);
+    req.flush({ isSuccess: true, message: 'refreshed successfully' });
+  });
+
   it('setUser preserves restaurantName when ping omits it', () => {
     service.setUser({
       id: '1',

@@ -15,8 +15,15 @@ describe('authInterceptor offline behavior', () => {
   let router: jasmine.SpyObj<Router>;
 
   beforeEach(() => {
-    auth = jasmine.createSpyObj('AuthService', ['refreshUserContext', 'clearUser']);
-    onlineState = jasmine.createSpyObj('OnlineStateService', ['setOffline']);
+    auth = jasmine.createSpyObj('AuthService', [
+      'refreshUserContext',
+      'clearUser',
+      'hydrateSessionFromStorageIfNeeded',
+      'isAuthenticated',
+    ]);
+    auth.hydrateSessionFromStorageIfNeeded.and.stub();
+    auth.isAuthenticated.and.returnValue(true);
+    onlineState = jasmine.createSpyObj('OnlineStateService', ['setOffline', 'setOnline']);
     Object.defineProperty(onlineState, 'isOnline', { get: () => onlineState['_isOnline'] ?? true, configurable: true });
     (onlineState as any)._isOnline = true;
     router = jasmine.createSpyObj('Router', ['navigate']);
@@ -51,17 +58,48 @@ describe('authInterceptor offline behavior', () => {
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
-  it('401 while offline does not call refreshUserContext', () => {
+  it('401 while offline flag still attempts refresh and retries request', () => {
     (onlineState as any)._isOnline = false;
+    auth.refreshUserContext.and.returnValue(
+      of({ id: '1', role: 'manager', restaurantId: 'r1', restaurantName: 'R', restaurantType: 'Small' }),
+    );
 
-    http.get('/api/restaurants/x/staff/metrics').subscribe({ error: () => {} });
+    let response: unknown;
+    http.get('/api/user/ping').subscribe({
+      next: body => (response = body),
+      error: () => fail('should not error'),
+    });
 
-    const req = httpMock.expectOne('/api/restaurants/x/staff/metrics');
-    req.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+    const req1 = httpMock.expectOne('/api/user/ping');
+    req1.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
 
-    expect(auth.refreshUserContext).not.toHaveBeenCalled();
-    expect(auth.clearUser).not.toHaveBeenCalled();
-    expect(router.navigate).not.toHaveBeenCalled();
+    expect(onlineState.setOnline).toHaveBeenCalled();
+    expect(auth.refreshUserContext).toHaveBeenCalledWith({ redirectOnFailure: false });
+
+    const req2 = httpMock.expectOne('/api/user/ping');
+    req2.flush({ id: '1', role: 'manager', restaurantId: 'r1' });
+
+    expect(response).toEqual({ id: '1', role: 'manager', restaurantId: 'r1' });
+  });
+
+  it('401 on staff menu retries after refresh', () => {
+    auth.refreshUserContext.and.returnValue(
+      of({ id: '1', role: 'staff', restaurantId: 'r1', restaurantName: 'R', restaurantType: 'Small' }),
+    );
+
+    let response: unknown;
+    http.get('/api/restaurants/r1/staff/menu').subscribe({
+      next: body => (response = body),
+      error: () => fail('should not error'),
+    });
+
+    const req1 = httpMock.expectOne('/api/restaurants/r1/staff/menu');
+    req1.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+
+    const req2 = httpMock.expectOne('/api/restaurants/r1/staff/menu');
+    req2.flush({ menuItems: [] });
+
+    expect(response).toEqual({ menuItems: [] });
   });
 
   it('401 while online attempts refresh and retries request on success', () => {
@@ -71,22 +109,41 @@ describe('authInterceptor offline behavior', () => {
     );
 
     let response: unknown;
-    http.get('/api/restaurants/x/staff/metrics').subscribe({
+    http.get('/api/restaurants/x/staff/tables/get-tables-status').subscribe({
       next: body => (response = body),
       error: () => fail('should not error'),
     });
 
-    const req1 = httpMock.expectOne('/api/restaurants/x/staff/metrics');
+    const req1 = httpMock.expectOne('/api/restaurants/x/staff/tables/get-tables-status');
     req1.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
 
-    expect(auth.refreshUserContext).toHaveBeenCalled();
+    expect(auth.refreshUserContext).toHaveBeenCalledWith({ redirectOnFailure: false });
 
-    const req2 = httpMock.expectOne('/api/restaurants/x/staff/metrics');
+    const req2 = httpMock.expectOne('/api/restaurants/x/staff/tables/get-tables-status');
     req2.flush({ ok: true });
 
     expect(response).toEqual({ ok: true });
     expect(auth.clearUser).not.toHaveBeenCalled();
     expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it('401 retries when refresh returns null but session remains authenticated', () => {
+    auth.refreshUserContext.and.returnValue(of(null));
+    auth.isAuthenticated.and.returnValue(true);
+
+    let response: unknown;
+    http.get('/api/user/ping').subscribe({
+      next: body => (response = body),
+      error: () => fail('should not error'),
+    });
+
+    const req1 = httpMock.expectOne('/api/user/ping');
+    req1.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+
+    const req2 = httpMock.expectOne('/api/user/ping');
+    req2.flush({ id: '1', role: 'staff', restaurantId: 'r1' });
+
+    expect(response).toEqual({ id: '1', role: 'staff', restaurantId: 'r1' });
   });
 
   it('401 while online with failed refresh only logs out on auth failure', () => {

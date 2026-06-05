@@ -126,7 +126,7 @@ describe('OrderSyncService', () => {
       (service as any).handleSseError('restaurant-1', new Error('SSE error'));
       tick();
 
-      expect(auth.refreshUserContext).toHaveBeenCalled();
+      expect(auth.refreshUserContext).toHaveBeenCalledWith({ redirectOnFailure: false });
       expect(auth.clearUser).not.toHaveBeenCalled();
       expect((service as any).scheduleSseReconnect).toHaveBeenCalledWith('restaurant-1');
     }));
@@ -215,6 +215,62 @@ describe('OrderSyncService', () => {
       await Promise.resolve();
 
       expect(refreshSpy).toHaveBeenCalledWith({ fromResume: true });
+    });
+
+    it('on 401 refreshes session and retries /api/sync', async () => {
+      const user = { id: '1', role: 'staff', restaurantId: 'restaurant-1', restaurantName: 'R', restaurantType: 'Small' };
+      auth.refreshUserContext.and.returnValue(of(user));
+
+      let syncAttempt = 0;
+      fetchSpy.and.callFake((input: RequestInfo) => {
+        const url = String(input);
+        if (url.includes('/api/sync')) {
+          syncAttempt++;
+          if (syncAttempt === 1) {
+            return Promise.resolve({ ok: false, status: 401, json: () => Promise.resolve({}) });
+          }
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ Watermark: { Sequence: 3 }, Tables: [] }),
+          });
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      });
+
+      const ok = await service.refreshRestaurantSnapshot({ force: true });
+
+      expect(ok).toBe(true);
+      expect(auth.refreshUserContext).toHaveBeenCalledWith({ redirectOnFailure: false });
+      expect(syncAttempt).toBe(2);
+      expect(dbSpy.applySyncSnapshot).toHaveBeenCalled();
+    });
+
+    it('on 401 without successful refresh returns false', async () => {
+      auth.refreshUserContext.and.returnValue(of(null));
+
+      fetchSpy.and.returnValue(
+        Promise.resolve({ ok: false, status: 401, json: () => Promise.resolve({}) }),
+      );
+
+      const ok = await service.refreshRestaurantSnapshot({ force: true });
+
+      expect(ok).toBe(false);
+      expect(auth.refreshUserContext).toHaveBeenCalledWith({ redirectOnFailure: false });
+      expect(fetchSpy.calls.all().filter(c => String(c.args[0]).includes('/api/sync')).length).toBe(1);
+      expect(dbSpy.applySyncSnapshot).not.toHaveBeenCalled();
+    });
+
+    it('on 401 while offline does not call refreshUserContext', async () => {
+      onlineState.isOnline = false;
+
+      fetchSpy.and.returnValue(
+        Promise.resolve({ ok: false, status: 401, json: () => Promise.resolve({}) }),
+      );
+
+      const ok = await service.refreshRestaurantSnapshot({ fromResume: true });
+
+      expect(ok).toBe(false);
+      expect(auth.refreshUserContext).not.toHaveBeenCalled();
     });
   });
 });

@@ -53,6 +53,7 @@ describe('OnlineStateService', () => {
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(fetchSpy.calls.mostRecent().args[0]).toContain('/api/ping-lite');
+    expect(fetchSpy.calls.mostRecent().args[1]?.method).toBe('HEAD');
   }));
 
   it('does not emit resumeConnectivityOk$ when ping fails', fakeAsync(() => {

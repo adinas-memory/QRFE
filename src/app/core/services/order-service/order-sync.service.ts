@@ -1,7 +1,7 @@
 // order-sync.service.ts
 import { Injectable, NgZone } from '@angular/core';
-import { Observable, Subject, of, timer } from 'rxjs';
-import { take, catchError, filter } from 'rxjs/operators';
+import { Observable, Subject, of, timer, firstValueFrom } from 'rxjs';
+import { take, catchError, filter, map } from 'rxjs/operators';
 import { fetchEventSource, EventStreamContentType } from '@microsoft/fetch-event-source';
 import { environment } from '../../../../environments/environment';
 import { SseEvent } from '../../models/sseModel';
@@ -350,10 +350,25 @@ export class OrderSyncService {
   private async syncRestaurantState(restaurantId: string): Promise<void> {
     const url = `${this.apiUrl.replace(/\/$/, '')}/api/sync?restaurantId=${encodeURIComponent(restaurantId)}`;
     let lastError: unknown;
+    let refreshedAfter401 = false;
+
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const res = await fetch(url, { method: 'GET', credentials: 'include' });
-        if (!res.ok) throw new Error(`Sync failed: HTTP ${res.status}`);
+        if (res.status === 401) {
+          if (!refreshedAfter401 && this.onlineStateService.isOnline) {
+            refreshedAfter401 = true;
+            const refreshed = await this.ensureFreshSession();
+            if (refreshed) {
+              continue;
+            }
+          }
+          throw new Error('Sync failed: HTTP 401');
+        }
+        if (!res.ok) {
+          throw new Error(`Sync failed: HTTP ${res.status}`);
+        }
+
         const json = await res.json() as any;
 
         const watermark = json?.Watermark ?? json?.watermark;
@@ -371,12 +386,33 @@ export class OrderSyncService {
         return;
       } catch (e) {
         lastError = e;
+        const is401 = e instanceof Error && e.message.includes('HTTP 401');
+        if (is401) {
+          break;
+        }
         if (attempt === 0) {
           await new Promise(r => setTimeout(r, 400));
         }
       }
     }
     throw lastError;
+  }
+
+  /** Renew access cookie via refresh-token; shared by /api/sync and SSE reconnect. */
+  private async ensureFreshSession(): Promise<boolean> {
+    if (!this.onlineStateService.isOnline) {
+      return false;
+    }
+    const user = await firstValueFrom(
+      this.auth.refreshUserContext({ redirectOnFailure: false }).pipe(
+        catchError(err => {
+          console.error('[OrderSync] refreshUserContext failed', err);
+          return of(null);
+        }),
+        map(u => u ?? null),
+      ),
+    );
+    return user != null;
   }
 
   private bufferEvent(ev: SseEvent<any>) {
@@ -407,16 +443,10 @@ export class OrderSyncService {
     // Try to refresh session once, serialized (only when online)
     this.isRefreshing = true;
 
-    this.auth.refreshUserContext().pipe(
-      take(1),
-      catchError(e => {
-        console.error('[OrderSync] refreshUserContext failed', e);
-        return of(null);
-      })
-    ).subscribe(user => {
+    void this.ensureFreshSession().then(refreshed => {
       this.isRefreshing = false;
 
-      if (user) {
+      if (refreshed) {
         // refresh OK -> reopen connection (reset reconnect attempts)
         this.reconnectAttempts = 0;
         // small delay to allow cookies/session to settle

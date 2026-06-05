@@ -33,18 +33,20 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       if (error.status === 401 && !isPublic) {
-        if (!onlineState.isOnline) {
-          return throwError(() => error);
-        }
         if (req.context.get(AUTH_RETRIED)) {
           auth.clearUser();
           router.navigate(['/login']);
           return throwError(() => error);
         }
-        return auth.refreshUserContext().pipe(
+        // 401 means the API responded — session may be expired while network is fine.
+        onlineState.setOnline();
+        auth.hydrateSessionFromStorageIfNeeded();
+        return auth.refreshUserContext({ redirectOnFailure: false }).pipe(
           timeout({ first: REFRESH_TIMEOUT_MS }),
           switchMap((user) => {
-            if (!user) {
+            auth.hydrateSessionFromStorageIfNeeded();
+            const sessionOk = user != null || auth.isAuthenticated();
+            if (!sessionOk) {
               return throwError(() => error);
             }
             return next(req.clone({ context: req.context.set(AUTH_RETRIED, true) }));

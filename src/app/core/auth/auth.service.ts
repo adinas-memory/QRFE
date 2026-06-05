@@ -1,7 +1,7 @@
 import { Router } from '@angular/router';
 import { Injectable, Injector } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
-import { BehaviorSubject, Observable, Subject, catchError, finalize, firstValueFrom, map, of, shareReplay, tap } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, catchError, finalize, firstValueFrom, map, of, shareReplay, switchMap, tap } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { UserContextModel } from '../models/userContextModel';
 import { RegisterUserRequestModel } from '../models/registerUserRequestModel';
@@ -251,17 +251,25 @@ export class AuthService {
       }),
       catchError((error: HttpErrorResponse) => {
         if (error.status === 401 && !isPublic) {
-          return this.refreshUserContext().pipe(
-            tap(user => {
-              if (!user) {
+          return this.refreshUserContext({ redirectOnFailure: false }).pipe(
+            switchMap(user => {
+              this.hydrateSessionFromStorageIfNeeded();
+              if (!user && !this.isAuthenticated()) {
                 console.warn('Refresh credentials failed. Redirect @Login.');
+                return of(null);
               }
-            })
+              return this.http.get<unknown>(`${this.apiUrl}/api/user/ping`, { withCredentials: true }).pipe(
+                map(raw => normalizeUserContext(raw)),
+                tap(u => {
+                  if (u) this.setUser(u);
+                }),
+                catchError(() => of(null)),
+              );
+            }),
           );
-        } else {
-          console.warn('Ping failed, but route is public or error is not 401.');
-          return of(null);
         }
+        console.warn('Ping failed, but route is public or error is not 401.');
+        return of(null);
       })
     );
   }
@@ -303,6 +311,7 @@ export class AuthService {
     const normalized = normalizeUserContext(raw);
     if (normalized) return normalized;
     if (isRefreshSuccess(raw)) {
+      this.hydrateSessionFromStorageIfNeeded();
       return this.getUserSnapshot();
     }
     return null;

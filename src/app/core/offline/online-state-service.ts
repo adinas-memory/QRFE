@@ -132,7 +132,7 @@ export class OnlineStateService {
         typeof (AbortSignal as unknown as { timeout?: (ms: number) => AbortSignal }).timeout === 'function';
 
       const res = await fetch(`${this.apiUrl}/api/ping-lite`, {
-        method: 'GET',
+        method: 'HEAD',
         cache: 'no-store',
         ...(hasAbortTimeout ? { signal: AbortSignal.timeout(8000) } : {}),
       });
