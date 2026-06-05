@@ -14,6 +14,7 @@ import { KitchenService } from '../../../core/services/kitchen-service/kitchen.s
 import { BarService } from '../../../core/services/bar-service/bar.service';
 import { PrintJobsService } from '../../../core/services/print-jobs/print-jobs.service';
 import { DeviceFeedbackService } from '../../../core/services/device/device-feedback.service';
+import { ReservationService } from '../../../core/services/reservation-service/reservation.service';
 import { COMMON_TEST_PROVIDERS } from '../../../testing/common-test-providers';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
 import { CartItem, TableComputedDTO } from '../../../core/models/orderingModel';
@@ -200,6 +201,9 @@ export interface ManageOrdersMocks {
   deviceFeedback: {
     notifyPickupReady: jasmine.Spy;
   };
+  reservationService: {
+    list: jasmine.Spy;
+  };
 }
 
 interface OnlineStateMock {
@@ -218,6 +222,17 @@ export interface SetupManageOrdersOptions {
   computed?: Record<string, unknown>;
   initiatedByMap?: Record<string, string>;
   isOnline?: boolean;
+  reservations?: Array<{
+    reservationId: string;
+    tableId: string;
+    tableLabel: string;
+    customerName: string;
+    phone: string;
+    partySize: number;
+    start: string;
+    end: string;
+    status: string;
+  }>;
 }
 
 export interface ManageOrdersTestContext {
@@ -331,6 +346,9 @@ export function createManageOrdersMocks(options: SetupManageOrdersOptions = {}):
     deviceFeedback: {
       notifyPickupReady: jasmine.createSpy('notifyPickupReady'),
     },
+    reservationService: {
+      list: jasmine.createSpy('list').and.returnValue(of(options.reservations ?? [])),
+    },
   };
 }
 
@@ -357,6 +375,7 @@ export async function setupManageOrdersComponent(
       { provide: BarService, useValue: mocks.barService },
       { provide: PrintJobsService, useValue: mocks.printJobs },
       { provide: DeviceFeedbackService, useValue: mocks.deviceFeedback },
+      { provide: ReservationService, useValue: mocks.reservationService },
     ],
   }).compileComponents();
 

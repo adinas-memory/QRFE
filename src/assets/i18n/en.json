@@ -560,7 +560,8 @@
     "printNoPrinterTitle": "Bill",
     "printNoPrinterBody": "No printer configured/reported by Printer Agent.",
     "printErrorTitle": "Bill",
-    "printErrorBody": "Could not queue bill print job."
+    "printErrorBody": "Could not queue bill print job.",
+    "bookingsToday": "Today's bookings"
   },
   "faq": {
     "navLink": "FAQ",

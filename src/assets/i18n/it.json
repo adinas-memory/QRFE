@@ -506,7 +506,8 @@
     "closeOrderConfirm": "Chiudere questo ordine?",
     "cancel": "Annulla",
     "closeOrder": "Chiudi ordine",
-    "print": "Stampa"
+    "print": "Stampa",
+    "bookingsToday": "Prenotazioni di oggi"
   },
   "faq": {
     "navLink": "FAQ",

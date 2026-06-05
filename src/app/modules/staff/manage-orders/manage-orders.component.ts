@@ -18,7 +18,7 @@ import { TablesService } from '../../../core/services/tables-service/tables.serv
 import { AuthService } from '../../../core/auth/auth.service';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
 import { filter, Subject, take, takeUntil, debounceTime, forkJoin, from, firstValueFrom } from 'rxjs';
-import { NgFor, NgIf, NgStyle, CurrencyPipe, DecimalPipe, JsonPipe, NgClass } from '@angular/common';
+import { NgFor, NgIf, NgStyle, CurrencyPipe, DecimalPipe, JsonPipe, NgClass, DatePipe, NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { cilBellExclamation } from '@coreui/icons';
 import { UserContextModel } from '../../../core/models/userContextModel';
@@ -51,6 +51,27 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { PrintJobsService } from '../../../core/services/print-jobs/print-jobs.service';
 import { DeviceFeedbackService } from '../../../core/services/device/device-feedback.service';
 import { PickupNotificationService } from '../../../core/services/pickup/pickup-notification.service';
+import {
+  ReservationItem,
+  ReservationService,
+} from '../../../core/services/reservation-service/reservation.service';
+
+/** RFC3339 with browser local timezone offset. */
+function toRfc3339WithOffset(d: Date): string {
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const off = -d.getTimezoneOffset();
+  const sign = off >= 0 ? '+' : '-';
+  const oh = pad(Math.floor(Math.abs(off) / 60));
+  const om = pad(Math.abs(off) % 60);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${sign}${oh}:${om}`;
+}
+
+function localDayBounds(): { from: string; to: string } {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  return { from: toRfc3339WithOffset(start), to: toRfc3339WithOffset(end) };
+}
 
 @Component({
   selector: 'app-manage-orders',
@@ -62,7 +83,7 @@ import { PickupNotificationService } from '../../../core/services/pickup/pickup-
     CardFooterComponent, ButtonDirective,
     CardImgDirective, BadgeComponent, ButtonCloseDirective,
     CardTextDirective, CardTitleDirective, ColComponent,
-    ColDirective, NgStyle, IconDirective, RouterLink,
+    ColDirective, NgStyle, IconDirective, RouterLink, DatePipe, NgTemplateOutlet,
     OffcanvasBodyComponent, OffcanvasComponent, OffcanvasHeaderComponent,
     OffcanvasTitleDirective, OffcanvasToggleDirective,
     NavComponent, DropdownComponent, DropdownItemDirective,
@@ -144,6 +165,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   /** Survives SSE snapshots that arrive before forkJoin finishes (re-entry race). */
   private persistedInitiatedBy: Record<string, string> = {};
   private initialTablesLoaded = false;
+  bookingsByTableId: Record<string, ReservationItem[]> = {};
+  bookingsLoading = false;
 
   constructor(
     private tablesService: TablesService,
@@ -162,7 +185,46 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     private printJobs: PrintJobsService,
     private deviceFeedback: DeviceFeedbackService,
     private pickupNotification: PickupNotificationService,
+    private reservationService: ReservationService,
   ) {}
+
+  bookingsForTable(tableId: string): ReservationItem[] {
+    return this.bookingsByTableId[tableId] ?? [];
+  }
+
+  loadTodayBookings(): void {
+    if (!this.restaurantId) {
+      this.bookingsByTableId = {};
+      return;
+    }
+
+    const { from, to } = localDayBounds();
+    this.bookingsLoading = true;
+    this.reservationService
+      .list(this.restaurantId, { from, to, includeCancelled: false, take: 200 })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (items) => {
+          this.bookingsLoading = false;
+          const grouped: Record<string, ReservationItem[]> = {};
+          for (const item of items) {
+            const key = item.tableId;
+            if (!grouped[key]) grouped[key] = [];
+            grouped[key].push(item);
+          }
+          for (const key of Object.keys(grouped)) {
+            grouped[key].sort(
+              (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
+            );
+          }
+          this.bookingsByTableId = grouped;
+        },
+        error: () => {
+          this.bookingsLoading = false;
+          this.bookingsByTableId = {};
+        },
+      });
+  }
 
   formatInitiatedBy(raw: string): string {
     const v = (raw ?? '').trim().toLowerCase();
@@ -579,6 +641,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.hydrateComputedFromTables();
     this.applyPersistedInitiatedByToComputed();
     this.ordersService.saveComputed(this.tableComputed);
+    this.loadTodayBookings();
 
     for (const tableId of Object.keys(this.tableComputed)) {
       const table = this.tables.find(t => t.tableId === tableId);
@@ -1479,6 +1542,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       )
       .subscribe(user => {
         this.restaurantId = user.restaurantId!;
+
+        this.loadTodayBookings();
 
         forkJoin({
           tables: from(this.tablesService.getAllWithFallback(this.restaurantId)),

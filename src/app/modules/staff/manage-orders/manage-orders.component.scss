@@ -4,7 +4,6 @@
 
 :host ::ng-deep .offcanvas-body {
   height: calc(100vh - 56px - 80px);
-  /* header + cart */
   overflow-y: auto;
 }
 
@@ -26,17 +25,12 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
-  font-size: 0.8125rem; /* 13px — compact, readable in tiles */
+  font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.35;
-  letter-spacing: 0.02em;
   color: var(--cui-body-color, inherit);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
   word-break: break-word;
   overflow-wrap: anywhere;
-  hyphens: auto;
 }
 
 .product-tile:hover {
@@ -58,29 +52,24 @@
 .categories-sticky {
   position: sticky;
   top: -18px;
-  /* header + search */
   background: #212631;
   z-index: 8;
   padding: 5px 0;
-}
 
-.categories-sticky ::ng-deep .nav-tabs {
-  overflow-y: hidden;
-}
+  ::ng-deep .nav-tabs,
+  ::ng-deep .nav {
+    overflow-y: hidden;
+  }
 
-.categories-sticky ::ng-deep .nav {
-  overflow-y: hidden;
-}
-
-.categories-sticky ::ng-deep .nav-link {
-  white-space: nowrap;
+  ::ng-deep .nav-link {
+    white-space: nowrap;
+  }
 }
 
 .offcanvas-body {
   flex: 1 1 auto;
   overflow-y: auto;
   padding-bottom: 160px;
-  /* spațiu pentru cart */
 }
 
 .cart {
@@ -167,7 +156,6 @@
   min-width: 1.55rem;
 }
 
-/* Cart forces light text on black; reset for confirm box so text stays readable. */
 .close-order-confirm {
   background-color: #f8f9fa;
   color: #212529;
@@ -180,24 +168,17 @@
   border-color: var(--cui-border-color) !important;
 }
 
-// .offcanvas-title-fix {
-//   white-space: normal;
-//   line-height: 1.2;
-//   word-break: break-word;
-//   max-width: 200px;
-// }
-
 .title-stack {
-  display: inline-flex;      // ← containerul se mulează pe titlu
+  display: inline-flex;
   flex-direction: column;
-  align-items: flex-start;   // ← aliniere perfectă la stânga
+  align-items: flex-start;
 }
 
 .title-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 160px;          // ← ajustezi după layout
+  max-width: 160px;
 }
 
 .unavailable-title {
@@ -211,12 +192,6 @@
   padding-left: 0 !important;
   padding-right: 0 !important;
 }
-
-
-
-//
-
-
 
 .table-open {
   border: 2px solid #aae2c8;
@@ -233,5 +208,78 @@
   background-color: #ffc711 !important;
 }
 
-// #198754;  background-color: #8cf8c7;
-// #dc3545; background-color: #fa7d88;
+.table-card {
+  &__split {
+    display: flex;
+    align-items: stretch;
+    min-width: 0;
+
+    @media (max-width: 576px) {
+      flex-direction: column;
+    }
+  }
+
+  &__main {
+    flex: 1 1 55%;
+    min-width: 0;
+  }
+
+  &__divider {
+    width: 1px;
+    flex-shrink: 0;
+    align-self: stretch;
+    margin: 0 0.75rem;
+    background: var(--cui-border-color, rgba(0, 0, 0, 0.175));
+
+    @media (max-width: 576px) {
+      width: 100%;
+      height: 1px;
+      margin: 0.75rem 0;
+    }
+  }
+
+  &__bookings {
+    flex: 1 1 45%;
+    min-width: 0;
+    font-size: 0.8125rem;
+  }
+
+  &__bookings-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--cui-secondary-color, #6c757d);
+  }
+
+  &__bookings-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  &__booking {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    margin-bottom: 0.35rem;
+    min-width: 0;
+  }
+
+  &__booking-time {
+    flex-shrink: 0;
+    font-weight: 600;
+  }
+
+  &__booking-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__booking-party {
+    flex-shrink: 0;
+    color: var(--cui-secondary-color, #6c757d);
+  }
+}

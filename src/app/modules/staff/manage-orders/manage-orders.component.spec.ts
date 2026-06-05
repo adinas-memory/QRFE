@@ -30,9 +30,43 @@ describe('ManageOrdersComponent', () => {
 
       expect(mocks.tablesService.getAllWithFallback).toHaveBeenCalledWith(TEST_RESTAURANT_ID);
       expect(mocks.menuItemService.getAllWithFallback).toHaveBeenCalledWith(TEST_RESTAURANT_ID);
+      expect(mocks.reservationService.list).toHaveBeenCalled();
       expect(component.tables.length).toBe(3);
       expect(component.menuItems.length).toBeGreaterThan(0);
       expect(mocks.offlineDb.loadTablesStatusMap).toHaveBeenCalled();
+    });
+
+    it('groups today bookings by table on init', async () => {
+      const { component } = await setupManageOrdersComponent({
+        reservations: [
+          {
+            reservationId: 'res-1',
+            tableId: TABLE_A,
+            tableLabel: 'Table A',
+            customerName: 'Alice',
+            phone: '+40123456789',
+            partySize: 2,
+            start: new Date().toISOString(),
+            end: new Date(Date.now() + 3600000).toISOString(),
+            status: 'Active',
+          },
+          {
+            reservationId: 'res-2',
+            tableId: TABLE_A,
+            tableLabel: 'Table A',
+            customerName: 'Bob',
+            phone: '+40987654321',
+            partySize: 4,
+            start: new Date(Date.now() + 7200000).toISOString(),
+            end: new Date(Date.now() + 10800000).toISOString(),
+            status: 'Active',
+          },
+        ],
+      });
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(component.bookingsForTable(TABLE_A).length).toBe(2);
+      expect(component.bookingsForTable(TABLE_B)).toEqual([]);
     });
 
     it('restores currentTableId from localStorage on init', async () => {

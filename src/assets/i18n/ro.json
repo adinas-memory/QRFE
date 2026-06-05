@@ -560,7 +560,8 @@
     "printNoPrinterTitle": "Notă de plată",
     "printNoPrinterBody": "Nu există o imprimantă configurată/raportată de Printer Agent.",
     "printErrorTitle": "Notă de plată",
-    "printErrorBody": "Nu s-a putut trimite nota de plată la imprimantă."
+    "printErrorBody": "Nu s-a putut trimite nota de plată la imprimantă.",
+    "bookingsToday": "Rezervări azi"
   },
   "faq": {
     "navLink": "Întrebări",

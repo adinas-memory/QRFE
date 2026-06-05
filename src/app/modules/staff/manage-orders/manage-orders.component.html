@@ -5,137 +5,111 @@
     <button cTab [itemKey]="2" class="ms-2">{{ 'manageOrders.tabOccupied' | transloco }}</button>
   </c-tabs-list>
 
+  <ng-template #tableCard let-table="table" let-requireOnline="requireOnline" let-useCardGroup="useCardGroup">
+    @if (useCardGroup) {
+      <c-card-group class="mb-4">
+        <ng-container *ngTemplateOutlet="tableCardInner; context: { table: table, requireOnline: requireOnline }"></ng-container>
+      </c-card-group>
+    } @else {
+      <ng-container *ngTemplateOutlet="tableCardInner; context: { table: table, requireOnline: requireOnline }"></ng-container>
+    }
+  </ng-template>
+
+  <ng-template #tableCardInner let-table="table" let-requireOnline="requireOnline">
+    <c-card class="mb-3" [ngClass]="getTableCss(table, waiterState)">
+      <c-row class="g-0">
+        <c-card-header class="d-flex justify-content-between align-items-center">
+          <h4 class="mb-0">
+            {{ 'manageOrders.total' | transloco }}
+            {{ (tableComputed[table.tableId]?.total ?? 0) | number:'1.2-2' }}
+            @if ((tableComputed[table.tableId]?.total ?? 0) > 0 && tableComputed[table.tableId]?.currency && tableComputed[table.tableId]?.currency !== '—') {
+              <span class="text-muted ms-1">{{ tableComputed[table.tableId].currency }}</span>
+            }
+          </h4>
+          @if (waiterState[table.tableId] === 'active') {
+            <button cButton color="warning" size="sm" class="d-flex align-items-center gap-1"
+              (click)="snoozeWaiterCall(table.tableId)">
+              <svg [cIcon]="icons.cilBellExclamation" size="lg"></svg>
+              {{ 'staff.snoozeWaiter' | transloco }}
+            </button>
+          }
+        </c-card-header>
+        <c-card-body cCol [md]="8">
+          <div class="table-card__split">
+            <div class="table-card__main">
+              <h5 cCardTitle>{{ table.tableName }}</h5>
+              <p cCardText> {{ 'manageOrders.itemsLabel' | transloco }} {{ tableComputed[table.tableId]?.itemCount }} </p>
+              <p cCardText> {{ 'manageOrders.lastLabel' | transloco }} {{ tableComputed[table.tableId]?.lastAddedItem || '—' }} </p>
+              <p class="text-muted small"> {{ 'manageOrders.updated' | transloco }}
+                {{ tableComputed[table.tableId]?.lastActionAt
+                ? getLastActionTime(tableComputed[table.tableId].lastActionAt)
+                : '—'
+                }}
+                <span *ngIf="tableComputed[table.tableId]?.initiatedBy">
+                  — {{ 'manageOrders.by' | transloco }} {{ formatInitiatedBy(tableComputed[table.tableId].initiatedBy) }}
+                </span>
+              </p>
+              <p cCardText>
+                @if (kitchenPickupRequested[table.tableId]) {
+                  <span class="badge bg-info me-2">{{ 'manageOrders.kitchenPickup' | transloco }}</span>
+                  <button cButton color="info" variant="ghost" size="sm" (click)="snoozeKitchenPickup(table.tableId)">
+                    {{ 'manageOrders.pickedUp' | transloco }}
+                  </button>
+                }
+                @if (barPickupRequested[table.tableId]) {
+                  <span class="badge bg-primary me-2">{{ 'manageOrders.barPickup' | transloco }}</span>
+                  <button cButton color="primary" variant="ghost" size="sm" (click)="snoozeBarPickup(table.tableId)">
+                    {{ 'manageOrders.pickedUp' | transloco }}
+                  </button>
+                }
+              </p>
+            </div>
+            @if (bookingsForTable(table.tableId).length > 0) {
+              <div class="table-card__divider" aria-hidden="true"></div>
+              <aside class="table-card__bookings">
+                <h6 class="table-card__bookings-title">{{ 'manageOrders.bookingsToday' | transloco }}</h6>
+                <ul class="table-card__bookings-list">
+                  @for (b of bookingsForTable(table.tableId); track b.reservationId) {
+                    <li class="table-card__booking">
+                      <span class="table-card__booking-time">{{ b.start | date:'shortTime' }}</span>
+                      <span class="table-card__booking-name">{{ b.customerName }}</span>
+                      <span class="table-card__booking-party">×{{ b.partySize }}</span>
+                    </li>
+                  }
+                </ul>
+              </aside>
+            }
+          </div>
+        </c-card-body>
+        <footer class="d-flex justify-content-between align-items-center gap-2 px-2 pb-2">
+          @if (todaySetMenu) {
+            <button cButton color="primary" size="sm" (click)="openSetMenuModal(table, $event)">
+              Meniul zilei
+            </button>
+          }
+          <button cButton class="btn btn-primary ms-auto"
+            [disabled]="requireOnline && !isOnline"
+            (click)="table.order ? seeOrder(table) : openTable(table)">
+            {{ !table.isTableOpen ? ('manageOrders.seeOrder' | transloco) : ('manageOrders.openTable' | transloco) }}
+          </button>
+        </footer>
+      </c-row>
+    </c-card>
+  </ng-template>
+
   <!-- List Tables -->
   <c-tabs-content>
     <c-tab-panel class="p-3" [itemKey]="0">
       <c-row>
         <c-col lg="6" xs="12" *ngFor="let table of tables">
-          <c-card-group class="mb-4">
-            <c-card class="mb-3" [ngClass]="getTableCss(table, waiterState)">
-              <c-row class="g-0">
-                <c-card-header class="d-flex justify-content-between align-items-center">
-                  <h4 class="mb-0">
-                    {{ 'manageOrders.total' | transloco }}
-                    {{ (tableComputed[table.tableId]?.total ?? 0) | number:'1.2-2' }}
-                    @if ((tableComputed[table.tableId]?.total ?? 0) > 0 && tableComputed[table.tableId]?.currency && tableComputed[table.tableId]?.currency !== '—') {
-                      <span class="text-muted ms-1">{{ tableComputed[table.tableId].currency }}</span>
-                    }
-                  </h4>
-                  @if (waiterState[table.tableId] === 'active') {
-                    <button cButton color="warning" size="sm" class="d-flex align-items-center gap-1"
-                      (click)="snoozeWaiterCall(table.tableId)">
-                      <svg [cIcon]="icons.cilBellExclamation" size="lg"></svg>
-                      {{ 'staff.snoozeWaiter' | transloco }}
-                    </button>
-                  }
-                </c-card-header>
-                <c-card-body cCol [md]="8">
-                  <h5 cCardTitle>{{ table.tableName }}</h5>
-                  <p cCardText> {{ 'manageOrders.itemsLabel' | transloco }} {{ tableComputed[table.tableId]?.itemCount }} </p>
-                  <p cCardText> {{ 'manageOrders.lastLabel' | transloco }} {{ tableComputed[table.tableId]?.lastAddedItem || '—' }} </p>
-                  <p class="text-muted small"> {{ 'manageOrders.updated' | transloco }}
-                    {{ tableComputed[table.tableId]?.lastActionAt
-                    ? getLastActionTime(tableComputed[table.tableId].lastActionAt)
-                    : '—'
-                    }}
-                    <span *ngIf="tableComputed[table.tableId]?.initiatedBy">
-                      — {{ 'manageOrders.by' | transloco }} {{ formatInitiatedBy(tableComputed[table.tableId].initiatedBy) }}
-                    </span>
-                  </p>
-                  <p cCardText>
-                    @if (kitchenPickupRequested[table.tableId]) {
-                      <span class="badge bg-info me-2">{{ 'manageOrders.kitchenPickup' | transloco }}</span>
-                      <button cButton color="info" variant="ghost" size="sm" (click)="snoozeKitchenPickup(table.tableId)">
-                        {{ 'manageOrders.pickedUp' | transloco }}
-                      </button>
-                    }
-                    @if (barPickupRequested[table.tableId]) {
-                      <span class="badge bg-primary me-2">{{ 'manageOrders.barPickup' | transloco }}</span>
-                      <button cButton color="primary" variant="ghost" size="sm" (click)="snoozeBarPickup(table.tableId)">
-                        {{ 'manageOrders.pickedUp' | transloco }}
-                      </button>
-                    }
-                  </p>
-                </c-card-body>
-                <footer class="d-flex justify-content-between align-items-center gap-2 px-2 pb-2">
-                  @if (todaySetMenu) {
-                    <button cButton color="primary" size="sm" (click)="openSetMenuModal(table, $event)">
-                      Meniul zilei
-                    </button>
-                  }
-                  <button cButton class="btn btn-primary ms-auto" [disabled]="!isOnline"
-                    (click)="table.order ? seeOrder(table) : openTable(table)">
-                    {{ !table.isTableOpen ? ('manageOrders.seeOrder' | transloco) : ('manageOrders.openTable' | transloco) }}
-                  </button>
-                </footer>
-              </c-row>
-            </c-card>
-          </c-card-group>
+          <ng-container *ngTemplateOutlet="tableCard; context: { table: table, requireOnline: true, useCardGroup: true }"></ng-container>
         </c-col>
       </c-row>
     </c-tab-panel>
     <c-tab-panel class="p-3" [itemKey]="1">
       <c-row>
         <c-col lg="6" xs="12" *ngFor="let table of openTables">
-          <c-card class="mb-3" [ngClass]="getTableCss(table, waiterState)">
-            <c-row class="g-0">
-              <c-card-header class="d-flex justify-content-between align-items-center">
-                <h4 class="mb-0">
-                  {{ 'manageOrders.total' | transloco }}
-                  {{ (tableComputed[table.tableId]?.total ?? 0) | number:'1.2-2' }}
-                  @if ((tableComputed[table.tableId]?.total ?? 0) > 0 && tableComputed[table.tableId]?.currency && tableComputed[table.tableId]?.currency !== '—') {
-                    <span class="text-muted ms-1">{{ tableComputed[table.tableId].currency }}</span>
-                  }
-                </h4>
-                @if (waiterState[table.tableId] === 'active') {
-                  <button cButton color="warning" size="sm" class="d-flex align-items-center gap-1"
-                    (click)="snoozeWaiterCall(table.tableId)">
-                    <svg [cIcon]="icons.cilBellExclamation" size="lg"></svg>
-                    {{ 'staff.snoozeWaiter' | transloco }}
-                  </button>
-                }
-              </c-card-header>
-              <c-card-body cCol [md]="8">
-                <h5 cCardTitle>{{ table.tableName }}</h5>
-                <p cCardText> {{ 'manageOrders.itemsLabel' | transloco }} {{ tableComputed[table.tableId]?.itemCount }} </p>
-                <p cCardText> {{ 'manageOrders.lastLabel' | transloco }} {{ tableComputed[table.tableId]?.lastAddedItem || '—' }} </p>
-                <p class="text-muted small"> {{ 'manageOrders.updated' | transloco }}
-                  {{ tableComputed[table.tableId]?.lastActionAt
-                  ? getLastActionTime(tableComputed[table.tableId].lastActionAt)
-                  : '—'
-                  }}
-                  <span *ngIf="tableComputed[table.tableId]?.initiatedBy">
-                    — {{ 'manageOrders.by' | transloco }} {{ formatInitiatedBy(tableComputed[table.tableId].initiatedBy) }}
-                  </span>
-                </p>
-                <p cCardText>
-                  @if (kitchenPickupRequested[table.tableId]) {
-                    <span class="badge bg-info me-2">{{ 'manageOrders.kitchenPickup' | transloco }}</span>
-                    <button cButton color="info" variant="ghost" size="sm" (click)="snoozeKitchenPickup(table.tableId)">
-                      {{ 'manageOrders.pickedUp' | transloco }}
-                    </button>
-                  }
-                  @if (barPickupRequested[table.tableId]) {
-                    <span class="badge bg-primary me-2">{{ 'manageOrders.barPickup' | transloco }}</span>
-                    <button cButton color="primary" variant="ghost" size="sm" (click)="snoozeBarPickup(table.tableId)">
-                      {{ 'manageOrders.pickedUp' | transloco }}
-                    </button>
-                  }
-                </p>
-              </c-card-body>
-              <footer class="d-flex justify-content-between align-items-center gap-2 px-2 pb-2">
-                @if (todaySetMenu) {
-                  <button cButton color="primary" size="sm" (click)="openSetMenuModal(table, $event)">
-                    Meniul zilei
-                  </button>
-                }
-                <button cButton class="btn btn-primary ms-auto"
-                  (click)="table.order ? seeOrder(table) : openTable(table)">
-                  {{ !table.isTableOpen ? ('manageOrders.seeOrder' | transloco) : ('manageOrders.openTable' | transloco) }}
-                </button>
-              </footer>
-            </c-row>
-          </c-card>
+          <ng-container *ngTemplateOutlet="tableCard; context: { table: table, requireOnline: false, useCardGroup: false }"></ng-container>
         </c-col>
       </c-row>
     </c-tab-panel>
@@ -143,65 +117,7 @@
     <c-tab-panel class="p-3" [itemKey]="2">
       <c-row>
         <c-col lg="6" xs="12" *ngFor="let table of closedTables">
-          <c-card class="mb-3" [ngClass]="getTableCss(table, waiterState)">
-            <c-row class="g-0">
-              <c-card-header class="d-flex justify-content-between align-items-center">
-                <h4 class="mb-0">
-                  {{ 'manageOrders.total' | transloco }}
-                  {{ (tableComputed[table.tableId]?.total ?? 0) | number:'1.2-2' }}
-                  @if ((tableComputed[table.tableId]?.total ?? 0) > 0 && tableComputed[table.tableId]?.currency && tableComputed[table.tableId]?.currency !== '—') {
-                    <span class="text-muted ms-1">{{ tableComputed[table.tableId].currency }}</span>
-                  }
-                </h4>
-                @if (waiterState[table.tableId] === 'active') {
-                  <button cButton color="warning" size="sm" class="d-flex align-items-center gap-1"
-                    (click)="snoozeWaiterCall(table.tableId)">
-                    <svg [cIcon]="icons.cilBellExclamation" size="lg"></svg>
-                    {{ 'staff.snoozeWaiter' | transloco }}
-                  </button>
-                }
-              </c-card-header>
-              <c-card-body cCol [md]="8">
-                <h5 cCardTitle>{{ table.tableName }}</h5>
-                <p cCardText> {{ 'manageOrders.itemsLabel' | transloco }} {{ tableComputed[table.tableId]?.itemCount }} </p>
-                <p cCardText> {{ 'manageOrders.lastLabel' | transloco }} {{ tableComputed[table.tableId]?.lastAddedItem || '—' }} </p>
-                <p class="text-muted small"> {{ 'manageOrders.updated' | transloco }}
-                  {{ tableComputed[table.tableId]?.lastActionAt
-                  ? getLastActionTime(tableComputed[table.tableId].lastActionAt)
-                  : '—'
-                  }}
-                  <span *ngIf="tableComputed[table.tableId]?.initiatedBy">
-                    — {{ 'manageOrders.by' | transloco }} {{ formatInitiatedBy(tableComputed[table.tableId].initiatedBy) }}
-                  </span>
-                </p>
-                <p cCardText>
-                  @if (kitchenPickupRequested[table.tableId]) {
-                    <span class="badge bg-info me-2">{{ 'manageOrders.kitchenPickup' | transloco }}</span>
-                    <button cButton color="info" variant="ghost" size="sm" (click)="snoozeKitchenPickup(table.tableId)">
-                      {{ 'manageOrders.pickedUp' | transloco }}
-                    </button>
-                  }
-                  @if (barPickupRequested[table.tableId]) {
-                    <span class="badge bg-primary me-2">{{ 'manageOrders.barPickup' | transloco }}</span>
-                    <button cButton color="primary" variant="ghost" size="sm" (click)="snoozeBarPickup(table.tableId)">
-                      {{ 'manageOrders.pickedUp' | transloco }}
-                    </button>
-                  }
-                </p>
-              </c-card-body>
-              <footer class="d-flex justify-content-between align-items-center gap-2 px-2 pb-2">
-                @if (todaySetMenu) {
-                  <button cButton color="primary" size="sm" (click)="openSetMenuModal(table, $event)">
-                    Meniul zilei
-                  </button>
-                }
-                <button cButton class="btn btn-primary ms-auto"
-                  (click)="table.order ? seeOrder(table) : openTable(table)">
-                  {{ !table.isTableOpen ? ('manageOrders.seeOrder' | transloco) : ('manageOrders.openTable' | transloco) }}
-                </button>
-              </footer>
-            </c-row>
-          </c-card>
+          <ng-container *ngTemplateOutlet="tableCard; context: { table: table, requireOnline: false, useCardGroup: false }"></ng-container>
         </c-col>
       </c-row>
     </c-tab-panel>

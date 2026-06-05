@@ -506,7 +506,8 @@
     "closeOrderConfirm": "Diese Bestellung wirklich schließen?",
     "cancel": "Abbrechen",
     "closeOrder": "Bestellung schließen",
-    "print": "Drucken"
+    "print": "Drucken",
+    "bookingsToday": "Heutige Reservierungen"
   },
   "faq": {
     "navLink": "FAQ",

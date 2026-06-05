@@ -506,7 +506,8 @@
     "closeOrderConfirm": "Vill du verkligen stänga denna beställning?",
     "cancel": "Avbryt",
     "closeOrder": "Stäng beställning",
-    "print": "Skriv ut"
+    "print": "Skriv ut",
+    "bookingsToday": "Dagens bokningar"
   },
   "faq": {
     "navLink": "FAQ",
