@@ -1,0 +1,94 @@
+<div class="mb-4">
+  <h2 class="mb-1">{{ 'gadminDashboard.title' | transloco }}</h2>
+  <p class="text-body-secondary mb-0">{{ 'gadminDashboard.subtitle' | transloco }}</p>
+</div>
+
+<c-row class="g-4 mb-4">
+  <c-col sm="6" xl="3">
+    <c-widget-stat-a color="primary" [title]="'gadminDashboard.kpiRestaurants' | transloco">
+      <ng-template cTemplateId="widgetValueTemplate">
+        @if (loading) {
+          <span class="placeholder col-6"></span>
+        } @else {
+          {{ totalCount | number }}
+        }
+      </ng-template>
+    </c-widget-stat-a>
+  </c-col>
+  <c-col sm="6" xl="3">
+    <c-widget-stat-a color="info" [title]="'gadminDashboard.kpiTables' | transloco">
+      <ng-template cTemplateId="widgetValueTemplate">
+        @if (loading) {
+          <span class="placeholder col-6"></span>
+        } @else {
+          {{ totalTables | number }}
+        }
+      </ng-template>
+    </c-widget-stat-a>
+  </c-col>
+  <c-col sm="6" xl="3">
+    <c-widget-stat-a color="warning" [title]="'gadminDashboard.kpiBars' | transloco">
+      <ng-template cTemplateId="widgetValueTemplate">
+        @if (loading) {
+          <span class="placeholder col-6"></span>
+        } @else {
+          {{ totalBars | number }}
+        }
+      </ng-template>
+    </c-widget-stat-a>
+  </c-col>
+  <c-col sm="6" xl="3">
+    <c-widget-stat-a color="success" [title]="'gadminDashboard.kpiTypes' | transloco">
+      <ng-template cTemplateId="widgetValueTemplate">
+        @if (loading) {
+          <span class="placeholder col-8"></span>
+        } @else if (typeKeys().length === 0) {
+          —
+        } @else {
+          <span class="small">
+            @for (key of typeKeys(); track key; let last = $last) {
+              {{ key }}: {{ typeBreakdown[key] }}@if (!last) {, }
+            }
+          </span>
+        }
+      </ng-template>
+    </c-widget-stat-a>
+  </c-col>
+</c-row>
+
+<c-card>
+  <c-card-header class="d-flex justify-content-between align-items-center">
+    <span>{{ 'gadminDashboard.recentRestaurants' | transloco }}</span>
+    <a cButton color="primary" variant="outline" size="sm" routerLink="/gadmin/manage-restaurants">
+      {{ 'gadminDashboard.viewAll' | transloco }}
+    </a>
+  </c-card-header>
+  <c-card-body>
+    @if (loading) {
+      <p class="text-body-secondary mb-0">{{ 'gadminDashboard.loading' | transloco }}</p>
+    } @else if (restaurants.length === 0) {
+      <p class="text-body-secondary mb-0">{{ 'gadminDashboard.empty' | transloco }}</p>
+    } @else {
+      <table cTable [hover]="true" [responsive]="true" class="mb-0">
+        <thead>
+          <tr>
+            <th>{{ 'manageRestaurants.colName' | transloco }}</th>
+            <th>{{ 'manageRestaurants.colType' | transloco }}</th>
+            <th>{{ 'manageRestaurants.colTables' | transloco }}</th>
+            <th>{{ 'manageRestaurants.colBars' | transloco }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of restaurants; track r.restaurantId) {
+            <tr>
+              <td>{{ r.baseRestaurantName || r.restaurantName }}</td>
+              <td class="text-uppercase">{{ r.restaurantType }}</td>
+              <td>{{ r.numberOfTables }}</td>
+              <td>{{ r.numberOfBars }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </c-card-body>
+</c-card>

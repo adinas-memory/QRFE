@@ -1,0 +1,182 @@
+<c-tabs [(activeItemKey)]="activeTab">
+  <c-tabs-list variant="pills">
+    <button cTab [itemKey]="0" class="ms-2">{{ 'manageRestaurants.tabList' | transloco }}</button>
+    <button cTab [itemKey]="1" class="ms-2">{{ 'manageRestaurants.tabAdd' | transloco }}</button>
+  </c-tabs-list>
+
+  <c-tabs-content>
+    <c-tab-panel class="p-3" [itemKey]="0">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="text-body-secondary small">
+          {{ 'manageRestaurants.pageLabel' | transloco: { page: pageNumber, total: totalPages } }}
+        </span>
+        <div class="d-flex gap-2">
+          <button cButton color="secondary" variant="outline" size="sm" type="button" (click)="onPrevPage()" [disabled]="pageNumber <= 1 || loading">
+            {{ 'manageRestaurants.prev' | transloco }}
+          </button>
+          <button cButton color="secondary" variant="outline" size="sm" type="button" (click)="onNextPage()" [disabled]="pageNumber >= totalPages || loading">
+            {{ 'manageRestaurants.next' | transloco }}
+          </button>
+          <button cButton color="primary" variant="outline" size="sm" type="button" (click)="loadPage()" [disabled]="loading">
+            {{ 'manageRestaurants.refresh' | transloco }}
+          </button>
+        </div>
+      </div>
+
+      @if (loading) {
+        <p class="text-body-secondary">{{ 'manageRestaurants.loading' | transloco }}</p>
+      } @else if (restaurants.length === 0) {
+        <p class="text-body-secondary">{{ 'manageRestaurants.empty' | transloco }}</p>
+      } @else {
+        <table cTable [hover]="true" [responsive]="true">
+          <thead>
+            <tr>
+              <th>{{ 'manageRestaurants.colName' | transloco }}</th>
+              <th>{{ 'manageRestaurants.colType' | transloco }}</th>
+              <th>{{ 'manageRestaurants.colTables' | transloco }}</th>
+              <th>{{ 'manageRestaurants.colBars' | transloco }}</th>
+              <th class="text-end">{{ 'manageRestaurants.colActions' | transloco }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of restaurants">
+              <td>{{ r.baseRestaurantName || r.restaurantName }}</td>
+              <td class="text-uppercase">{{ r.restaurantType }}</td>
+              <td>{{ r.numberOfTables }}</td>
+              <td>{{ r.numberOfBars }}</td>
+              <td class="text-end">
+                <button cButton color="info" variant="outline" size="sm" class="me-1" type="button" (click)="onDetails(r)">
+                  {{ 'manageRestaurants.details' | transloco }}
+                </button>
+                <button cButton color="primary" variant="outline" size="sm" class="me-1" type="button" (click)="onEdit(r)">
+                  {{ 'manageRestaurants.edit' | transloco }}
+                </button>
+                <button cButton color="danger" variant="outline" size="sm" type="button" (click)="onDelete(r)">
+                  {{ 'manageRestaurants.delete' | transloco }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      }
+    </c-tab-panel>
+  </c-tabs-content>
+
+  <c-tabs-content>
+    <c-tab-panel class="p-3" [itemKey]="1">
+      <form [formGroup]="addForm" (ngSubmit)="onAdd()" cForm>
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label cLabel>{{ 'manageRestaurants.fieldName' | transloco }}</label>
+            <input cFormControl formControlName="restaurantName" />
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <label cLabel>{{ 'manageRestaurants.fieldType' | transloco }}</label>
+            <c-dropdown>
+              <button cButton cDropdownToggle color="secondary" class="w-100 text-start" type="button">
+                {{ addForm.value.restaurantType || ('manageRestaurants.selectType' | transloco) }}
+              </button>
+              <ul cDropdownMenu class="w-100">
+                <li *ngFor="let r of restaurantTypes">
+                  <button type="button" cDropdownItem (click)="addForm.get('restaurantType')?.setValue(r.type)">
+                    {{ r.type }} ({{ r.maxTables }} {{ 'manageRestaurants.tablesShort' | transloco }}, {{ r.maxBars }} {{ 'manageRestaurants.barsShort' | transloco }})
+                  </button>
+                </li>
+              </ul>
+            </c-dropdown>
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <label cLabel>{{ 'manageRestaurants.fieldCurrency' | transloco }}</label>
+            <c-dropdown>
+              <button cButton cDropdownToggle color="secondary" class="w-100 text-start" type="button">
+                {{ addForm.value.useCurrency }}
+              </button>
+              <ul cDropdownMenu class="w-100">
+                <li *ngFor="let c of currencies">
+                  <button type="button" cDropdownItem (click)="addForm.get('useCurrency')?.setValue(c)">
+                    {{ c }}
+                  </button>
+                </li>
+              </ul>
+            </c-dropdown>
+          </div>
+        </div>
+
+        <button cButton color="primary" type="submit" [disabled]="addForm.invalid">
+          {{ 'manageRestaurants.create' | transloco }}
+        </button>
+      </form>
+    </c-tab-panel>
+  </c-tabs-content>
+
+  <c-toaster class="p-3" position="fixed" [placement]="placement" />
+</c-tabs>
+
+<c-modal [(visible)]="editModalVisible" alignment="center">
+  <c-modal-header>
+    <h5 cModalTitle>{{ 'manageRestaurants.editTitle' | transloco }}</h5>
+    <button type="button" cButtonClose (click)="editModalVisible = false"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <form [formGroup]="editForm" cForm>
+      <div class="mb-3">
+        <label cLabel>{{ 'manageRestaurants.fieldName' | transloco }}</label>
+        <input cFormControl formControlName="restaurantName" />
+      </div>
+      <c-form-check>
+        <input cFormCheckInput type="checkbox" formControlName="itHasBar" id="itHasBar" />
+        <label cFormCheckLabel for="itHasBar">{{ 'manageRestaurants.fieldHasBar' | transloco }}</label>
+      </c-form-check>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" type="button" (click)="editModalVisible = false">{{ 'manageRestaurants.cancel' | transloco }}</button>
+    <button cButton color="primary" type="button" (click)="onSaveEdit()" [disabled]="editForm.invalid">{{ 'manageRestaurants.save' | transloco }}</button>
+  </c-modal-footer>
+</c-modal>
+
+<c-modal [(visible)]="deleteModalVisible" alignment="center">
+  <c-modal-header>
+    <h5 cModalTitle>{{ 'manageRestaurants.deleteTitle' | transloco }}</h5>
+    <button type="button" cButtonClose (click)="deleteModalVisible = false"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <p class="mb-0">
+      {{ 'manageRestaurants.deleteConfirm' | transloco: { name: selectedRestaurant?.baseRestaurantName || selectedRestaurant?.restaurantName } }}
+    </p>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" type="button" (click)="deleteModalVisible = false">{{ 'manageRestaurants.cancel' | transloco }}</button>
+    <button cButton color="danger" type="button" (click)="onConfirmDelete()">{{ 'manageRestaurants.delete' | transloco }}</button>
+  </c-modal-footer>
+</c-modal>
+
+<c-modal [(visible)]="detailsModalVisible" alignment="center">
+  <c-modal-header>
+    <h5 cModalTitle>{{ 'manageRestaurants.detailsTitle' | transloco }}</h5>
+    <button type="button" cButtonClose (click)="detailsModalVisible = false"></button>
+  </c-modal-header>
+  <c-modal-body>
+    @if (!detailRestaurant) {
+      <p class="text-body-secondary mb-0">{{ 'manageRestaurants.loading' | transloco }}</p>
+    } @else {
+      <dl class="row mb-0">
+        <dt class="col-sm-4">{{ 'manageRestaurants.fieldName' | transloco }}</dt>
+        <dd class="col-sm-8">{{ detailRestaurant.baseRestaurantName || detailRestaurant.restaurantName }}</dd>
+        <dt class="col-sm-4">{{ 'manageRestaurants.colType' | transloco }}</dt>
+        <dd class="col-sm-8 text-uppercase">{{ detailRestaurant.restaurantType }}</dd>
+        <dt class="col-sm-4">{{ 'manageRestaurants.colTables' | transloco }}</dt>
+        <dd class="col-sm-8">{{ tableCount(detailRestaurant) }}</dd>
+        <dt class="col-sm-4">{{ 'manageRestaurants.colBars' | transloco }}</dt>
+        <dd class="col-sm-8">{{ barCount(detailRestaurant) }}</dd>
+        <dt class="col-sm-4">{{ 'manageRestaurants.fieldMenu' | transloco }}</dt>
+        <dd class="col-sm-8">{{ hasMenu(detailRestaurant) ? ('manageRestaurants.yes' | transloco) : ('manageRestaurants.no' | transloco) }}</dd>
+      </dl>
+    }
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" type="button" (click)="detailsModalVisible = false">{{ 'manageRestaurants.close' | transloco }}</button>
+  </c-modal-footer>
+</c-modal>

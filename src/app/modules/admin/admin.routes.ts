@@ -15,8 +15,14 @@ export const adminRoutes: Routes = [
       {
         path: 'dashboard',
         loadComponent: () =>
-          import('../../shared/components/dashboard/dashboard.component').then(m => m.DashboardComponent),
+          import('./gadmin-dashboard/gadmin-dashboard.component').then(m => m.GadminDashboardComponent),
         data: { title: 'Dashboard' }
+      },
+      {
+        path: 'manage-restaurants',
+        loadComponent: () =>
+          import('./manage-restaurants/manage-restaurants.component').then(m => m.ManageRestaurantsComponent),
+        data: { title: 'Manage Restaurants' }
       },
       {
         path: 'manage-subscription-products',

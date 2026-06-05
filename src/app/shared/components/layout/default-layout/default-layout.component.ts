@@ -212,14 +212,14 @@ export class DefaultLayoutComponent implements OnInit {
             iconComponent: { name: 'cil-speedometer' }            
           },
           {
-            name: this.transloco.translate('nav.bookings'),
-            url: '/staff/bookings',
-            iconComponent: { name: 'cilCalendar' }
+            name: this.transloco.translate('nav.restaurants'),
+            url: '/gadmin/manage-restaurants',
+            iconComponent: { name: 'cilRestaurant' }
           },
-          { 
-            name: this.transloco.translate('nav.subscriptionProducts'), 
-            url: '/gadmin/manage-subscription-products', 
-            iconComponent: { name: 'cil3d' } 
+          {
+            name: this.transloco.translate('nav.subscriptionProducts'),
+            url: '/gadmin/manage-subscription-products',
+            iconComponent: { name: 'cil3d' }
           },          
         ];
       default:
