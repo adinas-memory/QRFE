@@ -24,6 +24,10 @@ import {
 import { PickupVibrate } from '../../plugins/pickup-vibrate.plugin';
 import { AppToastService } from '../toast-service/toast-service.service';
 import { TranslocoService } from '@jsverse/transloco';
+import {
+  guestWaiterChannelId,
+  guestWaiterChannelSoundPromptKey,
+} from './guest-waiter-channel';
 
 const WAITER_CALL_CHANNEL_ID = 'waiter_call_v5';
 const ALERT_DEBOUNCE_MS = 5000;
@@ -39,9 +43,15 @@ export interface DeliverPickupAlertOptions {
   source: PickupAlertSource;
 }
 
+export interface DeliverGuestWaiterAlertOptions {
+  tableId: string;
+  tableName?: string | null;
+  source: PickupAlertSource;
+}
+
 /**
  * Pickup alerts on native Android:
- * - Background/killed: data-only FCM → native tray (sound + vibration via waiter_call_v5 channel).
+ * - Background/killed: data-only FCM → native tray (pickup: waiter_call_v5; guest: guest_waiter_{restaurantId}).
  * - Foreground: SSE → haptics + in-app toast; Capacitor presentationOptions=[] suppresses FCM banner.
  * - PWA/browser: SSE → LocalNotifications when tab hidden.
  */
@@ -89,6 +99,7 @@ export class PushRegistrationService {
     this.#auth.loggedIn$.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe(() => {
       void this.ensureRegistered();
       void this.postStoredTokenIfReady();
+      void this.ensureGuestWaiterChannelForCurrentRestaurant();
     });
   }
 
@@ -110,6 +121,7 @@ export class PushRegistrationService {
       await this.ensureLocalNotificationPermission();
       await this.#clientInstance.whenReady();
       await this.ensureWaiterCallChannelAudible();
+      await this.ensureGuestWaiterChannelForCurrentRestaurant();
 
       let perm = await PushNotifications.checkPermissions();
       if (perm.receive === 'prompt') {
@@ -150,6 +162,92 @@ export class PushRegistrationService {
       await PickupVibrate.openWaiterCallChannelSettings();
     } catch {
       // ignore
+    }
+  }
+
+  private async ensureGuestWaiterChannelForCurrentRestaurant(): Promise<void> {
+    const restaurantId = this.#auth.getUserRestaurantId();
+    if (typeof restaurantId !== 'string' || !restaurantId) {
+      return;
+    }
+
+    const restaurantName = this.#auth.getUserSnapshot()?.restaurantName ?? null;
+    try {
+      await PickupVibrate.ensureGuestWaiterChannel({ restaurantId, restaurantName });
+      await this.ensureGuestWaiterChannelAudible(restaurantId);
+    } catch {
+      // ignore
+    }
+  }
+
+  private async ensureGuestWaiterChannelAudible(restaurantId: string): Promise<void> {
+    try {
+      const status = await PickupVibrate.getGuestWaiterChannelStatus({ restaurantId });
+      if (!status?.supported || !status.channelExists) {
+        return;
+      }
+
+      const soundDisabled = status.importance === 0 || !status.sound;
+      if (!soundDisabled) {
+        return;
+      }
+
+      const promptKey = guestWaiterChannelSoundPromptKey(restaurantId);
+      if (localStorage.getItem(promptKey) === '1') {
+        return;
+      }
+      localStorage.setItem(promptKey, '1');
+
+      this.#toast.info(
+        this.#transloco.translate('staff.notifications.enableGuestWaiterSoundBody'),
+        this.#transloco.translate('staff.notifications.enableGuestWaiterSoundTitle'),
+        10_000,
+      );
+      await PickupVibrate.openGuestWaiterChannelSettings({ restaurantId });
+    } catch {
+      // ignore
+    }
+  }
+
+  /** Guest waiter call from public menu — all staff devices. */
+  async deliverGuestWaiterAlert(options: DeliverGuestWaiterAlertOptions): Promise<void> {
+    if (options.source === 'fcm') {
+      return;
+    }
+
+    const debounceKey = `WaiterCall:${options.tableId}`;
+    let appActive: boolean | null = null;
+    if (this.#platform.isNative) {
+      try {
+        const { App } = await import('@capacitor/app');
+        appActive = (await App.getState()).isActive;
+      } catch {
+        // ignore
+      }
+    }
+
+    if (!this.#platform.isNative) {
+      if (!document.hidden || this.isDebounced(debounceKey)) {
+        return;
+      }
+      this.markHandled(debounceKey);
+      await this.showLocalizedNotification('WaiterCall', options.tableName, 'pwa-sse-guest');
+      return;
+    }
+
+    if (this.isNativeInBackground(appActive)) {
+      this.#deviceFeedback.notifyGuestWaiterCall(options.tableId);
+    } else {
+      this.#deviceFeedback.notifyGuestWaiterCall(options.tableId);
+      if (!this.isDebounced(debounceKey)) {
+        const title = this.#copy.titleFor('WaiterCall');
+        const body = this.#copy.bodyFor('WaiterCall', options.tableName);
+        this.#toast.info(body, title, 8_000);
+      }
+    }
+
+    if (!this.isDebounced(debounceKey)) {
+      this.markHandled(debounceKey);
     }
   }
 
@@ -196,6 +294,10 @@ export class PushRegistrationService {
     }
     const active = appActive ?? this.#appIsActive;
     return active !== true;
+  }
+
+  wasGuestWaiterAlertHandledRecently(tableId: string): boolean {
+    return this.isDebounced(`WaiterCall:${tableId}`);
   }
 
   wasPickupAlertHandledRecently(eventType: WaiterPushEventType, tableId: string): boolean {
@@ -349,6 +451,21 @@ export class PushRegistrationService {
     }
 
     const tableId = payload.tableId ?? 'unknown';
+
+    if (payload.eventType === 'WaiterCall') {
+      if (this.isNativeInBackground(appActive)) {
+        this.#deviceFeedback.notifyGuestWaiterCall(tableId);
+      } else {
+        try {
+          const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+          await Haptics.impact({ style: ImpactStyle.Heavy });
+        } catch {
+          this.#deviceFeedback.notifyGuestWaiterCall(tableId);
+        }
+      }
+      return;
+    }
+
     const kind = payload.eventType === 'BarWaiterCall' ? 'bar' : 'kitchen';
 
     if (this.isNativeInBackground(appActive)) {
@@ -367,11 +484,16 @@ export class PushRegistrationService {
   private async showLocalizedNotification(
     eventType: WaiterPushEventType,
     tableName?: string | null,
-    source = 'unknown',
+    _source = 'unknown',
   ): Promise<void> {
     const title = this.#copy.titleFor(eventType);
     const body = this.#copy.bodyFor(eventType, tableName);
     const id = this.nextLocalNotificationId();
+    const restaurantId = this.#auth.getUserRestaurantId();
+    const channelId =
+      eventType === 'WaiterCall' && typeof restaurantId === 'string' && restaurantId
+        ? guestWaiterChannelId(restaurantId)
+        : WAITER_CALL_CHANNEL_ID;
 
     try {
       await LocalNotifications.schedule({
@@ -380,7 +502,7 @@ export class PushRegistrationService {
             id,
             title,
             body,
-            channelId: WAITER_CALL_CHANNEL_ID,
+            channelId,
             sound: 'default',
             extra: { eventType, tableName: tableName ?? '' },
           },

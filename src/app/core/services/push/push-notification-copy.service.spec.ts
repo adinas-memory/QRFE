@@ -13,6 +13,7 @@ describe('PushNotificationCopyService', () => {
     'push.pickupReady': 'Order ready for pickup',
     'push.pickupReadyTable': 'Order ready for pickup — {{table}}',
     'push.guestWaiterCall': 'Guest is calling the waiter',
+    'push.guestWaiterCallTable': 'Guest is calling the waiter — {{table}}',
     'push.defaultBody': 'New event',
   };
 
@@ -52,6 +53,7 @@ describe('PushNotificationCopyService', () => {
 
   it('formats guest waiter call', () => {
     expect(service.titleFor('WaiterCall')).toBe('Table');
-    expect(service.bodyFor('WaiterCall', 'T1')).toBe('Guest is calling the waiter');
+    expect(service.bodyFor('WaiterCall', 'T1')).toBe('Guest is calling the waiter — T1');
+    expect(service.bodyFor('WaiterCall', null)).toBe('Guest is calling the waiter');
   });
 });

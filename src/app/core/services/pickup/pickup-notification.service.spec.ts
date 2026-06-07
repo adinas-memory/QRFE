@@ -12,9 +12,16 @@ describe('PickupNotificationService', () => {
   const sseEvents$ = new Subject<unknown>();
 
   beforeEach(() => {
-    pushRegistration = jasmine.createSpyObj('PushRegistrationService', ['deliverPickupAlert']);
+    pushRegistration = jasmine.createSpyObj('PushRegistrationService', [
+      'deliverPickupAlert',
+      'deliverGuestWaiterAlert',
+    ]);
     pushRegistration.deliverPickupAlert.and.returnValue(Promise.resolve());
-    deviceFeedback = jasmine.createSpyObj('DeviceFeedbackService', ['notifyPickupReady']);
+    pushRegistration.deliverGuestWaiterAlert.and.returnValue(Promise.resolve());
+    deviceFeedback = jasmine.createSpyObj('DeviceFeedbackService', [
+      'notifyPickupReady',
+      'notifyGuestWaiterCall',
+    ]);
 
     TestBed.configureTestingModule({
       providers: [
@@ -61,6 +68,33 @@ describe('PickupNotificationService', () => {
         source: 'sse',
       }),
     );
+  });
+
+  it('handleGuestWaiterSse vibrates all devices and delivers guest alert', () => {
+    const result = service.handleGuestWaiterSse({
+      TableId: 'table-guest',
+      TableName: 'Terasa 1',
+    });
+    expect(result.tableId).toBe('table-guest');
+    expect(deviceFeedback.notifyGuestWaiterCall).toHaveBeenCalledWith('table-guest');
+    expect(pushRegistration.deliverGuestWaiterAlert).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        tableId: 'table-guest',
+        tableName: 'Terasa 1',
+        source: 'sse',
+      }),
+    );
+  });
+
+  it('initGlobalAlerts handles WaiterCall SSE events', () => {
+    service.initGlobalAlerts();
+    sseEvents$.next({
+      EventType: 'WaiterCall',
+      Data: { TableId: 't-guest', TableName: 'Masa 2' },
+      Sequence: 99,
+    });
+    expect(deviceFeedback.notifyGuestWaiterCall).toHaveBeenCalledWith('t-guest');
+    expect(pushRegistration.deliverGuestWaiterAlert).toHaveBeenCalledTimes(1);
   });
 
   it('initGlobalAlerts handles kitchen SSE events once per sequence', async () => {

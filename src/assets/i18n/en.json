@@ -209,7 +209,9 @@
     "snoozeWaiter": "Dismiss",
     "notifications": {
       "enableSoundTitle": "Enable sound for waiter alerts",
-      "enableSoundBody": "To hear pickup alerts, turn on Sound for the “Waiter calls” channel in the settings screen that opened."
+      "enableSoundBody": "To hear pickup alerts, turn on Sound for the “Waiter calls” channel in the settings screen that opened.",
+      "enableGuestWaiterSoundTitle": "Enable sound for guest waiter calls",
+      "enableGuestWaiterSoundBody": "To hear when a guest calls the waiter, turn on Sound for your restaurant’s guest-call channel in the settings screen that opened."
     }
   },
   "sidebar": {
@@ -453,6 +455,7 @@
     "pickupReady": "Order ready for pickup",
     "pickupReadyTable": "Order ready for pickup — {{table}}",
     "guestWaiterCall": "Guest is calling the waiter",
+    "guestWaiterCallTable": "Guest is calling the waiter — {{table}}",
     "defaultBody": "New event"
   },
   "bar": {

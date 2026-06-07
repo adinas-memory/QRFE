@@ -209,7 +209,9 @@
     "snoozeWaiter": "Rezolvat",
     "notifications": {
       "enableSoundTitle": "Activează sunetul pentru apeluri",
-      "enableSoundBody": "Pentru alerte cu sunet, activează opțiunea Sunet la canalul „Apeluri ospătar” în ecranul de setări care s-a deschis."
+      "enableSoundBody": "Pentru alerte cu sunet, activează opțiunea Sunet la canalul „Apeluri ospătar” în ecranul de setări care s-a deschis.",
+      "enableGuestWaiterSoundTitle": "Activează sunetul pentru apeluri de la clienți",
+      "enableGuestWaiterSoundBody": "Pentru a auzi când un client cheamă ospătarul, activează Sunet la canalul de apeluri guest al restaurantului în ecranul de setări deschis."
     }
   },
   "sidebar": {
@@ -453,6 +455,7 @@
     "pickupReady": "Comandă gata de ridicat",
     "pickupReadyTable": "Comandă gata de ridicat — {{table}}",
     "guestWaiterCall": "Clientul cheamă ospătarul",
+    "guestWaiterCallTable": "Clientul cheamă ospătarul — {{table}}",
     "defaultBody": "Eveniment nou"
   },
   "bar": {

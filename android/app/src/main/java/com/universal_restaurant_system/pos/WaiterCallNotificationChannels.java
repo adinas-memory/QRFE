@@ -8,13 +8,13 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 
-/** Ensures pickup FCM notifications use a high-priority channel with vibration (Android O+). */
+/** Ensures pickup and guest-waiter FCM notification channels (Android O+). */
 public final class WaiterCallNotificationChannels {
 
     private WaiterCallNotificationChannels() {
     }
 
-    static void ensure(Context context) {
+    static void ensurePickupChannel(Context context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return;
         }
@@ -29,12 +29,49 @@ public final class WaiterCallNotificationChannels {
             manager.deleteNotificationChannel(MainActivity.WAITER_CALL_CHANNEL_ID);
         }
 
-        NotificationChannel channel = new NotificationChannel(
+        NotificationChannel channel = buildHighPriorityChannel(
             MainActivity.WAITER_CALL_CHANNEL_ID,
             "Waiter calls",
+            "Kitchen, bar pickup alerts"
+        );
+        manager.createNotificationChannel(channel);
+    }
+
+    static void ensureGuestWaiterChannel(Context context, String restaurantId, String displayName) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return;
+        }
+
+        NotificationManager manager = context.getSystemService(NotificationManager.class);
+        if (manager == null) {
+            return;
+        }
+
+        String channelId = GuestWaiterChannelIds.forRestaurantId(restaurantId);
+        NotificationChannel existing = manager.getNotificationChannel(channelId);
+        if (existing != null) {
+            manager.deleteNotificationChannel(channelId);
+        }
+
+        String label = displayName == null || displayName.trim().isEmpty()
+            ? "Guest waiter calls"
+            : displayName.trim() + " — guest calls";
+
+        NotificationChannel channel = buildHighPriorityChannel(channelId, label, "Guest calling the waiter");
+        manager.createNotificationChannel(channel);
+    }
+
+    private static NotificationChannel buildHighPriorityChannel(
+        String channelId,
+        String name,
+        String description
+    ) {
+        NotificationChannel channel = new NotificationChannel(
+            channelId,
+            name,
             NotificationManager.IMPORTANCE_MAX
         );
-        channel.setDescription("Kitchen, bar, and table waiter alerts");
+        channel.setDescription(description);
         channel.enableVibration(true);
         channel.setVibrationPattern(PickupVibrator.PICKUP_VIBRATE_PATTERN);
         channel.enableLights(true);
@@ -56,7 +93,6 @@ public final class WaiterCallNotificationChannels {
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
             .build();
         channel.setSound(sound, audioAttributes);
-
-        manager.createNotificationChannel(channel);
+        return channel;
     }
 }

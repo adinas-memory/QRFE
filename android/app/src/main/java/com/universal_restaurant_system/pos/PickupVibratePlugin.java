@@ -23,8 +23,56 @@ public class PickupVibratePlugin extends Plugin {
 
     @PluginMethod
     public void getWaiterCallChannelStatus(PluginCall call) {
+        resolveChannelStatus(call, MainActivity.WAITER_CALL_CHANNEL_ID);
+    }
+
+    @PluginMethod
+    public void openWaiterCallChannelSettings(PluginCall call) {
+        openChannelSettings(call, MainActivity.WAITER_CALL_CHANNEL_ID);
+    }
+
+    @PluginMethod
+    public void ensureGuestWaiterChannel(PluginCall call) {
+        String restaurantId = call.getString("restaurantId");
+        String restaurantName = call.getString("restaurantName");
+        if (restaurantId == null || restaurantId.trim().isEmpty()) {
+            call.reject("restaurantId is required");
+            return;
+        }
+        WaiterCallNotificationChannels.ensureGuestWaiterChannel(
+            getContext(),
+            restaurantId.trim(),
+            restaurantName
+        );
+        JSObject ret = new JSObject();
+        ret.put("channelId", GuestWaiterChannelIds.forRestaurantId(restaurantId.trim()));
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void getGuestWaiterChannelStatus(PluginCall call) {
+        String restaurantId = call.getString("restaurantId");
+        if (restaurantId == null || restaurantId.trim().isEmpty()) {
+            call.reject("restaurantId is required");
+            return;
+        }
+        resolveChannelStatus(call, GuestWaiterChannelIds.forRestaurantId(restaurantId.trim()));
+    }
+
+    @PluginMethod
+    public void openGuestWaiterChannelSettings(PluginCall call) {
+        String restaurantId = call.getString("restaurantId");
+        if (restaurantId == null || restaurantId.trim().isEmpty()) {
+            call.reject("restaurantId is required");
+            return;
+        }
+        openChannelSettings(call, GuestWaiterChannelIds.forRestaurantId(restaurantId.trim()));
+    }
+
+    private void resolveChannelStatus(PluginCall call, String channelId) {
         JSObject ret = new JSObject();
         ret.put("sdkInt", Build.VERSION.SDK_INT);
+        ret.put("channelId", channelId);
 
         try {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
@@ -41,7 +89,7 @@ public class PickupVibratePlugin extends Plugin {
                 return;
             }
 
-            NotificationChannel ch = nm.getNotificationChannel(MainActivity.WAITER_CALL_CHANNEL_ID);
+            NotificationChannel ch = nm.getNotificationChannel(channelId);
             ret.put("supported", true);
             ret.put("channelExists", ch != null);
             if (ch != null) {
@@ -57,14 +105,13 @@ public class PickupVibratePlugin extends Plugin {
         call.resolve(ret);
     }
 
-    @PluginMethod
-    public void openWaiterCallChannelSettings(PluginCall call) {
+    private void openChannelSettings(PluginCall call, String channelId) {
         try {
             Intent intent;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 intent = new Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS);
                 intent.putExtra(Settings.EXTRA_APP_PACKAGE, getContext().getPackageName());
-                intent.putExtra(Settings.EXTRA_CHANNEL_ID, MainActivity.WAITER_CALL_CHANNEL_ID);
+                intent.putExtra(Settings.EXTRA_CHANNEL_ID, channelId);
             } else {
                 intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
                 intent.putExtra(Settings.EXTRA_APP_PACKAGE, getContext().getPackageName());

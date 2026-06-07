@@ -27,6 +27,9 @@ export class PushNotificationCopyService {
   bodyFor(eventType: WaiterPushEventType, tableName?: string | null): string {
     const table = (tableName ?? '').trim();
     if (eventType === 'WaiterCall') {
+      if (table) {
+        return this.#transloco.translate('push.guestWaiterCallTable', { table });
+      }
       return this.#transloco.translate('push.guestWaiterCall');
     }
     if (eventType === 'KitchenWaiterCall' || eventType === 'BarWaiterCall') {

@@ -35,6 +35,11 @@ export class DeviceFeedbackService {
     void this.deliverPickupFromPush(kind, tableId);
   }
 
+  /** Guest waiter call — broadcast to all staff devices (no ClientInstanceId gate). */
+  notifyGuestWaiterCall(tableId: string): void {
+    void this.deliverGuestWaiterCall(tableId);
+  }
+
   private async deliverPickupReady(
     kind: PickupReadyKind,
     options: PickupReadyNotifyOptions,
@@ -73,6 +78,23 @@ export class DeviceFeedbackService {
     }
 
     this.lastVibrateAtByTable.set(`${kind}:${normalizedTableId}`, now);
+    await this.vibrate(PICKUP_VIBRATE_MS);
+  }
+
+  private async deliverGuestWaiterCall(tableId: string): Promise<void> {
+    const normalizedTableId = tableId?.trim();
+    if (!normalizedTableId) {
+      return;
+    }
+
+    const now = Date.now();
+    const debounceKey = `guest:${normalizedTableId}`;
+    const last = this.lastVibrateAtByTable.get(debounceKey) ?? 0;
+    if (now - last < DEBOUNCE_MS) {
+      return;
+    }
+
+    this.lastVibrateAtByTable.set(debounceKey, now);
     await this.vibrate(PICKUP_VIBRATE_MS);
   }
 

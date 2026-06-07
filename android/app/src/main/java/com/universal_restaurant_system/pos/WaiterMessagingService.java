@@ -26,17 +26,46 @@ public class WaiterMessagingService extends MessagingService {
     @Override
     public void onMessageReceived(@NonNull RemoteMessage remoteMessage) {
         Map<String, String> data = remoteMessage.getData();
-        if (isWaiterPickupEvent(data)) {
-            boolean foreground = isAppInForeground();
-            if (foreground) {
-                PickupAlertFeedback.alert(getApplicationContext(), "fcm-foreground");
-            } else {
-                WaiterCallNotificationChannels.ensure(getApplicationContext());
-                showPickupNotification(data);
-            }
+        if (isGuestWaiterCall(data)) {
+            handleGuestWaiterCall(data);
+        } else if (isWaiterPickupEvent(data)) {
+            handlePickupCall(data);
         }
 
         super.onMessageReceived(remoteMessage);
+    }
+
+    private void handleGuestWaiterCall(Map<String, String> data) {
+        String restaurantId = data.get("restaurantId");
+        WaiterCallNotificationChannels.ensureGuestWaiterChannel(
+            getApplicationContext(),
+            restaurantId,
+            data.get("restaurantName")
+        );
+
+        boolean foreground = isAppInForeground();
+        if (foreground) {
+            PickupAlertFeedback.alert(getApplicationContext(), "fcm-guest-foreground");
+        } else {
+            showGuestWaiterNotification(data);
+        }
+    }
+
+    private void handlePickupCall(Map<String, String> data) {
+        boolean foreground = isAppInForeground();
+        if (foreground) {
+            PickupAlertFeedback.alert(getApplicationContext(), "fcm-foreground");
+        } else {
+            WaiterCallNotificationChannels.ensurePickupChannel(getApplicationContext());
+            showPickupNotification(data);
+        }
+    }
+
+    private static boolean isGuestWaiterCall(Map<String, String> data) {
+        if (data == null) {
+            return false;
+        }
+        return "WaiterCall".equals(data.get("eventType"));
     }
 
     private static boolean isWaiterPickupEvent(Map<String, String> data) {
@@ -54,15 +83,32 @@ public class WaiterMessagingService extends MessagingService {
             || info.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE;
     }
 
+    private void showGuestWaiterNotification(Map<String, String> data) {
+        String channelId = data.get("channelId");
+        if (channelId == null || channelId.isEmpty()) {
+            channelId = GuestWaiterChannelIds.forRestaurantId(data.get("restaurantId"));
+        }
+        showAlertNotification(data, channelId, "Table", "Guest is calling the waiter");
+    }
+
     private void showPickupNotification(Map<String, String> data) {
+        showAlertNotification(data, MainActivity.WAITER_CALL_CHANNEL_ID, "Kitchen", "Order ready for pickup");
+    }
+
+    private void showAlertNotification(
+        Map<String, String> data,
+        String channelId,
+        String defaultTitle,
+        String defaultBody
+    ) {
         Context context = getApplicationContext();
         String title = data.get("title");
         String body = data.get("body");
         if (title == null || title.isEmpty()) {
-            title = "Kitchen";
+            title = defaultTitle;
         }
         if (body == null || body.isEmpty()) {
-            body = "Order ready for pickup";
+            body = defaultBody;
         }
 
         Intent launch = new Intent(context, MainActivity.class);
@@ -79,7 +125,7 @@ public class WaiterMessagingService extends MessagingService {
             sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
         }
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, MainActivity.WAITER_CALL_CHANNEL_ID)
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, channelId)
             .setSmallIcon(context.getApplicationInfo().icon)
             .setContentTitle(title)
             .setContentText(body)

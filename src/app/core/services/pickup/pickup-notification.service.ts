@@ -15,7 +15,7 @@ export type PickupReadyKind = 'kitchen' | 'bar';
 
 const PICKUP_SEQ_STORAGE_KEY = 'qrfe-pickup-seq';
 
-/** Kitchen/bar pickup alerts via SSE (any staff route) and shared targeting rules. */
+/** Kitchen/bar pickup and guest waiter alerts via SSE (any staff route). */
 @Injectable({ providedIn: 'root' })
 export class PickupNotificationService {
   readonly #deviceFeedback = inject(DeviceFeedbackService);
@@ -74,6 +74,23 @@ export class PickupNotificationService {
     return parsed;
   }
 
+  handleGuestWaiterSse(data: unknown): PickupSsePayload {
+    const parsed = this.parsePickupPayload(data);
+    if (!parsed.tableId) {
+      return parsed;
+    }
+
+    this.#deviceFeedback.notifyGuestWaiterCall(parsed.tableId);
+
+    void this.#pushRegistration.deliverGuestWaiterAlert({
+      tableId: parsed.tableId,
+      tableName: parsed.tableName,
+      source: 'sse',
+    });
+
+    return parsed;
+  }
+
   private onSseEvent(ev: SseEvent<unknown>): void {
     if (!this.shouldProcessPickupEvent(ev.Sequence)) {
       return;
@@ -85,6 +102,9 @@ export class PickupNotificationService {
         break;
       case 'BarWaiterCall':
         this.handlePickupSse('bar', ev.Data);
+        break;
+      case 'WaiterCall':
+        this.handleGuestWaiterSse(ev.Data);
         break;
       default:
         break;
