@@ -1,6 +1,6 @@
 import { Injectable, NgZone } from '@angular/core';
 import { environment } from '../../../../environments/environment';
-import { Observable } from 'rxjs';
+import { Observable, map, tap } from 'rxjs';
 import { MenuResponse, WaiterCallResponse } from '../../models/menu/menuItem';
 import { OrderDTO } from '../../models/orderingModel';
 import { HttpClient } from '@angular/common/http';
@@ -25,7 +25,36 @@ export class MenuService {
 
   callWaiter(restaurantId: string, tableId: string): Observable<WaiterCallResponse> {
     const url = `${this.apiUrl}/api/public/${restaurantId}/tables/${tableId}/call-waiter`;
-    return this.http.post<WaiterCallResponse>(url, {}, { withCredentials: true });
+    const startedAt = performance.now();
+    return this.http
+      .post<WaiterCallResponse>(url, {}, { withCredentials: true, observe: 'response' })
+      .pipe(
+        tap((res) => {
+          // #region agent log
+          fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Debug-Session-Id': '7379f5',
+            },
+            body: JSON.stringify({
+              sessionId: '7379f5',
+              runId: 'call-waiter-slow',
+              hypothesisId: 'E',
+              location: 'menu.service.ts:callWaiter',
+              message: 'call-waiter client timing',
+              data: {
+                durationMs: Math.round(performance.now() - startedAt),
+                serverTiming: res.headers.get('X-Debug-Timing'),
+                status: res.status,
+              },
+              timestamp: Date.now(),
+            }),
+          }).catch(() => {});
+          // #endregion
+        }),
+        map((res) => res.body as WaiterCallResponse),
+      );
   }
 
   getTableOrder(restaurantId: string, tableId: string): Observable<OrderDTO | null> {
