@@ -39,7 +39,7 @@ export class MenuService {
             },
             body: JSON.stringify({
               sessionId: '7379f5',
-              runId: 'call-waiter-slow',
+              runId: 'post-fix',
               hypothesisId: 'E',
               location: 'menu.service.ts:callWaiter',
               message: 'call-waiter client timing',
