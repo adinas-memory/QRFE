@@ -250,6 +250,10 @@ export class PublicLayoutComponent implements OnInit, OnDestroy {
     }
     this.menuService.callWaiter(this.restaurantId, this.tableId).subscribe({
       next: (response: WaiterCallResponse) => {
+        if (response.message?.trim()) {
+          console.warn('[PublicLayout] callWaiter rejected:', response.message);
+          return;
+        }
         this.waiterCounterCall = response.counterCalls;
         this.waiterCalled = true;
         setTimeout(() => this.waiterCalled = false, 4000);

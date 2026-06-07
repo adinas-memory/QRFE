@@ -1081,22 +1081,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         })),
       };
 
-      const created = await firstValueFrom(this.printJobs.createBillPrintJob(args.restaurantId, printerId, payload));
-      const jobId = (created as { jobId?: string })?.jobId ?? (created as { JobId?: string })?.JobId ?? '';
-      // #region agent log
-      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7379f5' },
-        body: JSON.stringify({
-          sessionId: '7379f5',
-          location: 'manage-orders.component.ts:enqueueBillPrintJob',
-          message: 'bill print job created',
-          data: { restaurantId: args.restaurantId, orderId: args.orderId, printerId, jobId },
-          timestamp: Date.now(),
-          hypothesisId: 'E',
-        }),
-      }).catch(() => {});
-      // #endregion
+      await firstValueFrom(this.printJobs.createBillPrintJob(args.restaurantId, printerId, payload));
       this.appToast.success(
         this.transloco.translate('manageOrders.printQueuedBody'),
         this.transloco.translate('manageOrders.printQueuedTitle'),
