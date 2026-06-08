@@ -43,7 +43,7 @@ export class OrderSyncService {
   private eventsSubject = new Subject<SseEvent<any>>();
   public events$ = this.eventsSubject.asObservable();
 
-  private snapshotRefreshedSubject = new Subject<{ restaurantId: string }>();
+  private snapshotRefreshedSubject = new Subject<{ restaurantId: string; activeGuestWaiterCalls: string[] }>();
   /** Emitted after /api/sync snapshot is applied to Dexie (resume, SSE reconnect, etc.). */
   readonly snapshotRefreshed$ = this.snapshotRefreshedSubject.asObservable();
 
@@ -378,10 +378,11 @@ export class OrderSyncService {
         }
 
         const tables = (json?.Tables ?? json?.tables ?? []) as any[];
+        const activeGuestWaiterCalls = this.parseActiveGuestWaiterCalls(json);
         await this.offlineDB.applySyncSnapshot(tables as any);
         this.lastSnapshotRefreshAt = Date.now();
         this.ngZone.run(() => {
-          this.snapshotRefreshedSubject.next({ restaurantId });
+          this.snapshotRefreshedSubject.next({ restaurantId, activeGuestWaiterCalls });
         });
         return;
       } catch (e) {
@@ -396,6 +397,18 @@ export class OrderSyncService {
       }
     }
     throw lastError;
+  }
+
+  private parseActiveGuestWaiterCalls(json: Record<string, unknown>): string[] {
+    const raw =
+      (json['ActiveGuestWaiterCalls'] as unknown) ??
+      (json['activeGuestWaiterCalls'] as unknown);
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+    return raw
+      .map(v => String(v ?? '').trim())
+      .filter(Boolean);
   }
 
   /** Renew access cookie via refresh-token; shared by /api/sync and SSE reconnect. */

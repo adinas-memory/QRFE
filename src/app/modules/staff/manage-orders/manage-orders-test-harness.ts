@@ -171,7 +171,7 @@ export interface ManageOrdersMocks {
   };
   sseService: {
     events$: Subject<SseEvent<unknown>>;
-    snapshotRefreshed$: Subject<{ restaurantId: string }>;
+    snapshotRefreshed$: Subject<{ restaurantId: string; activeGuestWaiterCalls: string[] }>;
     listenToRestaurantEvents: jasmine.Spy;
     refreshRestaurantSnapshot: jasmine.Spy;
   };
@@ -251,7 +251,7 @@ export function createManageOrdersMocks(options: SetupManageOrdersOptions = {}):
 
   const orderConfirmed$ = new Subject<{ tableId: string; orderId: string }>();
   const sseEvents$ = new Subject<SseEvent<unknown>>();
-  const snapshotRefreshed$ = new Subject<{ restaurantId: string }>();
+  const snapshotRefreshed$ = new Subject<{ restaurantId: string; activeGuestWaiterCalls: string[] }>();
 
   return {
     auth: {

@@ -399,9 +399,10 @@ describe('ManageOrdersComponent', () => {
       expect(component.waiterState[TABLE_B]).toBe(WaiterCallState.Active);
     });
 
-    it('WaiterCallSnoozed sets snoozed state', async () => {
+    it('WaiterCallSnoozed clears active waiter highlight', async () => {
+      component.waiterState[TABLE_A] = WaiterCallState.Active;
       await invokeSse(component, 'WaiterCallSnoozed', { TableId: TABLE_A });
-      expect(component.waiterState[TABLE_A]).toBe(WaiterCallState.Snoozed);
+      expect(component.waiterState[TABLE_A]).toBeUndefined();
     });
 
     it('KitchenWaiterCall sets kitchen pickup flag and triggers haptics', async () => {

@@ -149,7 +149,7 @@ describe('OrderSyncService', () => {
       expect(dbSpy.applySyncSnapshot).toHaveBeenCalled();
       const tablesArg = dbSpy.applySyncSnapshot.calls.mostRecent().args[0] as { tableId: string }[];
       expect(tablesArg[0]?.tableId).toBe('t1');
-      await expectAsync(emitted).toBeResolvedTo({ restaurantId: 'restaurant-1' });
+      await expectAsync(emitted).toBeResolvedTo({ restaurantId: 'restaurant-1', activeGuestWaiterCalls: [] });
     });
 
     it('returns false when offline without fromResume', async () => {

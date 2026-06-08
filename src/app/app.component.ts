@@ -214,6 +214,14 @@ export class AppComponent implements OnInit {
   private initNativeAppLifecycle(): void {
     if (!Capacitor.isNativePlatform()) return;
 
+    App.addListener('resume', () => {
+      if (!this.#authService.isAuthenticated()) return;
+      // #region agent log
+      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'snooze-resume',hypothesisId:'C',location:'app.component.ts:resume',message:'Capacitor resume (screen unlock)',data:{},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      this.#onlineStateService.triggerResumeCheck();
+    });
+
     App.addListener('appStateChange', ({ isActive }) => {
       if (!isActive || !this.#authService.isAuthenticated()) return;
       this.#authService.refreshUserContext({ redirectOnFailure: false }).subscribe();

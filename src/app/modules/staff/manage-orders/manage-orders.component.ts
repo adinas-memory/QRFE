@@ -628,8 +628,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   /** Reload in-memory state from Dexie after /api/sync (e.g. app resume from background). */
-  private async reloadFromSyncSnapshot(): Promise<void> {
+  private async reloadFromSyncSnapshot(activeGuestWaiterCalls: string[] = []): Promise<void> {
     if (!this.initialTablesLoaded || !this.restaurantId) return;
+
+    const before = { ...this.waiterState };
+    this.reconcileGuestWaiterCalls(activeGuestWaiterCalls);
+
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'snooze-resume',hypothesisId:'B',location:'manage-orders.component.ts:reloadFromSyncSnapshot',message:'reconcile guest waiter calls',data:{before,after:{...this.waiterState},activeGuestWaiterCalls},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
 
     this.tables = await this.offlineDB.loadLocalTables();
     this.refreshTableLists();
@@ -846,11 +853,14 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   snoozeWaiterCall(tableId: string): void {
-    this.waiterState[tableId] = WaiterCallState.Snoozed;
+    delete this.waiterState[tableId];
     const table = this.tables.find(t => t.tableId === tableId);
     if (table && this.tableComputed[tableId]) {
       this.tableComputed[tableId].cssClass = this.miscService.getTableCss(table, this.waiterState);
     }
+    // #region agent log
+    fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'snooze-resume',hypothesisId:'E',location:'manage-orders.component.ts:snoozeWaiterCall',message:'local snooze',data:{tableId,waiterState:{...this.waiterState}},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     this.tablesService.snoozeWaiterCall(this.restaurantId, tableId)
       .pipe(take(1))
       .subscribe({ error: (err: unknown) => console.error('Error snoozing waiter call', err) });
@@ -1185,6 +1195,19 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     return this.miscService.getTableCss(table, waiterState);
   }
 
+  /** Align in-memory guest waiter highlights with /api/sync stream backfill (missed SSE while screen locked). */
+  private reconcileGuestWaiterCalls(activeTableIds: string[]): void {
+    const activeSet = new Set(activeTableIds);
+    for (const tableId of Object.keys(this.waiterState)) {
+      if (!activeSet.has(tableId)) {
+        delete this.waiterState[tableId];
+      }
+    }
+    for (const tableId of activeTableIds) {
+      this.waiterState[tableId] = WaiterCallState.Active;
+    }
+  }
+
   getLastActionTime(ts: string | null): string {
     return this.miscService.getLastActionTime(ts);
   }
@@ -1267,13 +1290,27 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
       case 'WaiterCall': {
         const tableId = this.sseField<string>(Data, 'TableId', 'tableId') ?? Data?.TableId ?? Data?.tableId;
-        if (tableId) this.waiterState[tableId] = WaiterCallState.Active;
+        if (tableId) {
+          this.waiterState[tableId] = WaiterCallState.Active;
+          // #region agent log
+          fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'snooze-resume',hypothesisId:'A',location:'manage-orders.component.ts:WaiterCall',message:'SSE WaiterCall',data:{tableId,sequence:Sequence},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
+        }
         break;
       }
 
       case 'WaiterCallSnoozed': {
         const tableId = this.sseField<string>(Data, 'TableId', 'tableId') ?? Data?.TableId ?? Data?.tableId;
-        if (tableId) this.waiterState[tableId] = WaiterCallState.Snoozed;
+        if (tableId) {
+          delete this.waiterState[tableId];
+          const table = this.tables.find(t => t.tableId === tableId);
+          if (table && this.tableComputed[tableId]) {
+            this.tableComputed[tableId].cssClass = this.miscService.getTableCss(table, this.waiterState);
+          }
+          // #region agent log
+          fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'snooze-resume',hypothesisId:'A',location:'manage-orders.component.ts:WaiterCallSnoozed',message:'SSE WaiterCallSnoozed',data:{tableId,sequence:Sequence},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
+        }
         break;
       }
 
@@ -1517,7 +1554,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
     this.sseService.snapshotRefreshed$
       .pipe(takeUntil(this.destroy$))
-      .subscribe(() => void this.reloadFromSyncSnapshot());
+      .subscribe(({ activeGuestWaiterCalls }) => void this.reloadFromSyncSnapshot(activeGuestWaiterCalls));
 
     this.authService.getUserContext()
       .pipe(
