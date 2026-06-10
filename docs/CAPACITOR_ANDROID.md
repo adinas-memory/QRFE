@@ -6,7 +6,7 @@ Același codebase Angular servește **browser**, **PWA instalată** și **APK Ca
 
 | Scop | Comandă | `apiUrl` | Service worker |
 |------|---------|----------|----------------|
-| Producție web/PWA | `npm run build` (production) | `https://unrsystem.go.ro` | da (same host) |
+| Producție web/PWA | `npm run build` (production) | `https://universalrestaurant.systems` | da (same host) |
 | LAN dev (nginx) | `npm run build:devhost` | IP LAN, aliniat la origin :80 | da dacă același host |
 | APK Android | `npm run build:capacitor` | prod HTTPS | **nu** |
 | Test PWA local | `npm run build:pwa` + `serve:localhost` | `localhost:7051` | dezactivat pe :8080 |

@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://unrsystem.go.ro',
+  apiUrl: 'https://universalrestaurant.systems',
   poweredBy: 'QRFE Prod Server',
   /**
    * Stable "latest" asset URL — keep the same filename on every GitHub Release.

@@ -12,7 +12,7 @@ import { AppFooterContentComponent } from '../../app-footer-content.component';
 export class DefaultFooterComponent extends FooterComponent {
   readonly year = new Date().getFullYear();
   readonly poweredBy = environment.poweredBy;
-  readonly poweredByUrl = 'https://unrsystem.go.ro/';
+  readonly poweredByUrl = 'https://universalrestaurant.systems/';
 
   constructor() {
     super();

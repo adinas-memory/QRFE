@@ -9,9 +9,9 @@ describe('alignApiUrlWithPageHost', () => {
   });
 
   it('does not rewrite apiUrl on native Capacitor', () => {
-    (environment as { apiUrl: string }).apiUrl = 'https://unrsystem.go.ro';
+    (environment as { apiUrl: string }).apiUrl = 'https://universalrestaurant.systems';
     const result = alignApiUrlWithPageHost({ isNative: true, shouldAlign: true });
-    expect(result).toBe('https://unrsystem.go.ro');
-    expect(environment.apiUrl).toBe('https://unrsystem.go.ro');
+    expect(result).toBe('https://universalrestaurant.systems');
+    expect(environment.apiUrl).toBe('https://universalrestaurant.systems');
   });
 });

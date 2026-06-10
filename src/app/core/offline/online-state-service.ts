@@ -86,9 +86,6 @@ export class OnlineStateService {
         return;
       }
       this.resumeConnectivitySubject.next();
-      // #region agent log
-      fetch('http://127.0.0.1:7278/ingest/659d4b68-7820-48ed-a0b7-72ad405fac18',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7379f5'},body:JSON.stringify({sessionId:'7379f5',runId:'snooze-resume',hypothesisId:'C',location:'online-state-service.ts:runResumeCheck',message:'resumeConnectivityOk emitted',data:{},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
     } finally {
       this.resumeCheckInProgress = false;
     }
