@@ -1,13 +1,24 @@
 name: Deploy Angular Frontend to Bare Metal
 
 on:
-  # Prod/UAT deploy is manual — push on main triggers deploy-dev.yaml (LAN) only.
   workflow_dispatch:
+  push:
+    branches: [production]
 
 jobs:
 
+  verify-runner:
+    runs-on: self-hosted
+    steps:
+    - name: Confirm self-hosted runner is reachable
+      run: |
+        echo "Runner host: $(hostname)"
+        echo "Runner user: $(whoami)"
+        command -v node npm ssh scp tar curl
+
   build:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    needs: verify-runner
 
     steps:
     - name: Checkout code
@@ -31,73 +42,101 @@ jobs:
         path: dist/**
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: build
+    env:
+      RUN: ${{ github.run_number }}
 
     steps:
+    - name: Resolve deploy target (PROD_ secrets or variables)
+      env:
+        SECRET_HOST: ${{ secrets.PROD_SERVER_HOST }}
+        SECRET_USER: ${{ secrets.PROD_SERVER_USER }}
+        SECRET_PORT: ${{ secrets.PROD_SERVER_SSH_PORT }}
+        VARS_HOST: ${{ vars.PROD_SERVER_HOST }}
+        VARS_USER: ${{ vars.PROD_SERVER_USER }}
+        VARS_PORT: ${{ vars.PROD_SERVER_SSH_PORT }}
+      run: |
+        pick() { if [[ -n "${1}" ]]; then echo "${1}"; else echo "${2}"; fi; }
+        HOST=$(pick "$SECRET_HOST" "$VARS_HOST")
+        USER=$(pick "$SECRET_USER" "$VARS_USER")
+        PORT=$(pick "$SECRET_PORT" "$VARS_PORT")
+        PORT="${PORT:-2222}"
+
+        missing=()
+        [[ -n "$SECRET_HOST" || -n "$VARS_HOST" ]] || missing+=("PROD_SERVER_HOST")
+        [[ -n "$SECRET_USER" || -n "$VARS_USER" ]] || missing+=("PROD_SERVER_USER")
+        [[ -n "${{ secrets.PROD_SERVER_SSH_KEY }}" ]] || missing+=("PROD_SERVER_SSH_KEY")
+
+        if [[ ${#missing[@]} -gt 0 ]]; then
+          echo "::error::Missing for QRFE production deploy: ${missing[*]}"
+          exit 1
+        fi
+
+        echo "PROD_HOST=$HOST" >> "$GITHUB_ENV"
+        echo "PROD_USER=$USER" >> "$GITHUB_ENV"
+        echo "PROD_PORT=$PORT" >> "$GITHUB_ENV"
+        echo "Using deploy target host=$HOST user=$USER port=$PORT"
+
     - name: Download artifact
       uses: actions/download-artifact@v4
       with:
         name: frontend-package
         path: .
 
-    - name: Inspect workspace
-      run: ls -R .
-
-    - name: Create release folder on server
-      uses: appleboy/ssh-action@v0.1.10
-      with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SERVER_SSH_KEY }}
-        port: 2222
-        script: |
-          rm -rf /home/adi/releases/frontend-${{ github.run_number }}
-          mkdir -p /home/adi/releases/frontend-${{ github.run_number }}
-
-    - name: Create tarball from browser folder
+    - name: Configure SSH (native — prod deploy key)
       run: |
-        tar -czf frontend.tar.gz -C browser .
+        mkdir -p ~/.ssh
+        printf '%s\n' "${{ secrets.PROD_SERVER_SSH_KEY }}" | tr -d '\r' > ~/.ssh/urs_qr_prod_universalrestaurant_systems_deploy
+        chmod 600 ~/.ssh/urs_qr_prod_universalrestaurant_systems_deploy
+        PORT="${PROD_PORT:-2222}"
+        ssh-keyscan -p "$PORT" -H "${PROD_HOST}" >> ~/.ssh/known_hosts 2>/dev/null || true
+        cat > ~/.ssh/config <<EOF
+        Host prod-deploy
+          HostName ${PROD_HOST}
+          User ${PROD_USER}
+          Port ${PORT}
+          IdentityFile ~/.ssh/urs_qr_prod_universalrestaurant_systems_deploy
+          IdentitiesOnly yes
+          StrictHostKeyChecking accept-new
+        EOF
+        chmod 600 ~/.ssh/config
 
-    - name: Upload tarball to server
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SERVER_SSH_KEY }}
-        port: 2222
-        source: "frontend.tar.gz"
-        target: "/home/adi/releases/frontend-${{ github.run_number }}"
+    - name: Verify SSH user and passwordless sudo
+      run: |
+        ACTUAL=$(ssh prod-deploy 'whoami' | tr -d '\r\n')
+        if [[ "${ACTUAL}" != "${PROD_USER}" ]]; then
+          echo "::error::SSH user mismatch: connected as '${ACTUAL}', expected PROD_SERVER_USER='${PROD_USER}'"
+          exit 1
+        fi
+        ssh prod-deploy 'sudo -n true'
+        echo "NOPASSWD sudo: OK"
 
-    - name: Extract tarball on server
-      uses: appleboy/ssh-action@v0.1.10
-      with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SERVER_SSH_KEY }}
-        port: 2222
-        script: |
-          cd /home/adi/releases/frontend-${{ github.run_number }}
-          tar -xzf frontend.tar.gz
-          rm frontend.tar.gz
+    - name: Build tarball and deploy frontend
+      run: |
+        set -euo pipefail
+        RELEASE="/home/adi/releases/frontend-${RUN}"
 
-    - name: Update symlink for frontend
-      uses: appleboy/ssh-action@v0.1.10
-      with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SERVER_SSH_KEY }}
-        port: 2222
-        script: |
-          sudo rm -rf /var/www/qrfe
-          sudo ln -sfn /home/adi/releases/frontend-${{ github.run_number }} /var/www/qrfe
+        if [ -d browser ]; then
+          BROWSER=browser
+        elif [ -d qrfe/browser ]; then
+          BROWSER=qrfe/browser
+        else
+          echo "browser output not found"; ls -la; exit 1
+        fi
 
-    - name: Restart nginx
-      uses: appleboy/ssh-action@v0.1.10
-      with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SERVER_SSH_KEY }}
-        port: 2222
-        script: |
-          sudo systemctl reload nginx
+        tar -czf frontend.tar.gz -C "$BROWSER" .
+
+        ssh prod-deploy "rm -rf ${RELEASE} && mkdir -p ${RELEASE}"
+        scp frontend.tar.gz "prod-deploy:${RELEASE}/"
+
+        ssh prod-deploy "bash -s" <<REMOTE
+        set -euo pipefail
+        cd ${RELEASE}
+        tar -xzf frontend.tar.gz
+        rm frontend.tar.gz
+        sudo -n rm -rf /var/www/qrfe
+        sudo -n ln -sfn ${RELEASE} /var/www/qrfe
+        sudo -n /usr/sbin/nginx -t
+        sudo -n /usr/bin/systemctl reload nginx
+        REMOTE
