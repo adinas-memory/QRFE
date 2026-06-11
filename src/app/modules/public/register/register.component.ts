@@ -69,9 +69,6 @@ export class RegisterComponent implements OnInit {
       this.authService.registerUser(formValue).subscribe({
         next: (response: UserContextModel) => {
           this.authService.setUser(response);
-          // #region agent log
-          fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'38fcde'},body:JSON.stringify({sessionId:'38fcde',location:'register.component.ts:onSubmit',message:'register ok navigate',data:{role:response?.role,hasPendingPlan:!!this.subscriptionService.getPendingPlan()},timestamp:Date.now(),hypothesisId:'D'})}).catch(()=>{});
-          // #endregion
 
           const pendingNow = this.subscriptionService.getPendingPlan();
           if (pendingNow) {

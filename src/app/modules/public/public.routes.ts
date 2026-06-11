@@ -59,7 +59,7 @@ export const routes: Routes = [
           import('./restaurant-setup/restaurant-setup.component').then(
             m => m.RestaurantSetupComponent
           ),
-        data: { title: 'Restaurant Setup', roles: ['default'], public: false }
+        data: { title: 'Restaurant Setup', roles: ['default'], public: false, skipSessionPing: true }
       },
       {
         path: 'public/payment-success',
