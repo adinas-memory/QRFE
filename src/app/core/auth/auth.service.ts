@@ -8,6 +8,7 @@ import { RegisterUserRequestModel } from '../models/registerUserRequestModel';
 import { environment } from '../../../environments/environment';
 import { LoginUserRequestModel } from '../models/loginUserRequestModel';
 import { PushRegistrationService } from '../services/push/push-registration.service';
+import { normalizeRestaurantId } from './restaurant-id.util';
 
 export function isHttpAuthFailure(err: unknown): boolean {
   const status = (err as HttpErrorResponse)?.status;
@@ -24,7 +25,7 @@ export function normalizeUserContext(raw: unknown): UserContextModel | null {
   return {
     id,
     role,
-    restaurantId: (r['restaurantId'] ?? r['RestaurantId'] ?? null) as string | null,
+    restaurantId: normalizeRestaurantId((r['restaurantId'] ?? r['RestaurantId'] ?? null) as string | null),
     restaurantName: (r['restaurantName'] ?? r['RestaurantName'] ?? null) as string | null,
     restaurantType: (r['restaurantType'] ?? r['RestaurantType'] ?? null) as string | null,
     displayName: (r['displayName'] ?? r['DisplayName'] ?? null) as string | null,
@@ -40,6 +41,7 @@ function mergeUserContext(
 ): UserContextModel {
   return {
     ...incoming,
+    restaurantId: normalizeRestaurantId(incoming.restaurantId) ?? normalizeRestaurantId(previous?.restaurantId ?? null),
     restaurantName: incoming.restaurantName ?? previous?.restaurantName ?? null,
     restaurantType: incoming.restaurantType ?? previous?.restaurantType ?? null,
     displayName: incoming.displayName ?? previous?.displayName ?? null,
@@ -120,7 +122,12 @@ export class AuthService {
 
   getUserRestaurantId(): string | string[] | null {
     this.hydrateSessionFromStorageIfNeeded();
-    return this.userSubject.value?.restaurantId ?? null;
+    const id = this.userSubject.value?.restaurantId ?? null;
+    if (Array.isArray(id)) {
+      const assigned = id.map(v => normalizeRestaurantId(v)).filter((v): v is string => v != null);
+      return assigned.length ? assigned : null;
+    }
+    return normalizeRestaurantId(id);
   }
 
   loginUser(payload: LoginUserRequestModel): Observable<any> {

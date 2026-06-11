@@ -87,7 +87,7 @@ export class PushRegistrationService {
     this.#auth
       .getUserContext()
       .pipe(
-        filter((u) => !!u?.restaurantId),
+        filter((u) => !!u && !!this.#auth.getUserRestaurantId()),
         take(1),
         takeUntilDestroyed(this.#destroyRef),
       )

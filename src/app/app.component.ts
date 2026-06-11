@@ -21,6 +21,7 @@ import { App } from '@capacitor/app';
 import { Location } from '@angular/common';
 import { SubscriptionService } from './core/services/subscription-service/subscription.service';
 import { navigateToRoleHome } from './core/auth/auth-redirect.util';
+import { isAssignedRestaurantId } from './core/auth/restaurant-id.util';
 
 
 @Component({
@@ -102,7 +103,7 @@ export class AppComponent implements OnInit {
 
     // 4. Restul logicii tale (SSE, routing, session)
     this.#authService.getUserContext()
-      .pipe(filter(user => !!user?.restaurantId), take(1))
+      .pipe(filter(user => isAssignedRestaurantId(user?.restaurantId ?? null)), take(1))
       .subscribe(user => {
         if (!this.sseStarted) {
           this.sseStarted = true;
