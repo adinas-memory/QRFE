@@ -115,7 +115,7 @@ jobs:
     - name: Build tarball and deploy frontend
       run: |
         set -euo pipefail
-        RELEASE="/home/adi/releases/frontend-${RUN}"
+        RELEASE="/var/www/releases/frontend-${RUN}"
 
         if [ -d browser ]; then
           BROWSER=browser
@@ -127,16 +127,28 @@ jobs:
 
         tar -czf frontend.tar.gz -C "$BROWSER" .
 
-        ssh prod-deploy "rm -rf ${RELEASE} && mkdir -p ${RELEASE}"
+        ssh prod-deploy "sudo -n rm -rf ${RELEASE} && sudo -n mkdir -p /var/www/releases && sudo -n mkdir -p ${RELEASE} && sudo -n chown -R adi:adi ${RELEASE}"
         scp frontend.tar.gz "prod-deploy:${RELEASE}/"
 
-        ssh prod-deploy "bash -s" <<REMOTE
+        ssh prod-deploy "RELEASE=${RELEASE} bash -s" <<'REMOTE'
         set -euo pipefail
-        cd ${RELEASE}
+        cd "${RELEASE}"
         tar -xzf frontend.tar.gz
         rm frontend.tar.gz
-        sudo -n rm -rf /var/www/qrfe
-        sudo -n ln -sfn ${RELEASE} /var/www/qrfe
+
+        # nginx (www-data) cannot traverse /home/adi — keep releases under /var/www/releases.
+        sudo -n chown -R www-data:www-data "${RELEASE}"
+        sudo -n chmod o+x /var/www/releases "${RELEASE}"
+
+        sudo -n rm -f /var/www/qrfe
+        sudo -n ln -sfn "${RELEASE}" /var/www/qrfe
+
+        if ! sudo -n -u www-data test -r /var/www/qrfe/index.html; then
+          echo "::error::www-data cannot read /var/www/qrfe/index.html (symlink target permissions)"
+          sudo -n namei -l /var/www/qrfe/index.html || true
+          exit 1
+        fi
+
         sudo -n /usr/sbin/nginx -t
         sudo -n /usr/bin/systemctl reload nginx
         REMOTE
