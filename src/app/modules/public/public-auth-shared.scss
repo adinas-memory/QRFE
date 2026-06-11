@@ -1,0 +1,64 @@
+:host {
+  display: block;
+}
+
+.public-auth {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 28px 0;
+  background:
+    radial-gradient(1200px 600px at 20% 10%, rgba(13, 110, 253, 0.18), transparent 60%),
+    radial-gradient(900px 520px at 80% 30%, rgba(32, 201, 151, 0.14), transparent 55%),
+    linear-gradient(180deg, #0f1215 0%, #0b0d10 100%);
+  color: #fff;
+}
+
+.auth-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+// CoreUI card body + global light theme override dark glass text (login, reset-password, etc.).
+:host ::ng-deep .auth-card .card-body {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+:host ::ng-deep .auth-card {
+  // Bootstrap/CoreUI .text-muted sets color with !important — unreadable on dark glass card.
+  :is(h1, h2, h3, h4, h5, h6) {
+    color: #fff !important;
+  }
+
+  p {
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  .text-muted,
+  p.text-muted,
+  div.text-muted,
+  .small.text-muted {
+    color: rgba(255, 255, 255, 0.72) !important;
+  }
+
+  a:not(.btn) {
+    color: rgba(255, 255, 255, 0.88) !important;
+  }
+
+  a:not(.btn):hover {
+    color: #fff !important;
+  }
+}
+
+.auth-card :global(.form-control),
+.auth-card :global(.input-group-text) {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.10);
+  color: #fff;
+}
+
+.auth-card :global(.form-control::placeholder) {
+  color: rgba(255, 255, 255, 0.65);
+}
