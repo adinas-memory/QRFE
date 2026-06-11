@@ -133,6 +133,9 @@ export class AppComponent implements OnInit {
         const isPublic = deepest?.data?.['public'] === true;
 
         if (!isPublic) {
+          // #region agent log
+          fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'38fcde'},body:JSON.stringify({sessionId:'38fcde',location:'app.component.ts:NavigationEnd',message:'trigger pingSession',data:{url:evt.urlAfterRedirects,isPublic,role:this.#authService.getUserRole()},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
+          // #endregion
           this.#authService.hydrateSessionFromStorageIfNeeded();
           this.#authService.restoreSession().subscribe(() => {
             this.#authService.pingSession(false).subscribe();

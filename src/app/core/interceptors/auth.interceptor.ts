@@ -34,6 +34,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
       if (error.status === 401 && !isPublic) {
         if (req.context.get(AUTH_RETRIED)) {
+          // #region agent log
+          fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'38fcde'},body:JSON.stringify({sessionId:'38fcde',location:'auth.interceptor.ts:401-retry',message:'logout after second 401',data:{url:req.url,role:auth.getUserRole()},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
+          // #endregion
           auth.clearUser();
           router.navigate(['/login']);
           return throwError(() => error);

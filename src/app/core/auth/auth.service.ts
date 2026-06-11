@@ -251,6 +251,9 @@ export class AuthService {
       }),
       catchError((error: HttpErrorResponse) => {
         if (error.status === 401 && !isPublic) {
+          // #region agent log
+          fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'38fcde'},body:JSON.stringify({sessionId:'38fcde',location:'auth.service.ts:pingSession',message:'ping 401',data:{status:error.status,role:this.getUserRole(),restaurantId:this.getUserRestaurantId()},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+          // #endregion
           return this.refreshUserContext({ redirectOnFailure: false }).pipe(
             switchMap(user => {
               this.hydrateSessionFromStorageIfNeeded();
