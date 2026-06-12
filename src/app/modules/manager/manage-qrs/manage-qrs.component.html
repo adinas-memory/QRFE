@@ -1,8 +1,8 @@
 <div class="print-all">
-  <button cButton color="primary" (click)="printQrCards()" class="ms-2" i18n>
+  <button cButton color="primary" (click)="printQrCards()" class="ms-2" [disabled]="!qrCodes.length" i18n>
     Print
   </button>
-  <button cButton color="warning" (click)="renewQrCodes()" class="ms-2" i18n>
+  <button cButton color="warning" (click)="renewQrCodes()" class="ms-2" [disabled]="!qrCodes.length" i18n>
     Renew QR Codes
   </button>
   <a cButton color="info" [routerLink]="['/manager/manage-qrs-links']" class="ms-2" i18n>
@@ -10,23 +10,35 @@
   </a>
 </div>
 
-<c-container fluid class="mt-3">
-  <c-row class="g-4">
-    <c-col *ngFor="let qr of qrCodes" xs="12" sm="6" md="4" lg="4" xl="4">
-      <c-card class="qr-card" [attr.data-table]="qr.tableLabel">
-        <c-card-body>
-          <h5 cCardTitle>{{ qr.tableLabel }}</h5>
-          <qrcode
-            [qrdata]="qr.qrUrl"
-            [width]="200"
-            [errorCorrectionLevel]="'M'"
-          ></qrcode>
-          <p cCardText i18n>
-            Scan this code to access the menu for table {{ qr.tableLabel }}.
-          </p>
-        </c-card-body>
-      </c-card>
-    </c-col>
-  </c-row>
-</c-container>
+@if (loaded && !qrCodes.length) {
+  <c-container fluid class="mt-3">
+    <c-alert color="info">
+      <p class="mb-2" i18n>You do not have any tables yet. Add tables first to generate QR codes for your venue.</p>
+      <a cButton color="primary" [routerLink]="['/manager/manage-tables']" i18n>Add tables</a>
+    </c-alert>
+  </c-container>
+}
 
+@if (qrCodes.length) {
+  <c-container fluid class="mt-3">
+    <c-row class="g-4">
+      @for (qr of qrCodes; track qr.tableId) {
+        <c-col xs="12" sm="6" md="4" lg="4" xl="4">
+          <c-card class="qr-card" [attr.data-table]="qr.tableLabel">
+            <c-card-body>
+              <h5 cCardTitle>{{ qr.tableLabel }}</h5>
+              <qrcode
+                [qrdata]="qr.qrUrl"
+                [width]="200"
+                [errorCorrectionLevel]="'M'"
+              ></qrcode>
+              <p cCardText i18n>
+                Scan this code to access the menu for table {{ qr.tableLabel }}.
+              </p>
+            </c-card-body>
+          </c-card>
+        </c-col>
+      }
+    </c-row>
+  </c-container>
+}
