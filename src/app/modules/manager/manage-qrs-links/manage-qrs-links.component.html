@@ -10,18 +10,26 @@
         Use these links to open the same public view a QR scan would open.
       </p>
 
-      <div *ngIf="loading" class="text-muted" i18n>Loading…</div>
+      @if (loading) {
+        <div class="text-muted" i18n>Loading…</div>
+      }
 
-      <div *ngIf="!loading && items.length === 0" class="text-muted" i18n>No QR links.</div>
+      @if (!loading && items.length === 0) {
+        <c-alert color="info">
+          <p class="mb-2" i18n>No tables yet — add tables to generate QR links.</p>
+          <a cButton color="primary" [routerLink]="['/manager/manage-tables']" i18n>Add tables</a>
+        </c-alert>
+      }
 
-      <div *ngFor="let it of items" class="border rounded p-3 mb-2">
-        <div class="fw-semibold">{{ it.tableLabel }}</div>
-        <div class="small mt-2 d-flex flex-wrap gap-2 align-items-center">
-          <a [href]="it.qrUrl" target="_blank" rel="noopener noreferrer">{{ it.qrUrl }}</a>
-          <button cButton color="primary" size="sm" (click)="copy(it.qrUrl)" i18n>Copy</button>
+      @for (it of items; track it.tableId) {
+        <div class="border rounded p-3 mb-2">
+          <div class="fw-semibold">{{ it.tableLabel }}</div>
+          <div class="small mt-2 d-flex flex-wrap gap-2 align-items-center">
+            <a [href]="it.qrUrl" target="_blank" rel="noopener noreferrer">{{ it.qrUrl }}</a>
+            <button cButton color="primary" size="sm" (click)="copy(it.qrUrl)" i18n>Copy</button>
+          </div>
         </div>
-      </div>
+      }
     </c-card-body>
   </c-card>
 </c-container>
-

@@ -1,86 +1,90 @@
-import { QrCodeUrl, RenewQrCodesResponse } from '../../../core/models/QRs/qr.models';
+import { QrCodeUrl } from '../../../core/models/QRs/qr.models';
 import { AuthService } from './../../../core/auth/auth.service';
+import { isAssignedRestaurantId, normalizeRestaurantId } from '../../../core/auth/restaurant-id.util';
 import { QrCodesService } from './../../../core/services/qr-service/qr-codes.service';
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { QRCodeComponent } from 'angularx-qrcode';
-import { NgFor } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { filter, take } from 'rxjs';
 import {
   ContainerComponent, ButtonDirective, CardBodyComponent, RowComponent, ColComponent,
-  CardComponent, CardImgDirective, CardTextDirective, CardTitleDirective, Tabs2Module,
-  TabContentComponent
+  CardComponent, CardTextDirective, CardTitleDirective, Tabs2Module,
+  TabContentComponent, AlertComponent
 } from '@coreui/angular';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
+import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
 
 @Component({
   selector: 'app-manage-qrs',
-  imports: [NgFor, QRCodeComponent, ContainerComponent, CardComponent,
-    CardImgDirective, CardBodyComponent, CardTitleDirective, CardTextDirective,
-    ButtonDirective, RowComponent, ColComponent, Tabs2Module, TabContentComponent, RouterLink,],
+  imports: [QRCodeComponent, ContainerComponent, CardComponent,
+    CardBodyComponent, CardTitleDirective, CardTextDirective,
+    ButtonDirective, RowComponent, ColComponent, Tabs2Module, TabContentComponent, RouterLink, AlertComponent],
   standalone: true,
   templateUrl: './manage-qrs.component.html'
 })
-export class ManageQrsComponent {
+export class ManageQrsComponent implements OnInit {
 
   qrCodes: QrCodeUrl[] = [];
-  restaurantId: string = '';
+  restaurantId = '';
+  loaded = false;
 
-  constructor(private qrService: QrCodesService,
+  constructor(
+    private qrService: QrCodesService,
     private authService: AuthService,
-    private appToast: AppToastService,) { }
-
+    private appToast: AppToastService,
+    private misc: MiscellaneousService,
+  ) { }
 
   ngOnInit(): void {
-    this.authService.getUserContext().subscribe({
-      next: (user) => {
-        this.restaurantId = user?.restaurantId as string;
-        if (this.restaurantId) {
-          this.loadQrCodes();
-        }
-      },
-      error: (err) => {
-        this.appToast.error(`Error fetching user context: ${err?.Message}`);
-      }
+    this.authService.getUserContext().pipe(
+      filter(user => isAssignedRestaurantId(normalizeRestaurantId(user?.restaurantId ?? null) ?? null)),
+      take(1),
+    ).subscribe(user => {
+      this.restaurantId = normalizeRestaurantId(user!.restaurantId)!;
+      this.loadQrCodes();
     });
   }
 
   loadQrCodes(): void {
+    this.loaded = false;
     this.qrService.getQrCodes(this.restaurantId).subscribe({
-      next: (response: any) => {
-        if ('qRsUrl' in response && Array.isArray(response.qRsUrl)) {
-          this.qrCodes = response.qRsUrl;
-        } else {
-          console.warn('qRsUrl not found in response');
-        }
+      next: (response) => {
+        this.qrCodes = this.extractQrList(response);
+        this.loaded = true;
       },
-      error: (error) => {
-        this.appToast.error(`Error fetching QR Codes: ${error?.Message}`);        
-      }
+      error: () => {
+        this.loaded = true;
+      },
     });
+  }
+
+  private extractQrList(response: unknown): QrCodeUrl[] {
+    if (!response || typeof response !== 'object') {
+      return [];
+    }
+    const raw = response as Record<string, unknown>;
+    const list = raw['qRsUrl'] ?? raw['QRsUrl'];
+    return Array.isArray(list) ? (list as QrCodeUrl[]) : [];
   }
 
   renewQrCodes(): void {
     const confirmed = window.confirm('Sei sicuro di voler rinnovare i codici QR?');
 
     if (!confirmed) {
-      return; // utilizatorul a anulat
+      return;
     }
 
     this.qrService.renewQrCodes(this.restaurantId).subscribe({
-      next: (response: any) => {
+      next: () => {
         this.loadQrCodes();
       },
       error: (error) => {
-        this.appToast.error(`Error renewing QR Codes: ${error?.Message}`);        
+        this.appToast.error(this.misc.getFirstErrorMessage(error));
       }
     });
   }
 
-
-
   printQrCards(): void {
     window.print();
   }
-
-
 }
