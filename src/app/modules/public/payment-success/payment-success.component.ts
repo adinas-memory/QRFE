@@ -1,9 +1,11 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Subject, takeUntil, timer, switchMap, tap, catchError, of, map, take } from 'rxjs';
+import { Subject, takeUntil, timer, switchMap, tap, catchError, of, map, take, Observable } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
+import { isAssignedRestaurantId } from '../../../core/auth/restaurant-id.util';
 import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
+import { UserContextModel } from '../../../core/models/userContextModel';
 import { environment } from '../../../../environments/environment';
 import { ContainerComponent, CardComponent, CardBodyComponent, ButtonDirective, AlertComponent, SpinnerComponent } from '@coreui/angular';
 import { TranslocoPipe } from '@jsverse/transloco';
@@ -45,76 +47,107 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.route.queryParamMap.pipe(take(1)).subscribe(q => {
       const f = (q.get('flow') ?? '').toLowerCase();
-      this.flow = (f === 'subscription' || f === 'order') ? (f as any) : 'unknown';
+      this.flow = (f === 'subscription' || f === 'order') ? (f as 'subscription' | 'order') : 'unknown';
       this.restaurantId = q.get('restaurantId');
       this.tableId = q.get('tableId');
 
       if (this.flow === 'order' && this.restaurantId && this.tableId) {
-        // Diner/table checkout: do not poll refresh-token and never redirect to login.
         this.provisioning = false;
         this.secondsLeft = 0;
         return;
       }
 
-      // Default: subscription provisioning flow (poll refresh-token until manager role, then redirect to login).
-      timer(0, 2000).pipe(
-      takeUntil(this.destroy$),
-      switchMap(() => {
-        this.pollCount++;
-        return this.authService.refreshUserContext().pipe(
-          catchError((err) => {
+      const sessionId = q.get('session_id');
+      this.runSubscriptionProvisioning(sessionId);
+    });
+  }
+
+  private runSubscriptionProvisioning(sessionId: string | null): void {
+    const complete$: Observable<unknown> = sessionId
+      ? this.subscriptionService.completeSubscriptionCheckout(sessionId).pipe(
+          catchError(err => {
+            console.warn('Subscription complete fallback failed', err);
             return of(null);
           }),
-          switchMap(user => {
-            if (!user?.restaurantId || user.role !== 'manager') {
-              return of(user);
-            }
-            const pending = this.subscriptionService.getPendingRestaurantCurrency();
-            if (!pending) {
-              return of(user);
-            }
-            return this.http.patch(
-              `${this.apiUrl}/api/restaurants/${user.restaurantId}/admin/currency`,
-              { currency: pending },
-              { withCredentials: true },
-            ).pipe(
-              map(() => {
-                this.subscriptionService.clearPendingRestaurantCurrency();
-                return user;
-              }),
-              catchError(err => {
-                console.warn('Could not apply operating currency after checkout', err);
-                return of(user);
-              }),
-            );
+        )
+      : of(null);
+
+    complete$.pipe(
+      switchMap(() => timer(0, 2000).pipe(
+        takeUntil(this.destroy$),
+        switchMap(() => {
+          this.pollCount++;
+          return this.refreshAndMaybePatchCurrency();
+        }),
+        tap(user => {
+          if (this.isManagerProvisioned(user)) {
+            this.finishManagerSuccess(user!);
+            this.destroy$.next();
+          } else if (this.pollCount >= this.maxPolls) {
+            this.finishProvisioningTimeout();
+            this.destroy$.next();
+          }
+        }),
+      )),
+      takeUntil(this.destroy$),
+    ).subscribe();
+  }
+
+  private refreshAndMaybePatchCurrency(): Observable<UserContextModel | null> {
+    return this.authService.refreshUserContext({ redirectOnFailure: false }).pipe(
+      catchError(() => of(null)),
+      switchMap(user => {
+        if (!this.isManagerProvisioned(user)) {
+          return of(user);
+        }
+        const pending = this.subscriptionService.getPendingRestaurantCurrency();
+        if (!pending || !user?.restaurantId) {
+          return of(user);
+        }
+        return this.http.patch(
+          `${this.apiUrl}/api/restaurants/${user.restaurantId}/admin/currency`,
+          { currency: pending },
+          { withCredentials: true },
+        ).pipe(
+          map(() => {
+            this.subscriptionService.clearPendingRestaurantCurrency();
+            return user;
+          }),
+          catchError(err => {
+            console.warn('Could not apply operating currency after checkout', err);
+            return of(user);
           }),
         );
       }),
-      tap(user => {
-        if (user && user.role === 'manager') {
-          this.provisioning = false;
-          this.secondsLeft = 3;
-          const interval = setInterval(() => this.secondsLeft = Math.max(0, this.secondsLeft - 1), 1000);
-          setTimeout(() => {
-            clearInterval(interval);
-            this.authService.clearUser();
-            this.router.navigate(['/login']);
-          }, 3000);
-          this.destroy$.next();
-        } else if (this.pollCount >= this.maxPolls) {
-          this.provisioning = false;
-          this.secondsLeft = 3;
-          const interval = setInterval(() => this.secondsLeft = Math.max(0, this.secondsLeft - 1), 1000);
-          setTimeout(() => {
-            clearInterval(interval);
-            this.authService.clearUser();
-            this.router.navigate(['/login']);
-          }, 3000);
-          this.destroy$.next();
-        }
-      }),
-    ).subscribe();
-    });
+    );
+  }
+
+  private isManagerProvisioned(user: UserContextModel | null): boolean {
+    return !!user
+      && user.role === 'manager'
+      && isAssignedRestaurantId(user.restaurantId);
+  }
+
+  private finishManagerSuccess(user: UserContextModel): void {
+    this.authService.setUser(user);
+    this.authService.setRestaurantCtx();
+    this.provisioning = false;
+    this.secondsLeft = 3;
+    const interval = setInterval(() => this.secondsLeft = Math.max(0, this.secondsLeft - 1), 1000);
+    setTimeout(() => {
+      clearInterval(interval);
+      void this.router.navigate(['/manager']);
+    }, 3000);
+  }
+
+  private finishProvisioningTimeout(): void {
+    this.provisioning = false;
+    this.secondsLeft = 3;
+    const interval = setInterval(() => this.secondsLeft = Math.max(0, this.secondsLeft - 1), 1000);
+    setTimeout(() => {
+      clearInterval(interval);
+      void this.router.navigate(['/login']);
+    }, 3000);
   }
 
   ngOnDestroy(): void {

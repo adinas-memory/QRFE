@@ -6,6 +6,7 @@ import { fetchEventSource, EventStreamContentType } from '@microsoft/fetch-event
 import { environment } from '../../../../environments/environment';
 import { SseEvent } from '../../models/sseModel';
 import { AuthService } from '../../auth/auth.service';
+import { isAssignedRestaurantId } from '../../auth/restaurant-id.util';
 import { OfflineQueueProcessor } from '../../offline/offline-queue-processor.service';
 import { OfflineDbService } from '../../offline/offline-db';
 import { OnlineStateService } from '../../offline/online-state-service';
@@ -105,9 +106,11 @@ export class OrderSyncService {
   }
 
   private resolveRestaurantId(): string | null {
-    if (this.lastRestaurantId) return this.lastRestaurantId;
+    if (this.lastRestaurantId && isAssignedRestaurantId(this.lastRestaurantId)) {
+      return this.lastRestaurantId;
+    }
     const fromAuth = this.auth.getUserRestaurantId();
-    return typeof fromAuth === 'string' && fromAuth ? fromAuth : null;
+    return typeof fromAuth === 'string' && isAssignedRestaurantId(fromAuth) ? fromAuth : null;
   }
 
   async trySyncNow() {
@@ -178,6 +181,9 @@ export class OrderSyncService {
 
 
   listenToRestaurantEvents<T = any>(restaurantId: string): Observable<SseEvent<T>> {
+    if (!isAssignedRestaurantId(restaurantId)) {
+      return this.events$ as Observable<SseEvent<T>>;
+    }
     // start connection immediately
     this.lastRestaurantId = restaurantId;
     this.openConnection(restaurantId);

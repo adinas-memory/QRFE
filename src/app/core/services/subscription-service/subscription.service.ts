@@ -91,6 +91,25 @@ export class SubscriptionService {
       payload, { withCredentials: true });
   }
 
+  /** Provision restaurant when Stripe webhook did not reach the API (dev LAN / missed webhook). */
+  completeSubscriptionCheckout(sessionId: string): Observable<{
+    isProvisioned: boolean;
+    role?: string;
+    restaurantId?: string;
+    message?: string;
+  }> {
+    return this.http.post<{
+      isProvisioned: boolean;
+      role?: string;
+      restaurantId?: string;
+      message?: string;
+    }>(
+      `${this.apiUrl}/api/stripe/subscription/complete`,
+      {},
+      { params: { session_id: sessionId }, withCredentials: true },
+    );
+  }
+
   /** Cancel Stripe subscription for the logged-in manager (server loads IDs from DB). */
   cancelSubscription(): Observable<unknown> {
     return this.http.request('DELETE', `${this.apiUrl}/api/stripe/subscription`, {
