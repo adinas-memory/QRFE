@@ -63,14 +63,21 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
   }
 
   private runSubscriptionProvisioning(sessionId: string | null): void {
+    // Refresh before complete: JWT may expire during Stripe hosted checkout.
+    const sessionReady$ = this.authService.refreshUserContext({ redirectOnFailure: false }).pipe(
+      catchError(() => of(null)),
+    );
+
     const complete$: Observable<unknown> = sessionId
-      ? this.subscriptionService.completeSubscriptionCheckout(sessionId).pipe(
-          catchError(err => {
-            console.warn('Subscription complete fallback failed', err);
-            return of(null);
-          }),
+      ? sessionReady$.pipe(
+          switchMap(() => this.subscriptionService.completeSubscriptionCheckout(sessionId).pipe(
+            catchError(err => {
+              console.warn('Subscription complete fallback failed', err);
+              return of(null);
+            }),
+          )),
         )
-      : of(null);
+      : sessionReady$;
 
     complete$.pipe(
       switchMap(() => timer(0, 2000).pipe(
