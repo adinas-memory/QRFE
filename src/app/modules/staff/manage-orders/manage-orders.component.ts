@@ -101,6 +101,27 @@ function localDayBounds(): { from: string; to: string } {
   templateUrl: './manage-orders.component.html'
 })
 export class ManageOrdersComponent implements OnInit, OnDestroy {
+  // #region agent log
+  private agentDebugLog(
+    location: string,
+    message: string,
+    data: Record<string, unknown>,
+    hypothesisId: string,
+  ): void {
+    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
+      body: JSON.stringify({
+        sessionId: '38fcde',
+        location,
+        message,
+        data,
+        hypothesisId,
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+  }
+  // #endregion
   icons = { cilBellExclamation };
   private destroy$ = new Subject<void>();
   private readonly recentSseSequences: number[] = [];
@@ -728,6 +749,14 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     }
 
     if (this.orderIsConfirmed && cart.length === 0) {
+      // #region agent log
+      this.agentDebugLog(
+        'manage-orders.component.ts:decrementItem',
+        'empty cart after decrement — calling freeTable',
+        { tableId, orderId, orderIsConfirmed: this.orderIsConfirmed },
+        'H1',
+      );
+      // #endregion
       await this.freeTableAfterEmptyConfirmedCart(tableId, orderId ?? undefined);
       return;
     }
@@ -746,6 +775,21 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     if (!existing) return;
 
     const newCart = cart.filter(i => i.item.menuItemId !== sel.item.menuItemId);
+    // #region agent log
+    this.agentDebugLog(
+      'manage-orders.component.ts:removeItem',
+      'removeItem after filter',
+      {
+        tableId,
+        orderId,
+        orderIsConfirmed: this.orderIsConfirmed,
+        newCartLength: newCart.length,
+        hasOrderItemId: !!existing.orderItemId,
+        willFreeTable: this.orderIsConfirmed && newCart.length === 0,
+      },
+      'H1',
+    );
+    // #endregion
     this.tableCarts[tableId] = [...newCart];
     await this.offlineDB.saveCart(tableId, newCart, orderId ?? undefined, true);
 
@@ -763,6 +807,14 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     }
 
     if (this.orderIsConfirmed && newCart.length === 0) {
+      // #region agent log
+      this.agentDebugLog(
+        'manage-orders.component.ts:removeItem',
+        'empty cart after remove — calling freeTable',
+        { tableId, orderId },
+        'H1',
+      );
+      // #endregion
       await this.freeTableAfterEmptyConfirmedCart(tableId, orderId ?? undefined);
       return;
     }
@@ -1128,6 +1180,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   private async freeTableAfterEmptyConfirmedCart(tableId: string, orderId?: string): Promise<void> {
     // UX rule: if a confirmed order ends up with 0 items (user deleted everything),
     // treat it as "free table" immediately (don't leave it red/occupied).
+    // #region agent log
+    const tableBefore = this.tables.find(t => t.tableId === tableId);
+    this.agentDebugLog(
+      'manage-orders.component.ts:freeTableAfterEmptyConfirmedCart',
+      'freeTable entry',
+      { tableId, orderId, isTableOpenBefore: tableBefore?.isTableOpen, hasOrderBefore: !!tableBefore?.order },
+      'H2',
+    );
+    // #endregion
     await this.offlineDB.deleteCart(tableId);
     this.tableCarts[tableId] = [];
     delete this.tableComputed[tableId];
@@ -1148,6 +1209,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.markTableAsOpen(tableId);
     await this.offlineDB.upsertTableStatus(tableId, true);
     this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+    // #region agent log
+    const tableAfter = this.tables.find(t => t.tableId === tableId);
+    this.agentDebugLog(
+      'manage-orders.component.ts:freeTableAfterEmptyConfirmedCart',
+      'freeTable after markTableAsOpen',
+      { tableId, isTableOpenAfter: tableAfter?.isTableOpen, hasOrderAfter: !!tableAfter?.order },
+      'H2',
+    );
+    // #endregion
 
     if (this.currentTableId === tableId) {
       this.resetCanvasState();
@@ -1345,6 +1415,27 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.tableCarts[tableId] = cart;
         this.ordersService.saveComputed(this.tableComputed);
 
+        const sseItemCount =
+          payload.ItemCount ??
+          (payload.Items ?? []).reduce((sum, i) => sum + (i.Quantity ?? 0), 0);
+        const tableBeforeOccupy = this.tables.find(t => t.tableId === tableId);
+        // #region agent log
+        this.agentDebugLog(
+          'manage-orders.component.ts:OrderUpdated',
+          'OrderUpdated SSE before occupy check',
+          {
+            tableId,
+            orderId: payload.OrderId,
+            sseItemCount,
+            itemsLength: payload.Items?.length ?? 0,
+            isTableOpenBefore: tableBeforeOccupy?.isTableOpen,
+            currentOrderId: this.currentOrderId,
+            currentTableId: this.currentTableId,
+          },
+          'H2',
+        );
+        // #endregion
+
         // OrderUpdated implică o comandă activă pe masă → marchează masa ca ocupată local
         // dacă încă figurează liberă; altfel getTableCss rămâne pe bg-success (verde).
         if (payload.OrderId) {
@@ -1367,6 +1458,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
             );
             this.refreshTableLists();
             void this.offlineDB.saveTables(this.tables);
+            // #region agent log
+            const tableAfterOccupy = this.tables.find(t => t.tableId === tableId);
+            this.agentDebugLog(
+              'manage-orders.component.ts:OrderUpdated',
+              'OrderUpdated SSE marked table occupied',
+              { tableId, sseItemCount, isTableOpenAfter: tableAfterOccupy?.isTableOpen },
+              'H2',
+            );
+            // #endregion
           }
         }
         break;

@@ -564,13 +564,74 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     }
     this.canceling = true;
     this.subscriptionService.cancelSubscription().subscribe({
-      next: () => {
+      next: (res) => {
+        // #region agent log
+        fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
+          body: JSON.stringify({
+            sessionId: '38fcde',
+            location: 'manager-settings.component.ts:confirmCancelSubscription',
+            message: 'cancelSubscription next',
+            data: { responseType: typeof res, response: String(res) },
+            hypothesisId: 'H-B1',
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
         this.canceling = false;
-        this.authService.logout().subscribe(() => {
-          void this.router.navigate(['/login']);
+        this.authService.logout().subscribe({
+          next: () => {
+            // #region agent log
+            fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
+              body: JSON.stringify({
+                sessionId: '38fcde',
+                location: 'manager-settings.component.ts:confirmCancelSubscription',
+                message: 'logout next — navigating to login',
+                data: {},
+                hypothesisId: 'H-B1',
+                timestamp: Date.now(),
+              }),
+            }).catch(() => {});
+            // #endregion
+            void this.router.navigate(['/login']);
+          },
+          error: (logoutErr) => {
+            // #region agent log
+            fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
+              body: JSON.stringify({
+                sessionId: '38fcde',
+                location: 'manager-settings.component.ts:confirmCancelSubscription',
+                message: 'logout error',
+                data: { status: (logoutErr as { status?: number })?.status },
+                hypothesisId: 'H-B1',
+                timestamp: Date.now(),
+              }),
+            }).catch(() => {});
+            // #endregion
+            void this.router.navigate(['/login']);
+          },
         });
       },
       error: err => {
+        // #region agent log
+        fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
+          body: JSON.stringify({
+            sessionId: '38fcde',
+            location: 'manager-settings.component.ts:confirmCancelSubscription',
+            message: 'cancelSubscription error',
+            data: { status: (err as { status?: number })?.status },
+            hypothesisId: 'H-B2',
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
         console.error('Cancel subscription failed', err);
         this.canceling = false;
       }

@@ -2,7 +2,7 @@
 
 - **Domain:** https://universalrestaurant.systems (`environment.prod.ts`)
 - **CI:** push to branch `production` → [`.github/workflows/deploy.yaml`](../../.github/workflows/deploy.yaml)
-- **Runner:** self-hosted (192.168.43.142) — build + deploy
+- **Runner:** self-hosted (192.168.0.17) — build + deploy
 - **Backend bootstrap:** `QR_Restaurant_backend/deploy/production/ubuntu/README.md`
 - **Secrets / SSH key setup:** `QR_Restaurant_backend/deploy/production/ubuntu/PRODUCTION_CI.md`
 
