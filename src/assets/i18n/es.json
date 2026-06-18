@@ -486,6 +486,12 @@
     "toastSavedTitle": "Ajustes guardados",
     "toastCurrencyErrorTitle": "No se pudo actualizar la moneda",
     "confirmCancelSubscription": "¿Seguro que quieres cancelar la suscripción? Perderás funciones de gestor al final del periodo (Stripe).",
+    "loadingSubscriptionStatus": "Cargando estado de la suscripción…",
+    "subscriptionEndsOn": "Tu suscripción finaliza el {{date}}.",
+    "subscriptionEndsOnHint": "Puedes usar las funciones de gestor hasta esa fecha. En Stripe puede seguir apareciendo como activa hasta entonces.",
+    "cancelSubscriptionSuccessTitle": "Cancelación programada",
+    "cancelSubscriptionSuccessBody": "Tu suscripción finaliza el {{date}}. Se cerrará la sesión ahora; puedes seguir usando la cuenta hasta esa fecha.",
+    "cancelSubscriptionErrorTitle": "No se pudo cancelar la suscripción",
     "printerAgentEnrollment": {
       "title": "Configuración del Printer Agent",
       "hint": "Genera un código de 10 caracteres para el Printer Agent en el primer arranque. Cada código puede usarse un número limitado de veces hasta que caduque.",

@@ -486,6 +486,12 @@
     "toastSavedTitle": "Inställningar sparade",
     "toastCurrencyErrorTitle": "Kunde inte uppdatera valuta",
     "confirmCancelSubscription": "Avbryta prenumerationen? Du förlorar manager-funktioner vid periodens slut (Stripe).",
+    "loadingSubscriptionStatus": "Laddar prenumerationsstatus…",
+    "subscriptionEndsOn": "Din prenumeration avslutas {{date}}.",
+    "subscriptionEndsOnHint": "Du kan använda manager-funktioner till det datumet. I Stripe kan den fortfarande visas som aktiv till dess.",
+    "cancelSubscriptionSuccessTitle": "Uppsägning schemalagd",
+    "cancelSubscriptionSuccessBody": "Din prenumeration avslutas {{date}}. Du loggas ut nu; kontot kan användas till det datumet.",
+    "cancelSubscriptionErrorTitle": "Kunde inte avbryta prenumerationen",
     "printerAgentEnrollment": {
       "title": "Printer Agent-konfiguration",
       "hint": "Generera en 10-teckens kod för Printer Agent vid första körning. Varje kod kan användas ett begränsat antal gånger tills den går ut.",

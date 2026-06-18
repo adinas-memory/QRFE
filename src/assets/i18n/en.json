@@ -520,6 +520,12 @@
     "toastSavedTitle": "Settings saved",
     "toastCurrencyErrorTitle": "Could not update currency",
     "confirmCancelSubscription": "Are you sure you want to cancel your subscription? You will lose access to manager features when the billing period ends (per Stripe).",
+    "loadingSubscriptionStatus": "Loading subscription status…",
+    "subscriptionEndsOn": "Your subscription ends on {{date}}.",
+    "subscriptionEndsOnHint": "You can use manager features until that date. In Stripe the subscription may still show as active until then.",
+    "cancelSubscriptionSuccessTitle": "Subscription scheduled for cancellation",
+    "cancelSubscriptionSuccessBody": "Your subscription ends on {{date}}. You will be signed out now; you can keep using the account until that date.",
+    "cancelSubscriptionErrorTitle": "Could not cancel subscription",
     "printerAgentEnrollment": {
       "title": "Printer agent setup",
       "hint": "Generate a 10-character code for the printer agent on first run. Each code can be used a limited number of times until it expires.",

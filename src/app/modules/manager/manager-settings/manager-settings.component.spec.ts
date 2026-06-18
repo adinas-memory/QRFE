@@ -47,7 +47,18 @@ describe('ManagerSettingsComponent bill printer', () => {
             getFirstErrorMessage: () => 'error',
           },
         },
-        { provide: SubscriptionService, useValue: { cancelSubscription: () => of(void 0) } },
+        {
+          provide: SubscriptionService,
+          useValue: {
+            cancelSubscription: () => of(void 0),
+            getManagerSubscriptionStatus: () =>
+              of({
+                subscriptionStatus: 'active',
+                cancelAtPeriodEnd: false,
+                cancelAtUtc: null,
+              }),
+          },
+        },
         { provide: AppToastService, useValue: { success: (): void => {}, error: (): void => {} } },
         { provide: PrintJobsService, useValue: printJobs },
         provideTransloco({

@@ -520,6 +520,12 @@
     "toastSavedTitle": "Setări salvate",
     "toastCurrencyErrorTitle": "Nu s-a putut actualiza moneda",
     "confirmCancelSubscription": "Sigur vrei să anulezi abonamentul? Vei pierde accesul la funcțiile de manager la sfârșitul perioadei de facturare (conform Stripe).",
+    "loadingSubscriptionStatus": "Se încarcă starea abonamentului…",
+    "subscriptionEndsOn": "Abonamentul se încheie la {{date}}.",
+    "subscriptionEndsOnHint": "Poți folosi funcțiile de manager până la această dată. În Stripe abonamentul apare încă activ până atunci.",
+    "cancelSubscriptionSuccessTitle": "Abonament programat pentru anulare",
+    "cancelSubscriptionSuccessBody": "Abonamentul se încheie la {{date}}. Vei fi deconectat acum; poți folosi contul până la acea dată.",
+    "cancelSubscriptionErrorTitle": "Anularea abonamentului a eșuat",
     "printerAgentEnrollment": {
       "title": "Agent imprimantă",
       "hint": "Generează un cod din 10 caractere pentru agentul de imprimantă la prima rulare. Fiecare cod poate fi folosit de un număr limitat de ori până la expirare.",

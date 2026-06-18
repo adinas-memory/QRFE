@@ -6,6 +6,10 @@ import { PendingPlanModel } from '../../models/pendingPlanModel';
 import { SubscriptionPayloadModel } from '../../models/subscriptionPayloadModel';
 import { CreateSubscriptionProductModel } from '../../models/subscription-product';
 import { environment } from '../../../../environments/environment';
+import {
+  CancelSubscriptionResultModel,
+  ManagerSubscriptionStatusModel,
+} from '../../models/manager-subscription-status.model';
 
 @Injectable({ providedIn: 'root' })
 export class SubscriptionService {
@@ -48,7 +52,7 @@ export class SubscriptionService {
   /** Store a pending plan (when user not logged in yet) */
   setPendingPlan(plan: PendingPlanModel): void {
     this.pendingPlan = plan;
-    sessionStorage.setItem('pendingPlan', JSON.stringify(plan)); // optional persistence
+    sessionStorage.setItem('pendingPlan', JSON.stringify(plan));
   }
 
   /** Retrieve pending plan after login */
@@ -68,10 +72,6 @@ export class SubscriptionService {
     sessionStorage.removeItem('pendingPlan');
   }
 
-  /**
-   * Operating currency chosen at restaurant setup — also sent on POST /api/stripe/subscription (Stripe metadata → webhook).
-   * SessionStorage here backs payment-success PATCH if needed (subscription billing stays on Stripe Price currency).
-   */
   private static readonly pendingRestaurantCurrencyKey = 'pendingRestaurantCurrency';
 
   setPendingRestaurantCurrency(isoCode: string): void {
@@ -110,29 +110,23 @@ export class SubscriptionService {
     );
   }
 
-  /** Cancel Stripe subscription for the logged-in manager (server loads IDs from DB). */
-  cancelSubscription(): Observable<unknown> {
-    return this.http.request('DELETE', `${this.apiUrl}/api/stripe/subscription`, {
-      body: {},
-      withCredentials: true
-    });
+  /** Current manager subscription / cancellation state from MyCustomers. */
+  getManagerSubscriptionStatus(): Observable<ManagerSubscriptionStatusModel> {
+    return this.http.get<ManagerSubscriptionStatusModel>(
+      `${this.apiUrl}/api/stripe/subscription/status`,
+      { withCredentials: true },
+    );
   }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /** Cancel Stripe subscription for the logged-in manager (server loads IDs from DB). */
+  cancelSubscription(): Observable<CancelSubscriptionResultModel> {
+    return this.http.request<CancelSubscriptionResultModel>(
+      'DELETE',
+      `${this.apiUrl}/api/stripe/subscription`,
+      {
+        body: {},
+        withCredentials: true,
+      },
+    );
+  }
 }
-
-
