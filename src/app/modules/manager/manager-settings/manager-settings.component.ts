@@ -188,6 +188,17 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
       error: err => {
         console.error('Failed to load subscription status', err);
         this.loadingSubscriptionStatus = false;
+        const httpStatus = (err as { status?: number })?.status;
+        // Status endpoint not deployed yet — keep cancel UI, avoid blocking red error.
+        if (httpStatus === 404) {
+          this.subscriptionStatus = {
+            subscriptionStatus: 'active',
+            cancelAtPeriodEnd: false,
+            cancelAtUtc: null,
+          };
+          this.subscriptionStatusLoadFailed = false;
+          return;
+        }
         this.subscriptionStatusLoadFailed = true;
       },
     });
@@ -624,6 +635,25 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
           cancelAtPeriodEnd: res.cancelAtPeriodEnd || true,
           cancelAtUtc: res.cancelAtUtc,
         };
+        this.subscriptionStatusLoadFailed = false;
+        // #region agent log
+        fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
+          body: JSON.stringify({
+            sessionId: '38fcde',
+            location: 'manager-settings.component.ts:confirmCancelSubscription',
+            message: 'cancel subscription success',
+            data: {
+              cancelAtPeriodEnd: this.subscriptionStatus.cancelAtPeriodEnd,
+              cancelAtUtc: this.subscriptionStatus.cancelAtUtc,
+            },
+            hypothesisId: 'H-SUB-PARSE',
+            runId: 'post-fix',
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
         const formattedDate = this.formatSubscriptionEndDate(this.subscriptionEndsAt);
         this.toast.success(
           formattedDate
@@ -631,10 +661,29 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
             : this.transloco.translate('restaurantSettings.cancelSubscriptionSuccessBodyNoDate'),
           this.transloco.translate('restaurantSettings.cancelSubscriptionSuccessTitle'),
         );
+        this.loadManagerSubscriptionStatus();
       },
       error: err => {
         console.error('Cancel subscription failed', err);
         this.canceling = false;
+        // #region agent log
+        fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
+          body: JSON.stringify({
+            sessionId: '38fcde',
+            location: 'manager-settings.component.ts:confirmCancelSubscription',
+            message: 'cancel subscription error',
+            data: {
+              status: (err as { status?: number })?.status,
+              message: (err as { message?: string })?.message,
+            },
+            hypothesisId: 'H-SUB-PARSE',
+            runId: 'post-fix',
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
         this.toast.error(
           this.miscellaneousService.getFirstErrorMessage(err),
           this.transloco.translate('restaurantSettings.cancelSubscriptionErrorTitle'),

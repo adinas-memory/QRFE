@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, shareReplay, map } from 'rxjs';
+import { HttpClient, HttpResponse } from '@angular/common/http';
+import { BehaviorSubject, Observable, shareReplay, map, of, throwError } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
 import { ProductLimitModel, SubscriptionProductModel } from '../../models/subscription-product';
 import { PendingPlanModel } from '../../models/pendingPlanModel';
 import { SubscriptionPayloadModel } from '../../models/subscriptionPayloadModel';
@@ -122,11 +123,56 @@ export class SubscriptionService {
   /** Cancel Stripe subscription for the logged-in manager (server loads IDs from DB). */
   cancelSubscription(): Observable<CancelSubscriptionResultModel> {
     return this.http
-      .request<Record<string, unknown>>('DELETE', `${this.apiUrl}/api/stripe/subscription`, {
+      .request('DELETE', `${this.apiUrl}/api/stripe/subscription`, {
         body: {},
         withCredentials: true,
+        observe: 'response',
+        responseType: 'text',
       })
-      .pipe(map(raw => this.normalizeCancelSubscriptionResult(raw)));
+      .pipe(
+        switchMap((response: HttpResponse<string>) => {
+          if (response.status < 200 || response.status >= 300) {
+            return throwError(() => response);
+          }
+          return this.mapCancelSubscriptionResponse(response.body ?? '');
+        }),
+      );
+  }
+
+  private mapCancelSubscriptionResponse(body: string): Observable<CancelSubscriptionResultModel> {
+    const trimmed = body.trim();
+    if (!trimmed) {
+      return this.cancelResultFromStatusOrFallback();
+    }
+    try {
+      const raw = JSON.parse(trimmed) as Record<string, unknown>;
+      return of(this.normalizeCancelSubscriptionResult(raw));
+    } catch {
+      // Legacy API: Ok("Subscription cancelled.") — plain text, not JSON.
+      if (!/cancel/i.test(trimmed)) {
+        return throwError(() => new Error(trimmed));
+      }
+      return this.cancelResultFromStatusOrFallback();
+    }
+  }
+
+  private cancelResultFromStatusOrFallback(): Observable<CancelSubscriptionResultModel> {
+    return this.getManagerSubscriptionStatus().pipe(
+      map(status => ({
+        isCancelled: true,
+        cancelAtPeriodEnd: status.cancelAtPeriodEnd || true,
+        cancelAtUtc: status.cancelAtUtc,
+        subscriptionStatus: status.subscriptionStatus,
+      })),
+      catchError(() =>
+        of({
+          isCancelled: true,
+          cancelAtPeriodEnd: true,
+          cancelAtUtc: null,
+          subscriptionStatus: 'active',
+        }),
+      ),
+    );
   }
 
   private normalizeManagerSubscriptionStatus(
