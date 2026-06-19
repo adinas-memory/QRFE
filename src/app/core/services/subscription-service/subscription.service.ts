@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, shareReplay } from 'rxjs';
+import { BehaviorSubject, Observable, shareReplay, map } from 'rxjs';
 import { ProductLimitModel, SubscriptionProductModel } from '../../models/subscription-product';
 import { PendingPlanModel } from '../../models/pendingPlanModel';
 import { SubscriptionPayloadModel } from '../../models/subscriptionPayloadModel';
@@ -112,21 +112,43 @@ export class SubscriptionService {
 
   /** Current manager subscription / cancellation state from MyCustomers. */
   getManagerSubscriptionStatus(): Observable<ManagerSubscriptionStatusModel> {
-    return this.http.get<ManagerSubscriptionStatusModel>(
-      `${this.apiUrl}/api/stripe/subscription/status`,
-      { withCredentials: true },
-    );
+    return this.http
+      .get<Record<string, unknown>>(`${this.apiUrl}/api/stripe/subscription/status`, {
+        withCredentials: true,
+      })
+      .pipe(map(raw => this.normalizeManagerSubscriptionStatus(raw)));
   }
 
   /** Cancel Stripe subscription for the logged-in manager (server loads IDs from DB). */
   cancelSubscription(): Observable<CancelSubscriptionResultModel> {
-    return this.http.request<CancelSubscriptionResultModel>(
-      'DELETE',
-      `${this.apiUrl}/api/stripe/subscription`,
-      {
+    return this.http
+      .request<Record<string, unknown>>('DELETE', `${this.apiUrl}/api/stripe/subscription`, {
         body: {},
         withCredentials: true,
-      },
-    );
+      })
+      .pipe(map(raw => this.normalizeCancelSubscriptionResult(raw)));
+  }
+
+  private normalizeManagerSubscriptionStatus(
+    raw: Record<string, unknown>,
+  ): ManagerSubscriptionStatusModel {
+    const cancelAtUtcRaw = raw['cancelAtUtc'] ?? raw['CancelAtUtc'];
+    return {
+      subscriptionStatus: (raw['subscriptionStatus'] ?? raw['SubscriptionStatus'] ?? null) as string | null,
+      cancelAtPeriodEnd: Boolean(raw['cancelAtPeriodEnd'] ?? raw['CancelAtPeriodEnd']),
+      cancelAtUtc: cancelAtUtcRaw != null && cancelAtUtcRaw !== '' ? String(cancelAtUtcRaw) : null,
+    };
+  }
+
+  private normalizeCancelSubscriptionResult(
+    raw: Record<string, unknown>,
+  ): CancelSubscriptionResultModel {
+    const status = this.normalizeManagerSubscriptionStatus(raw);
+    return {
+      isCancelled: Boolean(raw['isCancelled'] ?? raw['IsCancelled'] ?? true),
+      cancelAtPeriodEnd: status.cancelAtPeriodEnd,
+      cancelAtUtc: status.cancelAtUtc,
+      subscriptionStatus: status.subscriptionStatus,
+    };
   }
 }

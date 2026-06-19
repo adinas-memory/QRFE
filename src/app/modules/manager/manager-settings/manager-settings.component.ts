@@ -80,6 +80,7 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
   saving = false;
   canceling = false;
   loadingSubscriptionStatus = false;
+  subscriptionStatusLoadFailed = false;
   subscriptionStatus: ManagerSubscriptionStatusModel | null = null;
 
   enrollmentCodes: PrinterAgentEnrollmentCodeRow[] = [];
@@ -169,19 +170,25 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
   }
 
   get isSubscriptionScheduledForCancel(): boolean {
-    return !!this.subscriptionStatus?.cancelAtPeriodEnd && !!this.subscriptionEndsAt;
+    return !!this.subscriptionStatus?.cancelAtPeriodEnd;
   }
 
   loadManagerSubscriptionStatus(): void {
+    if (!this.isManager) {
+      return;
+    }
     this.loadingSubscriptionStatus = true;
+    this.subscriptionStatusLoadFailed = false;
     this.subscriptionService.getManagerSubscriptionStatus().subscribe({
       next: status => {
         this.subscriptionStatus = status;
         this.loadingSubscriptionStatus = false;
+        this.subscriptionStatusLoadFailed = false;
       },
       error: err => {
         console.error('Failed to load subscription status', err);
         this.loadingSubscriptionStatus = false;
+        this.subscriptionStatusLoadFailed = true;
       },
     });
   }
@@ -612,23 +619,18 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     this.subscriptionService.cancelSubscription().subscribe({
       next: res => {
         this.canceling = false;
-        const endDate = res.cancelAtUtc ? new Date(res.cancelAtUtc) : null;
-        const formattedDate = this.formatSubscriptionEndDate(endDate);
         this.subscriptionStatus = {
           subscriptionStatus: res.subscriptionStatus,
-          cancelAtPeriodEnd: res.cancelAtPeriodEnd,
+          cancelAtPeriodEnd: res.cancelAtPeriodEnd || true,
           cancelAtUtc: res.cancelAtUtc,
         };
+        const formattedDate = this.formatSubscriptionEndDate(this.subscriptionEndsAt);
         this.toast.success(
-          this.transloco.translate('restaurantSettings.cancelSubscriptionSuccessBody', {
-            date: formattedDate,
-          }),
+          formattedDate
+            ? this.transloco.translate('restaurantSettings.cancelSubscriptionSuccessBody', { date: formattedDate })
+            : this.transloco.translate('restaurantSettings.cancelSubscriptionSuccessBodyNoDate'),
           this.transloco.translate('restaurantSettings.cancelSubscriptionSuccessTitle'),
         );
-        this.authService.logout().subscribe({
-          next: () => void this.router.navigate(['/login']),
-          error: () => void this.router.navigate(['/login']),
-        });
       },
       error: err => {
         console.error('Cancel subscription failed', err);
