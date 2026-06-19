@@ -486,6 +486,12 @@
     "toastSavedTitle": "Einstellungen gespeichert",
     "toastCurrencyErrorTitle": "Währung konnte nicht aktualisiert werden",
     "confirmCancelSubscription": "Abonnement wirklich kündigen? Manager-Funktionen enden am Ende der Abrechnungsperiode (Stripe).",
+    "loadingSubscriptionStatus": "Abonnementstatus wird geladen…",
+    "subscriptionEndsOn": "Ihr Abonnement endet am {{date}}.",
+    "subscriptionEndsOnHint": "Manager-Funktionen sind bis zu diesem Datum nutzbar. In Stripe kann das Abonnement bis dahin noch als aktiv angezeigt werden.",
+    "cancelSubscriptionSuccessTitle": "Kündigung geplant",
+    "cancelSubscriptionSuccessBody": "Ihr Abonnement endet am {{date}}. Sie werden jetzt abgemeldet; das Konto bleibt bis dahin nutzbar.",
+    "cancelSubscriptionErrorTitle": "Kündigung fehlgeschlagen",
     "printerAgentEnrollment": {
       "title": "Printer-Agent-Einrichtung",
       "hint": "Erzeuge beim ersten Start einen 10-stelligen Code für den Printer Agent. Jeder Code kann bis zum Ablauf begrenzt oft verwendet werden.",

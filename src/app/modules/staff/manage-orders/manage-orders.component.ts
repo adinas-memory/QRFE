@@ -1330,6 +1330,23 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         const tableId = (this.sseField<string>(payload as any, 'TableId', 'tableId') ?? payload.TableId) as string;
         // Nu îmbina starea remote în canvas doar cât timp comanda locală e draft pe *aceeași* masă; altfel blochezi OrderUpdated pentru toate mesele (inclusiv initiatedBy).
         if (this.currentOrderId?.startsWith('local-') && tableId === this.currentTableId) break;
+
+        const sseItemCount =
+          payload.ItemCount ??
+          (payload.Items ?? []).reduce((sum, i) => sum + (i.Quantity ?? 0), 0);
+
+        // Last item removed on server → empty order snapshot. Free the table; do not re-mark occupied.
+        if (sseItemCount <= 0) {
+          await this.offlineDB.deleteCart(tableId);
+          this.tableCarts[tableId] = [];
+          delete this.tableComputed[tableId];
+          this.ordersService.saveComputed(this.tableComputed);
+          this.markTableAsOpen(tableId);
+          await this.offlineDB.upsertTableStatus(tableId, true);
+          this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+          break;
+        }
+
         const cart = await this.offlineDB.loadCart(tableId);
 
         for (const sseItem of payload.Items) {

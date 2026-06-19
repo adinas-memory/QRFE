@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'U.R.S. Staff',
   webDir: 'dist/browser',
   server: {
-    url: 'http://192.168.43.142',
+    url: 'http://192.168.0.17',
     cleartext: true,
     androidScheme: 'http',
   },

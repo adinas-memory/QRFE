@@ -4,7 +4,7 @@ See backend repo [deploy/dev/README.md](https://github.com/adrian-badulescu/QR_R
 
 ## Build configuration
 
-Uses Angular configuration `devhost` → `environment.devhost.ts` (`apiUrl: http://192.168.43.142`).
+Uses Angular configuration `devhost` → `environment.devhost.ts` (`apiUrl: http://192.168.0.17`).
 
 ## Deploy
 
@@ -55,7 +55,7 @@ Last known good workflow: commit **`63aed06`** (Actions run **#26**).
 
 ### Register runner for QRFE (one-time)
 
-On `192.168.43.142`, either add a **second** runner for the QRFE repo, or use one **organization** runner whose group includes both repos:
+On `192.168.0.17`, either add a **second** runner for the QRFE repo, or use one **organization** runner whose group includes both repos:
 
 ```bash
 cd ~/actions-runner-qrfe   # separate folder from backend runner is fine
@@ -70,7 +70,7 @@ Confirm in GitHub: **QRFE → Settings → Actions → Runners** shows **Idle** 
 
 ```powershell
 cd deploy\dev
-.\deploy-from-laptop.ps1 -SshHost 192.168.43.142 -SshUser adi
+.\deploy-from-laptop.ps1 -SshHost 192.168.0.17 -SshUser adi
 ```
 
 Requires Node 20+, npm, and OpenSSH.

@@ -1,11 +1,16 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, shareReplay } from 'rxjs';
+import { HttpClient, HttpResponse } from '@angular/common/http';
+import { BehaviorSubject, Observable, shareReplay, map, of, throwError } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
 import { ProductLimitModel, SubscriptionProductModel } from '../../models/subscription-product';
 import { PendingPlanModel } from '../../models/pendingPlanModel';
 import { SubscriptionPayloadModel } from '../../models/subscriptionPayloadModel';
 import { CreateSubscriptionProductModel } from '../../models/subscription-product';
 import { environment } from '../../../../environments/environment';
+import {
+  CancelSubscriptionResultModel,
+  ManagerSubscriptionStatusModel,
+} from '../../models/manager-subscription-status.model';
 
 @Injectable({ providedIn: 'root' })
 export class SubscriptionService {
@@ -48,7 +53,7 @@ export class SubscriptionService {
   /** Store a pending plan (when user not logged in yet) */
   setPendingPlan(plan: PendingPlanModel): void {
     this.pendingPlan = plan;
-    sessionStorage.setItem('pendingPlan', JSON.stringify(plan)); // optional persistence
+    sessionStorage.setItem('pendingPlan', JSON.stringify(plan));
   }
 
   /** Retrieve pending plan after login */
@@ -68,10 +73,6 @@ export class SubscriptionService {
     sessionStorage.removeItem('pendingPlan');
   }
 
-  /**
-   * Operating currency chosen at restaurant setup — also sent on POST /api/stripe/subscription (Stripe metadata → webhook).
-   * SessionStorage here backs payment-success PATCH if needed (subscription billing stays on Stripe Price currency).
-   */
   private static readonly pendingRestaurantCurrencyKey = 'pendingRestaurantCurrency';
 
   setPendingRestaurantCurrency(isoCode: string): void {
@@ -110,29 +111,90 @@ export class SubscriptionService {
     );
   }
 
-  /** Cancel Stripe subscription for the logged-in manager (server loads IDs from DB). */
-  cancelSubscription(): Observable<unknown> {
-    return this.http.request('DELETE', `${this.apiUrl}/api/stripe/subscription`, {
-      body: {},
-      withCredentials: true
-    });
+  /** Current manager subscription / cancellation state from MyCustomers. */
+  getManagerSubscriptionStatus(): Observable<ManagerSubscriptionStatusModel> {
+    return this.http
+      .get<Record<string, unknown>>(`${this.apiUrl}/api/stripe/subscription/status`, {
+        withCredentials: true,
+      })
+      .pipe(map(raw => this.normalizeManagerSubscriptionStatus(raw)));
   }
 
+  /** Cancel Stripe subscription for the logged-in manager (server loads IDs from DB). */
+  cancelSubscription(): Observable<CancelSubscriptionResultModel> {
+    return this.http
+      .request('DELETE', `${this.apiUrl}/api/stripe/subscription`, {
+        body: {},
+        withCredentials: true,
+        observe: 'response',
+        responseType: 'text',
+      })
+      .pipe(
+        switchMap((response: HttpResponse<string>) => {
+          if (response.status < 200 || response.status >= 300) {
+            return throwError(() => response);
+          }
+          return this.mapCancelSubscriptionResponse(response.body ?? '');
+        }),
+      );
+  }
 
+  private mapCancelSubscriptionResponse(body: string): Observable<CancelSubscriptionResultModel> {
+    const trimmed = body.trim();
+    if (!trimmed) {
+      return this.cancelResultFromStatusOrFallback();
+    }
+    try {
+      const raw = JSON.parse(trimmed) as Record<string, unknown>;
+      return of(this.normalizeCancelSubscriptionResult(raw));
+    } catch {
+      // Legacy API: Ok("Subscription cancelled.") — plain text, not JSON.
+      if (!/cancel/i.test(trimmed)) {
+        return throwError(() => new Error(trimmed));
+      }
+      return this.cancelResultFromStatusOrFallback();
+    }
+  }
 
+  private cancelResultFromStatusOrFallback(): Observable<CancelSubscriptionResultModel> {
+    return this.getManagerSubscriptionStatus().pipe(
+      map(status => ({
+        isCancelled: true,
+        cancelAtPeriodEnd: status.cancelAtPeriodEnd || true,
+        cancelAtUtc: status.cancelAtUtc,
+        subscriptionStatus: status.subscriptionStatus,
+      })),
+      catchError(() =>
+        of({
+          isCancelled: true,
+          cancelAtPeriodEnd: true,
+          cancelAtUtc: null,
+          subscriptionStatus: 'active',
+        }),
+      ),
+    );
+  }
 
+  private normalizeManagerSubscriptionStatus(
+    raw: Record<string, unknown>,
+  ): ManagerSubscriptionStatusModel {
+    const cancelAtUtcRaw = raw['cancelAtUtc'] ?? raw['CancelAtUtc'];
+    return {
+      subscriptionStatus: (raw['subscriptionStatus'] ?? raw['SubscriptionStatus'] ?? null) as string | null,
+      cancelAtPeriodEnd: Boolean(raw['cancelAtPeriodEnd'] ?? raw['CancelAtPeriodEnd']),
+      cancelAtUtc: cancelAtUtcRaw != null && cancelAtUtcRaw !== '' ? String(cancelAtUtcRaw) : null,
+    };
+  }
 
-
-
-
-
-
-
-
-
-
-
-
+  private normalizeCancelSubscriptionResult(
+    raw: Record<string, unknown>,
+  ): CancelSubscriptionResultModel {
+    const status = this.normalizeManagerSubscriptionStatus(raw);
+    return {
+      isCancelled: Boolean(raw['isCancelled'] ?? raw['IsCancelled'] ?? true),
+      cancelAtPeriodEnd: status.cancelAtPeriodEnd,
+      cancelAtUtc: status.cancelAtUtc,
+      subscriptionStatus: status.subscriptionStatus,
+    };
+  }
 }
-
-

@@ -36,6 +36,50 @@
       </c-card-body>
     </c-card>
 
+    @if (isManager) {
+      <c-card class="mb-4" id="manager-subscription">
+        <c-card-header>
+          <strong>{{ 'restaurantSettings.subscriptionTitle' | transloco }}</strong>
+        </c-card-header>
+        <c-card-body>
+          @if (loadingSubscriptionStatus) {
+            <p class="text-body-secondary small mb-0">{{ 'restaurantSettings.loadingSubscriptionStatus' | transloco }}</p>
+          } @else if (subscriptionStatusLoadFailed) {
+            <c-alert color="danger" class="mb-0">
+              {{ 'restaurantSettings.subscriptionStatusLoadError' | transloco }}
+            </c-alert>
+          } @else if (isSubscriptionScheduledForCancel) {
+            <c-alert color="warning" class="mb-0">
+              @if (subscriptionEndsAt) {
+                <strong>{{ 'restaurantSettings.subscriptionEndsOn' | transloco: { date: formatSubscriptionEndDate(subscriptionEndsAt) } }}</strong>
+              } @else {
+                <strong>{{ 'restaurantSettings.subscriptionScheduledCancelNoDate' | transloco }}</strong>
+              }
+              <p class="mb-0 small mt-2">{{ 'restaurantSettings.subscriptionEndsOnHint' | transloco }}</p>
+            </c-alert>
+          } @else {
+            <p class="text-body-secondary small mb-3">
+              {{ 'restaurantSettings.subscriptionCancelHint' | transloco }}
+            </p>
+            <button
+              cButton
+              color="danger"
+              variant="outline"
+              type="button"
+              [disabled]="canceling"
+              (click)="confirmCancelSubscription()"
+            >
+              @if (canceling) {
+                {{ 'restaurantSettings.canceling' | transloco }}
+              } @else {
+                {{ 'restaurantSettings.cancelSubscription' | transloco }}
+              }
+            </button>
+          }
+        </c-card-body>
+      </c-card>
+    }
+
     <c-card class="mb-4" id="printer-agent">
       <c-card-header>
         <strong>{{ 'restaurantSettings.printerAgentEnrollment.title' | transloco }}</strong>
@@ -328,32 +372,5 @@
         }
       </c-card-body>
     </c-card>
-
-    @if (isManager) {
-      <c-card>
-        <c-card-header>
-          <strong>{{ 'restaurantSettings.subscriptionTitle' | transloco }}</strong>
-        </c-card-header>
-        <c-card-body>
-          <p class="text-body-secondary small mb-3">
-            {{ 'restaurantSettings.subscriptionCancelHint' | transloco }}
-          </p>
-          <button
-            cButton
-            color="danger"
-            variant="outline"
-            type="button"
-            [disabled]="canceling"
-            (click)="confirmCancelSubscription()"
-          >
-            @if (canceling) {
-              {{ 'restaurantSettings.canceling' | transloco }}
-            } @else {
-              {{ 'restaurantSettings.cancelSubscription' | transloco }}
-            }
-          </button>
-        </c-card-body>
-      </c-card>
-    }
   </c-col>
 </c-row>

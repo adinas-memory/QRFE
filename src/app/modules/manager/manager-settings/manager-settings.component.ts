@@ -13,7 +13,8 @@ import {
   ColComponent,
   FormLabelDirective,
   FormSelectDirective,
-  RowComponent
+  RowComponent,
+  AlertComponent,
 } from '@coreui/angular';
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -28,6 +29,7 @@ import {
   PrinterAgentInstallationDto,
   PrinterAgentPrinterDto
 } from '../../../core/services/print-jobs/print-jobs.service';
+import { ManagerSubscriptionStatusModel } from '../../../core/models/manager-subscription-status.model';
 
 export interface PrinterAgentEnrollmentCodeRow {
   id: string;
@@ -54,7 +56,8 @@ export interface PrinterAgentEnrollmentCodeRow {
     FormLabelDirective,
     FormSelectDirective,
     ButtonDirective,
-    TranslocoPipe
+    TranslocoPipe,
+    AlertComponent,
   ]
 })
 export class ManagerSettingsComponent implements OnInit, OnDestroy {
@@ -76,6 +79,9 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
 
   saving = false;
   canceling = false;
+  loadingSubscriptionStatus = false;
+  subscriptionStatusLoadFailed = false;
+  subscriptionStatus: ManagerSubscriptionStatusModel | null = null;
 
   enrollmentCodes: PrinterAgentEnrollmentCodeRow[] = [];
   loadingEnrollmentCodes = false;
@@ -127,6 +133,9 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     this.loadAgentInstallations();
     this.loadStripeConnectStatus();
     this.loadBillPrinters();
+    if (this.isManager) {
+      this.loadManagerSubscriptionStatus();
+    }
   }
 
   ngOnDestroy(): void {
@@ -149,6 +158,61 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
       return false;
     }
     return !this.billPrinters.some(p => p.id === id);
+  }
+
+  get subscriptionEndsAt(): Date | null {
+    const raw = this.subscriptionStatus?.cancelAtUtc;
+    if (!raw) {
+      return null;
+    }
+    const parsed = new Date(raw);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  get isSubscriptionScheduledForCancel(): boolean {
+    return !!this.subscriptionStatus?.cancelAtPeriodEnd;
+  }
+
+  loadManagerSubscriptionStatus(): void {
+    if (!this.isManager) {
+      return;
+    }
+    this.loadingSubscriptionStatus = true;
+    this.subscriptionStatusLoadFailed = false;
+    this.subscriptionService.getManagerSubscriptionStatus().subscribe({
+      next: status => {
+        this.subscriptionStatus = status;
+        this.loadingSubscriptionStatus = false;
+        this.subscriptionStatusLoadFailed = false;
+      },
+      error: err => {
+        console.error('Failed to load subscription status', err);
+        this.loadingSubscriptionStatus = false;
+        const httpStatus = (err as { status?: number })?.status;
+        // Status endpoint not deployed yet — keep cancel UI, avoid blocking red error.
+        if (httpStatus === 404) {
+          this.subscriptionStatus = {
+            subscriptionStatus: 'active',
+            cancelAtPeriodEnd: false,
+            cancelAtUtc: null,
+          };
+          this.subscriptionStatusLoadFailed = false;
+          return;
+        }
+        this.subscriptionStatusLoadFailed = true;
+      },
+    });
+  }
+
+  formatSubscriptionEndDate(value: Date | null): string {
+    if (!value) {
+      return '';
+    }
+    return value.toLocaleDateString(this.transloco.getActiveLang(), {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
   }
 
   /** Printers from agent heartbeat, plus a synthetic row when DB has a default id not yet in the list. */
@@ -564,16 +628,67 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     }
     this.canceling = true;
     this.subscriptionService.cancelSubscription().subscribe({
-      next: () => {
+      next: res => {
         this.canceling = false;
-        this.authService.logout().subscribe(() => {
-          void this.router.navigate(['/login']);
-        });
+        this.subscriptionStatus = {
+          subscriptionStatus: res.subscriptionStatus,
+          cancelAtPeriodEnd: res.cancelAtPeriodEnd || true,
+          cancelAtUtc: res.cancelAtUtc,
+        };
+        this.subscriptionStatusLoadFailed = false;
+        // #region agent log
+        fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
+          body: JSON.stringify({
+            sessionId: '38fcde',
+            location: 'manager-settings.component.ts:confirmCancelSubscription',
+            message: 'cancel subscription success',
+            data: {
+              cancelAtPeriodEnd: this.subscriptionStatus.cancelAtPeriodEnd,
+              cancelAtUtc: this.subscriptionStatus.cancelAtUtc,
+            },
+            hypothesisId: 'H-SUB-PARSE',
+            runId: 'post-fix',
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
+        const formattedDate = this.formatSubscriptionEndDate(this.subscriptionEndsAt);
+        this.toast.success(
+          formattedDate
+            ? this.transloco.translate('restaurantSettings.cancelSubscriptionSuccessBody', { date: formattedDate })
+            : this.transloco.translate('restaurantSettings.cancelSubscriptionSuccessBodyNoDate'),
+          this.transloco.translate('restaurantSettings.cancelSubscriptionSuccessTitle'),
+        );
+        this.loadManagerSubscriptionStatus();
       },
       error: err => {
         console.error('Cancel subscription failed', err);
         this.canceling = false;
-      }
+        // #region agent log
+        fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
+          body: JSON.stringify({
+            sessionId: '38fcde',
+            location: 'manager-settings.component.ts:confirmCancelSubscription',
+            message: 'cancel subscription error',
+            data: {
+              status: (err as { status?: number })?.status,
+              message: (err as { message?: string })?.message,
+            },
+            hypothesisId: 'H-SUB-PARSE',
+            runId: 'post-fix',
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
+        this.toast.error(
+          this.miscellaneousService.getFirstErrorMessage(err),
+          this.transloco.translate('restaurantSettings.cancelSubscriptionErrorTitle'),
+        );
+      },
     });
   }
 }

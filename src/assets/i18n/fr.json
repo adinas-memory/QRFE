@@ -486,6 +486,12 @@
     "toastSavedTitle": "Paramètres enregistrés",
     "toastCurrencyErrorTitle": "Impossible de mettre à jour la devise",
     "confirmCancelSubscription": "Annuler l'abonnement ? Vous perdrez l'accès manager à la fin de la période (Stripe).",
+    "loadingSubscriptionStatus": "Chargement de l'abonnement…",
+    "subscriptionEndsOn": "Votre abonnement se termine le {{date}}.",
+    "subscriptionEndsOnHint": "Vous pouvez utiliser les fonctions manager jusqu'à cette date. Dans Stripe, l'abonnement peut encore apparaître actif jusque-là.",
+    "cancelSubscriptionSuccessTitle": "Annulation programmée",
+    "cancelSubscriptionSuccessBody": "Votre abonnement se termine le {{date}}. Vous serez déconnecté maintenant ; le compte reste utilisable jusqu'à cette date.",
+    "cancelSubscriptionErrorTitle": "Échec de l'annulation",
     "printerAgentEnrollment": {
       "title": "Configuration Printer Agent",
       "hint": "Générez un code de 10 caractères pour le Printer Agent au premier lancement. Chaque code peut être utilisé un nombre limité de fois jusqu'à expiration.",

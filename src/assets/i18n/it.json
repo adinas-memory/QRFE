@@ -486,6 +486,12 @@
     "toastSavedTitle": "Impostazioni salvate",
     "toastCurrencyErrorTitle": "Impossibile aggiornare la valuta",
     "confirmCancelSubscription": "Annullare l'abbonamento? Perderai le funzioni manager a fine periodo (Stripe).",
+    "loadingSubscriptionStatus": "Caricamento stato abbonamento…",
+    "subscriptionEndsOn": "L'abbonamento termina il {{date}}.",
+    "subscriptionEndsOnHint": "Puoi usare le funzioni manager fino a quella data. Su Stripe può risultare ancora attivo fino ad allora.",
+    "cancelSubscriptionSuccessTitle": "Disdetta programmata",
+    "cancelSubscriptionSuccessBody": "L'abbonamento termina il {{date}}. Verrai disconnesso ora; puoi usare l'account fino a quella data.",
+    "cancelSubscriptionErrorTitle": "Impossibile annullare l'abbonamento",
     "printerAgentEnrollment": {
       "title": "Configurazione Printer Agent",
       "hint": "Genera un codice di 10 caratteri per il Printer Agent al primo avvio. Ogni codice può essere usato un numero limitato di volte fino alla scadenza.",

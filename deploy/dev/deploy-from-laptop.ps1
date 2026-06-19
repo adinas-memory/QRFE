@@ -1,5 +1,5 @@
 param(
-    [string]$SshHost = "192.168.43.142",
+    [string]$SshHost = "192.168.0.17",
     [string]$SshUser = "adi",
     [int]$SshPort = 22,
     [string]$RunNumber = "",
