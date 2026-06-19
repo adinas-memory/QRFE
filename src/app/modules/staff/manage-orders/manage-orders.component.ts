@@ -1400,20 +1400,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         const tableId = (this.sseField<string>(payload as any, 'TableId', 'tableId') ?? payload.TableId) as string;
         // Nu îmbina starea remote în canvas doar cât timp comanda locală e draft pe *aceeași* masă; altfel blochezi OrderUpdated pentru toate mesele (inclusiv initiatedBy).
         if (this.currentOrderId?.startsWith('local-') && tableId === this.currentTableId) break;
-        const cart = await this.offlineDB.loadCart(tableId);
-
-        for (const sseItem of payload.Items) {
-          const localItem = cart.find(ci => ci.item.menuItemId === sseItem.MenuItemId);
-          if (localItem) localItem.orderItemId = sseItem.OrderItemId;
-        }
-
-        await this.offlineDB.saveCart(tableId, cart, payload.OrderId);
-        this.tableComputed[tableId] = this.ordersService.mapPayloadToComputed(
-          payload, this.tables, this.waiterState, InitiatedBy
-        );
-        this.rememberInitiatedBy(tableId, InitiatedBy);
-        this.tableCarts[tableId] = cart;
-        this.ordersService.saveComputed(this.tableComputed);
 
         const sseItemCount =
           payload.ItemCount ??
@@ -1435,6 +1421,42 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           'H2',
         );
         // #endregion
+
+        // Last item removed on server → empty order snapshot. Free the table; do not re-mark occupied.
+        if (sseItemCount <= 0) {
+          await this.offlineDB.deleteCart(tableId);
+          this.tableCarts[tableId] = [];
+          delete this.tableComputed[tableId];
+          this.ordersService.saveComputed(this.tableComputed);
+          this.markTableAsOpen(tableId);
+          await this.offlineDB.upsertTableStatus(tableId, true);
+          this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+          // #region agent log
+          const tableAfterFree = this.tables.find(t => t.tableId === tableId);
+          this.agentDebugLog(
+            'manage-orders.component.ts:OrderUpdated',
+            'OrderUpdated SSE freed table (empty order)',
+            { tableId, sseItemCount, isTableOpenAfter: tableAfterFree?.isTableOpen },
+            'H2',
+          );
+          // #endregion
+          break;
+        }
+
+        const cart = await this.offlineDB.loadCart(tableId);
+
+        for (const sseItem of payload.Items) {
+          const localItem = cart.find(ci => ci.item.menuItemId === sseItem.MenuItemId);
+          if (localItem) localItem.orderItemId = sseItem.OrderItemId;
+        }
+
+        await this.offlineDB.saveCart(tableId, cart, payload.OrderId);
+        this.tableComputed[tableId] = this.ordersService.mapPayloadToComputed(
+          payload, this.tables, this.waiterState, InitiatedBy
+        );
+        this.rememberInitiatedBy(tableId, InitiatedBy);
+        this.tableCarts[tableId] = cart;
+        this.ordersService.saveComputed(this.tableComputed);
 
         // OrderUpdated implică o comandă activă pe masă → marchează masa ca ocupată local
         // dacă încă figurează liberă; altfel getTableCss rămâne pe bg-success (verde).

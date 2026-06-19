@@ -184,11 +184,43 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
         this.subscriptionStatus = status;
         this.loadingSubscriptionStatus = false;
         this.subscriptionStatusLoadFailed = false;
+        // #region agent log
+        fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
+          body: JSON.stringify({
+            sessionId: '38fcde',
+            location: 'manager-settings.component.ts:loadManagerSubscriptionStatus',
+            message: 'subscription status loaded',
+            data: {
+              cancelAtPeriodEnd: status.cancelAtPeriodEnd,
+              cancelAtUtc: status.cancelAtUtc,
+              subscriptionStatus: status.subscriptionStatus,
+            },
+            hypothesisId: 'H-SUB',
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
       },
       error: err => {
         console.error('Failed to load subscription status', err);
         this.loadingSubscriptionStatus = false;
         this.subscriptionStatusLoadFailed = true;
+        // #region agent log
+        fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
+          body: JSON.stringify({
+            sessionId: '38fcde',
+            location: 'manager-settings.component.ts:loadManagerSubscriptionStatus',
+            message: 'subscription status load failed',
+            data: { status: (err as { status?: number })?.status },
+            hypothesisId: 'H-SUB',
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
       },
     });
   }
