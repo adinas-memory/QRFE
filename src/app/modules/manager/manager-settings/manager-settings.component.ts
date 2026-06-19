@@ -61,6 +61,7 @@ export interface PrinterAgentEnrollmentCodeRow {
   ]
 })
 export class ManagerSettingsComponent implements OnInit, OnDestroy {
+  private static readonly scheduledCancelStorageKey = 'managerSubscriptionScheduledCancel';
   private readonly apiUrl = environment.apiUrl;
   private static readonly billPrinterPollIntervalMs = 30_000;
   /** Faster polling while waiting for first printer or fixing a default/id mismatch. */
@@ -184,6 +185,9 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
         this.subscriptionStatus = status;
         this.loadingSubscriptionStatus = false;
         this.subscriptionStatusLoadFailed = false;
+        if (!status.cancelAtPeriodEnd) {
+          this.clearScheduledCancel();
+        }
       },
       error: err => {
         console.error('Failed to load subscription status', err);
@@ -191,11 +195,15 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
         const httpStatus = (err as { status?: number })?.status;
         // Status endpoint not deployed yet — keep cancel UI, avoid blocking red error.
         if (httpStatus === 404) {
-          this.subscriptionStatus = {
-            subscriptionStatus: 'active',
-            cancelAtPeriodEnd: false,
-            cancelAtUtc: null,
-          };
+          const preservedFromMemory = this.subscriptionStatus?.cancelAtPeriodEnd === true;
+          const stored = this.readScheduledCancel();
+          this.subscriptionStatus = preservedFromMemory
+            ? this.subscriptionStatus!
+            : stored ?? {
+                subscriptionStatus: 'active',
+                cancelAtPeriodEnd: false,
+                cancelAtUtc: null,
+              };
           this.subscriptionStatusLoadFailed = false;
           return;
         }
@@ -620,6 +628,33 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     return keys[normalized] ?? null;
   }
 
+  private persistScheduledCancel(status: ManagerSubscriptionStatusModel): void {
+    if (!status.cancelAtPeriodEnd) {
+      return;
+    }
+    sessionStorage.setItem(
+      ManagerSettingsComponent.scheduledCancelStorageKey,
+      JSON.stringify(status),
+    );
+  }
+
+  private readScheduledCancel(): ManagerSubscriptionStatusModel | null {
+    try {
+      const raw = sessionStorage.getItem(ManagerSettingsComponent.scheduledCancelStorageKey);
+      if (!raw) {
+        return null;
+      }
+      const parsed = JSON.parse(raw) as ManagerSubscriptionStatusModel;
+      return parsed.cancelAtPeriodEnd ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private clearScheduledCancel(): void {
+    sessionStorage.removeItem(ManagerSettingsComponent.scheduledCancelStorageKey);
+  }
+
   confirmCancelSubscription(): void {
     if (
       !confirm(this.transloco.translate('restaurantSettings.confirmCancelSubscription'))
@@ -636,24 +671,7 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
           cancelAtUtc: res.cancelAtUtc,
         };
         this.subscriptionStatusLoadFailed = false;
-        // #region agent log
-        fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
-          body: JSON.stringify({
-            sessionId: '38fcde',
-            location: 'manager-settings.component.ts:confirmCancelSubscription',
-            message: 'cancel subscription success',
-            data: {
-              cancelAtPeriodEnd: this.subscriptionStatus.cancelAtPeriodEnd,
-              cancelAtUtc: this.subscriptionStatus.cancelAtUtc,
-            },
-            hypothesisId: 'H-SUB-PARSE',
-            runId: 'post-fix',
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
+        this.persistScheduledCancel(this.subscriptionStatus);
         const formattedDate = this.formatSubscriptionEndDate(this.subscriptionEndsAt);
         this.toast.success(
           formattedDate
@@ -666,24 +684,6 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
       error: err => {
         console.error('Cancel subscription failed', err);
         this.canceling = false;
-        // #region agent log
-        fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
-          body: JSON.stringify({
-            sessionId: '38fcde',
-            location: 'manager-settings.component.ts:confirmCancelSubscription',
-            message: 'cancel subscription error',
-            data: {
-              status: (err as { status?: number })?.status,
-              message: (err as { message?: string })?.message,
-            },
-            hypothesisId: 'H-SUB-PARSE',
-            runId: 'post-fix',
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
         this.toast.error(
           this.miscellaneousService.getFirstErrorMessage(err),
           this.transloco.translate('restaurantSettings.cancelSubscriptionErrorTitle'),

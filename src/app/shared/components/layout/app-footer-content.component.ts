@@ -1,9 +1,9 @@
 import { Component, input } from '@angular/core';
 import { ContainerComponent } from '@coreui/angular';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { COMPANY_WHATSAPP_URL } from '@app/core/constants/company-contact';
+import { COMPANY_EMAIL, COMPANY_WHATSAPP_URL } from '@app/core/constants/company-contact';
 
-/** Shared copyright, P.IVA, WhatsApp, and powered-by row for public and admin footers. */
+/** Shared copyright, P.IVA, email, WhatsApp, and powered-by row for public and admin footers. */
 @Component({
   selector: 'app-footer-content',
   standalone: true,
@@ -23,25 +23,34 @@ import { COMPANY_WHATSAPP_URL } from '@app/core/constants/company-contact';
       </div>
       <div class="d-flex flex-wrap align-items-center gap-2 small app-footer-legal">
         <span>{{ 'footer.piva' | transloco }}</span>
-        <a
-          class="ms-md-auto footer-whatsapp-link"
-          [href]="whatsappUrl"
-          target="_blank"
-          rel="noopener noreferrer"
-          [attr.aria-label]="'footer.whatsappAria' | transloco"
-        >
-          {{ 'footer.phoneWhatsapp' | transloco }}
-        </a>
+        <div class="ms-md-auto d-flex flex-wrap align-items-center gap-3">
+          <a
+            class="footer-contact-link"
+            [href]="'mailto:' + companyEmail"
+            [attr.aria-label]="'footer.emailAria' | transloco"
+          >
+            {{ companyEmail }}
+          </a>
+          <a
+            class="footer-contact-link"
+            [href]="whatsappUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            [attr.aria-label]="'footer.whatsappAria' | transloco"
+          >
+            {{ 'footer.phoneWhatsapp' | transloco }}
+          </a>
+        </div>
       </div>
     </c-container>
   `,
   styles: `
-    .footer-whatsapp-link {
+    .footer-contact-link {
       color: inherit;
       font-weight: 600;
       text-decoration: none;
     }
-    .footer-whatsapp-link:hover {
+    .footer-contact-link:hover {
       text-decoration: underline;
     }
     .app-footer-legal {
@@ -55,4 +64,5 @@ export class AppFooterContentComponent {
   readonly poweredByUrl = input<string | null>(null);
   readonly fluid = input(true);
   readonly whatsappUrl = COMPANY_WHATSAPP_URL;
+  readonly companyEmail = COMPANY_EMAIL;
 }

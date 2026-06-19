@@ -1,7 +1,7 @@
 {
   "name": "U.R.S.",
   "short_name": "U.R.S.",
-  "description": "Universal Restaurant System",
+  "description": "Universal Restaurant Systems",
   "display": "standalone",
   "scope": "/",
   "start_url": "/",
