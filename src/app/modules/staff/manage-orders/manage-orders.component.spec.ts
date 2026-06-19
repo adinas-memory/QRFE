@@ -480,6 +480,52 @@ describe('ManageOrdersComponent', () => {
       expect(component.tableComputed[TABLE_B]?.initiatedBy).toBe('waiter');
     });
 
+    it('OrderUpdated with zero items frees the table instead of marking it occupied', async () => {
+      component.tables = createDefaultTables().map(t =>
+        t.tableId === TABLE_A ? { ...t, isTableOpen: false, order: { orderId: 'order-a', isOrderOpen: true } as never } : t,
+      );
+      component.refreshTableLists();
+      component.currentTableId = TABLE_A;
+      component.currentOrderId = 'real-order-1';
+
+      await invokeSse(component, 'OrderUpdated', {
+        TableId: TABLE_A,
+        OrderId: 'order-a',
+        Items: [],
+        ItemCount: 0,
+        LastActionAt: new Date().toISOString(),
+      });
+
+      expect(mocks.offlineDb.deleteCart).toHaveBeenCalledWith(TABLE_A);
+      expect(mocks.offlineDb.saveCart).not.toHaveBeenCalled();
+      expect(component.tables.find(t => t.tableId === TABLE_A)?.isTableOpen).toBeTrue();
+      expect(component.tableComputed[TABLE_A]).toBeUndefined();
+    });
+
+    it('removeItem on last confirmed line frees the table', async () => {
+      const cartItem = createCartItem({ orderItemId: 'line-1' });
+      component.currentTableId = TABLE_A;
+      component.orderIsConfirmed = true;
+      component.currentOrderId = 'real-order-1';
+      component.tables = createDefaultTables().map(t =>
+        t.tableId === TABLE_A ? { ...t, isTableOpen: false } : t,
+      );
+      component.refreshTableLists();
+      component.tableCarts[TABLE_A] = [cartItem];
+      mocks.offlineDb.loadCartRecord.and.resolveTo({
+        tableId: TABLE_A,
+        items: [cartItem],
+        orderId: 'real-order-1',
+      });
+      mocks.offlineDb.loadCart.and.resolveTo([cartItem]);
+
+      await component.removeItem(cartItem);
+
+      expect(component.tableCarts[TABLE_A]).toEqual([]);
+      expect(mocks.offlineDb.deleteCart).toHaveBeenCalledWith(TABLE_A);
+      expect(component.tables.find(t => t.tableId === TABLE_A)?.isTableOpen).toBeTrue();
+    });
+
     it('OrderPaymentLocked and OrderPaymentUnlocked manage paymentLockedByTable', async () => {
       await invokeSse(component, 'OrderPaymentLocked', { TableId: TABLE_A, OrderId: 'pay-order-1' });
       expect(component.paymentLockedByTable[TABLE_A]?.orderId).toBe('pay-order-1');
