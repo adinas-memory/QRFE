@@ -2,7 +2,7 @@
   "landing": {
     "brand": "U.R.S.",
     "kicker": "Ein System, das das Chaos in deinem Restaurant reduziert und deine Servicegeschwindigkeit erhöht.",
-    "headline": "Universal Restaurant System",
+    "headline": "Universal Restaurant Systems",
     "subheadline": "Offline-first POS für Restaurants. Echtzeit-Updates, Staff-Workflows und ein sauberer Setup-Flow.",
     "ctaPrimary": "Pläne ansehen",
     "ctaSecondary": "Mein Konto",
@@ -19,11 +19,12 @@
     "language": "Sprache"
   },
   "footer": {
-    "copyright": "© Universal Restaurant System",
+    "copyright": "© Universal Restaurant Systems",
     "poweredBy": "Powered by",
     "piva": "P.IVA: 03084340995 (in Italien — Genua registriert)",
     "phoneWhatsapp": "+39 353 213 26 36 (WhatsApp)",
-    "whatsappAria": "Kontakt per WhatsApp"
+    "whatsappAria": "Kontakt per WhatsApp",
+    "emailAria": "Kontakt per E-Mail"
   },
   "dashboard": {
     "kpiUsers": "Benutzer",

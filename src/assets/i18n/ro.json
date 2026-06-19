@@ -2,7 +2,7 @@
   "landing": {
     "brand": "U.R.S.",
     "kicker": "Un sistem care îți reduce haosul din restaurant și îți crește viteza de servire.",
-    "headline": "Universal Restaurant System",
+    "headline": "Universal Restaurant Systems",
     "subheadline": "POS offline-first pentru restaurante. Update-uri în timp real, fluxuri pentru staff și setup curat.",
     "ctaPrimary": "Vezi pachete",
     "ctaSecondary": "Contul meu",
@@ -19,11 +19,12 @@
     "language": "Limbă"
   },
   "footer": {
-    "copyright": "© Universal Restaurant System",
+    "copyright": "© Universal Restaurant Systems",
     "poweredBy": "Powered by",
     "piva": "P.IVA: 03084340995 (înregistrată în Italia — Genova)",
     "phoneWhatsapp": "+39 353 213 26 36 (WhatsApp)",
-    "whatsappAria": "Contactează-ne pe WhatsApp"
+    "whatsappAria": "Contactează-ne pe WhatsApp",
+    "emailAria": "Contactează-ne prin email"
   },
   "dashboard": {
     "kpiUsers": "Utilizatori",

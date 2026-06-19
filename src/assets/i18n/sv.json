@@ -2,7 +2,7 @@
   "landing": {
     "brand": "U.R.S.",
     "kicker": "Ett system som minskar kaoset i din restaurang och ökar serveringshastigheten.",
-    "headline": "Universal Restaurant System",
+    "headline": "Universal Restaurant Systems",
     "subheadline": "Offline-first POS för restauranger. Realtidsuppdateringar, personalflöden och en ren setup.",
     "ctaPrimary": "Se paket",
     "ctaSecondary": "Mitt konto",
@@ -19,11 +19,12 @@
     "language": "Språk"
   },
   "footer": {
-    "copyright": "© Universal Restaurant System",
+    "copyright": "© Universal Restaurant Systems",
     "poweredBy": "Powered by",
     "piva": "P.IVA: 03084340995 (registrerad i Italien — Genova)",
     "phoneWhatsapp": "+39 353 213 26 36 (WhatsApp)",
-    "whatsappAria": "Kontakta oss via WhatsApp"
+    "whatsappAria": "Kontakta oss via WhatsApp",
+    "emailAria": "Kontakta oss via e-post"
   },
   "dashboard": {
     "kpiUsers": "Användare",
