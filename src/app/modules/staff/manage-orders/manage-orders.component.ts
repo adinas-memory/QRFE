@@ -1595,6 +1595,26 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           // Sync if SSE onopen has not refreshed recently (snapshotRefreshed$ reloads UI).
           await this.sseService.refreshRestaurantSnapshot();
 
+          const purgedTables = await this.offlineDB.purgeCartsNotInTableIds(
+            this.tables.map(t => t.tableId),
+          );
+          // #region agent log
+          if (purgedTables > 0) {
+            fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
+              body: JSON.stringify({
+                sessionId: '38fcde',
+                location: 'manage-orders.component.ts:ngOnInit',
+                message: 'purged carts for unknown tables',
+                data: { restaurantId: this.restaurantId, purgedTables },
+                hypothesisId: 'H-OFFLINE-SCOPE',
+                timestamp: Date.now(),
+              }),
+            }).catch(() => {});
+          }
+          // #endregion
+
           Object.keys(this.tableComputed).forEach(tableId => {
             const table = this.tables.find(t => t.tableId === tableId);
             if (table) {
