@@ -108,6 +108,8 @@ export interface OfflineDbMock {
   saveTablesStatus: jasmine.Spy;
   addOfflineAction: jasmine.Spy;
   deleteActionsForOrder: jasmine.Spy;
+  purgeCartsNotInTableIds: jasmine.Spy;
+  purgeOfflineDataExceptRestaurant: jasmine.Spy;
 }
 
 export function createOfflineDbMock(): OfflineDbMock {
@@ -144,6 +146,11 @@ export function createOfflineDbMock(): OfflineDbMock {
     saveTablesStatus: jasmine.createSpy('saveTablesStatus').and.resolveTo(undefined),
     addOfflineAction: jasmine.createSpy('addOfflineAction').and.resolveTo(undefined),
     deleteActionsForOrder: jasmine.createSpy('deleteActionsForOrder').and.resolveTo(undefined),
+    purgeCartsNotInTableIds: jasmine.createSpy('purgeCartsNotInTableIds').and.resolveTo(0),
+    purgeOfflineDataExceptRestaurant: jasmine.createSpy('purgeOfflineDataExceptRestaurant').and.resolveTo({
+      removedCarts: 0,
+      removedActions: 0,
+    }),
   };
 }
 

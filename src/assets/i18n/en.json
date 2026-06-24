@@ -24,7 +24,8 @@
     "piva": "P.IVA: 03084340995 (registered in Italy — Genoa)",
     "phoneWhatsapp": "+39 353 213 26 36 (WhatsApp)",
     "whatsappAria": "Contact us on WhatsApp",
-    "emailAria": "Contact us by email"
+    "emailAria": "Contact us by email",
+    "contact": "Contact"
   },
   "dashboard": {
     "kpiUsers": "Users",

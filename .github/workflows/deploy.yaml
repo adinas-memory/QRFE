@@ -40,6 +40,7 @@ jobs:
       with:
         name: frontend-package
         path: dist/**
+        retention-days: 1
 
   deploy:
     runs-on: self-hosted

@@ -81,14 +81,16 @@ export class OfflineDbService {
         tableId: string,
         items: TableCart[string],
         orderId?: string,
-        allowEmpty: boolean = false  // ← nou
+        allowEmpty: boolean = false,
+        restaurantId?: string,
     ): Promise<void> {
         const existing = await this.db.carts.get(tableId);
 
         await this.db.carts.put({
             tableId,
             items: (allowEmpty || items.length) ? items : existing?.items ?? [],
-            orderId: orderId ?? existing?.orderId
+            orderId: orderId ?? existing?.orderId,
+            restaurantId: restaurantId ?? existing?.restaurantId,
         });
 
         this.cartsChangedSubject.next({ tableId });
@@ -135,6 +137,52 @@ export class OfflineDbService {
     async getPendingActions(): Promise<OfflineAction[]> {
         const actions = await this.db.queue.where('status').equals('pending').toArray();
         return actions;
+    }
+
+    async getPendingActionsForRestaurant(restaurantId: string): Promise<OfflineAction[]> {
+        const actions = await this.getPendingActions();
+        return actions.filter(a => a.restaurantId === restaurantId);
+    }
+
+    /** Drop offline queue/carts belonging to other restaurants (Dexie is per-origin, not per-tenant). */
+    async purgeOfflineDataExceptRestaurant(restaurantId: string): Promise<{
+        removedCarts: number;
+        removedActions: number;
+    }> {
+        let removedCarts = 0;
+        let removedActions = 0;
+
+        const carts = await this.db.carts.toArray();
+        for (const cart of carts) {
+            if (cart.restaurantId && cart.restaurantId !== restaurantId) {
+                await this.db.carts.delete(cart.tableId);
+                removedCarts++;
+            }
+        }
+
+        const actions = await this.db.queue.toArray();
+        for (const action of actions) {
+            if (action.restaurantId !== restaurantId) {
+                await this.db.queue.delete(action.id!);
+                removedActions++;
+            }
+        }
+
+        return { removedCarts, removedActions };
+    }
+
+    /** Remove carts for table IDs that are not part of the current restaurant layout. */
+    async purgeCartsNotInTableIds(validTableIds: readonly string[]): Promise<number> {
+        const valid = new Set(validTableIds);
+        let removed = 0;
+        const carts = await this.db.carts.toArray();
+        for (const cart of carts) {
+            if (!valid.has(cart.tableId)) {
+                await this.db.carts.delete(cart.tableId);
+                removed++;
+            }
+        }
+        return removed;
     }
 
     async replaceActions(newActions: OfflineAction[]): Promise<void> {

@@ -48,25 +48,50 @@ export class OfflineQueueProcessor {
         this.trigger$.next();
     }
 
+    private async getScopedRestaurantId(): Promise<string | null> {
+        const restaurantId = this.authService.getUserSnapshot()?.restaurantId ?? null;
+        if (!restaurantId) {
+            return null;
+        }
+        const purged = await this.offlineDB.purgeOfflineDataExceptRestaurant(restaurantId);
+        // #region agent log
+        if (purged.removedCarts > 0 || purged.removedActions > 0) {
+            fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
+                body: JSON.stringify({
+                    sessionId: '38fcde',
+                    location: 'offline-queue-processor.service.ts:getScopedRestaurantId',
+                    message: 'purged cross-restaurant offline data',
+                    data: { restaurantId, ...purged },
+                    hypothesisId: 'H-OFFLINE-SCOPE',
+                    timestamp: Date.now(),
+                }),
+            }).catch(() => {});
+        }
+        // #endregion
+        return restaurantId;
+    }
+
     private async recoverOrphanedCarts(): Promise<void> {
+        const restaurantId = await this.getScopedRestaurantId();
+        if (!restaurantId) {
+            return;
+        }
+
         const allCarts = await this.offlineDB.carts.toArray();
         const allActions = await this.offlineDB.queue.toArray();
 
         for (const cart of allCarts) {
             if (!cart.orderId?.startsWith('local-')) continue;
 
-            const hasAction = allActions.some(a => a.orderId === cart.orderId);
+            const hasAction = allActions.some(
+                a => a.orderId === cart.orderId && a.restaurantId === restaurantId,
+            );
             if (hasAction) continue;
 
-            // Găsim restaurantId din orice acțiune pentru același tableId
-            const ref = allActions.find(a => a.tableId === cart.tableId);
-
-            // Fallback: din AuthService direct
-            const restaurantId = ref?.restaurantId
-                ?? this.authService.getUserSnapshot()?.restaurantId;
-
-            if (!restaurantId) {
-                console.warn('[RECOVERY] Cannot recover cart, no restaurantId:', cart.tableId);
+            if (cart.restaurantId && cart.restaurantId !== restaurantId) {
+                await this.offlineDB.deleteCart(cart.tableId);
                 continue;
             }
 
@@ -77,7 +102,7 @@ export class OfflineQueueProcessor {
                 restaurantId,
                 tableId: cart.tableId,
                 orderId: cart.orderId,
-                payload: { seatId: null }
+                payload: { seatId: null },
             });
 
             await this.offlineDB.addOfflineAction({
@@ -88,9 +113,9 @@ export class OfflineQueueProcessor {
                 payload: {
                     items: cart.items.map(ci => ({
                         menuItemId: ci.item.menuItemId,
-                        quantity: ci.quantity
-                    }))
-                }
+                        quantity: ci.quantity,
+                    })),
+                },
             });
         }
     }
@@ -99,10 +124,37 @@ export class OfflineQueueProcessor {
         if (this.processing) return;
         if (!this.onlineStateService.isOnline) return;
 
+        const restaurantId = await this.getScopedRestaurantId();
+        if (!restaurantId) return;
+
         this.processing = true;
 
         try {
-            let pending = await this.offlineDB.getPendingActions();
+            let pending = await this.offlineDB.getPendingActionsForRestaurant(restaurantId);
+            // #region agent log
+            if (pending.length > 0) {
+                fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
+                    body: JSON.stringify({
+                        sessionId: '38fcde',
+                        location: 'offline-queue-processor.service.ts:processQueue',
+                        message: 'processing scoped offline queue',
+                        data: {
+                            restaurantId,
+                            pendingCount: pending.length,
+                            actions: pending.map(a => ({
+                                type: a.type,
+                                tableId: a.tableId,
+                                orderId: a.orderId,
+                            })),
+                        },
+                        hypothesisId: 'H-OFFLINE-SCOPE',
+                        timestamp: Date.now(),
+                    }),
+                }).catch(() => {});
+            }
+            // #endregion
             const compressed = await this.compressQueue(pending);
             await this.offlineDB.replaceActions(compressed);
 
@@ -361,14 +413,46 @@ export class OfflineQueueProcessor {
 
         } catch (err: any) {
             const status = err?.status ?? err?.error?.status ?? null;
+            const errorMessage =
+                err?.error?.errors?.[0]?.message
+                ?? err?.error?.message
+                ?? err?.message
+                ?? '';
             if (status === 409) {
                 const msg =
-                    err?.error?.errors?.[0]?.message
-                    ?? err?.error?.message
-                    ?? 'This order is currently being paid by the client. Please wait for the payment to complete.';
+                    errorMessage
+                    || 'This order is currently being paid by the client. Please wait for the payment to complete.';
                 this.toast.info(msg, 'Order locked for payment');
                 // keep action pending; we'll retry after payment completes
                 return false;
+            }
+
+            if (
+                action.type === 'NEW_ORDER'
+                && /open order already exists/i.test(String(errorMessage))
+            ) {
+                // #region agent log
+                fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
+                    body: JSON.stringify({
+                        sessionId: '38fcde',
+                        location: 'offline-queue-processor.service.ts:processAction',
+                        message: 'dropped stale NEW_ORDER (open order exists)',
+                        data: {
+                            restaurantId: action.restaurantId,
+                            tableId: action.tableId,
+                            orderId: action.orderId,
+                            errorMessage,
+                        },
+                        hypothesisId: 'H-OFFLINE-DUP',
+                        timestamp: Date.now(),
+                    }),
+                }).catch(() => {});
+                // #endregion
+                await this.offlineDB.deleteCart(action.tableId);
+                await this.offlineDB.markActionDone(action.id!);
+                return true;
             }
 
             console.error('[QUEUE] Error processing action:', err);
