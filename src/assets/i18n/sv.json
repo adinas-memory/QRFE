@@ -22,9 +22,13 @@
     "copyright": "© Universal Restaurant Systems",
     "poweredBy": "Powered by",
     "piva": "P.IVA: 03084340995 (registrerad i Italien — Genova)",
-    "phoneWhatsapp": "+39 353 213 26 36 (WhatsApp)",
+    "phoneWhatsapp": "+39 353 213 26 36",
     "whatsappAria": "Kontakta oss via WhatsApp",
+    "whatsappSupportAria": "Kontakta teknisk support via WhatsApp",
     "emailAria": "Kontakta oss via e-post",
+    "emailSalesAria": "E-post för allmänna frågor och försäljning",
+    "emailPurpose": "Allmänna frågor & försäljning",
+    "whatsappPurpose": "Endast teknisk support",
     "contact": "Kontakt"
   },
   "dashboard": {
@@ -144,7 +148,8 @@
       "paymentLock": "Låsning under betalning",
       "menuUnavailable": "Markera artiklar som ej tillgängliga",
       "multilanguageUI": "Flerspråkigt gränssnitt",
-      "sseTablesLive": "Live-uppdateringar för bord och ordrar (SSE)"
+      "sseTablesLive": "Live-uppdateringar för bord och ordrar (SSE)",
+      "ecoBon": "ECO BON (digitalt kvitto som PDF)"
     }
   },
   "client": {
@@ -393,7 +398,9 @@
     "error": "Fel",
     "requestFailed": "Begäran misslyckades",
     "loginFailed": "Inloggning misslyckades",
-    "registrationFailed": "Registrering misslyckades"
+    "registrationFailed": "Registrering misslyckades",
+    "emailRequired": "E-post krävs.",
+    "emailInvalid": "Ange en giltig e-postadress."
   },
   "kitchen": {
     "title": "Kök",

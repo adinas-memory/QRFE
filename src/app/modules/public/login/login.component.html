@@ -15,10 +15,25 @@
             <p class="text-muted mb-4">Sign in to your account</p>
 
             <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" cForm>
-              <c-input-group class="mb-3">
-                <span cInputGroupText>&#64;</span>
-                <input formControlName="email" autoComplete="username" cFormControl placeholder="Email" />
-              </c-input-group>
+              <div class="mb-3">
+                <c-input-group>
+                  <span cInputGroupText>&#64;</span>
+                  <input
+                    formControlName="email"
+                    type="email"
+                    autoComplete="username"
+                    cFormControl
+                    placeholder="Email"
+                    [class.is-invalid]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
+                  />
+                </c-input-group>
+                @if (loginForm.get('email')?.errors?.['required'] && loginForm.get('email')?.touched) {
+                  <div class="invalid-feedback d-block">{{ 'common.emailRequired' | transloco }}</div>
+                }
+                @if (loginForm.get('email')?.errors?.['email'] && loginForm.get('email')?.touched) {
+                  <div class="invalid-feedback d-block">{{ 'common.emailInvalid' | transloco }}</div>
+                }
+              </div>
               <c-input-group class="mb-4">
                 <span cInputGroupText>
                   <svg cIcon name="cilLockLocked"></svg>

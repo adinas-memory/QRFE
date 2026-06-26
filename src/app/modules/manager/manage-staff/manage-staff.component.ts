@@ -27,6 +27,7 @@ import { UserContextModel } from '../../../core/models/userContextModel';
 import { StaffAdminService } from '../../../core/services/staff-admin-service/staff-admin.service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { emailFieldValidators } from '../../../core/validators/email.validator';
 
 /** Aligned with backend `RegisterRequestModel` password rules. */
 const STAFF_PASSWORD_PATTERN =
@@ -72,7 +73,7 @@ export class ManageStaffComponent implements OnInit, OnDestroy {
       {
         name: ['', [Validators.required, Validators.maxLength(150)]],
         surname: ['', [Validators.required, Validators.maxLength(150)]],
-        email: ['', [Validators.required, Validators.email, Validators.maxLength(200)]],
+        email: ['', [...emailFieldValidators, Validators.maxLength(200)]],
         phone: ['', [Validators.maxLength(50)]],
         password: ['', [Validators.required, Validators.pattern(STAFF_PASSWORD_PATTERN)]],
         confirmPassword: ['', [Validators.required]]

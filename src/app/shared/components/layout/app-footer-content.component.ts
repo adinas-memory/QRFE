@@ -1,17 +1,20 @@
 import { Component, input } from '@angular/core';
 import { ContainerComponent } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { COMPANY_EMAIL, COMPANY_WHATSAPP_URL } from '@app/core/constants/company-contact';
 
-/** Shared copyright, P.IVA, email, WhatsApp, and powered-by row for public and admin footers. */
+/** Shared copyright, P.IVA, email, optional WhatsApp, and powered-by row for public and admin footers. */
 @Component({
   selector: 'app-footer-content',
   standalone: true,
   imports: [ContainerComponent, TranslocoPipe, IconDirective],
   template: `
     <c-container [fluid]="fluid()" class="app-footer-content w-100">
-      <div class="app-footer-grid">
+      <div
+        class="app-footer-grid"
+        [class.app-footer-grid--guest]="variant() === 'guest'"
+      >
         <div class="app-footer-brand">
           <div class="app-footer-brand-name">{{ 'landing.brand' | transloco }}</div>
           <div class="small app-footer-copyright">
@@ -23,24 +26,36 @@ import { COMPANY_EMAIL, COMPANY_WHATSAPP_URL } from '@app/core/constants/company
         <div class="app-footer-contact">
           <div class="app-footer-section-label">{{ 'footer.contact' | transloco }}</div>
           <div class="app-footer-contact-links">
-            <a
-              class="footer-contact-chip"
-              [href]="'mailto:' + companyEmail"
-              [attr.aria-label]="'footer.emailAria' | transloco"
-            >
-              <svg cIcon name="cilEnvelopeClosed" size="sm" aria-hidden="true"></svg>
-              <span>{{ companyEmail }}</span>
-            </a>
-            <a
-              class="footer-contact-chip"
-              [href]="whatsappUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-              [attr.aria-label]="'footer.whatsappAria' | transloco"
-            >
-              <svg cIcon name="cilCommentSquare" size="sm" aria-hidden="true"></svg>
-              <span>{{ 'footer.phoneWhatsapp' | transloco }}</span>
-            </a>
+            <div class="footer-contact-entry">
+              <a
+                class="footer-contact-chip"
+                [href]="'mailto:' + companyEmail"
+                [attr.aria-label]="emailAriaLabel()"
+              >
+                <svg cIcon name="cilEnvelopeClosed" size="sm" aria-hidden="true"></svg>
+                <span>{{ companyEmail }}</span>
+              </a>
+              @if (showContactPurposeHints()) {
+                <div class="footer-contact-hint">{{ 'footer.emailPurpose' | transloco }}</div>
+              }
+            </div>
+            @if (showWhatsApp()) {
+              <div class="footer-contact-entry">
+                <a
+                  class="footer-contact-chip"
+                  [href]="whatsappUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  [attr.aria-label]="whatsappAriaLabel()"
+                >
+                  <svg cIcon name="cilCommentSquare" size="sm" aria-hidden="true"></svg>
+                  <span>{{ 'footer.phoneWhatsapp' | transloco }}</span>
+                </a>
+                @if (showContactPurposeHints()) {
+                  <div class="footer-contact-hint">{{ 'footer.whatsappPurpose' | transloco }}</div>
+                }
+              </div>
+            }
           </div>
         </div>
 
@@ -81,6 +96,46 @@ import { COMPANY_EMAIL, COMPANY_WHATSAPP_URL } from '@app/core/constants/company
 
       .app-footer-powered {
         text-align: right;
+      }
+    }
+
+    .app-footer-grid--guest {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      width: 100%;
+      text-align: center;
+    }
+
+    @media (min-width: 768px) {
+      .app-footer-grid--guest {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1.5rem 2rem;
+        text-align: left;
+      }
+
+      .app-footer-grid--guest .app-footer-brand {
+        flex: 1 1 14rem;
+        min-width: 0;
+      }
+
+      .app-footer-grid--guest .app-footer-contact {
+        flex: 1 1 12rem;
+        min-width: 0;
+        text-align: left;
+      }
+
+      .app-footer-grid--guest .app-footer-powered {
+        flex: 1 1 10rem;
+        min-width: 0;
+        text-align: right;
+      }
+
+      .app-footer-grid--guest .app-footer-contact-links {
+        align-items: flex-start;
       }
     }
 
@@ -150,6 +205,26 @@ import { COMPANY_EMAIL, COMPANY_WHATSAPP_URL } from '@app/core/constants/company
       transform: translateY(-1px);
     }
 
+    .footer-contact-entry {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      align-items: flex-start;
+      width: 100%;
+    }
+
+    .footer-contact-hint {
+      font-size: 0.75rem;
+      line-height: 1.35;
+      opacity: 0.78;
+      padding-left: 0.15rem;
+      max-width: 20rem;
+    }
+
+    .app-footer-grid--guest .footer-contact-entry {
+      align-items: flex-start;
+    }
+
     .app-footer-powered-value {
       font-size: 0.875rem;
       font-weight: 600;
@@ -180,6 +255,15 @@ import { COMPANY_EMAIL, COMPANY_WHATSAPP_URL } from '@app/core/constants/company
         width: 100%;
         max-width: 22rem;
       }
+
+      .footer-contact-entry {
+        align-items: center;
+      }
+
+      .footer-contact-hint {
+        text-align: center;
+        padding-left: 0;
+      }
     }
   `,
 })
@@ -188,6 +272,23 @@ export class AppFooterContentComponent {
   readonly poweredByLabel = input.required<string>();
   readonly poweredByUrl = input<string | null>(null);
   readonly fluid = input(true);
+  readonly showWhatsApp = input(true);
+  readonly showContactPurposeHints = input(false);
+  readonly variant = input<'standard' | 'guest'>('standard');
   readonly whatsappUrl = COMPANY_WHATSAPP_URL;
   readonly companyEmail = COMPANY_EMAIL;
+
+  constructor(private readonly transloco: TranslocoService) {}
+
+  emailAriaLabel(): string {
+    return this.showContactPurposeHints()
+      ? this.transloco.translate('footer.emailSalesAria')
+      : this.transloco.translate('footer.emailAria');
+  }
+
+  whatsappAriaLabel(): string {
+    return this.showContactPurposeHints()
+      ? this.transloco.translate('footer.whatsappSupportAria')
+      : this.transloco.translate('footer.whatsappAria');
+  }
 }

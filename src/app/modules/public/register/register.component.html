@@ -37,8 +37,21 @@
                 <c-col [xs]="12" [md]="6">
                   <c-input-group>
                     <span cInputGroupText>&#64;</span>
-                    <input formControlName="email" autoComplete="email" cFormControl placeholder="Email" />
+                    <input
+                      formControlName="email"
+                      type="email"
+                      autoComplete="email"
+                      cFormControl
+                      placeholder="Email"
+                      [class.is-invalid]="registerForm.get('email')?.invalid && registerForm.get('email')?.touched"
+                    />
                   </c-input-group>
+                  @if (registerForm.get('email')?.errors?.['required'] && registerForm.get('email')?.touched) {
+                    <div class="invalid-feedback d-block">{{ 'common.emailRequired' | transloco }}</div>
+                  }
+                  @if (registerForm.get('email')?.errors?.['email'] && registerForm.get('email')?.touched) {
+                    <div class="invalid-feedback d-block">{{ 'common.emailInvalid' | transloco }}</div>
+                  }
                 </c-col>
                 <c-col [xs]="12" [md]="6">
                   <c-input-group>

@@ -38,6 +38,16 @@
   opacity: 0.9;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 100%;
+  display: block;
+  box-sizing: border-box;
+}
+
+:host ::ng-deep .landing-footer .container,
+:host ::ng-deep .landing-footer .container-fluid {
+  max-width: 100%;
+  width: 100%;
 }
 
 .landing-shell[data-coreui-theme='light'] .landing-footer {

@@ -20,6 +20,7 @@ import {
   RowComponent
 } from '@coreui/angular';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { emailFieldValidators } from '../../../core/validators/email.validator';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
@@ -50,15 +51,19 @@ export class LoginComponent implements OnInit, OnDestroy {
     private misc: MiscellaneousService,
     private transloco: TranslocoService) {
     this.loginForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
+      email: ['', emailFieldValidators],
       password: ['', Validators.required],
     });
   }
 
 
   onSubmit() {
-    if (this.loginForm.valid) {
-      const formValue = this.loginForm.value;
+    if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
+      return;
+    }
+
+    const formValue = this.loginForm.value;
 
 
       this.authService.loginUser(formValue).subscribe({
@@ -86,8 +91,6 @@ export class LoginComponent implements OnInit, OnDestroy {
           this.toast.error(this.misc.getFirstErrorMessage(error), this.transloco.translate('common.loginFailed'));
         }
       });
-
-    }
   }
 
   async ngOnInit(): Promise<void> {
