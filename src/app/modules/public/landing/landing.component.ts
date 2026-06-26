@@ -204,7 +204,8 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
       'pricing.features.paymentLock',
       'pricing.features.menuUnavailable',
       'pricing.features.multilanguageUI',
-      'pricing.features.sseTablesLive'
+      'pricing.features.sseTablesLive',
+      'pricing.features.ecoBon'
     ];
   }
 

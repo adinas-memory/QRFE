@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
+import { emailFieldValidators } from '../../../core/validators/email.validator';
 import { IconDirective } from '@coreui/icons-angular';
 import { IconSetService } from '@coreui/icons-angular';
 import { cilMobile, cilLockLocked, cilUser } from '@coreui/icons';
@@ -56,17 +57,21 @@ export class RegisterComponent implements OnInit {
       name: ['', Validators.required],
       surname: ['', Validators.required],
       phone: [''],
-      email: ['', [Validators.required, Validators.email]],
+      email: ['', emailFieldValidators],
       password: ['', Validators.required],
       confirmPassword: ['', Validators.required]
     });
   }
 
   onSubmit() {
-    if (this.registerForm.valid) {
-      const formValue = this.registerForm.value;
+    if (this.registerForm.invalid) {
+      this.registerForm.markAllAsTouched();
+      return;
+    }
 
-      this.authService.registerUser(formValue).subscribe({
+    const formValue = this.registerForm.value;
+
+    this.authService.registerUser(formValue).subscribe({
         next: (response: UserContextModel) => {
           this.authService.setUser(response);
 
@@ -83,7 +88,6 @@ export class RegisterComponent implements OnInit {
           this.toast.error(this.misc.getFirstErrorMessage(error), this.transloco.translate('common.registrationFailed'));
         }
       });
-    }
   }
 
   ngOnInit(): void {

@@ -22,9 +22,13 @@
     "copyright": "© Universal Restaurant Systems",
     "poweredBy": "Powered by",
     "piva": "P.IVA: 03084340995 (înregistrată în Italia — Genova)",
-    "phoneWhatsapp": "+39 353 213 26 36 (WhatsApp)",
+    "phoneWhatsapp": "+39 353 213 26 36",
     "whatsappAria": "Contactează-ne pe WhatsApp",
+    "whatsappSupportAria": "Contactează suportul tehnic pe WhatsApp",
     "emailAria": "Contactează-ne prin email",
+    "emailSalesAria": "Trimite email pentru informații generale și vânzări",
+    "emailPurpose": "Informații generale și vânzări",
+    "whatsappPurpose": "Doar suport tehnic",
     "contact": "Contact"
   },
   "dashboard": {
@@ -145,7 +149,8 @@
       "paymentLock": "Blocare modificări în timpul plății",
       "menuUnavailable": "Marcare produse indisponibile",
       "multilanguageUI": "Interfață multilingvă",
-      "sseTablesLive": "Update-uri live mese & comenzi (SSE)"
+      "sseTablesLive": "Update-uri live mese & comenzi (SSE)",
+      "ecoBon": "ECO BON (bon digital nefiscal)"
     }
   },
   "client": {
@@ -426,7 +431,9 @@
     "error": "Eroare",
     "requestFailed": "Cererea a eșuat",
     "loginFailed": "Autentificare eșuată",
-    "registrationFailed": "Înregistrare eșuată"
+    "registrationFailed": "Înregistrare eșuată",
+    "emailRequired": "Emailul este obligatoriu.",
+    "emailInvalid": "Introdu o adresă de email validă."
   },
   "kitchen": {
     "title": "Bucătărie",

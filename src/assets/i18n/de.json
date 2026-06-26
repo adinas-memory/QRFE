@@ -22,9 +22,13 @@
     "copyright": "© Universal Restaurant Systems",
     "poweredBy": "Powered by",
     "piva": "P.IVA: 03084340995 (in Italien — Genua registriert)",
-    "phoneWhatsapp": "+39 353 213 26 36 (WhatsApp)",
+    "phoneWhatsapp": "+39 353 213 26 36",
     "whatsappAria": "Kontakt per WhatsApp",
+    "whatsappSupportAria": "Technischen Support per WhatsApp kontaktieren",
     "emailAria": "Kontakt per E-Mail",
+    "emailSalesAria": "E-Mail für allgemeine Anfragen und Vertrieb",
+    "emailPurpose": "Allgemeine Anfragen & Vertrieb",
+    "whatsappPurpose": "Nur technischer Support",
     "contact": "Kontakt"
   },
   "dashboard": {
@@ -144,7 +148,8 @@
       "paymentLock": "Zahlungssperre während Checkout",
       "menuUnavailable": "Menüartikel als nicht verfügbar markieren",
       "multilanguageUI": "Mehrsprachige UI",
-      "sseTablesLive": "Live-Updates für Tische & Bestellungen (SSE)"
+      "sseTablesLive": "Live-Updates für Tische & Bestellungen (SSE)",
+      "ecoBon": "ECO BON (digitaler Beleg als PDF)"
     }
   },
   "client": {
@@ -393,7 +398,9 @@
     "error": "Fehler",
     "requestFailed": "Anfrage fehlgeschlagen",
     "loginFailed": "Anmeldung fehlgeschlagen",
-    "registrationFailed": "Registrierung fehlgeschlagen"
+    "registrationFailed": "Registrierung fehlgeschlagen",
+    "emailRequired": "E-Mail ist erforderlich.",
+    "emailInvalid": "Bitte eine gültige E-Mail-Adresse eingeben."
   },
   "kitchen": {
     "title": "Küche",

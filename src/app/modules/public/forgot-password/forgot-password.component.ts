@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
-import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
+import { emailFieldValidators } from '../../../core/validators/email.validator';
 import { RouterLink } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
 import {
@@ -42,12 +43,15 @@ export class ForgotPasswordComponent {
     private authService: AuthService,
   ) {
     this.form = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
+      email: ['', emailFieldValidators],
     });
   }
 
   onSubmit(): void {
-    if (this.form.invalid || this.loading) return;
+    if (this.form.invalid || this.loading) {
+      this.form.markAllAsTouched();
+      return;
+    }
 
     this.loading = true;
     this.errorKey = null;
