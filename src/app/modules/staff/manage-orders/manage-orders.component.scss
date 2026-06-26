@@ -1,13 +1,23 @@
 :host ::ng-deep {
   .c-tabs-custom { height: 6rem !important; }
-  .offcanvas.offcanvas-end { height: 100%; max-height: 100dvh; }
-  .offcanvas-body {
-    flex: 1 1 auto;
-    min-height: 0;
-    height: auto;
-    overflow-y: auto;
-    padding-bottom: 0;
+  .offcanvas.offcanvas-end {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    overflow: hidden;
   }
+  .offcanvas-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
+
+.offcanvas-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .offcanvas-body .row.g-3 > [class*='col-'] { min-width: 0; }
@@ -41,14 +51,6 @@
 .product-tile:active {
   transform: scale(0.97);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-}
-
-.offcanvas-wrapper {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  max-height: 100dvh;
-  min-height: 0;
 }
 
 .offcanvas-header-fix { flex-shrink: 0; }
