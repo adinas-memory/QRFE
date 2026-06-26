@@ -44,8 +44,17 @@
   box-sizing: border-box;
 }
 
+:host ::ng-deep .landing-footer.footer,
+:host ::ng-deep .landing-footer.c-footer {
+  width: 100%;
+  max-width: none;
+}
+
 :host ::ng-deep .landing-footer .container,
-:host ::ng-deep .landing-footer .container-fluid {
+:host ::ng-deep .landing-footer .container-fluid,
+:host ::ng-deep .landing-footer app-footer-content,
+:host ::ng-deep .landing-footer .app-footer-content,
+:host ::ng-deep .landing-footer .app-footer-grid {
   max-width: 100%;
   width: 100%;
 }

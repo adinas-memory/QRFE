@@ -75,7 +75,9 @@ import { COMPANY_EMAIL, COMPANY_WHATSAPP_URL } from '@app/core/constants/company
   styles: `
     .app-footer-content {
       width: 100%;
-      padding: 1.25rem 0 1.5rem;
+      max-width: 100%;
+      box-sizing: border-box;
+      padding: 1.25rem clamp(1rem, 3vw, 2.5rem) 1.5rem;
     }
 
     .app-footer-grid {
@@ -86,7 +88,7 @@ import { COMPANY_EMAIL, COMPANY_WHATSAPP_URL } from '@app/core/constants/company
 
     @media (min-width: 768px) {
       .app-footer-grid {
-        grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 0.85fr);
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
         align-items: start;
       }
 
@@ -109,33 +111,33 @@ import { COMPANY_EMAIL, COMPANY_WHATSAPP_URL } from '@app/core/constants/company
 
     @media (min-width: 768px) {
       .app-footer-grid--guest {
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 1.5rem 2rem;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+        align-items: start;
+        gap: 1.5rem clamp(1.5rem, 4vw, 3rem);
         text-align: left;
       }
 
       .app-footer-grid--guest .app-footer-brand {
-        flex: 1 1 14rem;
-        min-width: 0;
+        justify-self: start;
       }
 
       .app-footer-grid--guest .app-footer-contact {
-        flex: 1 1 12rem;
-        min-width: 0;
-        text-align: left;
+        justify-self: stretch;
+        text-align: center;
       }
 
       .app-footer-grid--guest .app-footer-powered {
-        flex: 1 1 10rem;
-        min-width: 0;
+        justify-self: end;
         text-align: right;
       }
 
       .app-footer-grid--guest .app-footer-contact-links {
-        align-items: flex-start;
+        align-items: center;
+      }
+
+      .app-footer-grid--guest .footer-contact-entry {
+        align-items: center;
       }
     }
 
@@ -169,7 +171,7 @@ import { COMPANY_EMAIL, COMPANY_WHATSAPP_URL } from '@app/core/constants/company
     .app-footer-contact-links {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: 0.75rem;
       align-items: flex-start;
     }
 
@@ -221,7 +223,7 @@ import { COMPANY_EMAIL, COMPANY_WHATSAPP_URL } from '@app/core/constants/company
     }
 
     .app-footer-grid--guest .footer-contact-entry {
-      align-items: flex-start;
+      align-items: center;
     }
 
     .app-footer-powered-value {
