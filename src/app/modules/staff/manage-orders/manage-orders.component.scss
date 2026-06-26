@@ -1,24 +1,16 @@
-:host ::ng-deep .c-tabs-custom {
-  height: 6rem !important;
+:host ::ng-deep {
+  .c-tabs-custom { height: 6rem !important; }
+  .offcanvas.offcanvas-end { height: 100%; max-height: 100dvh; }
+  .offcanvas-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    overflow-y: auto;
+    padding-bottom: 0;
+  }
 }
 
-:host ::ng-deep .offcanvas.offcanvas-end {
-  height: 100%;
-  max-height: 100dvh;
-}
-
-:host ::ng-deep .offcanvas-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  height: auto;
-  overflow-y: auto;
-  padding-bottom: 0;
-}
-
-/* Bootstrap 5 columns default to min-width: auto; long text stops tiles from shrinking on lg+ (col-lg-3). */
-.offcanvas-body .row.g-3 > [class*='col-'] {
-  min-width: 0;
-}
+.offcanvas-body .row.g-3 > [class*='col-'] { min-width: 0; }
 
 .product-tile {
   min-width: 0;
@@ -36,7 +28,7 @@
   font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.35;
-  color: var(--cui-body-color, inherit);
+  color: inherit;
   word-break: break-word;
   overflow-wrap: anywhere;
 }
@@ -59,9 +51,7 @@
   min-height: 0;
 }
 
-.offcanvas-header-fix {
-  flex-shrink: 0;
-}
+.offcanvas-header-fix { flex-shrink: 0; }
 
 .categories-sticky {
   position: sticky;
@@ -70,30 +60,16 @@
   z-index: 8;
   padding: 5px 0;
 
-  ::ng-deep .nav-tabs,
-  ::ng-deep .nav {
-    overflow-y: hidden;
-  }
-
-  ::ng-deep .nav-link {
-    white-space: nowrap;
-  }
-}
-
-.offcanvas-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  padding-bottom: 0;
+  ::ng-deep .nav-tabs, ::ng-deep .nav { overflow-y: hidden; }
+  ::ng-deep .nav-link { white-space: nowrap; }
 }
 
 .cart {
   flex-shrink: 0;
   color: #ddd;
-  background: rgb(0, 0, 0);
+  background: #000;
   border-top: 1px solid #ddd;
-  padding: 12px;
-  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
   z-index: 10;
 }
 
@@ -202,10 +178,8 @@
 }
 
 .move-dropdown {
-  margin-left: -0.5rem !important;
-  margin-right: 0 !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
+  margin: 0 0 0 -0.5rem !important;
+  padding: 0 !important;
 }
 
 .table-open {
