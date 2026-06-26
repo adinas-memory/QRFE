@@ -1,7 +1,9 @@
 import { MenuItemCategory } from './menuItem';
 
 /** PascalCase category names valid for à la carte manager UI (excludes SetMenu). */
-export const MANAGEMENT_MENU_CATEGORIES: readonly string[] = Object.values(MenuItemCategory);
+export const MANAGEMENT_MENU_CATEGORIES: readonly string[] = Object.values(MenuItemCategory).filter(
+  (category) => category !== MenuItemCategory.SetMenu,
+);
 
 export function canonicalMenuItemCategory(value: string | null | undefined): string {
   if (!value) return '';

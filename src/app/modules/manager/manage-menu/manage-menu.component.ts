@@ -208,6 +208,9 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
   private rebuildGroupedMenuItems(): void {
     this.groupedMenuItems = this.menuItems.reduce((acc, item) => {
       const cat = canonicalMenuItemCategory(item.category);
+      if (cat.toLowerCase() === 'setmenu') {
+        return acc;
+      }
       if (!acc[cat]) {
         acc[cat] = [];
       }
