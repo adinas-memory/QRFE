@@ -82,6 +82,49 @@
         }
       </button>
 
+      @if (orderLineQuantityTotal > 0) {
+        <div class="eco-bon-actions d-flex align-items-center ms-1">
+          <button
+            cButton
+            color="success"
+            variant="outline"
+            size="sm"
+            class="eco-bon-btn"
+            type="button"
+            [disabled]="ecoBonBusy"
+            (click)="downloadEcoBon()"
+          >
+            {{ 'client.ecoBon' | transloco }}
+          </button>
+          <c-dropdown variant="btn-group" class="eco-bon-menu">
+            <button
+              cButton
+              color="success"
+              variant="outline"
+              size="sm"
+              cDropdownToggle
+              [caret]="false"
+              type="button"
+              [disabled]="ecoBonBusy"
+              aria-label="{{ 'client.ecoBonShare' | transloco }}"
+            >
+              <svg cIcon name="cilOptions" size="sm"></svg>
+            </button>
+            <div cDropdownMenu>
+              <button cDropdownItem type="button" (click)="shareEcoBon()">
+                {{ 'client.ecoBonShare' | transloco }}
+              </button>
+              <button cDropdownItem type="button" (click)="downloadEcoBon()">
+                {{ 'client.ecoBonDownload' | transloco }}
+              </button>
+              <button cDropdownItem type="button" (click)="copyEcoBonLink()">
+                {{ 'client.ecoBonCopyLink' | transloco }}
+              </button>
+            </div>
+          </c-dropdown>
+        </div>
+      }
+
       <!-- Call Waiter -->
       @if (waiterCounterCall > 0) {
         <button

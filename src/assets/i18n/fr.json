@@ -163,7 +163,14 @@
     "theme": "Thème",
     "light": "Clair",
     "dark": "Sombre",
-    "delete": "Supprimer"
+    "delete": "Supprimer",
+    "ecoBon": "ECO BON",
+    "ecoBonShare": "Partager",
+    "ecoBonDownload": "Télécharger PDF",
+    "ecoBonCopyLink": "Copier le lien",
+    "ecoBonError": "Impossible de générer l'ECO BON. Veuillez réessayer.",
+    "ecoBonShareCopied": "Lien ECO BON copié.",
+    "ecoBonRateLimited": "Trop de demandes ECO BON. Veuillez patienter et réessayer."
   },
   "forgotPassword": {
     "title": "Réinitialiser le mot de passe",

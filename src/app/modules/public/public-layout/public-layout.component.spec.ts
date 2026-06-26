@@ -1,18 +1,31 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
-import { PublicLayoutComponent } from './public-layout.component';
-
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideTransloco } from '@jsverse/transloco';
+import { of } from 'rxjs';
+import { PublicLayoutComponent } from './public-layout.component';
+import { MenuService } from '../../../core/services/menu-public/menu.service';
+import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 
 describe('PublicLayoutComponent', () => {
   let component: PublicLayoutComponent;
   let fixture: ComponentFixture<PublicLayoutComponent>;
+  let menuService: jasmine.SpyObj<MenuService>;
 
   beforeEach(async () => {
+    menuService = jasmine.createSpyObj<MenuService>('MenuService', [
+      'getTableOrder',
+      'getEcoBonUrl',
+      'downloadEcoBon',
+      'callWaiter',
+      'listenPublicRestaurantSse',
+    ]);
+    menuService.getTableOrder.and.returnValue(of(null));
+    menuService.getEcoBonUrl.and.returnValue('http://localhost/api/public/r1/tables/t1/eco-bon');
+    menuService.listenPublicRestaurantSse.and.returnValue(of());
+
     await TestBed.configureTestingModule({
       imports: [PublicLayoutComponent],
       providers: [
@@ -26,12 +39,13 @@ describe('PublicLayoutComponent', () => {
             defaultLang: 'en',
             fallbackLang: 'en',
             reRenderOnLangChange: true,
-            prodMode: true
-          }
-        })
-      ]
-    })
-    .compileComponents();
+            prodMode: true,
+          },
+        }),
+        { provide: MenuService, useValue: menuService },
+        { provide: AppToastService, useValue: jasmine.createSpyObj('AppToastService', ['success', 'error']) },
+      ],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(PublicLayoutComponent);
     component = fixture.componentInstance;
@@ -40,5 +54,12 @@ describe('PublicLayoutComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('builds eco bon url from restaurant and table ids', () => {
+    component.restaurantId = 'r1';
+    component.tableId = 't1';
+    expect(component.ecoBonUrl).toContain('/eco-bon');
+    expect(menuService.getEcoBonUrl).toHaveBeenCalledWith('r1', 't1');
   });
 });

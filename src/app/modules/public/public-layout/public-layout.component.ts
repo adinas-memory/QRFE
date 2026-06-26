@@ -15,6 +15,8 @@ import { NgClass } from '@angular/common';
 import { environment } from '../../../../environments/environment';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { AppFooterContentComponent } from '@app/shared/components/layout/app-footer-content.component';
+import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
+import { HttpErrorResponse } from '@angular/common/http';
 import { LANG_STORAGE_KEY, type AppLang } from '../../../core/i18n/transloco.config';
 import {
   BehaviorSubject,
@@ -57,6 +59,7 @@ export class PublicLayoutComponent implements OnInit, OnDestroy {
   waiterCalled = false;
   /** Total ordered quantity for this table; drives the “My order” badge. */
   orderLineQuantityTotal = 0;
+  ecoBonBusy = false;
   year = new Date().getFullYear();
   poweredBy = environment.poweredBy;
   frontendPubicUrl = environment.apiUrl;
@@ -72,6 +75,7 @@ export class PublicLayoutComponent implements OnInit, OnDestroy {
     private router: Router,
     private menuService: MenuService,
     private transloco: TranslocoService,
+    private toast: AppToastService,
     readonly guestMenuView: GuestMenuViewService,
     private cdr: ChangeDetectorRef,
   ) {}
@@ -104,6 +108,65 @@ export class PublicLayoutComponent implements OnInit, OnDestroy {
     const rid = this.restaurantId || this.route.snapshot.paramMap.get('restaurantId');
     const tid = this.tableId || this.route.snapshot.paramMap.get('tableId');
     this.router.navigateByUrl(`/public/menu/${rid}/tables/${tid}/order`);
+  }
+
+  get ecoBonUrl(): string {
+    return this.menuService.getEcoBonUrl(this.restaurantId, this.tableId);
+  }
+
+  downloadEcoBon(): void {
+    if (!this.restaurantId || !this.tableId || this.ecoBonBusy) return;
+    this.ecoBonBusy = true;
+    this.menuService.downloadEcoBon(this.restaurantId, this.tableId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: blob => {
+          const url = URL.createObjectURL(blob);
+          const anchor = document.createElement('a');
+          anchor.href = url;
+          anchor.download = 'ECO-BON.pdf';
+          anchor.click();
+          URL.revokeObjectURL(url);
+          this.ecoBonBusy = false;
+        },
+        error: err => this.handleEcoBonError(err),
+      });
+  }
+
+  async shareEcoBon(): Promise<void> {
+    if (!this.restaurantId || !this.tableId) return;
+    const url = this.ecoBonUrl;
+    const title = this.transloco.translate('client.ecoBon');
+    try {
+      if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+        await navigator.share({ title, url });
+        return;
+      }
+      await this.copyEcoBonLink();
+    } catch (err) {
+      if ((err as DOMException)?.name !== 'AbortError') {
+        console.warn('[PublicLayout] share ECO BON failed', err);
+      }
+    }
+  }
+
+  async copyEcoBonLink(): Promise<void> {
+    if (!this.restaurantId || !this.tableId) return;
+    try {
+      await navigator.clipboard.writeText(this.ecoBonUrl);
+      this.toast.success(this.transloco.translate('client.ecoBonShareCopied'));
+    } catch {
+      this.toast.error(this.transloco.translate('client.ecoBonError'));
+    }
+  }
+
+  private handleEcoBonError(err: unknown): void {
+    this.ecoBonBusy = false;
+    const status = err instanceof HttpErrorResponse ? err.status : 0;
+    const msg = status === 429
+      ? this.transloco.translate('client.ecoBonRateLimited')
+      : this.transloco.translate('client.ecoBonError');
+    this.toast.error(msg);
   }
 
   ngOnInit(): void {

@@ -1,14 +1,14 @@
 /**
  * Serves dist/browser and proxies /api + /sse to the LAN dev API (nginx on :80).
  * Usage: node scripts/static-with-proxy.mjs
- * Env: QR_API_PROXY_TARGET=http://192.168.0.17  PORT=8080
+ * Env: QR_API_PROXY_TARGET=http://192.168.43.142  PORT=8080
  */
 import { createServer, request as httpRequest } from 'node:http';
 import { readFileSync, statSync, existsSync } from 'node:fs';
 import { join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const API_TARGET = (process.env.QR_API_PROXY_TARGET || 'http://192.168.0.17').replace(/\/$/, '');
+const API_TARGET = (process.env.QR_API_PROXY_TARGET || 'http://192.168.43.142').replace(/\/$/, '');
 const PORT = Number(process.env.PORT || 8080);
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '../dist/browser');
 

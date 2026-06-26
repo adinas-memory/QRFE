@@ -35,6 +35,17 @@ export class MenuService {
     );
   }
 
+  getEcoBonUrl(restaurantId: string, tableId: string): string {
+    return `${this.apiUrl}/api/public/${restaurantId}/tables/${tableId}/eco-bon`;
+  }
+
+  downloadEcoBon(restaurantId: string, tableId: string): Observable<Blob> {
+    return this.http.get(this.getEcoBonUrl(restaurantId, tableId), {
+      withCredentials: true,
+      responseType: 'blob',
+    });
+  }
+
   listenPublicRestaurantSse(restaurantId: string): Observable<PublicRestaurantSseEvent> {
     return new Observable(observer => {
       const src = new EventSource(`${this.apiUrl}/sse/public/restaurant/${restaurantId}`);

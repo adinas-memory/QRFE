@@ -168,7 +168,14 @@
     "theme": "Temă",
     "light": "Luminos",
     "dark": "Întunecat",
-    "delete": "Șterge"
+    "delete": "Șterge",
+    "ecoBon": "ECO BON",
+    "ecoBonShare": "Distribuie",
+    "ecoBonDownload": "Descarcă PDF",
+    "ecoBonCopyLink": "Copiază link",
+    "ecoBonError": "Nu s-a putut genera ECO BON. Încearcă din nou.",
+    "ecoBonShareCopied": "Link ECO BON copiat.",
+    "ecoBonRateLimited": "Prea multe solicitări ECO BON. Așteaptă și încearcă din nou."
   },
   "forgotPassword": {
     "title": "Resetare parolă",

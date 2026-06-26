@@ -168,7 +168,14 @@
     "theme": "Theme",
     "light": "Light",
     "dark": "Dark",
-    "delete": "Delete"
+    "delete": "Delete",
+    "ecoBon": "ECO BON",
+    "ecoBonShare": "Share",
+    "ecoBonDownload": "Download PDF",
+    "ecoBonCopyLink": "Copy link",
+    "ecoBonError": "Could not generate ECO BON. Please try again.",
+    "ecoBonShareCopied": "ECO BON link copied.",
+    "ecoBonRateLimited": "Too many ECO BON requests. Please wait and try again."
   },
   "forgotPassword": {
     "title": "Reset password",
