@@ -1,23 +1,17 @@
 :host ::ng-deep {
   .c-tabs-custom { height: 6rem !important; }
-  .offcanvas.offcanvas-end {
+  c-offcanvas.order-offcanvas {
     display: flex;
     flex-direction: column;
     height: 100dvh;
-    overflow: hidden;
+    > div, .offcanvas-wrapper {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+    }
   }
-  .offcanvas-body {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-  }
-}
-
-.offcanvas-wrapper {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
+  .offcanvas-body { flex: 1; min-height: 0; overflow-y: auto; }
 }
 
 .offcanvas-body .row.g-3 > [class*='col-'] { min-width: 0; }
@@ -26,7 +20,7 @@
   min-width: 0;
   width: 100%;
   overflow: hidden;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  transition: transform .1s, box-shadow .1s;
 }
 
 .product-tile__name {
@@ -38,8 +32,6 @@
   font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.35;
-  color: inherit;
-  word-break: break-word;
   overflow-wrap: anywhere;
 }
 
@@ -52,8 +44,6 @@
   transform: scale(0.97);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
-
-.offcanvas-header-fix { flex-shrink: 0; }
 
 .categories-sticky {
   position: sticky;
@@ -71,8 +61,7 @@
   color: #ddd;
   background: #000;
   border-top: 1px solid #ddd;
-  padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
-  z-index: 10;
+  padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
 }
 
 .cart-scroll {
