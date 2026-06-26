@@ -86,7 +86,20 @@
 }
 
 .my-order-topbar {
+  margin-right: 0.35rem;
+}
+
+.eco-bon-actions {
   margin-right: 0.75rem;
+  gap: 0.25rem;
+}
+
+.eco-bon-btn {
+  white-space: nowrap;
+}
+
+.eco-bon-menu .dropdown-toggle {
+  padding-inline: 0.45rem;
 }
 
 .my-order-badge {
