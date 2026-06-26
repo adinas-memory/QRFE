@@ -27,6 +27,9 @@ import { COMPANY_EMAIL, COMPANY_WHATSAPP_URL } from '@app/core/constants/company
           <div class="app-footer-section-label">{{ 'footer.contact' | transloco }}</div>
           <div class="app-footer-contact-links">
             <div class="footer-contact-entry">
+              @if (showContactPurposeHints()) {
+                <div class="footer-contact-hint">{{ 'footer.emailPurpose' | transloco }}</div>
+              }
               <a
                 class="footer-contact-chip"
                 [href]="'mailto:' + companyEmail"
@@ -35,12 +38,12 @@ import { COMPANY_EMAIL, COMPANY_WHATSAPP_URL } from '@app/core/constants/company
                 <svg cIcon name="cilEnvelopeClosed" size="sm" aria-hidden="true"></svg>
                 <span>{{ companyEmail }}</span>
               </a>
-              @if (showContactPurposeHints()) {
-                <div class="footer-contact-hint">{{ 'footer.emailPurpose' | transloco }}</div>
-              }
             </div>
             @if (showWhatsApp()) {
               <div class="footer-contact-entry">
+                @if (showContactPurposeHints()) {
+                  <div class="footer-contact-hint">{{ 'footer.whatsappPurpose' | transloco }}</div>
+                }
                 <a
                   class="footer-contact-chip"
                   [href]="whatsappUrl"
@@ -51,9 +54,6 @@ import { COMPANY_EMAIL, COMPANY_WHATSAPP_URL } from '@app/core/constants/company
                   <svg cIcon name="cilCommentSquare" size="sm" aria-hidden="true"></svg>
                   <span>{{ 'footer.phoneWhatsapp' | transloco }}</span>
                 </a>
-                @if (showContactPurposeHints()) {
-                  <div class="footer-contact-hint">{{ 'footer.whatsappPurpose' | transloco }}</div>
-                }
               </div>
             }
           </div>
@@ -217,7 +217,6 @@ import { COMPANY_EMAIL, COMPANY_WHATSAPP_URL } from '@app/core/constants/company
       font-size: 0.75rem;
       line-height: 1.35;
       opacity: 0.78;
-      padding-left: 0.15rem;
       max-width: 20rem;
     }
 
@@ -262,7 +261,6 @@ import { COMPANY_EMAIL, COMPANY_WHATSAPP_URL } from '@app/core/constants/company
 
       .footer-contact-hint {
         text-align: center;
-        padding-left: 0;
       }
     }
   `,

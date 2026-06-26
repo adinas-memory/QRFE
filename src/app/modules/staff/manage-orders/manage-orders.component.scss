@@ -2,9 +2,17 @@
   height: 6rem !important;
 }
 
+:host ::ng-deep .offcanvas.offcanvas-end {
+  height: 100%;
+  max-height: 100dvh;
+}
+
 :host ::ng-deep .offcanvas-body {
-  height: calc(100vh - 56px - 80px);
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
   overflow-y: auto;
+  padding-bottom: 0;
 }
 
 /* Bootstrap 5 columns default to min-width: auto; long text stops tiles from shrinking on lg+ (col-lg-3). */
@@ -47,6 +55,12 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  max-height: 100dvh;
+  min-height: 0;
+}
+
+.offcanvas-header-fix {
+  flex-shrink: 0;
 }
 
 .categories-sticky {
@@ -68,17 +82,18 @@
 
 .offcanvas-body {
   flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
-  padding-bottom: 160px;
+  padding-bottom: 0;
 }
 
 .cart {
-  position: sticky;
-  bottom: 0;
+  flex-shrink: 0;
   color: #ddd;
   background: rgb(0, 0, 0);
   border-top: 1px solid #ddd;
   padding: 12px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   z-index: 10;
 }
 
