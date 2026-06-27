@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { MenuItem, MenuResponse } from '../../models/menu/menuItem';
 import { MenuService } from './menu.service';
+import { TranslocoService } from '@jsverse/transloco';
 
 @Injectable({ providedIn: 'root' })
 export class GuestMenuViewService {
@@ -15,7 +16,10 @@ export class GuestMenuViewService {
   readonly menuState$ = this.response$.asObservable();
   readonly viewState$ = this.viewTick$.asObservable();
 
-  constructor(private menuService: MenuService) {}
+  constructor(
+    private menuService: MenuService,
+    private transloco: TranslocoService,
+  ) {}
 
   get snapshot(): MenuResponse | null {
     return this.response$.value;
@@ -55,8 +59,13 @@ export class GuestMenuViewService {
 
   showDefault(): Observable<MenuResponse> {
     this.showingSetMenuView = false;
+    return this.reloadMenu();
+  }
+
+  reloadMenu(locale?: string): Observable<MenuResponse> {
+    const activeLocale = locale ?? this.transloco.getActiveLang();
     return this.menuService
-      .getAll(this.restaurantId, this.tableId)
+      .getAll(this.restaurantId, this.tableId, activeLocale)
       .pipe(tap(response => this.applyResponse(response)));
   }
 

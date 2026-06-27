@@ -333,6 +333,11 @@ export class PublicLayoutComponent implements OnInit, OnDestroy {
   setLanguage(l: AppLang) {
     this.transloco.setActiveLang(l);
     try { localStorage.setItem(LANG_STORAGE_KEY, l); } catch { /* ignore */ }
+    if (this.restaurantId && this.tableId) {
+      this.guestMenuView.reloadMenu(l).pipe(takeUntil(this.destroy$)).subscribe({
+        error: err => console.error('[PublicLayout] menu reload after language change failed', err),
+      });
+    }
   }
 
   private syncOrderPageFlag(): void {
