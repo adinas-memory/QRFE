@@ -148,6 +148,7 @@
       "paymentLock": "Bloqueo de cambios durante el pago",
       "menuUnavailable": "Marcar productos no disponibles",
       "multilanguageUI": "Interfaz multilingüe",
+      "menuDescriptionTranslation": "Traducción automática de descripciones del menú",
       "sseTablesLive": "Actualizaciones en vivo de mesas y pedidos (SSE)",
       "ecoBon": "ECO BON (recibo digital PDF)"
     }

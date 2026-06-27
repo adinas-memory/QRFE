@@ -148,6 +148,7 @@
       "paymentLock": "Låsning under betalning",
       "menuUnavailable": "Markera artiklar som ej tillgängliga",
       "multilanguageUI": "Flerspråkigt gränssnitt",
+      "menuDescriptionTranslation": "Automatisk översättning av menybeskrivningar",
       "sseTablesLive": "Live-uppdateringar för bord och ordrar (SSE)",
       "ecoBon": "ECO BON (digitalt kvitto som PDF)"
     }
