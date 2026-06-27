@@ -9,6 +9,7 @@ import {
   RestaurantDetailDTO,
   UpdateRestaurantRequest
 } from '../../models/global-admin-restaurant.model';
+import { GlobalAdminPrinterFleetItem } from '../../models/global-admin-printer-fleet.model';
 
 @Injectable({ providedIn: 'root' })
 export class GlobalAdminService {
@@ -36,5 +37,9 @@ export class GlobalAdminService {
 
   deleteRestaurant(id: string): Observable<DeleteRestaurantResponse> {
     return this.http.delete<DeleteRestaurantResponse>(`${this.base}/${id}`, this.creds);
+  }
+
+  listPrinterFleet(): Observable<GlobalAdminPrinterFleetItem[]> {
+    return this.http.get<GlobalAdminPrinterFleetItem[]>(`${this.base}/printer-fleet`, this.creds);
   }
 }

@@ -220,7 +220,12 @@ export class DefaultLayoutComponent implements OnInit {
             name: this.transloco.translate('nav.subscriptionProducts'),
             url: '/gadmin/manage-subscription-products',
             iconComponent: { name: 'cil3d' }
-          },          
+          },
+          {
+            name: this.transloco.translate('nav.printerFleet'),
+            url: '/gadmin/manage-printer-fleet',
+            iconComponent: { name: 'cilPrint' }
+          },
         ];
       default:
         return [];

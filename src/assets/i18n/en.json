@@ -355,6 +355,28 @@
     "loading": "Loading…",
     "empty": "No restaurants yet."
   },
+  "managePrinterFleet": {
+    "title": "Printer fleet",
+    "subtitle": "All printers reported by Printer Agent heartbeats across restaurants.",
+    "loading": "Loading…",
+    "loadFailed": "Could not load printer fleet.",
+    "refresh": "Refresh",
+    "lastUpdated": "Updated",
+    "empty": "No printer agents have reported yet.",
+    "noPrinters": "No printers in heartbeat",
+    "colRestaurant": "Restaurant",
+    "colAgent": "Agent ID",
+    "colAgentStatus": "Agent",
+    "colLastHeartbeat": "Last heartbeat",
+    "colVersion": "Version",
+    "colPrinter": "Printer",
+    "colIpPort": "IP : port",
+    "colPrinterStatus": "Printer status",
+    "colDefault": "Default bill",
+    "agentOnline": "Online",
+    "agentOffline": "Offline",
+    "defaultBill": "Default"
+  },
   "manageRestaurants": {
     "tabList": "List",
     "tabAdd": "Add restaurant",
@@ -411,7 +433,8 @@
     "staff": "Staff",
     "qrCodes": "QR codes",
     "restaurants": "Restaurants",
-    "subscriptionProducts": "Subscription products"
+    "subscriptionProducts": "Subscription products",
+    "printerFleet": "Printer fleet"
   },
   "header": {
     "settings": "Settings",

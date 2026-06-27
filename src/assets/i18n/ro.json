@@ -355,6 +355,28 @@
     "loading": "Se încarcă…",
     "empty": "Niciun restaurant încă."
   },
+  "managePrinterFleet": {
+    "title": "Flotă imprimante",
+    "subtitle": "Toate imprimantele raportate prin heartbeat de la Printer Agent.",
+    "loading": "Se încarcă…",
+    "loadFailed": "Nu s-a putut încărca flota de imprimante.",
+    "refresh": "Reîmprospătează",
+    "lastUpdated": "Actualizat",
+    "empty": "Niciun agent de imprimare a raportat încă.",
+    "noPrinters": "Nicio imprimantă în heartbeat",
+    "colRestaurant": "Restaurant",
+    "colAgent": "ID agent",
+    "colAgentStatus": "Agent",
+    "colLastHeartbeat": "Ultim heartbeat",
+    "colVersion": "Versiune",
+    "colPrinter": "Imprimantă",
+    "colIpPort": "IP : port",
+    "colPrinterStatus": "Status imprimantă",
+    "colDefault": "Notă implicită",
+    "agentOnline": "Online",
+    "agentOffline": "Offline",
+    "defaultBill": "Implicit"
+  },
   "manageRestaurants": {
     "tabList": "Listă",
     "tabAdd": "Adaugă restaurant",
@@ -411,7 +433,8 @@
     "staff": "Staff",
     "qrCodes": "Coduri QR",
     "restaurants": "Restaurante",
-    "subscriptionProducts": "Produse abonament"
+    "subscriptionProducts": "Produse abonament",
+    "printerFleet": "Flotă imprimante"
   },
   "header": {
     "settings": "Setări",
