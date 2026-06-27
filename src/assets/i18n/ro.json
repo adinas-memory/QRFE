@@ -149,6 +149,7 @@
       "paymentLock": "Blocare modificări în timpul plății",
       "menuUnavailable": "Marcare produse indisponibile",
       "multilanguageUI": "Interfață multilingvă",
+      "menuDescriptionTranslation": "Traducere automată descrieri meniu",
       "sseTablesLive": "Update-uri live mese & comenzi (SSE)",
       "ecoBon": "ECO BON (bon digital nefiscal)"
     }

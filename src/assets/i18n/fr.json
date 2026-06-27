@@ -148,6 +148,7 @@
       "paymentLock": "Verrouillage pendant le paiement",
       "menuUnavailable": "Marquer des articles indisponibles",
       "multilanguageUI": "Interface multilingue",
+      "menuDescriptionTranslation": "Traduction automatique des descriptions du menu",
       "sseTablesLive": "Mises à jour en direct tables & commandes (SSE)",
       "ecoBon": "ECO BON (reçu numérique PDF)"
     }

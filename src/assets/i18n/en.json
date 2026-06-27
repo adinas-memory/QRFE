@@ -149,6 +149,7 @@
       "paymentLock": "Payment lock during checkout",
       "menuUnavailable": "Mark menu items unavailable",
       "multilanguageUI": "Multi-language UI",
+      "menuDescriptionTranslation": "Automatic menu description translation",
       "sseTablesLive": "Live table & order updates (SSE)",
       "ecoBon": "ECO BON (non-fiscal receipt PDF)"
     }

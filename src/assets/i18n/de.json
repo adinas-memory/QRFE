@@ -148,6 +148,7 @@
       "paymentLock": "Zahlungssperre während Checkout",
       "menuUnavailable": "Menüartikel als nicht verfügbar markieren",
       "multilanguageUI": "Mehrsprachige UI",
+      "menuDescriptionTranslation": "Automatische Übersetzung der Menübeschreibungen",
       "sseTablesLive": "Live-Updates für Tische & Bestellungen (SSE)",
       "ecoBon": "ECO BON (digitaler Beleg als PDF)"
     }
