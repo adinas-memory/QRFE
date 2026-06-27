@@ -3,7 +3,7 @@ import { environment } from '../../../../environments/environment';
 import { Observable } from 'rxjs';
 import { MenuResponse, WaiterCallResponse } from '../../models/menu/menuItem';
 import { OrderDTO } from '../../models/orderingModel';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 
 export type PublicRestaurantSseEvent =
   | { type: 'WaiterCall'; data: unknown }
@@ -16,10 +16,14 @@ export class MenuService {
 
   constructor(private http: HttpClient, private ngZone: NgZone) {}
 
-  getAll(restaurantId: string, tableId: string): Observable<MenuResponse> {
+  getAll(restaurantId: string, tableId: string, locale?: string): Observable<MenuResponse> {
+    let params = new HttpParams();
+    if (locale) {
+      params = params.set('locale', locale);
+    }
     return this.http.get<MenuResponse>(
       `${this.apiUrl}/api/public/${restaurantId}/menu/${tableId}`,
-      { withCredentials: true }
+      { withCredentials: true, params }
     );
   }
 

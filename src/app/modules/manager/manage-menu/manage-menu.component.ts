@@ -410,6 +410,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
     formData.append('menuItemDescription', this.menuItemsForm.value.menuItemDescription);
     formData.append('menuItemPriceAmount', this.menuItemsForm.value.menuItemPriceAmount);
     formData.append('menuItemCategory', canonicalMenuItemCategory(this.menuItemsForm.value.menuItemCategory));
+    formData.append('sourceLocale', this.transloco.getActiveLang() || 'ro');
     if (iconFile instanceof File) {
       formData.append('menuItemIcon', iconFile);
     }
