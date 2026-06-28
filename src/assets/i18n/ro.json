@@ -18,6 +18,13 @@
     "subscribe": "Abonează-te",
     "language": "Limbă"
   },
+  "seo": {
+    "landingTitle": "U.R.S. | Sistem POS Restaurant — Software POS & Casă de Marcat",
+    "landingDescription": "Universal Restaurant Systems: sistem POS offline-first pentru restaurante, POS mobil, terminal de plată, imprimantă bonuri, gestiune stocuri, raportare vânzări și POS în cloud pentru mici afaceri.",
+    "faqTitle": "U.R.S. FAQ | Sistem POS & Software POS Restaurant",
+    "faqDescription": "Întrebări frecvente despre sistemul POS U.R.S.: POS restaurant, Printer Agent, comenzi offline, meniu QR, plăți Stripe și fluxuri staff.",
+    "keywords": "sistem POS, casă de marcat, software POS, POS restaurant, POS ieftin, cel mai bun POS, POS pentru mici afaceri, POS pentru restaurante, terminal POS, terminal de plată, POS mobil, cititor card, imprimantă bonuri, POS retail, gestiune stocuri, management vânzări, POS în cloud, POS online, raportare vânzări, integrare ERP"
+  },
   "footer": {
     "copyright": "© Universal Restaurant Systems",
     "poweredBy": "Powered by",

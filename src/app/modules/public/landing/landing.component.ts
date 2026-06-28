@@ -35,6 +35,7 @@ import { IconDirective } from '@coreui/icons-angular';
 import { FeedbackLaunchComponent } from '@app/shared/components/feedback/feedback-launch.component';
 import { FeedbackModalComponent } from '@app/shared/components/feedback/feedback-modal.component';
 import { AppFooterContentComponent } from '@app/shared/components/layout/app-footer-content.component';
+import { SeoService } from '../../../core/services/seo/seo.service';
 
 @Component({
   selector: 'app-landing',
@@ -88,7 +89,8 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
     private authService: AuthService,
     private subscriptionService: SubscriptionService,
     private transloco: TranslocoService,
-    private router: Router) {
+    private router: Router,
+    private seo: SeoService) {
 
   }
 
@@ -120,6 +122,7 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
   setLanguage(l: AppLang) {
     this.transloco.setActiveLang(l);
     try { localStorage.setItem(LANG_STORAGE_KEY, l); } catch { /* ignore */ }
+    this.seo.applyPublicPage('landing');
   }
 
   setTheme(t: 'dark' | 'light'): void {
@@ -220,6 +223,7 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngOnInit(): void {
     this.theme = (localStorage.getItem('publicTheme') as 'dark' | 'light') || 'dark';
+    this.seo.applyPublicPage('landing');
 
     combineLatest([
       this.subscriptionService.getProducts(),
@@ -246,6 +250,7 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
 
 
   ngOnDestroy() {
+    this.seo.clearPublicPage();
     this.destroy$.next();
     this.destroy$.complete();
   }

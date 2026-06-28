@@ -18,6 +18,13 @@
     "subscribe": "Suscribirse",
     "language": "Idioma"
   },
+  "seo": {
+    "landingTitle": "U.R.S. | Sistema POS para Restaurantes — Software POS en la Nube",
+    "landingDescription": "Universal Restaurant Systems: sistema POS offline-first para restaurantes, POS móvil, terminal de pago, impresora de recibos, gestión de inventario, informes de ventas y POS en la nube para pequeños negocios.",
+    "faqTitle": "U.R.S. FAQ | Sistema POS & Software para Restaurantes",
+    "faqDescription": "Preguntas frecuentes sobre el POS U.R.S.: POS para restaurantes, Printer Agent, pedidos offline, menú QR, pagos Stripe y flujos de staff.",
+    "keywords": "mejor sistema POS, POS para pequeños negocios, POS para restaurantes, POS móvil, POS en la nube, POS barato, terminal POS, sistema POS, caja registradora, software POS, terminal de pago, lector de tarjetas, impresora de recibos, POS retail, gestión de inventario, gestión de ventas, POS online, informes de ventas, integración ERP"
+  },
   "footer": {
     "copyright": "© Universal Restaurant Systems",
     "poweredBy": "Powered by",
