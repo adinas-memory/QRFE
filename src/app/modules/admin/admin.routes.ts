@@ -30,6 +30,12 @@ export const adminRoutes: Routes = [
           import('./manage-subscription-products/manage-subscription-products.component').then(m => m.ManageSubscriptionProductsComponent),
         data: { title: 'Create Subscription Products' }
       },
+      {
+        path: 'manage-printer-fleet',
+        loadComponent: () =>
+          import('./manage-printer-fleet/manage-printer-fleet.component').then(m => m.ManagePrinterFleetComponent),
+        data: { title: 'Printer fleet' }
+      },
     ]
   }
 ];

@@ -18,6 +18,13 @@
     "subscribe": "S’abonner",
     "language": "Langue"
   },
+  "seo": {
+    "landingTitle": "U.R.S. | Système POS Restaurant — Logiciel POS Cloud & Mobile",
+    "landingDescription": "Universal Restaurant Systems : POS offline-first pour restaurants, POS mobile, terminal de paiement, imprimante de reçus, gestion des stocks, rapports de ventes et POS cloud pour petites entreprises.",
+    "faqTitle": "U.R.S. FAQ | Système POS & Logiciel Restaurant",
+    "faqDescription": "Questions fréquentes sur le POS U.R.S. : POS restaurant, Printer Agent, commandes offline, menu QR, paiements Stripe et workflows staff.",
+    "keywords": "meilleur système POS, POS pour petites entreprises, POS pour restaurants, POS mobile, POS cloud, POS pas cher, terminal POS, système POS, caisse enregistreuse, logiciel POS, terminal de paiement, lecteur de carte, imprimante de reçus, POS retail, gestion des stocks, gestion des ventes, POS en ligne, rapports de ventes, intégration ERP"
+  },
   "footer": {
     "copyright": "© Universal Restaurant Systems",
     "poweredBy": "Powered by",

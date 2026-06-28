@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, OnDestroy, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
   AccordionButtonDirective,
@@ -10,6 +10,7 @@ import {
 } from '@coreui/angular';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { environment } from '../../../../environments/environment';
+import { SeoService } from '../../../core/services/seo/seo.service';
 
 /** FAQ entries must match `faq.items.<id>` in i18n JSON. */
 const FAQ_ITEM_IDS = [
@@ -57,8 +58,22 @@ export type FaqItemId = (typeof FAQ_ITEM_IDS)[number];
   templateUrl: './faq.component.html',
   styleUrl: './faq.component.scss'
 })
-export class FaqComponent {
+export class FaqComponent implements OnInit, OnDestroy {
   protected readonly printerAgentDownloadUrl = environment.printerAgentDownloadUrl?.trim() ?? '';
+
+  constructor(private readonly seo: SeoService) {}
+
+  ngOnInit(): void {
+    if (!this.embedded()) {
+      this.seo.applyPublicPage('faq');
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (!this.embedded()) {
+      this.seo.clearPublicPage();
+    }
+  }
 
   protected readonly printerAgentInstallSteps = [
     'step1',

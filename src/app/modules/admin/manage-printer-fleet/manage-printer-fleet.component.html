@@ -1,0 +1,91 @@
+<div class="mb-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+  <div>
+    <h2 class="mb-1">{{ 'managePrinterFleet.title' | transloco }}</h2>
+    <p class="text-body-secondary mb-0">{{ 'managePrinterFleet.subtitle' | transloco }}</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+  @if (lastLoadedAt) {
+    <span class="text-body-secondary small">
+      {{ 'managePrinterFleet.lastUpdated' | transloco }} {{ lastLoadedAt | date:'short' }}
+    </span>
+  }
+  <button cButton color="secondary" size="sm" type="button" (click)="refresh()" [disabled]="loading">
+    {{ 'managePrinterFleet.refresh' | transloco }}
+  </button>
+  </div>
+</div>
+
+@if (loading && rows.length === 0) {
+  <p class="text-body-secondary">{{ 'managePrinterFleet.loading' | transloco }}</p>
+}
+
+@if (errorMessage) {
+  <p class="text-danger">{{ 'managePrinterFleet.loadFailed' | transloco }}</p>
+}
+
+@if (!loading || rows.length > 0) {
+  <div class="table-responsive">
+    <table cTable [hover]="true" [striped]="true" class="align-middle">
+      <thead>
+        <tr>
+          <th>{{ 'managePrinterFleet.colRestaurant' | transloco }}</th>
+          <th>{{ 'managePrinterFleet.colAgent' | transloco }}</th>
+          <th>{{ 'managePrinterFleet.colAgentStatus' | transloco }}</th>
+          <th>{{ 'managePrinterFleet.colLastHeartbeat' | transloco }}</th>
+          <th>{{ 'managePrinterFleet.colVersion' | transloco }}</th>
+          <th>{{ 'managePrinterFleet.colPrinter' | transloco }}</th>
+          <th>{{ 'managePrinterFleet.colIpPort' | transloco }}</th>
+          <th>{{ 'managePrinterFleet.colPrinterStatus' | transloco }}</th>
+          <th>{{ 'managePrinterFleet.colDefault' | transloco }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows; track row.agentId + ':' + row.printerId) {
+          <tr>
+            <td>
+              <div class="fw-semibold">{{ row.restaurantName }}</div>
+              <div class="small text-body-secondary">{{ row.restaurantId }}</div>
+            </td>
+            <td class="small">{{ row.agentId }}</td>
+            <td>
+              <span [ngClass]="row.agentOnline ? 'text-success' : 'text-danger'">
+                {{ row.agentOnline ? ('managePrinterFleet.agentOnline' | transloco) : ('managePrinterFleet.agentOffline' | transloco) }}
+              </span>
+            </td>
+            <td class="small">{{ row.agentLastHeartbeatUtc | date:'short' }}</td>
+            <td class="small">{{ row.agentVersion || '—' }}</td>
+            <td>
+              @if (row.printerId) {
+                <div class="fw-semibold">{{ row.printerName || row.printerId }}</div>
+                <div class="small text-body-secondary">{{ row.printerId }}</div>
+              } @else {
+                <span class="text-body-secondary">{{ 'managePrinterFleet.noPrinters' | transloco }}</span>
+              }
+            </td>
+            <td class="small">
+              @if (row.ipAddress) {
+                {{ row.ipAddress }}:{{ row.port }}
+              } @else {
+                —
+              }
+            </td>
+            <td [ngClass]="printerStatusClass(row.printerStatus)">
+              {{ row.printerStatus || '—' }}
+            </td>
+            <td>
+              @if (row.isDefaultBillPrinter) {
+                <span class="badge bg-primary">{{ 'managePrinterFleet.defaultBill' | transloco }}</span>
+              } @else {
+                —
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (!loading && rows.length === 0 && !errorMessage) {
+    <p class="text-body-secondary">{{ 'managePrinterFleet.empty' | transloco }}</p>
+  }
+}

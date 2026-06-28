@@ -18,6 +18,13 @@
     "subscribe": "Prenumerera",
     "language": "Språk"
   },
+  "seo": {
+    "landingTitle": "U.R.S. | Restaurang-POS — Molnbaserat & Mobilt POS-system",
+    "landingDescription": "Universal Restaurant Systems: offline-first POS för restauranger, mobil POS, betalterminal, kvittoskrivare, lagerhantering, försäljningsrapporter och molnbaserat POS för småföretag.",
+    "faqTitle": "U.R.S. FAQ | POS-system & Restaurangprogramvara",
+    "faqDescription": "Vanliga frågor om U.R.S. restaurang-POS: mobil POS, Printer Agent, offlinebeställningar, QR-meny, Stripe-betalningar och personalflöden.",
+    "keywords": "bästa POS-system, POS för småföretag, POS för restauranger, mobil POS, molnbaserat POS, billigt POS, POS-terminal, POS-system, kassaapparat, POS-programvara, betalterminal, kortläsare, kvittoskrivare, butik-POS, lagerhantering, försäljningshantering, online-POS, försäljningsrapporter, ERP-integration"
+  },
   "footer": {
     "copyright": "© Universal Restaurant Systems",
     "poweredBy": "Powered by",
