@@ -28,6 +28,7 @@ export class PrintJobsService {
 
   // #region agent log
   private dbg(hypothesisId: string, message: string, data: Record<string, unknown>): void {
+    console.warn('[DBG38fcde]', hypothesisId, message, data);
     fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
