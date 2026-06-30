@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideTransloco } from '@jsverse/transloco';
 
 import { MenuResolver } from './menu-resolver.service';
 import { MenuService } from './menu.service';
@@ -17,7 +18,15 @@ describe('MenuResolver', () => {
       providers: [
         MenuResolver,
         { provide: MenuService, useValue: menuSpy },
-        { provide: GuestMenuViewService, useValue: guestSpy }
+        { provide: GuestMenuViewService, useValue: guestSpy },
+        provideTransloco({
+          config: {
+            availableLangs: ['en'],
+            defaultLang: 'en',
+            fallbackLang: 'en',
+            prodMode: true,
+          },
+        }),
       ]
     });
     resolver = TestBed.inject(MenuResolver);

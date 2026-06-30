@@ -304,6 +304,58 @@
       </c-card-body>
     </c-card>
 
+    <c-card class="mb-4" id="offline-primary-staff">
+      <c-card-header>
+        <strong>{{ 'restaurantSettings.offlinePrimaryStaff.title' | transloco }}</strong>
+      </c-card-header>
+      <c-card-body>
+        <p class="text-body-secondary small mb-3">
+          {{ 'restaurantSettings.offlinePrimaryStaff.hint' | transloco }}
+        </p>
+        <c-alert color="warning" class="small py-2 mb-3">
+          {{ 'restaurantSettings.offlinePrimaryStaff.disclaimer' | transloco }}
+        </c-alert>
+        @if (!restaurantId) {
+          <p class="text-warning mb-0">{{ 'restaurantSettings.noRestaurant' | transloco }}</p>
+        } @else if (loadingOfflinePrimary) {
+          <p class="text-body-secondary small mb-0">{{ 'restaurantSettings.offlinePrimaryStaff.loading' | transloco }}</p>
+        } @else {
+          <div class="mb-3">
+            <label cLabel for="offlinePrimaryStaff">{{ 'restaurantSettings.offlinePrimaryStaff.staffLabel' | transloco }}</label>
+            <select cSelect id="offlinePrimaryStaff" [(ngModel)]="selectedOfflinePrimaryStaffUserId">
+              <option [ngValue]="null">{{ 'restaurantSettings.offlinePrimaryStaff.noneOption' | transloco }}</option>
+              @for (s of offlinePrimaryStaff; track s.userId) {
+                <option [ngValue]="s.userId">{{ s.email }} — {{ s.displayName }}</option>
+              }
+            </select>
+          </div>
+          @if (offlinePrimaryPolicy?.offlinePrimaryStaffUserId) {
+            <p class="small mb-3">
+              <span class="text-body-secondary">{{ 'restaurantSettings.offlinePrimaryStaff.deviceStatus' | transloco }}:</span>
+              @if (offlinePrimaryPolicy?.deviceBound) {
+                <span class="ms-1 badge bg-success">{{ 'restaurantSettings.offlinePrimaryStaff.deviceBound' | transloco }}</span>
+              } @else {
+                <span class="ms-1 badge bg-secondary">{{ 'restaurantSettings.offlinePrimaryStaff.deviceNotBound' | transloco }}</span>
+              }
+            </p>
+          }
+          <button
+            cButton
+            color="primary"
+            type="button"
+            [disabled]="savingOfflinePrimary"
+            (click)="saveOfflinePrimaryStaff()"
+          >
+            @if (savingOfflinePrimary) {
+              {{ 'restaurantSettings.offlinePrimaryStaff.saving' | transloco }}
+            } @else {
+              {{ 'restaurantSettings.offlinePrimaryStaff.save' | transloco }}
+            }
+          </button>
+        }
+      </c-card-body>
+    </c-card>
+
     <c-card class="mb-4" id="payments">
       <c-card-header>
         <strong>{{ 'restaurantSettings.paymentsTitle' | transloco }}</strong>

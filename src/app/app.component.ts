@@ -20,6 +20,8 @@ import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { Location } from '@angular/common';
 import { SubscriptionService } from './core/services/subscription-service/subscription.service';
+import { TranslocoPipe } from '@jsverse/transloco';
+import { OfflinePolicyService } from './core/offline/offline-policy.service';
 import { navigateToRoleHome } from './core/auth/auth-redirect.util';
 import { isAssignedRestaurantId } from './core/auth/restaurant-id.util';
 
@@ -31,7 +33,7 @@ import { isAssignedRestaurantId } from './core/auth/restaurant-id.util';
 
   @if (isOffline) {
     <div class="offline-banner">
-      <span class="blink">NO INTERNET CONNECTION</span>
+      <span class="blink">{{ offlineBannerKey | transloco }}</span>
     </div>
   }
 
@@ -40,12 +42,13 @@ import { isAssignedRestaurantId } from './core/auth/restaurant-id.util';
   <router-outlet></router-outlet>
 
 </div>`,
-  imports: [RouterOutlet, SpinnerComponent, AppToastsComponent],
+  imports: [RouterOutlet, SpinnerComponent, AppToastsComponent, TranslocoPipe],
 })
 export class AppComponent implements OnInit {
   title = 'U.R.S.';
   private sseStarted = false;
   isOffline = false;
+  offlineBannerKey = 'offline.bannerLimited';
   private navHistory: string[] = [];
 
   readonly #destroyRef: DestroyRef = inject(DestroyRef);
@@ -57,6 +60,7 @@ export class AppComponent implements OnInit {
   readonly #iconSetService = inject(IconSetService);
   readonly #orderSyncService = inject(OrderSyncService);
   readonly #onlineStateService = inject(OnlineStateService);
+  readonly #offlinePolicy = inject(OfflinePolicyService);
   readonly #loadingService = inject(LoadingService);
   readonly #httpNavCancel = inject(HttpNavigationCancelService);
   readonly #pushRegistration = inject(PushRegistrationService);
@@ -99,6 +103,9 @@ export class AppComponent implements OnInit {
 
     this.#onlineStateService.online$.subscribe(isOnline => {
       this.isOffline = !isOnline;
+      this.offlineBannerKey = this.#offlinePolicy.canUseFullOffline()
+        ? 'offline.bannerPrimary'
+        : 'offline.bannerLimited';
     });
 
     // 4. Restul logicii tale (SSE, routing, session)

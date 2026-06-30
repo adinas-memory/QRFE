@@ -6,6 +6,7 @@ import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.
 import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { PrintJobsService } from '../../../core/services/print-jobs/print-jobs.service';
+import { OfflinePrimaryService } from '../../../core/services/offline-primary/offline-primary.service';
 import { provideTransloco } from '@jsverse/transloco';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
@@ -16,6 +17,7 @@ describe('ManagerSettingsComponent bill printer', () => {
   let component: ManagerSettingsComponent;
   let fixture: ComponentFixture<ManagerSettingsComponent>;
   let printJobs: jasmine.SpyObj<PrintJobsService>;
+  let offlinePrimary: jasmine.SpyObj<OfflinePrimaryService>;
 
   beforeEach(async () => {
     printJobs = jasmine.createSpyObj('PrintJobsService', [
@@ -24,6 +26,27 @@ describe('ManagerSettingsComponent bill printer', () => {
       'getDefaultBillPrinter',
       'updateDefaultBillPrinter',
     ]);
+    offlinePrimary = jasmine.createSpyObj('OfflinePrimaryService', [
+      'listStaff',
+      'getPolicy',
+      'updatePolicy',
+    ]);
+    offlinePrimary.listStaff.and.returnValue(
+      of([{ userId: 'staff-1', email: 'waiter@example.com', displayName: 'Waiter One' }]),
+    );
+    offlinePrimary.getPolicy.and.returnValue(
+      of({
+        offlinePrimaryStaffUserId: null,
+        deviceBound: false,
+      }),
+    );
+    offlinePrimary.updatePolicy.and.returnValue(
+      of({
+        offlinePrimaryStaffUserId: 'staff-1',
+        email: 'waiter@example.com',
+        deviceBound: false,
+      }),
+    );
     printJobs.listAgentPrinters.and.returnValue(
       of([{ id: 'main-prnt', name: 'main-prnt', ipAddress: '192.168.1.1', port: 9100 }]),
     );
@@ -38,6 +61,11 @@ describe('ManagerSettingsComponent bill printer', () => {
           useValue: {
             getUserRole: () => 'manager',
             getUserRestaurantId: () => '019c1a13-db50-763a-8cde-4a39922a538d',
+            getUserSnapshot: () => ({
+              id: 'mgr-1',
+              role: 'manager',
+              restaurantId: '019c1a13-db50-763a-8cde-4a39922a538d',
+            }),
           },
         },
         {
@@ -61,6 +89,7 @@ describe('ManagerSettingsComponent bill printer', () => {
         },
         { provide: AppToastService, useValue: { success: (): void => {}, error: (): void => {} } },
         { provide: PrintJobsService, useValue: printJobs },
+        { provide: OfflinePrimaryService, useValue: offlinePrimary },
         provideTransloco({
           config: {
             availableLangs: ['en', 'ro'],
@@ -98,5 +127,20 @@ describe('ManagerSettingsComponent bill printer', () => {
     const ids = component.billPrinterOptions.map(p => p.id);
     expect(ids).toContain('main-printer');
     expect(ids).toContain('main-prnt');
+  });
+
+  it('loads offline primary staff list on init', () => {
+    expect(offlinePrimary.listStaff).toHaveBeenCalled();
+    expect(offlinePrimary.getPolicy).toHaveBeenCalled();
+    expect(component.offlinePrimaryStaff.length).toBe(1);
+  });
+
+  it('saveOfflinePrimaryStaff PATCHes policy', () => {
+    component.selectedOfflinePrimaryStaffUserId = 'staff-1';
+    component.saveOfflinePrimaryStaff();
+    expect(offlinePrimary.updatePolicy).toHaveBeenCalledWith(
+      '019c1a13-db50-763a-8cde-4a39922a538d',
+      'staff-1',
+    );
   });
 });

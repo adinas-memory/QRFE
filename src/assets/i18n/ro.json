@@ -450,7 +450,14 @@
     "printNoPrinterBody": "Nu există o imprimantă configurată/raportată de Printer Agent.",
     "printErrorTitle": "Notă de plată",
     "printErrorBody": "Nu s-a putut trimite nota de plată la imprimantă.",
-    "bookingsToday": "Rezervări azi"
+    "bookingsToday": "Rezervări azi",
+    "bindOfflinePrimaryCta": "Înregistrează acest dispozitiv ca POS offline",
+    "bindOfflinePrimaryBinding": "Se înregistrează…",
+    "bindOfflinePrimaryHint": "Ești desemnat pentru mod offline complet. Înregistrează tableta sau telefonul ca să poți deschide mese și confirma comenzi fără internet.",
+    "bindOfflinePrimarySuccessTitle": "Dispozitiv înregistrat",
+    "bindOfflinePrimarySuccessBody": "Acest dispozitiv este acum POS offline. Modificările se sincronizează la reconectare.",
+    "bindOfflinePrimaryErrorTitle": "Nu s-a putut înregistra dispozitivul",
+    "nonPrimaryOfflineHint": "Offline: poți edita doar comanda deschisă pe acest dispozitiv."
   },
   "salesReports": {
     "title": "Rapoarte vânzări și contabilitate",
@@ -650,6 +657,10 @@
     "emailRequired": "Emailul este obligatoriu.",
     "emailInvalid": "Introdu o adresă de email validă."
   },
+  "offline": {
+    "bannerPrimary": "OFFLINE — mod POS complet (se sincronizează la reconectare)",
+    "bannerLimited": "OFFLINE — mod limitat (doar comanda curentă pe acest dispozitiv)"
+  },
   "kitchen": {
     "title": "Bucătărie",
     "enableSound": "Activează sunetul",
@@ -819,6 +830,24 @@
       "autoRefreshFastHint": "Se verifică la fiecare 10 secunde până apare imprimanta agentului sau se rezolvă nepotrivirea de id.",
       "mismatchWarning": "Imprimanta salvată ({{id}}) nu este raportată de Printer Agent. Bonurile nu se vor printa până nu selectezi o imprimantă din listă și apeși Salvează.",
       "refresh": "Reîmprospătează lista"
+    },
+    "offlinePrimaryStaff": {
+      "title": "Staff POS offline",
+      "hint": "Alege un membru al staff-ului (după email) care poate folosi modul offline complet pe un singur dispozitiv înregistrat — deschide mese, confirmă și închide comenzi fără internet.",
+      "disclaimer": "Ideal pentru pană totală de internet pe o tabletă dedicată. Dacă alte dispozitive rămân online, pot apărea conflicte pe mese; staff-ul pe celelalte dispozitive ar trebui să editeze doar comanda curentă offline.",
+      "loading": "Se încarcă staff-ul…",
+      "staffLabel": "Membru staff",
+      "noneOption": "— Niciunul —",
+      "deviceStatus": "Dispozitiv",
+      "deviceBound": "Înregistrat",
+      "deviceNotBound": "Neînregistrat — staff-ul trebuie să deschidă Comenzi în timp ce e online",
+      "save": "Salvează",
+      "saving": "Se salvează…",
+      "loadError": "Nu s-au putut încărca setările POS offline",
+      "saveError": "Nu s-au putut salva setările POS offline",
+      "toastSavedTitle": "POS offline salvat",
+      "toastSavedBody": "Staff-ul principal offline a fost actualizat.",
+      "toastSavedRebindBody": "Staff actualizat. Trebuie să înregistreze din nou tableta din Comenzi."
     }
   },
   "feedbackModal": {
