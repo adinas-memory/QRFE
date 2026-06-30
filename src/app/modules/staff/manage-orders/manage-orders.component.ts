@@ -1610,6 +1610,26 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       .subscribe(user => {
         this.restaurantId = user.restaurantId!;
 
+        // #region agent log
+        fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
+          body: JSON.stringify({
+            sessionId: 'd38222',
+            location: 'manage-orders.component.ts:ngOnInit',
+            message: 'bind CTA state on manage orders',
+            data: {
+              designee: user.isOfflinePrimaryStaffDesignee,
+              device: user.isOfflinePrimaryDevice,
+              shouldShowBindDeviceCta: this.shouldShowBindDeviceCta,
+              isOnline: this.isOnline,
+            },
+            hypothesisId: 'H2-cta-gates',
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
+
         this.loadTodayBookings();
 
         forkJoin({
