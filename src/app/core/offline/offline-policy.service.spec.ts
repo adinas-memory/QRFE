@@ -74,4 +74,15 @@ describe('OfflinePolicyService', () => {
     onlineSubject.next(true);
     expect(service.shouldShowBindDeviceCta()).toBeTrue();
   });
+
+  it('shouldShowOfflinePrimaryDeviceBanner when designee on registered device', () => {
+    userSubject.next({
+      id: 'u1',
+      role: 'staff',
+      isOfflinePrimaryStaffDesignee: true,
+      isOfflinePrimaryDevice: true,
+    });
+    expect(service.shouldShowOfflinePrimaryDeviceBanner()).toBeTrue();
+    expect(service.shouldShowBindDeviceCta()).toBeFalse();
+  });
 });

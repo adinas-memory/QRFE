@@ -232,6 +232,7 @@ export interface SetupManageOrdersOptions {
   initiatedByMap?: Record<string, string>;
   isOnline?: boolean;
   isOfflinePrimaryDevice?: boolean;
+  isOfflinePrimaryStaffDesignee?: boolean;
   reservations?: Array<{
     reservationId: string;
     tableId: string;
@@ -392,8 +393,10 @@ export async function setupManageOrdersComponent(
           canUseFullOffline: () =>
             (options.isOnline ?? true) === false && (options.isOfflinePrimaryDevice ?? false),
           shouldShowBindDeviceCta: () => false,
+          shouldShowOfflinePrimaryDeviceBanner: () =>
+            (options.isOfflinePrimaryDevice ?? false) && (options.isOfflinePrimaryStaffDesignee ?? false),
           isOfflinePrimaryDevice: () => options.isOfflinePrimaryDevice ?? false,
-          isOfflinePrimaryStaffDesignee: () => false,
+          isOfflinePrimaryStaffDesignee: () => options.isOfflinePrimaryStaffDesignee ?? false,
         },
       },
       {
