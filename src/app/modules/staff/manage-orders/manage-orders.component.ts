@@ -393,12 +393,44 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     return this.offlinePolicy.shouldShowBindDeviceCta();
   }
 
+  get shouldShowOfflinePrimaryDeviceBanner(): boolean {
+    return this.offlinePolicy.shouldShowOfflinePrimaryDeviceBanner();
+  }
+
   async bindOfflinePrimaryDevice(): Promise<void> {
     if (this.bindOfflinePrimaryInProgress || !this.restaurantId) return;
     this.bindOfflinePrimaryInProgress = true;
     try {
-      await firstValueFrom(this.offlinePrimary.bindDevice(this.restaurantId));
-      await firstValueFrom(this.authService.refreshUserContext({ redirectOnFailure: false }));
+      const bindResult = await firstValueFrom(this.offlinePrimary.bindDevice(this.restaurantId));
+      const snap = this.authService.getUserSnapshot();
+      if (snap) {
+        this.authService.setUser({
+          ...snap,
+          isOfflinePrimaryDevice: bindResult.isOfflinePrimaryDevice === true,
+        });
+      }
+      await firstValueFrom(this.authService.pingSession());
+      // #region agent log
+      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
+        body: JSON.stringify({
+          sessionId: 'd38222',
+          location: 'manage-orders.component.ts:bindOfflinePrimaryDevice',
+          message: 'post-bind user context',
+          data: {
+            bindResult,
+            mergedDevice: this.authService.getUserSnapshot()?.isOfflinePrimaryDevice,
+            shouldShowBindDeviceCta: this.shouldShowBindDeviceCta,
+            canBypassOfflineUiGates: this.canBypassOfflineUiGates,
+            isOnline: this.isOnline,
+          },
+          hypothesisId: 'H3-refresh-wipes-device-flag',
+          runId: 'post-fix',
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
       this.appToast.success(
         this.transloco.translate('manageOrders.bindOfflinePrimarySuccessBody'),
         this.transloco.translate('manageOrders.bindOfflinePrimarySuccessTitle'),

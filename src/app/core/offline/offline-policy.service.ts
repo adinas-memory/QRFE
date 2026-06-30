@@ -29,4 +29,8 @@ export class OfflinePolicyService {
       && this.isOfflinePrimaryStaffDesignee()
       && !this.isOfflinePrimaryDevice(),
   );
+
+  readonly shouldShowOfflinePrimaryDeviceBanner = computed(
+    () => this.isOfflinePrimaryStaffDesignee() && this.isOfflinePrimaryDevice(),
+  );
 }
