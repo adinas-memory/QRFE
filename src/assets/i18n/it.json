@@ -1,22 +1,146 @@
 {
   "landing": {
     "brand": "U.R.S.",
-    "kicker": "Un sistema che riduce il caos nel tuo ristorante e aumenta la velocità di servizio.",
-    "headline": "Universal Restaurant Systems",
-    "subheadline": "POS offline-first per ristoranti. Aggiornamenti in tempo reale, flussi staff e setup semplice.",
-    "ctaPrimary": "Vedi piani",
-    "ctaSecondary": "Il mio account",
-    "pricingTitle": "Scegli il tuo piano",
-    "pricingSubtitle": "Inizia piccolo. Upgrade quando vuoi.",
-    "featuresTitle": "Creato per le operazioni quotidiane",
-    "features": {
-      "realtime": "Aggiornamenti in tempo reale via SSE",
-      "offline": "Offline-first (Dexie) con riconciliazione sicura",
-      "staff": "Flussi Cucina / Bar / Staff",
-      "security": "Accesso basato sui ruoli"
-    },
     "subscribe": "Abbonati",
-    "language": "Lingua"
+    "perMonth": "/mese",
+    "nav": {
+      "features": "Funzionalità",
+      "how": "Come funziona",
+      "pricing": "Prezzi",
+      "contact": "Contatti",
+      "signin": "Accedi",
+      "getstarted": "Inizia ora"
+    },
+    "hero": {
+      "badge": "Funziona completamente offline",
+      "title_pre": "Il POS che fa funzionare il tuo ",
+      "title_accent": "ristorante senza sosta",
+      "title_post": " — con o senza internet.",
+      "lead": "Universal Restaurant Systems è un punto vendita offline-first per caffè, bar e ristoranti. Prendi ordini su qualsiasi dispositivo, stampa scontrini e sincronizza le vendite nel cloud appena torni online.",
+      "cta_primary": "Prova gratis",
+      "cta_secondary": "Scopri come funziona",
+      "note": "Configurazione in pochi minuti · Disdici quando vuoi",
+      "offlineDisclaimer": "La modalità offline è limitata intenzionalmente all'ordine già aperto sul dispositivo. In un ristorante con più dispositivi attivi, un offline-first completo creerebbe rischi di consistenza (ad esempio, due dispositivi potrebbero aprire o modificare lo stesso tavolo in parallelo). Per questo, l'offline-first si applica solo all'ordine corrente, dove non ci sono collisioni."
+    },
+    "mock": {
+      "synced": "Sincronizzato",
+      "receipt": "Scontrino stampato",
+      "today": "+18% oggi",
+      "order": "Tavolo 7 · Ordine #1042",
+      "open": "Aperto",
+      "total": "Totale"
+    },
+    "stat": {
+      "uptime": "Operatività, anche offline",
+      "order": "Tempo medio per ordine",
+      "venues": "Locali serviti",
+      "support": "Supporto umano"
+    },
+    "features": {
+      "eyebrow": "Tutto ciò che ti serve",
+      "title": "Un unico sistema per tutta la sala",
+      "lead": "Dal primo tocco al report di fine giornata — costruito per il ritmo di una vera cucina."
+    },
+    "feat": {
+      "offline": {
+        "t": "Offline al primo posto",
+        "d": "Puoi continuare a vendere anche se cade internet. L'ordine corrente resta completamente funzionale: viene salvato in locale, puoi modificarlo senza restrizioni e la sincronizzazione con il server avviene automaticamente appena torni online."
+      },
+      "mobile": {
+        "t": "Terminale mobile",
+        "d": "Trasforma qualsiasi telefono o tablet in un POS. Prendi gli ordini al tavolo e inviali direttamente in cucina e bar."
+      },
+      "print": {
+        "t": "Stampa scontrini",
+        "d": "Integrazione nativa con stampanti termiche e da cucina. Scontrini puliti, ogni volta, senza driver aggiuntivi."
+      },
+      "cloud": {
+        "t": "Sincronizzazione cloud",
+        "d": "Menu, personale e vendite vivono nel cloud — accessibili da ogni dispositivo, salvati in tempo reale."
+      },
+      "sales": {
+        "t": "Gestione vendite",
+        "d": "Dashboard live, report giornalieri e statistiche sui prodotti per sapere sempre cosa vende e cosa no."
+      },
+      "staff": {
+        "t": "Personale e tavoli",
+        "d": "Gestisci ruoli, turni e disposizione dei tavoli. Ogni cameriere vede solo ciò che gli serve."
+      }
+    },
+    "how": {
+      "eyebrow": "Come funziona",
+      "title": "Operativo prima del prossimo servizio",
+      "s1": {
+        "t": "Crea il tuo menu",
+        "d": "Aggiungi prodotti, categorie e prezzi in pochi minuti — o importali da un foglio di calcolo."
+      },
+      "s2": {
+        "t": "Apri su qualsiasi dispositivo",
+        "d": "Installa su tablet, telefoni o una cassa desktop. Nessun hardware speciale richiesto."
+      },
+      "s3": {
+        "t": "Vendi e sincronizza",
+        "d": "Prendi ordini, stampa scontrini e guarda le vendite arrivare nella dashboard cloud."
+      },
+      "cta": "Inizia ora",
+      "panel": "Vendite di oggi",
+      "live": "Live",
+      "revenue": "Incassi",
+      "orders": "Ordini",
+      "avg": "Scontrino medio"
+    },
+    "pricing": {
+      "eyebrow": "Prezzi semplici",
+      "title": "Piani che crescono con il tuo locale",
+      "lead": "Inizia gratis. Fai l'upgrade quando cresci. Nessun contratto lungo."
+    },
+    "price": {
+      "popular": "Più popolare",
+      "starter": {
+        "n": "Starter",
+        "d": "Per una singola cassa o food truck.",
+        "f1": "1 dispositivo",
+        "f2": "Ordini offline",
+        "f3": "Stampa scontrini",
+        "f4": "Report di base",
+        "cta": "Inizia gratis"
+      },
+      "pro": {
+        "n": "Pro",
+        "d": "Per ristoranti e bar affollati.",
+        "f1": "Fino a 8 dispositivi",
+        "f2": "Sincronizzazione e backup cloud",
+        "f3": "Gestione personale e tavoli",
+        "f4": "Analisi avanzate",
+        "cta": "Prova gratis"
+      },
+      "ent": {
+        "n": "Enterprise",
+        "d": "Per catene e sedi multiple.",
+        "amount": "Su misura",
+        "f1": "Dispositivi illimitati",
+        "f2": "Dashboard multi-sede",
+        "f3": "Supporto prioritario",
+        "f4": "Integrazioni personalizzate",
+        "cta": "Contatta le vendite"
+      }
+    },
+    "cta": {
+      "title": "Pronto a modernizzare la tua cassa?",
+      "lead": "Configura oggi, vendi stasera con Universal Restaurant Systems.",
+      "primary": "Prova gratis",
+      "secondary": "Parla con le vendite"
+    },
+    "footer": {
+      "tagline": "POS per ristoranti offline-first, terminale mobile e gestione vendite nel cloud — pensato per le piccole attività.",
+      "product": "Prodotto",
+      "company": "Azienda",
+      "about": "Chi siamo",
+      "blog": "Blog",
+      "newsletter": "Resta aggiornato",
+      "email": "tu@ristorante.it",
+      "rights": "© 2026 Universal Restaurant Systems. Tutti i diritti riservati."
+    }
   },
   "seo": {
     "landingTitle": "U.R.S. | Sistema POS Ristoranti — Software POS Cloud & Mobile",

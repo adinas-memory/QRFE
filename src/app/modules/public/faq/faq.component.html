@@ -5,16 +5,12 @@
   [class.faq--page]="!embedded()"
 >
   <c-container [fluid]="embedded()" class="py-5">
-    @if (!embedded()) {
-      <p class="mb-3">
-        <a cButton color="secondary" variant="outline" routerLink="/" class="border-0 px-0 shadow-none text-decoration-none">
-          ← {{ 'faq.backHome' | transloco }}
-        </a>
-      </p>
-    }
-
     <div class="faq-head">
-      <h2 class="faq-title">{{ (embedded() ? 'faq.sectionTitle' : 'faq.pageTitle') | transloco }}</h2>
+      @if (embedded()) {
+        <h2 class="faq-title">{{ 'faq.sectionTitle' | transloco }}</h2>
+      } @else {
+        <h1 class="faq-title">{{ 'faq.pageTitle' | transloco }}</h1>
+      }
       <p class="faq-intro text-muted mb-0">{{ (embedded() ? 'faq.sectionSubtitle' : 'faq.pageIntro') | transloco }}</p>
     </div>
 
@@ -72,7 +68,7 @@
 
     @if (compact()) {
       <div class="mt-4 d-flex justify-content-center">
-        <a cButton color="info" variant="outline" routerLink="/faq">
+        <a class="btn btn-outline-primary" routerLink="/faq">
           {{ 'faq.viewFull' | transloco }}
         </a>
       </div>

@@ -1,29 +1,187 @@
 {
   "landing": {
     "brand": "U.R.S.",
-    "kicker": "Un sistem care îți reduce haosul din restaurant și îți crește viteza de servire.",
-    "headline": "Universal Restaurant Systems",
-    "subheadline": "POS offline-first pentru restaurante. Update-uri în timp real, fluxuri pentru staff și setup curat.",
-    "ctaPrimary": "Vezi pachete",
-    "ctaSecondary": "Contul meu",
-    "pricingTitle": "Alege pachetul",
-    "pricingSubtitle": "Începe simplu. Upgrade oricând.",
-    "featuresTitle": "Gândit pentru operațiuni zilnice",
-    "features": {
-      "realtime": "Update-uri în timp real prin SSE",
-      "offline": "Offline-first (Dexie) cu reconciliere sigură",
-      "staff": "Fluxuri Kitchen / Bar / Staff",
-      "security": "Acces pe roluri"
-    },
     "subscribe": "Abonează-te",
-    "language": "Limbă"
+    "perMonth": "/lună",
+    "nav": {
+      "features": "Funcționalități",
+      "how": "Cum funcționează",
+      "pricing": "Prețuri",
+      "contact": "Contact",
+      "signin": "Autentificare",
+      "getstarted": "Începe acum"
+    },
+    "hero": {
+      "badge": "Funcționează complet offline",
+      "title_pre": "POS-ul care îți ține ",
+      "title_accent": "restaurantul în funcțiune",
+      "title_post": " — cu sau fără internet.",
+      "lead": "Universal Restaurant Systems este un sistem POS offline-first pentru cafenele, baruri și restaurante. Preiei comenzi pe orice dispozitiv, tipărești bonuri și sincronizezi vânzările în cloud imediat ce revii online.",
+      "cta_primary": "Începe gratuit",
+      "cta_secondary": "Vezi cum funcționează",
+      "note": "Configurare în câteva minute · Anulezi oricând",
+      "offlineDisclaimer": "Modul offline este limitat intenționat la orderul deja deschis pe dispozitiv. Într-un restaurant cu mai multe dispozitive active, un offline-first complet ar crea riscuri de consistență (de exemplu, două dispozitive ar putea deschide sau edita aceeași masă în paralel). De aceea, offline-first este aplicat doar pentru orderul curent, unde nu există coliziuni."
+    },
+    "mock": {
+      "synced": "Sincronizat",
+      "receipt": "Bon tipărit",
+      "today": "+18% azi",
+      "order": "Masa 7 · Comanda #1042",
+      "open": "Deschisă",
+      "total": "Total"
+    },
+    "stat": {
+      "uptime": "Disponibilitate, chiar și offline",
+      "order": "Timp mediu per comandă",
+      "venues": "Localuri deservite",
+      "support": "Suport uman real"
+    },
+    "features": {
+      "eyebrow": "Tot ce ai nevoie",
+      "title": "Un singur sistem pentru tot localul",
+      "lead": "De la prima comandă până la raportul de final de zi — construit pentru ritmul unui restaurant real."
+    },
+    "feat": {
+      "offline": {
+        "t": "Offline în primul rând",
+        "d": "Poți continua să vinzi chiar dacă pică internetul. Orderul curent rămâne complet funcțional: se salvează local, îl poți modifica fără restricții, iar sincronizarea cu serverul se face automat imediat ce revii online."
+      },
+      "mobile": {
+        "t": "Terminal mobil",
+        "d": "Transformi orice telefon sau tabletă într-un POS. Preiei comenzi la masă și le trimiți direct la bucătărie și bar."
+      },
+      "print": {
+        "t": "Tipărire bonuri",
+        "d": "Integrare nativă cu imprimante termice și de bucătărie. Bonuri curate, de fiecare dată, fără drivere suplimentare."
+      },
+      "cloud": {
+        "t": "Sincronizare cloud",
+        "d": "Meniul, personalul și vânzările stau în cloud — accesibile de pe orice dispozitiv, salvate în timp real."
+      },
+      "sales": {
+        "t": "Management vânzări",
+        "d": "Panouri live, rapoarte zilnice și statistici pe produse, ca să știi mereu ce se vinde și ce nu."
+      },
+      "staff": {
+        "t": "Personal & mese",
+        "d": "Gestionezi roluri, ture și planul meselor. Fiecare ospătar vede exact ce are nevoie, nimic în plus."
+      }
+    },
+    "how": {
+      "eyebrow": "Cum funcționează",
+      "title": "Gata de treabă înainte de următoarea tură",
+      "s1": {
+        "t": "Creează-ți meniul",
+        "d": "Adaugi produse, categorii și prețuri în câteva minute — sau le imporți dintr-un fișier."
+      },
+      "s2": {
+        "t": "Deschide pe orice dispozitiv",
+        "d": "Instalezi pe tablete, telefoane sau o casă desktop. Fără hardware special."
+      },
+      "s3": {
+        "t": "Vinde & sincronizează",
+        "d": "Preiei comenzi, tipărești bonuri și vezi vânzările cum apar în panoul din cloud."
+      },
+      "cta": "Începe acum",
+      "panel": "Vânzările de azi",
+      "live": "În timp real",
+      "revenue": "Încasări",
+      "orders": "Comenzi",
+      "avg": "Bon mediu"
+    },
+    "pricing": {
+      "eyebrow": "Prețuri simple",
+      "title": "Planuri care cresc odată cu localul tău",
+      "lead": "Începe gratuit. Faci upgrade când crești. Fără contracte lungi."
+    },
+    "price": {
+      "popular": "Cel mai popular",
+      "starter": {
+        "n": "Starter",
+        "d": "Pentru o singură casă sau food truck.",
+        "f1": "1 dispozitiv",
+        "f2": "Comenzi offline",
+        "f3": "Tipărire bonuri",
+        "f4": "Rapoarte de bază",
+        "cta": "Începe gratuit"
+      },
+      "pro": {
+        "n": "Pro",
+        "d": "Pentru restaurante și baruri aglomerate.",
+        "f1": "Până la 8 dispozitive",
+        "f2": "Sincronizare & backup cloud",
+        "f3": "Management personal & mese",
+        "f4": "Analize avansate",
+        "cta": "Începe perioada gratuită"
+      },
+      "ent": {
+        "n": "Enterprise",
+        "d": "Pentru lanțuri și locații multiple.",
+        "amount": "Personalizat",
+        "f1": "Dispozitive nelimitate",
+        "f2": "Panou multi-locație",
+        "f3": "Suport prioritar",
+        "f4": "Integrări personalizate",
+        "cta": "Contactează vânzări"
+      }
+    },
+    "cta": {
+      "title": "Gata să-ți modernizezi casa de marcat?",
+      "lead": "Configurezi azi, vinzi diseară cu Universal Restaurant Systems.",
+      "primary": "Începe gratuit",
+      "secondary": "Vorbește cu vânzări"
+    },
+    "footer": {
+      "tagline": "POS pentru restaurante offline-first, terminal mobil și management al vânzărilor în cloud — creat pentru afaceri mici.",
+      "product": "Produs",
+      "company": "Companie",
+      "about": "Despre",
+      "blog": "Blog",
+      "newsletter": "Rămâi la curent",
+      "email": "tu@restaurant.ro",
+      "rights": "© 2026 Universal Restaurant Systems. Toate drepturile rezervate."
+    }
   },
   "seo": {
     "landingTitle": "U.R.S. | Sistem POS Restaurant — Software POS & Casă de Marcat",
     "landingDescription": "Universal Restaurant Systems: sistem POS offline-first pentru restaurante, POS mobil, terminal de plată, imprimantă bonuri, gestiune stocuri, raportare vânzări și POS în cloud pentru mici afaceri.",
     "faqTitle": "U.R.S. FAQ | Sistem POS & Software POS Restaurant",
     "faqDescription": "Întrebări frecvente despre sistemul POS U.R.S.: POS restaurant, Printer Agent, comenzi offline, meniu QR, plăți Stripe și fluxuri staff.",
+    "contactTitle": "Contact U.R.S. | Universal Restaurant Systems",
+    "contactDescription": "Contactează Universal Restaurant Systems pentru vânzări, suport și parteneriate legate de platforma POS offline-first pentru restaurante.",
+    "privacyTitle": "Politica de confidențialitate | Universal Restaurant Systems",
+    "privacyDescription": "Politica de confidențialitate pentru software-ul POS Universal Restaurant Systems (U.R.S.), date colectate și drepturile GDPR.",
+    "termsTitle": "Termeni și condiții | Universal Restaurant Systems",
+    "termsDescription": "Termeni și condiții pentru abonamentele și serviciile Universal Restaurant Systems (U.R.S.) pentru restaurante.",
     "keywords": "sistem POS, casă de marcat, software POS, POS restaurant, POS ieftin, cel mai bun POS, POS pentru mici afaceri, POS pentru restaurante, terminal POS, terminal de plată, POS mobil, cititor card, imprimantă bonuri, POS retail, gestiune stocuri, management vânzări, POS în cloud, POS online, raportare vânzări, integrare ERP"
+  },
+  "legal": {
+    "contact": {
+      "pageTitle": "Contact",
+      "intro": "Contactează echipa Universal Restaurant Systems pentru vânzări, onboarding sau suport tehnic.",
+      "p1": "Ajutăm restaurante, baruri și cafenele să pornească cu POS offline-first, meniuri QR, fluxuri bucătărie și integrare imprimante.",
+      "p2": "Pentru informații generale și vânzări, scrie-ne pe email. Pentru suport tehnic, sună-ne sau scrie pe WhatsApp în programul de lucru."
+    },
+    "privacy": {
+      "nav": "Confidențialitate",
+      "pageTitle": "Politica de confidențialitate",
+      "intro": "Această politică descrie cum Universal Restaurant Systems prelucrează datele personale când folosești site-ul și platforma POS.",
+      "p1": "Colectăm date de cont, restaurant și utilizare necesare pentru serviciul U.R.S., abonamente Stripe și suport pentru staff.",
+      "p2": "Nu vindem date personale. Furnizorii (hosting, email, plăți) accesează datele doar pentru a livra serviciul.",
+      "p3": "Operatorii de restaurant sunt responsabili pentru datele oaspeților colectate prin meniuri QR și comenzi, conform legii.",
+      "p4": "Poți solicita acces, rectificare sau ștergere a datelor personale contactându-ne la ciao@universalrestaurant.systems.",
+      "p5": "Putem actualiza această politică. Modificările importante vor fi reflectate pe această pagină."
+    },
+    "terms": {
+      "nav": "Termeni",
+      "pageTitle": "Termeni și condiții",
+      "intro": "Acești termeni guvernează utilizarea software-ului și abonamentelor Universal Restaurant Systems.",
+      "p1": "Prin crearea unui cont sau abonare, ești de acord să folosești U.R.S. conform legii și doar pentru operațiuni legitime de restaurant.",
+      "p2": "Abonamentele sunt facturate prin Stripe conform planului ales. Taxele, reînnoirea și anularea urmează condițiile de la checkout.",
+      "p3": "Serviciul este furnizat „ca atare”. Disponibilitatea depinde de dispozitivele și conectivitatea tale.",
+      "p4": "Ești responsabil pentru credențialele staff, configurarea imprimantelor și acuratețea meniului, prețurilor și taxelor.",
+      "p5": "Întrebări despre acești termeni: ciao@universalrestaurant.systems."
+    }
   },
   "footer": {
     "copyright": "© Universal Restaurant Systems",
@@ -36,6 +194,8 @@
     "emailSalesAria": "Trimite email pentru informații generale și vânzări",
     "emailPurpose": "Informații generale și vânzări",
     "whatsappPurpose": "Doar suport tehnic",
+    "phoneTelPurpose": "Suport telefonic",
+    "phoneTelAria": "Sună-ne la telefon",
     "contact": "Contact"
   },
   "dashboard": {
@@ -265,8 +425,32 @@
     "eventLogout": "Deconectare"
   },
   "manageOrders": {
-    "orderLockedForPaymentTitle": "Comandă blocată pentru plată",
-    "orderLockedForPaymentBody": "Clientul plătește acum această comandă. Te rugăm să aștepți confirmarea plății înainte să mai modifici produsele."
+    "tabAll": "Toate",
+    "tabFree": "Mese libere",
+    "tabOccupied": "Mese ocupate",
+    "total": "Total:",
+    "itemsLabel": "Produse:",
+    "lastLabel": "Ultimul:",
+    "updated": "Actualizat:",
+    "by": "de",
+    "byCardPayment": "plată cu cardul",
+    "hapticsToggle": "Vibrație la ridicare (acest dispozitiv)",
+    "kitchenPickup": "Ridicare bucătărie",
+    "barPickup": "Ridicare bar",
+    "pickedUp": "Ridicat",
+    "seeOrder": "Vezi comanda",
+    "openTable": "Deschide masa",
+    "closeOrderConfirm": "Sigur vrei să închizi această comandă?",
+    "cancel": "Anulează",
+    "closeOrder": "Închide comanda",
+    "print": "Printează",
+    "printQueuedTitle": "Notă de plată",
+    "printQueuedBody": "Nota de plată a fost trimisă la imprimantă.",
+    "printNoPrinterTitle": "Notă de plată",
+    "printNoPrinterBody": "Nu există o imprimantă configurată/raportată de Printer Agent.",
+    "printErrorTitle": "Notă de plată",
+    "printErrorBody": "Nu s-a putut trimite nota de plată la imprimantă.",
+    "bookingsToday": "Rezervări azi"
   },
   "salesReports": {
     "title": "Rapoarte vânzări și contabilitate",
@@ -654,34 +838,6 @@
     "toastThanksTitle": "Feedback",
     "toastErrorTitle": "Nu s-a putut trimite feedback-ul"
   },
-  "manageOrders": {
-    "tabAll": "Toate",
-    "tabFree": "Mese libere",
-    "tabOccupied": "Mese ocupate",
-    "total": "Total:",
-    "itemsLabel": "Produse:",
-    "lastLabel": "Ultimul:",
-    "updated": "Actualizat:",
-    "by": "de",
-    "byCardPayment": "plată cu cardul",
-    "hapticsToggle": "Vibrație la ridicare (acest dispozitiv)",
-    "kitchenPickup": "Ridicare bucătărie",
-    "barPickup": "Ridicare bar",
-    "pickedUp": "Ridicat",
-    "seeOrder": "Vezi comanda",
-    "openTable": "Deschide masa",
-    "closeOrderConfirm": "Sigur vrei să închizi această comandă?",
-    "cancel": "Anulează",
-    "closeOrder": "Închide comanda",
-    "print": "Printează",
-    "printQueuedTitle": "Notă de plată",
-    "printQueuedBody": "Nota de plată a fost trimisă la imprimantă.",
-    "printNoPrinterTitle": "Notă de plată",
-    "printNoPrinterBody": "Nu există o imprimantă configurată/raportată de Printer Agent.",
-    "printErrorTitle": "Notă de plată",
-    "printErrorBody": "Nu s-a putut trimite nota de plată la imprimantă.",
-    "bookingsToday": "Rezervări azi"
-  },
   "faq": {
     "navLink": "Întrebări",
     "backHome": "Înapoi la pagina principală",
@@ -800,4 +956,3 @@
     }
   }
 }
-

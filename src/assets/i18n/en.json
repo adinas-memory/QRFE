@@ -1,29 +1,187 @@
 {
   "landing": {
     "brand": "U.R.S.",
-    "kicker": "A system that reduces chaos in your restaurant and increases your serving speed.",
-    "headline": "Universal Restaurant Systems",
-    "subheadline": "Offline-first POS for restaurants. Real-time updates, staff workflows, and a clean setup flow.",
-    "ctaPrimary": "See plans",
-    "ctaSecondary": "My account",
-    "pricingTitle": "Choose your plan",
-    "pricingSubtitle": "Start small. Upgrade anytime.",
-    "featuresTitle": "Built for daily operations",
-    "features": {
-      "realtime": "Real-time updates via SSE",
-      "offline": "Offline-first (Dexie) with safe reconciliation",
-      "staff": "Kitchen / Bar / Staff flows",
-      "security": "Role-based access"
-    },
     "subscribe": "Subscribe",
-    "language": "Language"
+    "perMonth": "/mo",
+    "nav": {
+      "features": "Features",
+      "how": "How it works",
+      "pricing": "Pricing",
+      "contact": "Contact",
+      "signin": "Sign in",
+      "getstarted": "Get started"
+    },
+    "hero": {
+      "badge": "Works fully offline",
+      "title_pre": "The POS that keeps your ",
+      "title_accent": "restaurant running",
+      "title_post": " — online or not.",
+      "lead": "Universal Restaurant Systems is an offline-first point of sale for cafés, bars and restaurants. Take orders on any device, print receipts, and sync sales to the cloud the moment you reconnect.",
+      "cta_primary": "Start free trial",
+      "cta_secondary": "See how it works",
+      "note": "Set up in minutes · Cancel anytime",
+      "offlineDisclaimer": "Offline mode is intentionally limited to the order already open on the device. In a restaurant with multiple active devices, full offline-first would create consistency risks (for example, two devices could open or edit the same table in parallel). Therefore, offline-first applies only to the current order, where there are no collisions."
+    },
+    "mock": {
+      "synced": "Synced",
+      "receipt": "Receipt printed",
+      "today": "+18% today",
+      "order": "Table 7 · Order #1042",
+      "open": "Open",
+      "total": "Total"
+    },
+    "stat": {
+      "uptime": "Uptime, even offline",
+      "order": "Average order time",
+      "venues": "Venues served",
+      "support": "Human support"
+    },
+    "features": {
+      "eyebrow": "Everything you need",
+      "title": "One system for the whole floor",
+      "lead": "From the first tap to the end-of-day report — built for the pace of a real kitchen."
+    },
+    "feat": {
+      "offline": {
+        "t": "Offline-first",
+        "d": "You can keep selling even when the internet goes down. The current order stays fully functional: it is saved locally, you can edit it without restrictions, and synchronization with the server happens automatically as soon as you are back online."
+      },
+      "mobile": {
+        "t": "Mobile terminal",
+        "d": "Turn any phone or tablet into a POS. Take orders at the table and send them straight to the kitchen and bar."
+      },
+      "print": {
+        "t": "Receipt printing",
+        "d": "Native integration with thermal and kitchen printers. Clean tickets, every time, with no extra drivers."
+      },
+      "cloud": {
+        "t": "Cloud sync",
+        "d": "Your menu, staff and sales live in the cloud — accessible from any device, backed up in real time."
+      },
+      "sales": {
+        "t": "Sales management",
+        "d": "Live dashboards, daily reports and product insights so you always know what's selling and what isn't."
+      },
+      "staff": {
+        "t": "Staff & tables",
+        "d": "Manage roles, shifts and table layouts. Each waiter sees exactly what they need, nothing more."
+      }
+    },
+    "how": {
+      "eyebrow": "How it works",
+      "title": "Up and running before the next service",
+      "s1": {
+        "t": "Build your menu",
+        "d": "Add products, categories and prices in minutes — or import them from a spreadsheet."
+      },
+      "s2": {
+        "t": "Open on any device",
+        "d": "Install on tablets, phones or a desktop till. No special hardware required."
+      },
+      "s3": {
+        "t": "Sell & sync",
+        "d": "Take orders, print receipts and watch sales roll into your cloud dashboard."
+      },
+      "cta": "Get started",
+      "panel": "Today's sales",
+      "live": "Live",
+      "revenue": "Revenue",
+      "orders": "Orders",
+      "avg": "Avg ticket"
+    },
+    "pricing": {
+      "eyebrow": "Simple pricing",
+      "title": "Plans that scale with your venue",
+      "lead": "Start free. Upgrade when you grow. No long contracts."
+    },
+    "price": {
+      "popular": "Most popular",
+      "starter": {
+        "n": "Starter",
+        "d": "For a single till or food truck.",
+        "f1": "1 device",
+        "f2": "Offline orders",
+        "f3": "Receipt printing",
+        "f4": "Basic reports",
+        "cta": "Start free"
+      },
+      "pro": {
+        "n": "Pro",
+        "d": "For busy restaurants & bars.",
+        "f1": "Up to 8 devices",
+        "f2": "Cloud sync & backup",
+        "f3": "Staff & table management",
+        "f4": "Advanced analytics",
+        "cta": "Start free trial"
+      },
+      "ent": {
+        "n": "Enterprise",
+        "d": "For chains & multiple locations.",
+        "amount": "Custom",
+        "f1": "Unlimited devices",
+        "f2": "Multi-venue dashboard",
+        "f3": "Priority support",
+        "f4": "Custom integrations",
+        "cta": "Contact sales"
+      }
+    },
+    "cta": {
+      "title": "Ready to modernise your counter?",
+      "lead": "Set up today, sell tonight with Universal Restaurant Systems.",
+      "primary": "Start free trial",
+      "secondary": "Talk to sales"
+    },
+    "footer": {
+      "tagline": "Offline-first restaurant POS, mobile terminal and cloud sales management — built for small businesses.",
+      "product": "Product",
+      "company": "Company",
+      "about": "About",
+      "blog": "Blog",
+      "newsletter": "Stay in the loop",
+      "email": "you@restaurant.com",
+      "rights": "© 2026 Universal Restaurant Systems. All rights reserved."
+    }
   },
   "seo": {
     "landingTitle": "U.R.S. | Restaurant POS System — Cloud & Mobile POS Software",
     "landingDescription": "Universal Restaurant Systems: offline-first restaurant POS, mobile POS terminal, cloud POS software, payment terminal, receipt printer integration, inventory and sales management for small businesses.",
     "faqTitle": "U.R.S. FAQ | Restaurant POS System & POS Software",
     "faqDescription": "Answers about U.R.S. restaurant POS: mobile POS, printer agent, offline orders, QR menu, Stripe payments, inventory and staff workflows.",
+    "contactTitle": "Contact U.R.S. | Universal Restaurant Systems",
+    "contactDescription": "Contact Universal Restaurant Systems for sales, support and partnership inquiries about our offline-first restaurant POS platform.",
+    "privacyTitle": "Privacy Policy | Universal Restaurant Systems",
+    "privacyDescription": "Privacy policy for Universal Restaurant Systems (U.R.S.) restaurant POS software, covering data we collect and your GDPR rights.",
+    "termsTitle": "Terms & Conditions | Universal Restaurant Systems",
+    "termsDescription": "Terms and conditions for using Universal Restaurant Systems (U.R.S.) restaurant POS subscriptions and related services.",
     "keywords": "best POS system, POS for small business, restaurant POS, mobile POS, cloud POS, cheap POS system, POS terminal price, POS system, cash register, POS software, POS terminal, payment terminal, card reader, receipt printer, retail POS, inventory management, sales management, online POS, sales reporting, ERP integration, cheap POS, POS for restaurants"
+  },
+  "legal": {
+    "contact": {
+      "pageTitle": "Contact us",
+      "intro": "Reach the Universal Restaurant Systems team for sales, onboarding or technical support.",
+      "p1": "We help restaurants, bars and cafés get started with offline-first POS, QR menus, kitchen workflows and printer integration.",
+      "p2": "For general inquiries and sales, email us. For technical support, call or message us on WhatsApp during business hours."
+    },
+    "privacy": {
+      "nav": "Privacy",
+      "pageTitle": "Privacy policy",
+      "intro": "This policy describes how Universal Restaurant Systems processes personal data when you use our website and POS platform.",
+      "p1": "We collect account, restaurant and usage data needed to provide the U.R.S. service, process subscriptions via Stripe, and support your staff workflows.",
+      "p2": "We do not sell personal data. Processors such as hosting, email and payment providers access data only to deliver the service.",
+      "p3": "Restaurant operators are responsible for guest data collected through QR menus and orders in their venue, subject to applicable law.",
+      "p4": "You may request access, correction or deletion of your personal data by contacting us at ciao@universalrestaurant.systems.",
+      "p5": "We may update this policy from time to time. Material changes will be reflected on this page with an updated effective date."
+    },
+    "terms": {
+      "nav": "Terms",
+      "pageTitle": "Terms & conditions",
+      "intro": "These terms govern your use of Universal Restaurant Systems software and subscription services.",
+      "p1": "By creating an account or subscribing, you agree to use U.R.S. in compliance with applicable laws and only for legitimate restaurant operations.",
+      "p2": "Subscriptions are billed through Stripe according to the plan selected. Fees, renewal and cancellation follow the terms shown at checkout.",
+      "p3": "The service is provided on an as-available basis. We strive for high availability but offline and online features depend on your devices and connectivity.",
+      "p4": "You are responsible for safeguarding staff credentials, configuring printers, and the accuracy of menu, pricing and tax information in your venue.",
+      "p5": "Contact us with questions about these terms at ciao@universalrestaurant.systems."
+    }
   },
   "footer": {
     "copyright": "© Universal Restaurant Systems",
@@ -36,6 +194,8 @@
     "emailSalesAria": "Email us for general inquiries and sales",
     "emailPurpose": "General inquiries & sales",
     "whatsappPurpose": "Technical support only",
+    "phoneTelPurpose": "Phone support",
+    "phoneTelAria": "Call us by phone",
     "contact": "Contact"
   },
   "dashboard": {
@@ -265,8 +425,32 @@
     "eventLogout": "Sign out"
   },
   "manageOrders": {
-    "orderLockedForPaymentTitle": "Order locked for payment",
-    "orderLockedForPaymentBody": "A client is currently paying for this order. Please wait for the payment to complete before editing items."
+    "tabAll": "All",
+    "tabFree": "Free tables",
+    "tabOccupied": "Occupied tables",
+    "total": "Total:",
+    "itemsLabel": "Items:",
+    "lastLabel": "Last:",
+    "updated": "Updated:",
+    "by": "by",
+    "byCardPayment": "card payment",
+    "hapticsToggle": "Vibration on pickup (this device)",
+    "kitchenPickup": "Kitchen pickup",
+    "barPickup": "Bar pickup",
+    "pickedUp": "Picked up",
+    "seeOrder": "See order",
+    "openTable": "Open table",
+    "closeOrderConfirm": "Are you sure you want to close this order?",
+    "cancel": "Cancel",
+    "closeOrder": "Close order",
+    "print": "Print",
+    "printQueuedTitle": "Bill",
+    "printQueuedBody": "Bill print job queued.",
+    "printNoPrinterTitle": "Bill",
+    "printNoPrinterBody": "No printer configured/reported by Printer Agent.",
+    "printErrorTitle": "Bill",
+    "printErrorBody": "Could not queue bill print job.",
+    "bookingsToday": "Today's bookings"
   },
   "salesReports": {
     "title": "Sales & accounting reports",
@@ -654,34 +838,6 @@
     "toastThanksTitle": "Feedback",
     "toastErrorTitle": "Could not send feedback"
   },
-  "manageOrders": {
-    "tabAll": "All",
-    "tabFree": "Free tables",
-    "tabOccupied": "Occupied tables",
-    "total": "Total:",
-    "itemsLabel": "Items:",
-    "lastLabel": "Last:",
-    "updated": "Updated:",
-    "by": "by",
-    "byCardPayment": "card payment",
-    "hapticsToggle": "Vibration on pickup (this device)",
-    "kitchenPickup": "Kitchen pickup",
-    "barPickup": "Bar pickup",
-    "pickedUp": "Picked up",
-    "seeOrder": "See order",
-    "openTable": "Open table",
-    "closeOrderConfirm": "Are you sure you want to close this order?",
-    "cancel": "Cancel",
-    "closeOrder": "Close order",
-    "print": "Print",
-    "printQueuedTitle": "Bill",
-    "printQueuedBody": "Bill print job queued.",
-    "printNoPrinterTitle": "Bill",
-    "printNoPrinterBody": "No printer configured/reported by Printer Agent.",
-    "printErrorTitle": "Bill",
-    "printErrorBody": "Could not queue bill print job.",
-    "bookingsToday": "Today's bookings"
-  },
   "faq": {
     "navLink": "FAQ",
     "backHome": "Back to home",
@@ -800,4 +956,3 @@
     }
   }
 }
-

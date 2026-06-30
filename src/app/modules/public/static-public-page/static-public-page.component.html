@@ -1,0 +1,28 @@
+<app-public-urs-shell [fragmentNav]="true" mainTopPadding="6rem">
+  @if (config) {
+    <section class="section legal-page">
+      <c-container>
+        <h1 class="legal-page-title">{{ config.titleKey | transloco }}</h1>
+        <p class="legal-page-intro urs-lead">{{ config.introKey | transloco }}</p>
+
+        @if (config.showContactCards) {
+          <div class="legal-contact-cards d-flex flex-wrap gap-3 mb-4">
+            <a class="btn btn-outline-primary" [href]="phoneTelUrl">
+              <i class="bi bi-telephone me-2"></i>{{ phoneDisplay }}
+            </a>
+            <a class="btn btn-outline-primary" [href]="'mailto:' + companyEmail">
+              <i class="bi bi-envelope me-2"></i>{{ companyEmail }}
+            </a>
+            <a class="btn btn-outline-primary" [href]="whatsappUrl" target="_blank" rel="noopener noreferrer">
+              <i class="bi bi-whatsapp me-2"></i>{{ 'footer.phoneWhatsapp' | transloco }}
+            </a>
+          </div>
+        }
+
+        @for (key of config.paragraphKeys; track key) {
+          <p class="legal-page-paragraph">{{ key | transloco }}</p>
+        }
+      </c-container>
+    </section>
+  }
+</app-public-urs-shell>

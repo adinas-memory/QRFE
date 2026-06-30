@@ -1,0 +1,23 @@
+.legal-page-title {
+  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  font-size: clamp(1.75rem, 3.5vw, 2.4rem);
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.legal-page-intro {
+  max-width: 720px;
+  margin-bottom: 1.5rem;
+}
+
+.legal-page-paragraph {
+  max-width: 820px;
+  color: var(--ink-soft, #426067);
+  line-height: 1.7;
+  margin-bottom: 1rem;
+}
+
+.legal-contact-cards .btn {
+  display: inline-flex;
+  align-items: center;
+}

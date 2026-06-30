@@ -21,7 +21,12 @@ export class SubscriptionService {
   constructor(private http: HttpClient) { }
 
   getProductsLimits(): Observable<ProductLimitModel[]> {
-    return this.http.get<ProductLimitModel[]>(`${this.apiUrl}/api/user/restaurant-limits`);
+    return this.http.get<ProductLimitModel[]>(`${this.apiUrl}/api/user/restaurant-limits`).pipe(
+      catchError(err => {
+        console.error('Failed to load subscription product limits', err);
+        return of([]);
+      }),
+    );
   }
 
   loadProducts(): void {
@@ -34,8 +39,36 @@ export class SubscriptionService {
 
   /** Expose products as observable */
   getProducts(): Observable<SubscriptionProductModel[]> {
-    return this.http.get<SubscriptionProductModel[]>(`${this.apiUrl}/api/stripe/subscription`)
-      .pipe(shareReplay(1));
+    return this.http.get<SubscriptionProductModel[] | { products?: SubscriptionProductModel[] }>(
+      `${this.apiUrl}/api/stripe/subscription`,
+    ).pipe(
+      map(raw => this.normalizeProductsResponse(raw)),
+      catchError(err => {
+        console.error('Failed to load subscription products', err);
+        return of([]);
+      }),
+      shareReplay(1),
+    );
+  }
+
+  private normalizeProductsResponse(
+    raw: SubscriptionProductModel[] | { products?: SubscriptionProductModel[] } | null | undefined,
+  ): SubscriptionProductModel[] {
+    if (Array.isArray(raw)) {
+      return raw.map(p => this.normalizeProduct(p));
+    }
+    if (raw && Array.isArray(raw.products)) {
+      return raw.products.map(p => this.normalizeProduct(p));
+    }
+    return [];
+  }
+
+  private normalizeProduct(raw: SubscriptionProductModel): SubscriptionProductModel {
+    return {
+      ...raw,
+      restaurantType: (raw.restaurantType ?? '').toLowerCase(),
+      subscriptionInterval: raw.subscriptionInterval ?? 'month',
+    };
   }
 
   createProduct(payload: any): Observable<CreateSubscriptionProductModel> {

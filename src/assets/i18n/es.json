@@ -1,22 +1,146 @@
 {
   "landing": {
     "brand": "U.R.S.",
-    "kicker": "Un sistema que reduce el caos en tu restaurante y aumenta la velocidad de servicio.",
-    "headline": "Universal Restaurant Systems",
-    "subheadline": "POS offline-first para restaurantes. Actualizaciones en tiempo real, flujos de staff y configuración simple.",
-    "ctaPrimary": "Ver planes",
-    "ctaSecondary": "Mi cuenta",
-    "pricingTitle": "Elige tu plan",
-    "pricingSubtitle": "Empieza pequeño. Mejora cuando quieras.",
-    "featuresTitle": "Hecho para el día a día",
-    "features": {
-      "realtime": "Actualizaciones en tiempo real vía SSE",
-      "offline": "Offline-first (Dexie) con reconciliación segura",
-      "staff": "Flujos Cocina / Bar / Staff",
-      "security": "Acceso basado en roles"
-    },
     "subscribe": "Suscribirse",
-    "language": "Idioma"
+    "perMonth": "/mes",
+    "nav": {
+      "features": "Funciones",
+      "how": "Cómo funciona",
+      "pricing": "Precios",
+      "contact": "Contacto",
+      "signin": "Iniciar sesión",
+      "getstarted": "Empezar"
+    },
+    "hero": {
+      "badge": "Funciona totalmente sin conexión",
+      "title_pre": "El TPV que mantiene tu ",
+      "title_accent": "restaurante en marcha",
+      "title_post": " — con o sin internet.",
+      "lead": "Universal Restaurant Systems es un punto de venta sin conexión para cafeterías, bares y restaurantes. Toma pedidos en cualquier dispositivo, imprime tickets y sincroniza las ventas en la nube en cuanto vuelves a conectarte.",
+      "cta_primary": "Prueba gratis",
+      "cta_secondary": "Ver cómo funciona",
+      "note": "Configuración en minutos · Cancela cuando quieras",
+      "offlineDisclaimer": "El modo sin conexión está limitado intencionalmente al pedido ya abierto en el dispositivo. En un restaurante con varios dispositivos activos, un offline-first completo crearía riesgos de consistencia (por ejemplo, dos dispositivos podrían abrir o editar la misma mesa en paralelo). Por eso, el offline-first se aplica solo al pedido actual, donde no hay colisiones."
+    },
+    "mock": {
+      "synced": "Sincronizado",
+      "receipt": "Ticket impreso",
+      "today": "+18% hoy",
+      "order": "Mesa 7 · Pedido #1042",
+      "open": "Abierta",
+      "total": "Total"
+    },
+    "stat": {
+      "uptime": "Disponibilidad, incluso sin conexión",
+      "order": "Tiempo medio por pedido",
+      "venues": "Locales atendidos",
+      "support": "Soporte humano"
+    },
+    "features": {
+      "eyebrow": "Todo lo que necesitas",
+      "title": "Un solo sistema para toda la sala",
+      "lead": "Desde el primer toque hasta el informe de cierre — creado para el ritmo de una cocina real."
+    },
+    "feat": {
+      "offline": {
+        "t": "Sin conexión primero",
+        "d": "Puedes seguir vendiendo aunque se caiga internet. El pedido actual sigue completamente funcional: se guarda en local, puedes modificarlo sin restricciones y la sincronización con el servidor se hace automáticamente en cuanto vuelves a estar en línea."
+      },
+      "mobile": {
+        "t": "Terminal móvil",
+        "d": "Convierte cualquier móvil o tablet en un TPV. Toma pedidos en la mesa y envíalos directo a cocina y barra."
+      },
+      "print": {
+        "t": "Impresión de tickets",
+        "d": "Integración nativa con impresoras térmicas y de cocina. Tickets limpios, siempre, sin controladores extra."
+      },
+      "cloud": {
+        "t": "Sincronización en la nube",
+        "d": "Tu carta, tu equipo y tus ventas viven en la nube — accesibles desde cualquier dispositivo, con copia en tiempo real."
+      },
+      "sales": {
+        "t": "Gestión de ventas",
+        "d": "Paneles en vivo, informes diarios y estadísticas de producto para saber siempre qué se vende y qué no."
+      },
+      "staff": {
+        "t": "Personal y mesas",
+        "d": "Gestiona roles, turnos y distribución de mesas. Cada camarero ve justo lo que necesita."
+      }
+    },
+    "how": {
+      "eyebrow": "Cómo funciona",
+      "title": "En marcha antes del próximo servicio",
+      "s1": {
+        "t": "Crea tu carta",
+        "d": "Añade productos, categorías y precios en minutos — o impórtalos desde una hoja de cálculo."
+      },
+      "s2": {
+        "t": "Abre en cualquier dispositivo",
+        "d": "Instálalo en tablets, móviles o una caja de escritorio. Sin hardware especial."
+      },
+      "s3": {
+        "t": "Vende y sincroniza",
+        "d": "Toma pedidos, imprime tickets y mira cómo las ventas llegan a tu panel en la nube."
+      },
+      "cta": "Empezar",
+      "panel": "Ventas de hoy",
+      "live": "En vivo",
+      "revenue": "Ingresos",
+      "orders": "Pedidos",
+      "avg": "Ticket medio"
+    },
+    "pricing": {
+      "eyebrow": "Precios sencillos",
+      "title": "Planes que crecen con tu local",
+      "lead": "Empieza gratis. Mejora cuando crezcas. Sin contratos largos."
+    },
+    "price": {
+      "popular": "Más popular",
+      "starter": {
+        "n": "Starter",
+        "d": "Para una sola caja o food truck.",
+        "f1": "1 dispositivo",
+        "f2": "Pedidos sin conexión",
+        "f3": "Impresión de tickets",
+        "f4": "Informes básicos",
+        "cta": "Empezar gratis"
+      },
+      "pro": {
+        "n": "Pro",
+        "d": "Para restaurantes y bares con mucho movimiento.",
+        "f1": "Hasta 8 dispositivos",
+        "f2": "Sincronización y copia en la nube",
+        "f3": "Gestión de personal y mesas",
+        "f4": "Analíticas avanzadas",
+        "cta": "Prueba gratis"
+      },
+      "ent": {
+        "n": "Enterprise",
+        "d": "Para cadenas y varias ubicaciones.",
+        "amount": "A medida",
+        "f1": "Dispositivos ilimitados",
+        "f2": "Panel multi-local",
+        "f3": "Soporte prioritario",
+        "f4": "Integraciones a medida",
+        "cta": "Contactar con ventas"
+      }
+    },
+    "cta": {
+      "title": "¿Listo para modernizar tu mostrador?",
+      "lead": "Configura hoy, vende esta noche con Universal Restaurant Systems.",
+      "primary": "Prueba gratis",
+      "secondary": "Hablar con ventas"
+    },
+    "footer": {
+      "tagline": "TPV para restaurantes sin conexión, terminal móvil y gestión de ventas en la nube — creado para pequeños negocios.",
+      "product": "Producto",
+      "company": "Empresa",
+      "about": "Quiénes somos",
+      "blog": "Blog",
+      "newsletter": "Mantente al día",
+      "email": "tu@restaurante.es",
+      "rights": "© 2026 Universal Restaurant Systems. Todos los derechos reservados."
+    }
   },
   "seo": {
     "landingTitle": "U.R.S. | Sistema POS para Restaurantes — Software POS en la Nube",

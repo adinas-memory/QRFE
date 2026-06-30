@@ -1,22 +1,146 @@
 {
   "landing": {
     "brand": "U.R.S.",
-    "kicker": "Un système qui réduit le chaos dans votre restaurant et augmente la vitesse de service.",
-    "headline": "Universal Restaurant Systems",
-    "subheadline": "POS offline-first pour restaurants. Mises à jour en temps réel, flux staff, et configuration simple.",
-    "ctaPrimary": "Voir les offres",
-    "ctaSecondary": "Mon compte",
-    "pricingTitle": "Choisissez votre offre",
-    "pricingSubtitle": "Commencez petit. Passez à l’offre supérieure quand vous voulez.",
-    "featuresTitle": "Conçu pour l’exploitation quotidienne",
-    "features": {
-      "realtime": "Mises à jour en temps réel via SSE",
-      "offline": "Offline-first (Dexie) avec réconciliation sûre",
-      "staff": "Flux Cuisine / Bar / Staff",
-      "security": "Accès basé sur les rôles"
+    "subscribe": "S'abonner",
+    "perMonth": "/mois",
+    "nav": {
+      "features": "Fonctionnalités",
+      "how": "Comment ça marche",
+      "pricing": "Tarifs",
+      "contact": "Contact",
+      "signin": "Connexion",
+      "getstarted": "Commencer"
     },
-    "subscribe": "S’abonner",
-    "language": "Langue"
+    "hero": {
+      "badge": "Fonctionne entièrement hors ligne",
+      "title_pre": "La caisse qui fait tourner votre ",
+      "title_accent": "restaurant sans interruption",
+      "title_post": " — avec ou sans internet.",
+      "lead": "Universal Restaurant Systems est un point de vente hors-ligne d'abord pour cafés, bars et restaurants. Prenez les commandes sur n'importe quel appareil, imprimez les tickets et synchronisez les ventes dans le cloud dès que vous êtes reconnecté.",
+      "cta_primary": "Essai gratuit",
+      "cta_secondary": "Voir comment ça marche",
+      "note": "Installation en quelques minutes · Annulable à tout moment",
+      "offlineDisclaimer": "Le mode hors ligne est volontairement limité à la commande déjà ouverte sur l'appareil. Dans un restaurant avec plusieurs appareils actifs, un offline-first complet créerait des risques de cohérence (par exemple, deux appareils pourraient ouvrir ou modifier la même table en parallèle). C'est pourquoi l'offline-first s'applique uniquement à la commande en cours, où il n'y a pas de collisions."
+    },
+    "mock": {
+      "synced": "Synchronisé",
+      "receipt": "Ticket imprimé",
+      "today": "+18% aujourd'hui",
+      "order": "Table 7 · Commande #1042",
+      "open": "Ouverte",
+      "total": "Total"
+    },
+    "stat": {
+      "uptime": "Disponibilité, même hors ligne",
+      "order": "Temps moyen par commande",
+      "venues": "Établissements servis",
+      "support": "Support humain"
+    },
+    "features": {
+      "eyebrow": "Tout ce qu'il vous faut",
+      "title": "Un seul système pour toute la salle",
+      "lead": "Du premier appui au rapport de fin de journée — conçu pour le rythme d'une vraie cuisine."
+    },
+    "feat": {
+      "offline": {
+        "t": "Hors ligne avant tout",
+        "d": "Vous pouvez continuer à vendre même si internet tombe. La commande en cours reste entièrement fonctionnelle : elle est enregistrée localement, vous pouvez la modifier sans restriction, et la synchronisation avec le serveur se fait automatiquement dès que vous êtes de nouveau en ligne."
+      },
+      "mobile": {
+        "t": "Terminal mobile",
+        "d": "Transformez n'importe quel téléphone ou tablette en caisse. Prenez les commandes à table et envoyez-les directement en cuisine et au bar."
+      },
+      "print": {
+        "t": "Impression des tickets",
+        "d": "Intégration native avec imprimantes thermiques et de cuisine. Des tickets nets, à chaque fois, sans pilote supplémentaire."
+      },
+      "cloud": {
+        "t": "Synchronisation cloud",
+        "d": "Votre menu, votre équipe et vos ventes vivent dans le cloud — accessibles depuis tout appareil, sauvegardés en temps réel."
+      },
+      "sales": {
+        "t": "Gestion des ventes",
+        "d": "Tableaux de bord en direct, rapports quotidiens et analyses produits pour toujours savoir ce qui se vend."
+      },
+      "staff": {
+        "t": "Équipe et tables",
+        "d": "Gérez les rôles, les shifts et le plan de salle. Chaque serveur voit exactement ce dont il a besoin."
+      }
+    },
+    "how": {
+      "eyebrow": "Comment ça marche",
+      "title": "Opérationnel avant le prochain service",
+      "s1": {
+        "t": "Créez votre menu",
+        "d": "Ajoutez produits, catégories et prix en quelques minutes — ou importez-les depuis un tableur."
+      },
+      "s2": {
+        "t": "Ouvrez sur tout appareil",
+        "d": "Installez sur tablettes, téléphones ou une caisse de bureau. Aucun matériel spécial requis."
+      },
+      "s3": {
+        "t": "Vendez et synchronisez",
+        "d": "Prenez les commandes, imprimez les tickets et voyez les ventes arriver dans votre tableau de bord cloud."
+      },
+      "cta": "Commencer",
+      "panel": "Ventes du jour",
+      "live": "En direct",
+      "revenue": "Recettes",
+      "orders": "Commandes",
+      "avg": "Ticket moyen"
+    },
+    "pricing": {
+      "eyebrow": "Tarifs simples",
+      "title": "Des offres qui évoluent avec votre établissement",
+      "lead": "Commencez gratuitement. Évoluez en grandissant. Sans engagement long."
+    },
+    "price": {
+      "popular": "Le plus populaire",
+      "starter": {
+        "n": "Starter",
+        "d": "Pour une seule caisse ou un food truck.",
+        "f1": "1 appareil",
+        "f2": "Commandes hors ligne",
+        "f3": "Impression des tickets",
+        "f4": "Rapports de base",
+        "cta": "Commencer gratuitement"
+      },
+      "pro": {
+        "n": "Pro",
+        "d": "Pour restaurants et bars animés.",
+        "f1": "Jusqu'à 8 appareils",
+        "f2": "Synchronisation et sauvegarde cloud",
+        "f3": "Gestion équipe et tables",
+        "f4": "Analyses avancées",
+        "cta": "Essai gratuit"
+      },
+      "ent": {
+        "n": "Enterprise",
+        "d": "Pour chaînes et sites multiples.",
+        "amount": "Sur mesure",
+        "f1": "Appareils illimités",
+        "f2": "Tableau de bord multi-sites",
+        "f3": "Support prioritaire",
+        "f4": "Intégrations sur mesure",
+        "cta": "Contacter les ventes"
+      }
+    },
+    "cta": {
+      "title": "Prêt à moderniser votre comptoir ?",
+      "lead": "Installez aujourd'hui, vendez ce soir avec Universal Restaurant Systems.",
+      "primary": "Essai gratuit",
+      "secondary": "Parler aux ventes"
+    },
+    "footer": {
+      "tagline": "Caisse pour restaurants hors-ligne d'abord, terminal mobile et gestion des ventes cloud — pensée pour les petites entreprises.",
+      "product": "Produit",
+      "company": "Entreprise",
+      "about": "À propos",
+      "blog": "Blog",
+      "newsletter": "Restez informé",
+      "email": "vous@restaurant.fr",
+      "rights": "© 2026 Universal Restaurant Systems. Tous droits réservés."
+    }
   },
   "seo": {
     "landingTitle": "U.R.S. | Système POS Restaurant — Logiciel POS Cloud & Mobile",
