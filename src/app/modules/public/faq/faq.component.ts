@@ -4,7 +4,6 @@ import {
   AccordionButtonDirective,
   AccordionComponent,
   AccordionItemComponent,
-  ButtonDirective,
   ContainerComponent,
   TemplateIdDirective
 } from '@coreui/angular';
@@ -51,7 +50,6 @@ export type FaqItemId = (typeof FAQ_ITEM_IDS)[number];
     AccordionButtonDirective,
     TemplateIdDirective,
     ContainerComponent,
-    ButtonDirective,
     RouterLink,
     TranslocoPipe
   ],

@@ -1,22 +1,146 @@
 {
   "landing": {
     "brand": "U.R.S.",
-    "kicker": "Ett system som minskar kaoset i din restaurang och ökar serveringshastigheten.",
-    "headline": "Universal Restaurant Systems",
-    "subheadline": "Offline-first POS för restauranger. Realtidsuppdateringar, personalflöden och en ren setup.",
-    "ctaPrimary": "Se paket",
-    "ctaSecondary": "Mitt konto",
-    "pricingTitle": "Välj ditt paket",
-    "pricingSubtitle": "Börja enkelt. Uppgradera när du vill.",
-    "featuresTitle": "Byggt för vardagen",
-    "features": {
-      "realtime": "Realtidsuppdateringar via SSE",
-      "offline": "Offline-first (Dexie) med säker synk",
-      "staff": "Kök / Bar / Personalflöden",
-      "security": "Rollbaserad åtkomst"
-    },
     "subscribe": "Prenumerera",
-    "language": "Språk"
+    "perMonth": "/mån",
+    "nav": {
+      "features": "Funktioner",
+      "how": "Så fungerar det",
+      "pricing": "Priser",
+      "contact": "Kontakt",
+      "signin": "Logga in",
+      "getstarted": "Kom igång"
+    },
+    "hero": {
+      "badge": "Fungerar helt offline",
+      "title_pre": "Kassan som håller din ",
+      "title_accent": "restaurang igång",
+      "title_post": " — med eller utan internet.",
+      "lead": "Universal Restaurant Systems är ett offline-först-kassasystem för caféer, barer och restauranger. Ta beställningar på vilken enhet som helst, skriv ut kvitton och synka försäljningen till molnet så fort du är uppkopplad igen.",
+      "cta_primary": "Prova gratis",
+      "cta_secondary": "Se hur det fungerar",
+      "note": "Igång på några minuter · Avsluta när du vill",
+      "offlineDisclaimer": "Offlineläge är medvetet begränsat till ordern som redan är öppen på enheten. I en restaurang med flera aktiva enheter skulle full offline-first skapa konsistensrisker (t.ex. kunde två enheter öppna eller redigera samma bord parallellt). Därför gäller offline-first endast för den aktuella ordern, där det inte finns kollisioner."
+    },
+    "mock": {
+      "synced": "Synkad",
+      "receipt": "Kvitto utskrivet",
+      "today": "+18% idag",
+      "order": "Bord 7 · Order #1042",
+      "open": "Öppen",
+      "total": "Totalt"
+    },
+    "stat": {
+      "uptime": "Drifttid, även offline",
+      "order": "Snittid per order",
+      "venues": "Anslutna ställen",
+      "support": "Mänsklig support"
+    },
+    "features": {
+      "eyebrow": "Allt du behöver",
+      "title": "Ett system för hela lokalen",
+      "lead": "Från första trycket till dagsrapporten — byggt för tempot i ett riktigt kök."
+    },
+    "feat": {
+      "offline": {
+        "t": "Offline först",
+        "d": "Du kan fortsätta sälja även om internet försvinner. Den aktuella ordern förblir fullt funktionell: den sparas lokalt, du kan redigera den utan begränsningar och synkronisering med servern sker automatiskt så fort du är online igen."
+      },
+      "mobile": {
+        "t": "Mobil terminal",
+        "d": "Gör vilken mobil eller surfplatta som helst till en kassa. Ta beställningar vid bordet och skicka dem direkt till köket och baren."
+      },
+      "print": {
+        "t": "Kvittoutskrift",
+        "d": "Inbyggd integration med termo- och köksskrivare. Rena kvitton, varje gång, utan extra drivrutiner."
+      },
+      "cloud": {
+        "t": "Molnsynkning",
+        "d": "Din meny, personal och försäljning finns i molnet — nåbar från alla enheter, säkerhetskopierad i realtid."
+      },
+      "sales": {
+        "t": "Försäljningshantering",
+        "d": "Live-instrumentpaneler, dagliga rapporter och produktinsikter så att du alltid vet vad som säljer."
+      },
+      "staff": {
+        "t": "Personal & bord",
+        "d": "Hantera roller, pass och bordsplacering. Varje servitör ser exakt vad de behöver."
+      }
+    },
+    "how": {
+      "eyebrow": "Så fungerar det",
+      "title": "Igång före nästa pass",
+      "s1": {
+        "t": "Bygg din meny",
+        "d": "Lägg till produkter, kategorier och priser på minuter — eller importera från ett kalkylark."
+      },
+      "s2": {
+        "t": "Öppna på vilken enhet som helst",
+        "d": "Installera på surfplattor, mobiler eller en desktop-kassa. Ingen särskild hårdvara krävs."
+      },
+      "s3": {
+        "t": "Sälj & synka",
+        "d": "Ta beställningar, skriv ut kvitton och se försäljningen rulla in i din molnpanel."
+      },
+      "cta": "Kom igång",
+      "panel": "Dagens försäljning",
+      "live": "Live",
+      "revenue": "Intäkter",
+      "orders": "Ordrar",
+      "avg": "Snittkvitto"
+    },
+    "pricing": {
+      "eyebrow": "Enkla priser",
+      "title": "Planer som växer med ditt ställe",
+      "lead": "Börja gratis. Uppgradera när du växer. Inga långa avtal."
+    },
+    "price": {
+      "popular": "Populärast",
+      "starter": {
+        "n": "Starter",
+        "d": "För en enda kassa eller food truck.",
+        "f1": "1 enhet",
+        "f2": "Offline-ordrar",
+        "f3": "Kvittoutskrift",
+        "f4": "Grundläggande rapporter",
+        "cta": "Börja gratis"
+      },
+      "pro": {
+        "n": "Pro",
+        "d": "För fullsatta restauranger & barer.",
+        "f1": "Upp till 8 enheter",
+        "f2": "Molnsynk & backup",
+        "f3": "Personal- & bordshantering",
+        "f4": "Avancerad analys",
+        "cta": "Prova gratis"
+      },
+      "ent": {
+        "n": "Enterprise",
+        "d": "För kedjor & flera platser.",
+        "amount": "Anpassat",
+        "f1": "Obegränsade enheter",
+        "f2": "Instrumentpanel för flera platser",
+        "f3": "Prioriterad support",
+        "f4": "Anpassade integrationer",
+        "cta": "Kontakta säljteamet"
+      }
+    },
+    "cta": {
+      "title": "Redo att modernisera din disk?",
+      "lead": "Kom igång idag, sälj ikväll med Universal Restaurant Systems.",
+      "primary": "Prova gratis",
+      "secondary": "Prata med säljteamet"
+    },
+    "footer": {
+      "tagline": "Offline-först kassasystem för restauranger, mobil terminal och molnbaserad försäljningshantering — byggt för små företag.",
+      "product": "Produkt",
+      "company": "Företag",
+      "about": "Om oss",
+      "blog": "Blogg",
+      "newsletter": "Håll dig uppdaterad",
+      "email": "du@restaurang.se",
+      "rights": "© 2026 Universal Restaurant Systems. Alla rättigheter förbehållna."
+    }
   },
   "seo": {
     "landingTitle": "U.R.S. | Restaurang-POS — Molnbaserat & Mobilt POS-system",

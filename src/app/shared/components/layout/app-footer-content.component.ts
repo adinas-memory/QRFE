@@ -2,7 +2,7 @@ import { Component, input } from '@angular/core';
 import { ContainerComponent } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { COMPANY_EMAIL, COMPANY_WHATSAPP_URL } from '@app/core/constants/company-contact';
+import { COMPANY_EMAIL, COMPANY_PHONE_DISPLAY, COMPANY_PHONE_TEL_URL, COMPANY_WHATSAPP_URL } from '@app/core/constants/company-contact';
 
 /** Shared copyright, P.IVA, email, optional WhatsApp, and powered-by row for public and admin footers. */
 @Component({
@@ -56,6 +56,19 @@ import { COMPANY_EMAIL, COMPANY_WHATSAPP_URL } from '@app/core/constants/company
                 </a>
               </div>
             }
+            <div class="footer-contact-entry">
+              @if (showContactPurposeHints()) {
+                <div class="footer-contact-hint">{{ 'footer.phoneTelPurpose' | transloco }}</div>
+              }
+              <a
+                class="footer-contact-chip"
+                [href]="phoneTelUrl"
+                [attr.aria-label]="phoneTelAriaLabel()"
+              >
+                <span class="bi bi-telephone" aria-hidden="true"></span>
+                <span>{{ phoneDisplay }}</span>
+              </a>
+            </div>
           </div>
         </div>
 
@@ -277,8 +290,14 @@ export class AppFooterContentComponent {
   readonly variant = input<'standard' | 'guest'>('standard');
   readonly whatsappUrl = COMPANY_WHATSAPP_URL;
   readonly companyEmail = COMPANY_EMAIL;
+  readonly phoneTelUrl = COMPANY_PHONE_TEL_URL;
+  readonly phoneDisplay = COMPANY_PHONE_DISPLAY;
 
   constructor(private readonly transloco: TranslocoService) {}
+
+  phoneTelAriaLabel(): string {
+    return this.transloco.translate('footer.phoneTelAria');
+  }
 
   emailAriaLabel(): string {
     return this.showContactPurposeHints()
