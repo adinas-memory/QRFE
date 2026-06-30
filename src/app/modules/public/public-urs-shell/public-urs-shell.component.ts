@@ -18,7 +18,6 @@ import { FeedbackLaunchComponent } from '@app/shared/components/feedback/feedbac
 import { FeedbackModalComponent } from '@app/shared/components/feedback/feedback-modal.component';
 import { AppFooterContentComponent } from '@app/shared/components/layout/app-footer-content.component';
 import { SeoService } from '../../../core/services/seo/seo.service';
-import { COMPANY_PHONE_TEL_URL } from '../../../core/constants/company-contact';
 
 export interface PublicUrsNavLink {
   id: string;
@@ -63,7 +62,6 @@ export class PublicUrsShellComponent implements OnInit, OnDestroy {
   readonly poweredBy = environment.poweredBy;
   readonly frontendPublicUrl = environment.apiUrl;
   readonly logoSrc = 'assets/urs.png';
-  readonly phoneTelUrl = COMPANY_PHONE_TEL_URL;
 
   readonly navLinks: PublicUrsNavLink[] = [
     { id: 'features', labelKey: 'landing.nav.features' },
@@ -87,10 +85,6 @@ export class PublicUrsShellComponent implements OnInit, OnDestroy {
     private transloco: TranslocoService,
     private seo: SeoService,
   ) {}
-
-  phoneAriaLabel(): string {
-    return this.transloco.translate('footer.phoneTelAria');
-  }
 
   get activeLang(): AppLang {
     const l = this.transloco.getActiveLang();
