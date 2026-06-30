@@ -18,6 +18,11 @@
       </button>
     </div>
   }
+  @if (shouldShowOfflinePrimaryDeviceBanner) {
+    <div class="alert alert-info mx-3 mt-3 mb-0" role="status">
+      <span class="small">{{ 'manageOrders.offlinePrimaryDeviceActiveHint' | transloco }}</span>
+    </div>
+  }
   <c-tabs-list variant="pills">
     <button cTab [itemKey]="0" class="ms-3">{{ 'manageOrders.tabAll' | transloco }}</button>
     <button cTab [itemKey]="1" class="ms-2">{{ 'manageOrders.tabFree' | transloco }}</button>
