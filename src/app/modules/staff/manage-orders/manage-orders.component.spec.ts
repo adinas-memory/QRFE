@@ -638,6 +638,46 @@ describe('ManageOrdersComponent', () => {
     });
   });
 
+  describe('offline primary UI gates', () => {
+    it('canBypassOfflineUiGates is false when offline and not primary device', async () => {
+      const { component } = await setupManageOrdersComponent({
+        isOnline: false,
+        isOfflinePrimaryDevice: false,
+      });
+      expect(component.canBypassOfflineUiGates).toBeFalse();
+    });
+
+    it('canBypassOfflineUiGates is true when offline on primary device', async () => {
+      const { component } = await setupManageOrdersComponent({
+        isOnline: false,
+        isOfflinePrimaryDevice: true,
+      });
+      expect(component.canBypassOfflineUiGates).toBeTrue();
+    });
+
+    it('confirmCloseOrder offline cleans up local table state (Q3)', async () => {
+      const { component, mocks } = await setupManageOrdersComponent({
+        isOnline: false,
+        isOfflinePrimaryDevice: true,
+        skipNgOnInit: true,
+      });
+      seedComponentTables(component, createDefaultTables());
+      component.currentTableId = TABLE_A;
+      component.currentOrderId = 'local-order-1';
+      component.orderIsConfirmed = true;
+      component.tableCarts[TABLE_A] = [createCartItem()];
+      Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+
+      await component.confirmCloseOrder();
+
+      expect(mocks.offlineDb.addOfflineAction).toHaveBeenCalled();
+      expect(mocks.offlineDb.deleteCart).toHaveBeenCalledWith(TABLE_A);
+      expect(mocks.offlineDb.upsertTableStatus).toHaveBeenCalledWith(TABLE_A, true);
+      expect(component.tables.find(t => t.tableId === TABLE_A)?.isTableOpen).toBeTrue();
+      expect(component.canvasVisible).toBeFalse();
+    });
+  });
+
   describe('keyboard and misc', () => {
     let component: ManageOrdersComponent;
 

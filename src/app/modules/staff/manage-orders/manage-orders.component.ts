@@ -44,6 +44,8 @@ import { OfflineDbService } from '../../../core/offline/offline-db';
 import { OfflineQueueProcessor } from '../../../core/offline/offline-queue-processor.service';
 import { SseEvent } from '../../../core/models/sseModel';
 import { OnlineStateService } from '../../../core/offline/online-state-service';
+import { OfflinePolicyService } from '../../../core/offline/offline-policy.service';
+import { OfflinePrimaryService } from '../../../core/services/offline-primary/offline-primary.service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { KitchenService } from '../../../core/services/kitchen-service/kitchen.service';
 import { BarService } from '../../../core/services/bar-service/bar.service';
@@ -167,6 +169,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   private initialTablesLoaded = false;
   bookingsByTableId: Record<string, ReservationItem[]> = {};
   bookingsLoading = false;
+  bindOfflinePrimaryInProgress = false;
 
   constructor(
     private tablesService: TablesService,
@@ -186,6 +189,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     private deviceFeedback: DeviceFeedbackService,
     private pickupNotification: PickupNotificationService,
     private reservationService: ReservationService,
+    private offlinePolicy: OfflinePolicyService,
+    private offlinePrimary: OfflinePrimaryService,
   ) {}
 
   bookingsForTable(tableId: string): ReservationItem[] {
@@ -378,6 +383,36 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   // ─── GETTERS ──────────────────────────────────────────────────────────────────
 
   get isOnline() { return this.onlineStateService.isOnline; }
+
+  /** Online staff or designated primary device in full-offline mode. */
+  get canBypassOfflineUiGates(): boolean {
+    return this.isOnline || this.offlinePolicy.canUseFullOffline();
+  }
+
+  get shouldShowBindDeviceCta(): boolean {
+    return this.offlinePolicy.shouldShowBindDeviceCta();
+  }
+
+  async bindOfflinePrimaryDevice(): Promise<void> {
+    if (this.bindOfflinePrimaryInProgress || !this.restaurantId) return;
+    this.bindOfflinePrimaryInProgress = true;
+    try {
+      await firstValueFrom(this.offlinePrimary.bindDevice(this.restaurantId));
+      await firstValueFrom(this.authService.refreshUserContext({ redirectOnFailure: false }));
+      this.appToast.success(
+        this.transloco.translate('manageOrders.bindOfflinePrimarySuccessBody'),
+        this.transloco.translate('manageOrders.bindOfflinePrimarySuccessTitle'),
+      );
+    } catch (err) {
+      console.error('Bind offline primary device failed', err);
+      this.appToast.error(
+        this.miscService.getFirstErrorMessage(err),
+        this.transloco.translate('manageOrders.bindOfflinePrimaryErrorTitle'),
+      );
+    } finally {
+      this.bindOfflinePrimaryInProgress = false;
+    }
+  }
 
   get filteredMenuItems(): MenuItem[] {
     const term = this.searchTerm.trim().toLowerCase();
@@ -1013,6 +1048,13 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         orderId,
         payload: {}
       });
+      await this.offlineDB.deleteCart(tableId);
+      delete this.tableComputed[tableId];
+      this.ordersService.saveComputed(this.tableComputed);
+      this.tableCarts[tableId] = [];
+      this.markTableAsOpen(tableId);
+      await this.offlineDB.upsertTableStatus(tableId, true);
+      this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
       this.resetCanvasState();
       this.closeInFlight = false;
       return;

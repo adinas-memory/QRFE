@@ -8,6 +8,7 @@ import { AppComponent } from './app.component';
 import { AuthService } from './core/auth/auth.service';
 import { OrderSyncService } from './core/services/order-service/order-sync.service';
 import { OnlineStateService } from './core/offline/online-state-service';
+import { OfflinePolicyService } from './core/offline/offline-policy.service';
 import { ColorModeService } from '@coreui/angular';
 import { IconSetService } from '@coreui/icons-angular';
 import { of } from 'rxjs';
@@ -21,8 +22,12 @@ describe('AppComponent', () => {
   beforeEach(async () => {
     authSpy = {
       getUserContext: () => of({ id: '1', role: 'manager', restaurantId: '123' }),
+      user$: of({ id: '1', role: 'manager', restaurantId: '123' }),
       restoreSession: () => of(true),
-      pingSession: () => of(true)
+      pingSession: () => of(true),
+      hydrateSessionFromStorageIfNeeded: () => {},
+      isAuthenticated: () => false,
+      getUserRole: () => 'manager',
     };
 
     orderSyncSpy = {
@@ -30,7 +35,8 @@ describe('AppComponent', () => {
     };
 
     onlineStateSpy = {
-      online$: of(true)
+      isOnline: true,
+      online$: of(true),
     };
 
     colorModeSpy = {
@@ -60,6 +66,12 @@ describe('AppComponent', () => {
         { provide: AuthService, useValue: authSpy },
         { provide: OrderSyncService, useValue: orderSyncSpy },
         { provide: OnlineStateService, useValue: onlineStateSpy },
+        {
+          provide: OfflinePolicyService,
+          useValue: {
+            canUseFullOffline: () => false,
+          },
+        },
         { provide: ColorModeService, useValue: colorModeSpy }
       ]
     }).compileComponents();

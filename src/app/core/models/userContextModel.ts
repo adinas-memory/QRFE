@@ -9,4 +9,6 @@ export interface UserContextModel {
   name?: string | null;
   surname?: string | null;
   email?: string | null;
+  isOfflinePrimaryDevice?: boolean;
+  isOfflinePrimaryStaffDesignee?: boolean;
 }
