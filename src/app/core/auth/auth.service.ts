@@ -22,6 +22,14 @@ export function normalizeUserContext(raw: unknown): UserContextModel | null {
   const id = (r['id'] ?? r['Id']) as string | undefined;
   const role = (r['role'] ?? r['Role']) as string | undefined;
   if (!id || !role) return null;
+
+  const isOfflinePrimaryDevice = readOptionalBool(r, 'isOfflinePrimaryDevice', 'IsOfflinePrimaryDevice');
+  const isOfflinePrimaryStaffDesignee = readOptionalBool(
+    r,
+    'isOfflinePrimaryStaffDesignee',
+    'IsOfflinePrimaryStaffDesignee',
+  );
+
   return {
     id,
     role,
@@ -32,9 +40,18 @@ export function normalizeUserContext(raw: unknown): UserContextModel | null {
     name: (r['name'] ?? r['Name'] ?? null) as string | null,
     surname: (r['surname'] ?? r['Surname'] ?? null) as string | null,
     email: (r['email'] ?? r['Email'] ?? null) as string | null,
-    isOfflinePrimaryDevice: readBool(r['isOfflinePrimaryDevice'] ?? r['IsOfflinePrimaryDevice']),
-    isOfflinePrimaryStaffDesignee: readBool(r['isOfflinePrimaryStaffDesignee'] ?? r['IsOfflinePrimaryStaffDesignee']),
+    ...(isOfflinePrimaryDevice !== undefined ? { isOfflinePrimaryDevice } : {}),
+    ...(isOfflinePrimaryStaffDesignee !== undefined ? { isOfflinePrimaryStaffDesignee } : {}),
   };
+}
+
+function readOptionalBool(
+  raw: Record<string, unknown>,
+  camelKey: string,
+  pascalKey: string,
+): boolean | undefined {
+  if (!(camelKey in raw) && !(pascalKey in raw)) return undefined;
+  return readBool(raw[camelKey] ?? raw[pascalKey]);
 }
 
 function readBool(value: unknown): boolean {
@@ -185,11 +202,33 @@ export class AuthService {
   // --- Session management ---
   setUser(raw: UserContextModel | Record<string, unknown>): void {
     const wasLoggedOut = !this.userSubject.value;
+    const previous = this.userSubject.value;
     const incoming = normalizeUserContext(raw) ?? (raw as UserContextModel);
-    const merged = mergeUserContext(incoming, this.userSubject.value);
+    const merged = mergeUserContext(incoming, previous);
     this.userSubject.next(merged);
     localStorage.setItem('UserCtx', JSON.stringify(merged));
     this.setRestaurantCtx();
+
+    // #region agent log
+    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
+      body: JSON.stringify({
+        sessionId: 'd38222',
+        location: 'auth.service.ts:setUser',
+        message: 'user context merged',
+        data: {
+          incomingDesignee: incoming.isOfflinePrimaryStaffDesignee,
+          incomingDevice: incoming.isOfflinePrimaryDevice,
+          mergedDesignee: merged.isOfflinePrimaryStaffDesignee,
+          mergedDevice: merged.isOfflinePrimaryDevice,
+          previousDesignee: previous?.isOfflinePrimaryStaffDesignee,
+        },
+        hypothesisId: 'H1-ping-wipes-flags',
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
 
     if (wasLoggedOut) {
       this.loggedIn$.next();  // ← emite doar la login real, nu la restore session
