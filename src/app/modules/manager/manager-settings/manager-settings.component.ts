@@ -29,6 +29,11 @@ import {
   PrinterAgentInstallationDto,
   PrinterAgentPrinterDto
 } from '../../../core/services/print-jobs/print-jobs.service';
+import {
+  OfflinePrimaryService,
+  OfflinePrimaryStaffPolicy,
+  RestaurantStaffListItem,
+} from '../../../core/services/offline-primary/offline-primary.service';
 import { ManagerSubscriptionStatusModel } from '../../../core/models/manager-subscription-status.model';
 
 export interface PrinterAgentEnrollmentCodeRow {
@@ -107,6 +112,12 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
   savingDefaultBillPrinter = false;
   defaultBillPrinterId: string | null = null;
 
+  offlinePrimaryStaff: RestaurantStaffListItem[] = [];
+  offlinePrimaryPolicy: OfflinePrimaryStaffPolicy | null = null;
+  selectedOfflinePrimaryStaffUserId: string | null = null;
+  loadingOfflinePrimary = false;
+  savingOfflinePrimary = false;
+
   constructor(
     private fb: FormBuilder,
     private http: HttpClient,
@@ -116,7 +127,8 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     private router: Router,
     private toast: AppToastService,
     private transloco: TranslocoService,
-    private printJobs: PrintJobsService
+    private printJobs: PrintJobsService,
+    private offlinePrimary: OfflinePrimaryService,
   ) {}
 
   ngOnInit(): void {
@@ -156,6 +168,7 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     this.loadAgentInstallations();
     this.loadStripeConnectStatus();
     this.loadBillPrinters();
+    this.loadOfflinePrimaryStaff();
     if (this.isManager) {
       this.loadManagerSubscriptionStatus();
     }
@@ -258,6 +271,77 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
       });
     }
     return list;
+  }
+
+  loadOfflinePrimaryStaff(): void {
+    const rid = this.restaurantId;
+    if (!rid) {
+      return;
+    }
+    this.loadingOfflinePrimary = true;
+    forkJoin({
+      staff: this.offlinePrimary.listStaff(rid).pipe(
+        catchError(err => {
+          console.error('Failed to load staff list', err);
+          this.toast.error(
+            this.miscellaneousService.getFirstErrorMessage(err),
+            this.transloco.translate('restaurantSettings.offlinePrimaryStaff.loadError'),
+          );
+          return of([] as RestaurantStaffListItem[]);
+        }),
+      ),
+      policy: this.offlinePrimary.getPolicy(rid).pipe(
+        catchError(err => {
+          console.error('Failed to load offline primary policy', err);
+          this.toast.error(
+            this.miscellaneousService.getFirstErrorMessage(err),
+            this.transloco.translate('restaurantSettings.offlinePrimaryStaff.loadError'),
+          );
+          return of(null as OfflinePrimaryStaffPolicy | null);
+        }),
+      ),
+    }).subscribe({
+      next: ({ staff, policy }) => {
+        this.offlinePrimaryStaff = staff ?? [];
+        this.offlinePrimaryPolicy = policy;
+        this.selectedOfflinePrimaryStaffUserId = policy?.offlinePrimaryStaffUserId ?? null;
+        this.loadingOfflinePrimary = false;
+      },
+      error: () => {
+        this.loadingOfflinePrimary = false;
+      },
+    });
+  }
+
+  saveOfflinePrimaryStaff(): void {
+    const rid = this.restaurantId;
+    if (!rid) {
+      return;
+    }
+    const previousUserId = this.offlinePrimaryPolicy?.offlinePrimaryStaffUserId ?? null;
+    const nextUserId = this.selectedOfflinePrimaryStaffUserId;
+    this.savingOfflinePrimary = true;
+    this.offlinePrimary.updatePolicy(rid, nextUserId).subscribe({
+      next: policy => {
+        this.offlinePrimaryPolicy = policy;
+        this.selectedOfflinePrimaryStaffUserId = policy.offlinePrimaryStaffUserId;
+        this.savingOfflinePrimary = false;
+        this.toast.success(
+          previousUserId !== nextUserId && nextUserId
+            ? this.transloco.translate('restaurantSettings.offlinePrimaryStaff.toastSavedRebindBody')
+            : this.transloco.translate('restaurantSettings.offlinePrimaryStaff.toastSavedBody'),
+          this.transloco.translate('restaurantSettings.offlinePrimaryStaff.toastSavedTitle'),
+        );
+      },
+      error: err => {
+        console.error('Failed to save offline primary staff', err);
+        this.savingOfflinePrimary = false;
+        this.toast.error(
+          this.miscellaneousService.getFirstErrorMessage(err),
+          this.transloco.translate('restaurantSettings.offlinePrimaryStaff.saveError'),
+        );
+      },
+    });
   }
 
   loadStripeConnectStatus(): void {

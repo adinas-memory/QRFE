@@ -30,6 +30,8 @@ describe('normalizeUserContext', () => {
       name: null,
       surname: null,
       email: null,
+      isOfflinePrimaryDevice: false,
+      isOfflinePrimaryStaffDesignee: false,
     });
     expect(normalizeUserContext({ Id: '2', Role: 'manager', RestaurantId: 'r2' })).toEqual({
       id: '2',
@@ -41,6 +43,28 @@ describe('normalizeUserContext', () => {
       name: null,
       surname: null,
       email: null,
+      isOfflinePrimaryDevice: false,
+      isOfflinePrimaryStaffDesignee: false,
+    });
+    expect(
+      normalizeUserContext({
+        id: '3',
+        role: 'staff',
+        isOfflinePrimaryDevice: true,
+        IsOfflinePrimaryStaffDesignee: true,
+      }),
+    ).toEqual({
+      id: '3',
+      role: 'staff',
+      restaurantId: null,
+      restaurantName: null,
+      restaurantType: null,
+      displayName: null,
+      name: null,
+      surname: null,
+      email: null,
+      isOfflinePrimaryDevice: true,
+      isOfflinePrimaryStaffDesignee: true,
     });
   });
 });

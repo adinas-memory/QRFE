@@ -32,7 +32,13 @@ export function normalizeUserContext(raw: unknown): UserContextModel | null {
     name: (r['name'] ?? r['Name'] ?? null) as string | null,
     surname: (r['surname'] ?? r['Surname'] ?? null) as string | null,
     email: (r['email'] ?? r['Email'] ?? null) as string | null,
+    isOfflinePrimaryDevice: readBool(r['isOfflinePrimaryDevice'] ?? r['IsOfflinePrimaryDevice']),
+    isOfflinePrimaryStaffDesignee: readBool(r['isOfflinePrimaryStaffDesignee'] ?? r['IsOfflinePrimaryStaffDesignee']),
   };
+}
+
+function readBool(value: unknown): boolean {
+  return value === true || value === 'true';
 }
 
 function mergeUserContext(
@@ -48,6 +54,8 @@ function mergeUserContext(
     name: incoming.name ?? previous?.name ?? null,
     surname: incoming.surname ?? previous?.surname ?? null,
     email: incoming.email ?? previous?.email ?? null,
+    isOfflinePrimaryDevice: incoming.isOfflinePrimaryDevice ?? previous?.isOfflinePrimaryDevice ?? false,
+    isOfflinePrimaryStaffDesignee: incoming.isOfflinePrimaryStaffDesignee ?? previous?.isOfflinePrimaryStaffDesignee ?? false,
   };
 }
 

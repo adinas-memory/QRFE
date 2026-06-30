@@ -534,6 +534,10 @@
     "emailRequired": "L'email è obbligatoria.",
     "emailInvalid": "Inserisci un indirizzo email valido."
   },
+  "offline": {
+    "bannerPrimary": "OFFLINE — full POS mode (syncs when you reconnect)",
+    "bannerLimited": "OFFLINE — limited mode (current order only on this device)"
+  },
   "kitchen": {
     "title": "Cucina",
     "enableSound": "Attiva audio",
@@ -684,6 +688,24 @@
       "autoRefreshFastHint": "Controllo ogni 10 secondi finché l'agent segnala una stampante o la discrepanza dell'id è risolta.",
       "mismatchWarning": "La stampante salvata ({{id}}) non è segnalata dal Printer Agent. I conti non verranno stampati finché non selezioni una stampante dall'elenco e clicchi Salva.",
       "refresh": "Aggiorna elenco"
+    },
+    "offlinePrimaryStaff": {
+      "title": "Offline POS staff",
+      "hint": "Choose one staff member (by email) who may use full offline mode on a single registered device.",
+      "disclaimer": "Best for total internet outages on one dedicated tablet. If other devices stay online, table conflicts are possible.",
+      "loading": "Loading staff…",
+      "staffLabel": "Staff member",
+      "noneOption": "— None —",
+      "deviceStatus": "Device",
+      "deviceBound": "Registered",
+      "deviceNotBound": "Not registered — staff must open Manage orders while online",
+      "save": "Save",
+      "saving": "Saving…",
+      "loadError": "Could not load offline POS settings",
+      "saveError": "Could not save offline POS settings",
+      "toastSavedTitle": "Offline POS saved",
+      "toastSavedBody": "Offline primary staff updated.",
+      "toastSavedRebindBody": "Staff updated. They must register their tablet again from Manage orders."
     }
   },
   "feedbackModal": {
@@ -721,7 +743,14 @@
     "cancel": "Annulla",
     "closeOrder": "Chiudi ordine",
     "print": "Stampa",
-    "bookingsToday": "Prenotazioni di oggi"
+    "bookingsToday": "Prenotazioni di oggi",
+    "bindOfflinePrimaryCta": "Register this device as offline POS",
+    "bindOfflinePrimaryBinding": "Registering…",
+    "bindOfflinePrimaryHint": "You are designated for full offline mode. Register this device so it can open tables and confirm orders without internet.",
+    "bindOfflinePrimarySuccessTitle": "Device registered",
+    "bindOfflinePrimarySuccessBody": "This device is now the offline POS. Changes sync when you reconnect.",
+    "bindOfflinePrimaryErrorTitle": "Could not register device",
+    "nonPrimaryOfflineHint": "Offline: you can only edit the order already open on this device."
   },
   "faq": {
     "navLink": "FAQ",

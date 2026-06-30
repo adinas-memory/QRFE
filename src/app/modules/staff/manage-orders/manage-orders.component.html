@@ -1,4 +1,23 @@
 <c-tabs [activeItemKey]="0">
+  @if (shouldShowBindDeviceCta) {
+    <div class="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-2 mx-3 mt-3 mb-0" role="status">
+      <span class="small">{{ 'manageOrders.bindOfflinePrimaryHint' | transloco }}</span>
+      <button
+        cButton
+        color="primary"
+        size="sm"
+        type="button"
+        [disabled]="bindOfflinePrimaryInProgress"
+        (click)="bindOfflinePrimaryDevice()"
+      >
+        @if (bindOfflinePrimaryInProgress) {
+          {{ 'manageOrders.bindOfflinePrimaryBinding' | transloco }}
+        } @else {
+          {{ 'manageOrders.bindOfflinePrimaryCta' | transloco }}
+        }
+      </button>
+    </div>
+  }
   <c-tabs-list variant="pills">
     <button cTab [itemKey]="0" class="ms-3">{{ 'manageOrders.tabAll' | transloco }}</button>
     <button cTab [itemKey]="1" class="ms-2">{{ 'manageOrders.tabFree' | transloco }}</button>
@@ -88,7 +107,7 @@
             </button>
           }
           <button cButton class="btn btn-primary ms-auto"
-            [disabled]="requireOnline && !isOnline"
+            [disabled]="requireOnline && !canBypassOfflineUiGates"
             (click)="table.order ? seeOrder(table) : openTable(table)">
             {{ !table.isTableOpen ? ('manageOrders.seeOrder' | transloco) : ('manageOrders.openTable' | transloco) }}
           </button>
@@ -276,7 +295,7 @@
 
       <div *ngIf="!orderIsConfirmed">
         <button class="btn btn-primary w-100" (click)="confirmOrder()"
-          [disabled]="selectedItems.length === 0 || !isOnline">
+          [disabled]="selectedItems.length === 0 || !canBypassOfflineUiGates">
           {{ 'staff.confirm' | transloco }} – {{ cartSubTotal | currency: cartCurrency }}
         </button>
       </div>

@@ -5,6 +5,8 @@ import { OrderSyncService } from '../../../core/services/order-service/order-syn
 import { OfflineDbService } from '../../../core/offline/offline-db';
 import { OfflineQueueProcessor } from '../../../core/offline/offline-queue-processor.service';
 import { OnlineStateService } from '../../../core/offline/online-state-service';
+import { OfflinePolicyService } from '../../../core/offline/offline-policy.service';
+import { OfflinePrimaryService } from '../../../core/services/offline-primary/offline-primary.service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { TablesService } from '../../../core/services/tables-service/tables.service';
 import { MenuItemServiceService } from '../../../core/services/menu-item-service/menu-item-service.service';
@@ -229,6 +231,7 @@ export interface SetupManageOrdersOptions {
   computed?: Record<string, unknown>;
   initiatedByMap?: Record<string, string>;
   isOnline?: boolean;
+  isOfflinePrimaryDevice?: boolean;
   reservations?: Array<{
     reservationId: string;
     tableId: string;
@@ -383,6 +386,22 @@ export async function setupManageOrdersComponent(
       { provide: PrintJobsService, useValue: mocks.printJobs },
       { provide: DeviceFeedbackService, useValue: mocks.deviceFeedback },
       { provide: ReservationService, useValue: mocks.reservationService },
+      {
+        provide: OfflinePolicyService,
+        useValue: {
+          canUseFullOffline: () =>
+            (options.isOnline ?? true) === false && (options.isOfflinePrimaryDevice ?? false),
+          shouldShowBindDeviceCta: () => false,
+          isOfflinePrimaryDevice: () => options.isOfflinePrimaryDevice ?? false,
+          isOfflinePrimaryStaffDesignee: () => false,
+        },
+      },
+      {
+        provide: OfflinePrimaryService,
+        useValue: {
+          bindDevice: jasmine.createSpy('bindDevice').and.returnValue(of({ isOfflinePrimaryDevice: true })),
+        },
+      },
     ],
   }).compileComponents();
 
