@@ -30,8 +30,6 @@ describe('normalizeUserContext', () => {
       name: null,
       surname: null,
       email: null,
-      isOfflinePrimaryDevice: false,
-      isOfflinePrimaryStaffDesignee: false,
     });
     expect(normalizeUserContext({ Id: '2', Role: 'manager', RestaurantId: 'r2' })).toEqual({
       id: '2',
@@ -43,8 +41,6 @@ describe('normalizeUserContext', () => {
       name: null,
       surname: null,
       email: null,
-      isOfflinePrimaryDevice: false,
-      isOfflinePrimaryStaffDesignee: false,
     });
     expect(
       normalizeUserContext({
@@ -215,5 +211,28 @@ describe('AuthService offline session handling', () => {
 
     expect(service.getUserSnapshot()?.restaurantName).toBe('Bistro');
     expect(service.getUserSnapshot()?.restaurantType).toBe('Small');
+  });
+
+  it('setUser preserves offline flags when ping omits them', () => {
+    service.setUser({
+      id: '1',
+      role: 'staff',
+      restaurantId: 'r1',
+      restaurantName: 'Bistro',
+      restaurantType: 'Small',
+      isOfflinePrimaryStaffDesignee: true,
+      isOfflinePrimaryDevice: false,
+    });
+
+    service.setUser({
+      id: '1',
+      role: 'staff',
+      restaurantId: 'r1',
+      restaurantName: 'Bistro',
+      restaurantType: 'Small',
+    });
+
+    expect(service.getUserSnapshot()?.isOfflinePrimaryStaffDesignee).toBe(true);
+    expect(service.getUserSnapshot()?.isOfflinePrimaryDevice).toBe(false);
   });
 });
