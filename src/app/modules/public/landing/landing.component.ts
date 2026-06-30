@@ -1,149 +1,81 @@
-import { UserContextModel } from './../../../core/models/userContextModel';
-import { AfterViewInit, Component, OnDestroy, OnInit } from '@angular/core';
-import { RouterLink, Router } from '@angular/router';
-import { AuthService } from '../../../core/auth/auth.service';
 import {
-  ContainerComponent,
-  HeaderComponent,
-  HeaderDividerComponent,
-  NavItemComponent,
-  HeaderNavComponent,
-  HeaderTextComponent,
-  NavLinkDirective,
-  ButtonDirective,
-  CardBodyComponent,
-  CardComponent,
-  CardTextDirective,
-  CardTitleDirective,
-  ColComponent,
-  RowComponent,
-  BorderDirective,
-  CardFooterComponent,
-  CardHeaderComponent,
-} from '@coreui/angular';
+  AfterViewInit,
+  Component,
+  OnDestroy,
+  OnInit,
+  ViewEncapsulation,
+} from '@angular/core';
+import { Router } from '@angular/router';
+import { AuthService } from '../../../core/auth/auth.service';
 import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
-import { ProductLimitModel, RestaurantType, SubscriptionProductModel } from '../../../core/models/subscription-product';
-import { combineLatest, forkJoin, Subject, Subscription, takeUntil } from 'rxjs';
-import { CurrencyPipe, JsonPipe, NgClass } from '@angular/common';
-import { DropdownComponent, DropdownItemDirective, DropdownMenuDirective, DropdownToggleDirective } from '@coreui/angular';
+import { ProductLimitModel, SubscriptionProductModel } from '../../../core/models/subscription-product';
+import { combineLatest, Subject, takeUntil } from 'rxjs';
+import { CurrencyPipe } from '@angular/common';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { LANG_STORAGE_KEY, type AppLang } from '../../../core/i18n/transloco.config';
 import { FaqComponent } from '../faq/faq.component';
-import { environment } from '../../../../environments/environment';
-import { FooterComponent } from '@coreui/angular';
-import { IconDirective } from '@coreui/icons-angular';
-import { FeedbackLaunchComponent } from '@app/shared/components/feedback/feedback-launch.component';
-import { FeedbackModalComponent } from '@app/shared/components/feedback/feedback-modal.component';
-import { AppFooterContentComponent } from '@app/shared/components/layout/app-footer-content.component';
+import { PublicUrsShellComponent } from '../public-urs-shell/public-urs-shell.component';
+import {
+  LANDING_PRODUCT_LIMITS_FALLBACK,
+  resolveLandingSubscriptionProducts,
+} from './landing-subscription-fallback';
 import { SeoService } from '../../../core/services/seo/seo.service';
+
+interface LandingFeature {
+  icon: string;
+  titleKey: string;
+  descKey: string;
+}
 
 @Component({
   selector: 'app-landing',
   standalone: true,
-  imports: [FaqComponent, ContainerComponent,
-    HeaderComponent, CurrencyPipe, JsonPipe,
-    HeaderDividerComponent,
-    HeaderTextComponent,
-    HeaderNavComponent,
-    NavItemComponent,
-    NavLinkDirective,
-    RouterLink,
-    RowComponent,
-    ColComponent,
-    CardComponent, BorderDirective,
-    CardBodyComponent, CardHeaderComponent,
-    CardTitleDirective, CardFooterComponent,
-    CardTextDirective,
-    ButtonDirective,
-    DropdownComponent,
-    DropdownItemDirective,
-    DropdownMenuDirective,
-    DropdownToggleDirective,
+  imports: [
+    FaqComponent,
+    CurrencyPipe,
+    PublicUrsShellComponent,
     TranslocoPipe,
-    NgClass,
-    FooterComponent,
-    IconDirective,
-    FeedbackLaunchComponent,
-    FeedbackModalComponent,
-    AppFooterContentComponent,
   ],
   styleUrls: ['./landing.component.scss'],
-  templateUrl: './landing.component.html'
+  templateUrl: './landing.component.html',
+  encapsulation: ViewEncapsulation.None,
 })
 export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
-  public cards: SubscriptionProductModel[] = [];
-  private userSubscription: Subscription | any;
-  private user: UserContextModel | any;
-  private role: string | null = null;
+  cards: SubscriptionProductModel[] = [];
   productLimits: ProductLimitModel[] | null = null;
-  private destroy$ = new Subject<void>();
-  cardBorderColor: string = 'light';
-  cardBackgroundColor: string = '#2b81d6ff';
+  activeSection = 'top';
 
-  theme: 'dark' | 'light' = 'dark';
-  readonly year = new Date().getFullYear();
-  readonly poweredBy = environment.poweredBy;
-  readonly frontendPublicUrl = environment.apiUrl;
+  readonly featureItems: LandingFeature[] = [
+    { icon: 'bi-wifi-off', titleKey: 'landing.feat.offline.t', descKey: 'landing.feat.offline.d' },
+    { icon: 'bi-phone', titleKey: 'landing.feat.mobile.t', descKey: 'landing.feat.mobile.d' },
+    { icon: 'bi-printer', titleKey: 'landing.feat.print.t', descKey: 'landing.feat.print.d' },
+    { icon: 'bi-cloud-arrow-up', titleKey: 'landing.feat.cloud.t', descKey: 'landing.feat.cloud.d' },
+    { icon: 'bi-graph-up-arrow', titleKey: 'landing.feat.sales.t', descKey: 'landing.feat.sales.d' },
+    { icon: 'bi-people', titleKey: 'landing.feat.staff.t', descKey: 'landing.feat.staff.d' },
+  ];
+
+  private readonly destroy$ = new Subject<void>();
+  private revealObserver: IntersectionObserver | null = null;
+  private sectionObserver: IntersectionObserver | null = null;
 
   constructor(
     private authService: AuthService,
     private subscriptionService: SubscriptionService,
     private transloco: TranslocoService,
     private router: Router,
-    private seo: SeoService) {
-
-  }
-
-  get activeLang(): AppLang {
-    const l = this.transloco.getActiveLang();
-    return (l === 'ro' || l === 'en' || l === 'it' || l === 'fr' || l === 'es' || l === 'de' || l === 'sv') ? l : 'ro';
-  }
-
-  /** CoreUI Icons flag sprites: locale `en` uses `cif-us`, not `cif-en`. */
-  private readonly langFlagClass: Record<AppLang, string> = {
-    ro: 'cif-ro',
-    en: 'cif-us',
-    it: 'cif-it',
-    fr: 'cif-fr',
-    es: 'cif-es',
-    de: 'cif-de',
-    sv: 'cif-se',
-  };
-
-  get activeLangFlagClass(): string {
-    return this.langFlagClass[this.activeLang];
-  }
-
-  /** Outline buttons: light-on-dark in dark theme, dark-on-light in light theme (CoreUI `color`). */
-  get outlineBtnColor(): 'light' | 'dark' {
-    return this.theme === 'light' ? 'dark' : 'light';
-  }
-
-  setLanguage(l: AppLang) {
-    this.transloco.setActiveLang(l);
-    try { localStorage.setItem(LANG_STORAGE_KEY, l); } catch { /* ignore */ }
-    this.seo.applyPublicPage('landing');
-  }
-
-  setTheme(t: 'dark' | 'light'): void {
-    this.theme = t;
-    try {
-      localStorage.setItem('publicTheme', t);
-    } catch { /* ignore */ }
-  }
+    private seo: SeoService,
+  ) {}
 
   handleCardClick(card: SubscriptionProductModel): void {
     this.subscriptionService.setPendingPlan({
       priceId: card.priceId,
-      restaurantType: card.restaurantType
+      restaurantType: card.restaurantType,
     });
 
     const userRole = this.authService.getUserRole();
     const isAuthed = this.authService.isAuthenticated();
 
-    // If we don't have a reliable role yet, treat as not authenticated
     if (!isAuthed || !userRole) {
-      this.router.navigate(['/register']);
+      void this.router.navigate(['/register']);
       return;
     }
 
@@ -152,25 +84,25 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
-    // fallback: user is authenticated but not a subscribable role
     if (userRole === 'staff') {
-      this.router.navigate(['/staff']);
+      void this.router.navigate(['/staff']);
       return;
     }
     if (userRole === 'manager') {
-      this.router.navigate(['/manager']);
+      void this.router.navigate(['/manager']);
       return;
     }
     if (userRole === 'gadmin') {
-      this.router.navigate(['/gadmin']);
+      void this.router.navigate(['/gadmin']);
       return;
     }
 
-    this.router.navigate(['/login']);
+    void this.router.navigate(['/login']);
   }
 
-  getLimit(type: string) {
-    return this.productLimits?.find(l => l.type === type);
+  getLimit(type: string): ProductLimitModel | undefined {
+    const key = (type ?? '').toLowerCase();
+    return this.productLimits?.find(l => (l.type ?? '').toLowerCase() === key);
   }
 
   getFeatureKeys(card: SubscriptionProductModel): string[] {
@@ -179,7 +111,6 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
       return this.defaultFeatureKeys();
     }
 
-    // Preferred format: JSON array of Transloco keys.
     try {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.every(x => typeof x === 'string')) {
@@ -189,9 +120,78 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
       // fallthrough
     }
 
-    // Back-compat: allow newline/comma separated text -> show as plain labels (no transloco).
     const parts = raw.split(/\r?\n|,/g).map(x => x.trim()).filter(Boolean);
     return parts.length ? parts.map(x => `pricing.features._plain:${x}`) : this.defaultFeatureKeys();
+  }
+
+  featureLabel(key: string): string {
+    if (key.startsWith('pricing.features._plain:')) return key.split(':', 2)[1] ?? '';
+    return this.transloco.translate(key);
+  }
+
+  restaurantTypeLabel(type: string | undefined): string {
+    const t = (type ?? '').trim();
+    if (!t) return '';
+    return `${t.charAt(0).toUpperCase()}${t.slice(1).toLowerCase()} restaurant`;
+  }
+
+  planTitle(card: SubscriptionProductModel): string {
+    const desc = card.description?.trim() ?? '';
+    const dash = desc.indexOf(' - ');
+    if (dash > 0) {
+      return desc.slice(0, dash).trim();
+    }
+    return this.restaurantTypeLabel(card.restaurantType);
+  }
+
+  planSubtitle(card: SubscriptionProductModel): string {
+    const desc = card.description?.trim() ?? '';
+    const dash = desc.indexOf(' - ');
+    if (dash > 0) {
+      return desc.slice(dash + 3).trim();
+    }
+    return '';
+  }
+
+  isFeaturedCard(index: number): boolean {
+    if (this.cards.length < 2) return false;
+    return index === Math.floor((this.cards.length - 1) / 2);
+  }
+
+  scrollTo(sectionId: string): void {
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      this.activeSection = sectionId;
+    }
+  }
+
+  ngOnInit(): void {
+    this.seo.applyPublicPage('landing');
+
+    combineLatest([
+      this.subscriptionService.getProducts(),
+      this.subscriptionService.getProductsLimits(),
+    ])
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(([products, limits]) => {
+        this.cards = resolveLandingSubscriptionProducts(products);
+        this.productLimits = limits?.length ? limits : [...LANDING_PRODUCT_LIMITS_FALLBACK];
+      });
+  }
+
+  ngAfterViewInit(): void {
+    this.authService.clearRestaurantCtx();
+    this.setupRevealObserver();
+    this.setupSectionObserver();
+  }
+
+  ngOnDestroy(): void {
+    this.seo.clearPublicPage();
+    this.revealObserver?.disconnect();
+    this.sectionObserver?.disconnect();
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private defaultFeatureKeys(): string[] {
@@ -209,49 +209,46 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
       'pricing.features.multilanguageUI',
       'pricing.features.menuDescriptionTranslation',
       'pricing.features.sseTablesLive',
-      'pricing.features.ecoBon'
+      'pricing.features.ecoBon',
     ];
   }
 
-  featureLabel(key: string): string {
-    // If key is in the pseudo-namespace, return the plain text after ':'
-    if (key.startsWith('pricing.features._plain:')) return key.split(':', 2)[1] ?? '';
-    return this.transloco.translate(key);
-  }
+  private setupRevealObserver(): void {
+    const revealEls = document.querySelectorAll('.urs-landing-shell .reveal');
+    if (!revealEls.length) return;
 
+    if (!('IntersectionObserver' in window)) {
+      revealEls.forEach(el => el.classList.add('in'));
+      return;
+    }
 
-
-  ngOnInit(): void {
-    this.theme = (localStorage.getItem('publicTheme') as 'dark' | 'light') || 'dark';
-    this.seo.applyPublicPage('landing');
-
-    combineLatest([
-      this.subscriptionService.getProducts(),
-      this.subscriptionService.getProductsLimits()
-    ])
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(([products, limits]) => {
-        const order: Record<string, number> = { small: 0, medium: 1, large: 2 };
-        this.cards = [...(products ?? [])].sort((a, b) => {
-          const av = order[(a.restaurantType ?? '').toLowerCase()] ?? 99;
-          const bv = order[(b.restaurantType ?? '').toLowerCase()] ?? 99;
-          return av - bv;
+    this.revealObserver = new IntersectionObserver(
+      entries => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add('in');
+          this.revealObserver?.unobserve(entry.target);
         });
-        this.productLimits = limits;
-      });
+      },
+      { threshold: 0.12 },
+    );
+    revealEls.forEach(el => this.revealObserver?.observe(el));
   }
 
-  ngAfterViewInit(): void {
-    this.authService.clearRestaurantCtx();
-    // this.authService.clearUser();
-    
-  }
+  private setupSectionObserver(): void {
+    const sections = document.querySelectorAll('.urs-landing-shell section[id], .urs-landing-shell header[id]');
+    if (!sections.length || !('IntersectionObserver' in window)) return;
 
-
-
-  ngOnDestroy() {
-    this.seo.clearPublicPage();
-    this.destroy$.next();
-    this.destroy$.complete();
+    this.sectionObserver = new IntersectionObserver(
+      entries => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          const id = entry.target.getAttribute('id');
+          if (id) this.activeSection = id;
+        });
+      },
+      { rootMargin: '-45% 0px -50% 0px' },
+    );
+    sections.forEach(s => this.sectionObserver?.observe(s));
   }
 }

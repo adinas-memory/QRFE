@@ -1,0 +1,143 @@
+<div class="urs-landing-shell" [attr.data-theme]="theme">
+  <nav class="navbar navbar-expand-lg fixed-top" id="mainNav" [class.is-stuck]="navStuck">
+    <div class="container">
+      <a class="navbar-brand" routerLink="/" (click)="closeNav()">
+        <img [src]="logoSrc" alt="URS" class="urs-brand-logo">
+      </a>
+      <button
+        class="navbar-toggler border-0"
+        type="button"
+        (click)="toggleNav()"
+        [attr.aria-expanded]="navOpen"
+        aria-controls="navMenu"
+        aria-label="Toggle navigation"
+      >
+        <i class="bi bi-list fs-2"></i>
+      </button>
+      <div class="collapse navbar-collapse" id="navMenu" [class.show]="navOpen">
+        <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+          @for (link of navLinks; track link.id) {
+            <li class="nav-item">
+              @if (link.routePath) {
+                <a
+                  class="nav-link"
+                  [routerLink]="link.routePath"
+                  (click)="closeNav()"
+                >
+                  {{ link.labelKey | transloco }}
+                </a>
+              } @else if (fragmentNav) {
+                <a
+                  class="nav-link"
+                  routerLink="/"
+                  [fragment]="link.id"
+                  (click)="closeNav()"
+                >
+                  {{ link.labelKey | transloco }}
+                </a>
+              } @else {
+                <button
+                  type="button"
+                  class="nav-link"
+                  [class.active]="isNavActive(link.id)"
+                  (click)="goToSection(link.id)"
+                >
+                  {{ link.labelKey | transloco }}
+                </button>
+              }
+            </li>
+          }
+        </ul>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <a [href]="phoneTelUrl" class="urs-header-phone d-none d-lg-inline-flex align-items-center" [attr.aria-label]="phoneAriaLabel()">
+            <i class="bi bi-telephone"></i>
+          </a>
+          <app-feedback-launch
+            [allowAnonymous]="true"
+            appearance="outline"
+            [outlineColor]="outlineBtnColor"
+          />
+          <c-dropdown class="urs-lang">
+            <button cDropdownToggle type="button" class="urs-lang-toggle" aria-label="Choose language">
+              <span class="lang-flag" [ngClass]="activeLangFlagClass"></span>
+              <span class="text-uppercase">{{ activeLang }}</span>
+            </button>
+            <ul cDropdownMenu class="dropdown-menu-end urs-lang-menu">
+              <li><button cDropdownItem type="button" (click)="setLanguage('en')"><span class="lang-flag me-2 cif-us"></span> EN</button></li>
+              <li><button cDropdownItem type="button" (click)="setLanguage('it')"><span class="lang-flag me-2 cif-it"></span> IT</button></li>
+              <li><button cDropdownItem type="button" (click)="setLanguage('fr')"><span class="lang-flag me-2 cif-fr"></span> FR</button></li>
+              <li><button cDropdownItem type="button" (click)="setLanguage('es')"><span class="lang-flag me-2 cif-es"></span> ES</button></li>
+              <li><button cDropdownItem type="button" (click)="setLanguage('de')"><span class="lang-flag me-2 cif-de"></span> DE</button></li>
+              <li><button cDropdownItem type="button" (click)="setLanguage('sv')"><span class="lang-flag me-2 cif-se"></span> SV</button></li>
+              <li><button cDropdownItem type="button" (click)="setLanguage('ro')"><span class="lang-flag me-2 cif-ro"></span> RO</button></li>
+            </ul>
+          </c-dropdown>
+          <button
+            type="button"
+            class="urs-theme-toggle"
+            (click)="toggleTheme()"
+            [attr.aria-label]="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+            [attr.aria-pressed]="theme === 'dark'"
+          >
+            @if (theme === 'dark') {
+              <i class="bi bi-sun-fill"></i>
+            } @else {
+              <i class="bi bi-moon-stars-fill"></i>
+            }
+          </button>
+          <a routerLink="/login" class="btn btn-outline-primary" (click)="closeNav()">
+            {{ 'landing.nav.signin' | transloco }}
+          </a>
+          @if (fragmentNav) {
+            <a routerLink="/" fragment="pricing" class="btn btn-primary" (click)="closeNav()">
+              {{ 'landing.nav.getstarted' | transloco }}
+            </a>
+          } @else {
+            <button type="button" class="btn btn-primary" (click)="goToSection('pricing')">
+              {{ 'landing.nav.getstarted' | transloco }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main [style.padding-top]="mainTopPadding">
+    <ng-content />
+  </main>
+
+  @if (showFooter) {
+    <footer class="urs-footer pt-5 pb-4">
+      <div class="container">
+        <div class="row g-4 pb-4 align-items-start">
+          <div class="col-lg-4">
+            <span class="brand-logo-wrap mb-3">
+              <img [src]="logoSrc" alt="URS" class="brand-logo">
+            </span>
+          </div>
+          <div class="col-lg-8">
+            <app-footer-content
+              variant="guest"
+              [showWhatsApp]="true"
+              [showContactPurposeHints]="true"
+              [year]="year"
+              [poweredByLabel]="poweredBy"
+              [poweredByUrl]="frontendPublicUrl"
+            />
+          </div>
+        </div>
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center pt-4 border-top urs-footer-contact gap-3">
+          <small>{{ 'landing.footer.rights' | transloco }}</small>
+          <nav class="d-flex flex-wrap gap-3 urs-footer-legal" aria-label="Legal">
+            <a routerLink="/contact">{{ 'landing.nav.contact' | transloco }}</a>
+            <a routerLink="/privacy">{{ 'legal.privacy.nav' | transloco }}</a>
+            <a routerLink="/terms">{{ 'legal.terms.nav' | transloco }}</a>
+            <a routerLink="/faq">{{ 'faq.navLink' | transloco }}</a>
+          </nav>
+        </div>
+      </div>
+    </footer>
+  }
+
+  <app-feedback-modal />
+</div>

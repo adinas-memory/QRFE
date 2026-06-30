@@ -19,8 +19,26 @@ export const routes: Routes = [
       {
         path: 'faq',
         loadComponent: () =>
-          import('./faq/faq.component').then(m => m.FaqComponent),
+          import('./faq/faq-page.component').then(m => m.FaqPageComponent),
         data: { title: 'FAQ', public: true }
+      },
+      {
+        path: 'contact',
+        loadComponent: () =>
+          import('./static-public-page/static-public-page.component').then(m => m.StaticPublicPageComponent),
+        data: { title: 'Contact', pageId: 'contact', public: true }
+      },
+      {
+        path: 'privacy',
+        loadComponent: () =>
+          import('./static-public-page/static-public-page.component').then(m => m.StaticPublicPageComponent),
+        data: { title: 'Privacy', pageId: 'privacy', public: true }
+      },
+      {
+        path: 'terms',
+        loadComponent: () =>
+          import('./static-public-page/static-public-page.component').then(m => m.StaticPublicPageComponent),
+        data: { title: 'Terms', pageId: 'terms', public: true }
       },
       {
         path: 'register',

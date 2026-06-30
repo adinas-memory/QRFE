@@ -1,6 +1,9 @@
-export const environment = {
+import type { Environment } from './environment.model';
+
+export const environment: Environment = {
   production: true,
   apiUrl: 'https://universalrestaurant.systems',
+  publicSiteUrl: 'https://universalrestaurant.systems',
   poweredBy: 'QRFE Prod Server',
   /**
    * Stable "latest" asset URL — keep the same filename on every GitHub Release.

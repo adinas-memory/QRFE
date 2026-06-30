@@ -3,12 +3,12 @@
 }
 
 .faq {
-  background: #0f1215;
-  color: #fff;
+  background: transparent;
+  color: var(--ink, #07262b);
 }
 
 .faq--page {
-  min-height: 60vh;
+  min-height: 40vh;
 }
 
 .faq-head {
@@ -16,66 +16,93 @@
 }
 
 .faq-title {
+  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
   font-size: clamp(1.35rem, 2.5vw, 1.75rem);
-  font-weight: 800;
+  font-weight: 700;
   margin-bottom: 0.5rem;
+  color: var(--ink, #07262b);
 }
 
 .faq-intro {
   font-size: 0.95rem;
   line-height: 1.5;
+  color: var(--ink-soft, #426067) !important;
 }
 
 .faq-accordion {
-  --cui-accordion-btn-color: rgba(255, 255, 255, 0.95);
-  --cui-accordion-bg: rgba(255, 255, 255, 0.04);
-  --cui-accordion-border-color: rgba(255, 255, 255, 0.1);
+  --cui-accordion-btn-color: var(--ink, #07262b);
+  --cui-accordion-bg: var(--surface, #fff);
+  --cui-accordion-border-color: var(--line, #dfe9e6);
+  --cui-accordion-active-bg: var(--surface-2, #f4f8f6);
   max-width: 920px;
 }
 
 .faq-answer {
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--ink-soft, #426067);
   font-size: 0.95rem;
   line-height: 1.55;
 }
 
 .faq :deep(.accordion-button) {
   font-weight: 600;
+  border-radius: 12px;
 }
 
 .faq :deep(.accordion-button:not(.collapsed)) {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: var(--surface-2, #f4f8f6);
+  color: var(--dark-teal, #074f57);
+  box-shadow: none;
+}
+
+.faq :deep(.accordion-item) {
+  border-color: var(--line, #dfe9e6);
+  background: var(--surface, #fff);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
 }
 
 .faq :deep(.accordion-body) {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--surface, #fff);
 }
 
-:host-context(.landing-shell[data-coreui-theme='light']) .faq.faq--embedded {
-  background: #c8ced6;
-  color: #1a1d21;
+.faq--embedded {
+  background: transparent;
 }
 
-:host-context(.landing-shell[data-coreui-theme='light']) .faq.faq--embedded .faq-intro {
-  color: #5c636a !important;
+:host-context(.urs-landing-shell[data-theme='dark']) .faq {
+  color: var(--ink, #e9f3f1);
 }
 
-:host-context(.landing-shell[data-coreui-theme='light']) .faq.faq--embedded .faq-accordion {
-  --cui-accordion-btn-color: #1a1d21;
-  --cui-accordion-bg: rgba(255, 255, 255, 0.72);
-  --cui-accordion-border-color: rgba(0, 0, 0, 0.12);
+:host-context(.urs-landing-shell[data-theme='dark']) .faq-title {
+  color: var(--ink, #e9f3f1);
 }
 
-:host-context(.landing-shell[data-coreui-theme='light']) .faq.faq--embedded .faq-answer {
-  color: rgba(26, 29, 33, 0.9);
+:host-context(.urs-landing-shell[data-theme='dark']) .faq-intro {
+  color: var(--ink-soft, #9bb9b8) !important;
 }
 
-:host-context(.landing-shell[data-coreui-theme='light']) .faq.faq--embedded :deep(.accordion-button:not(.collapsed)) {
-  background: rgba(0, 0, 0, 0.07);
-  color: #1a1d21;
+:host-context(.urs-landing-shell[data-theme='dark']) .faq-accordion {
+  --cui-accordion-btn-color: var(--ink, #e9f3f1);
+  --cui-accordion-bg: var(--card, #102a2e);
+  --cui-accordion-border-color: var(--line, #1e3b40);
+  --cui-accordion-active-bg: #143a40;
 }
 
-:host-context(.landing-shell[data-coreui-theme='light']) .faq.faq--embedded :deep(.accordion-body) {
-  background: rgba(255, 255, 255, 0.55);
+:host-context(.urs-landing-shell[data-theme='dark']) .faq-answer {
+  color: var(--ink-soft, #9bb9b8);
+}
+
+:host-context(.urs-landing-shell[data-theme='dark']) .faq :deep(.accordion-item) {
+  background: var(--card, #102a2e);
+  border-color: var(--line, #1e3b40);
+}
+
+:host-context(.urs-landing-shell[data-theme='dark']) .faq :deep(.accordion-button:not(.collapsed)) {
+  background: #143a40;
+  color: var(--celadon, #9ece9a);
+}
+
+:host-context(.urs-landing-shell[data-theme='dark']) .faq :deep(.accordion-body) {
+  background: var(--card, #102a2e);
 }
