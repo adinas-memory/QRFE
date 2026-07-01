@@ -119,20 +119,22 @@ export class OrderSyncService {
     this.syncInProgress = true;
 
     try {
-      const actions = await this.offlineDB.getPendingActions();
-
-      for (const action of actions) {
-        try {
-          await this.queueProcessor.processAction(action);
-          if (!action.id) return console.warn('[SYNC] Action has no ID, cannot mark done:', action);
-          await this.offlineDB.markActionDone(action.id);
-        } catch (err) {
-          console.warn('[SYNC] Action failed, will retry later:', action, err);
-          this.onlineStateService.setOffline();
-          break; // ne oprim, nu stricăm ordinea
-        }
-      }
-
+      // #region agent log
+      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
+        body: JSON.stringify({
+          sessionId: 'd38222',
+          location: 'order-sync.service.ts:trySyncNow',
+          message: 'delegating to processQueue (no parallel processAction loop)',
+          data: {},
+          hypothesisId: 'H5-trysync-race',
+          runId: 'post-fix-v2',
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
+      await this.queueProcessor.processQueue();
     } finally {
       this.syncInProgress = false;
     }

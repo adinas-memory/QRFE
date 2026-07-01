@@ -1089,6 +1089,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
       this.resetCanvasState();
       this.closeInFlight = false;
+      if (this.onlineStateService.isOnline) {
+        this.queueProcessor.triggerProcessing();
+      }
       return;
     }
 
