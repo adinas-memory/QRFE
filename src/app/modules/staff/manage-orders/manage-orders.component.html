@@ -330,6 +330,34 @@
 </c-offcanvas>
 <!-- END OFFCANVAS -->
 
+<c-modal
+  [visible]="showOfflineSyncModal()"
+  [backdrop]="'static'"
+  [keyboard]="false"
+  alignment="center"
+>
+  <c-modal-header>
+    <h5 cModalTitle>{{ 'manageOrders.offlineSyncModalTitle' | transloco }}</h5>
+  </c-modal-header>
+  <c-modal-body class="text-center py-4" role="status" aria-live="polite">
+    @if (offlineSyncCountdown() !== null) {
+      <div class="display-3 fw-bold tabular-nums mb-3">{{ offlineSyncCountdown() }}</div>
+      <p class="mb-0 text-body-secondary">{{ 'manageOrders.offlineSyncCountdown' | transloco: { seconds: offlineSyncCountdown() } }}</p>
+    } @else {
+      <div class="spinner-border text-warning mb-3" role="status">
+        <span class="visually-hidden">{{ 'manageOrders.offlineSyncInProgress' | transloco }}</span>
+      </div>
+      <p class="mb-0 text-body-secondary">
+        @if (offlineSyncReconciling()) {
+          {{ 'manageOrders.offlineSyncReconciling' | transloco }}
+        } @else {
+          {{ 'manageOrders.offlineSyncInProgress' | transloco }}
+        }
+      </p>
+    }
+  </c-modal-body>
+</c-modal>
+
 <c-modal [(visible)]="setMenuModalVisible">
   <c-modal-header>
     <h5 cModalTitle>Meniul zilei</h5>

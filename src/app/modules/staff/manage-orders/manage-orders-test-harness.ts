@@ -4,6 +4,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { OrderSyncService } from '../../../core/services/order-service/order-sync.service';
 import { OfflineDbService } from '../../../core/offline/offline-db';
 import { OfflineQueueProcessor } from '../../../core/offline/offline-queue-processor.service';
+import { OfflineSyncSchedulerService } from '../../../core/offline/offline-sync-scheduler.service';
 import { OnlineStateService } from '../../../core/offline/online-state-service';
 import { OfflinePolicyService } from '../../../core/offline/offline-policy.service';
 import { OfflinePrimaryService } from '../../../core/services/offline-primary/offline-primary.service';
@@ -181,13 +182,19 @@ export interface ManageOrdersMocks {
   sseService: {
     events$: Subject<SseEvent<unknown>>;
     snapshotRefreshed$: Subject<{ restaurantId: string; activeGuestWaiterCalls: string[] }>;
+    isReconciling$: Observable<boolean>;
     listenToRestaurantEvents: jasmine.Spy;
     refreshRestaurantSnapshot: jasmine.Spy;
   };
   offlineDb: OfflineDbMock;
   queueProcessor: {
     orderConfirmed$: Subject<{ tableId: string; orderId: string }>;
+    isProcessing$: Observable<boolean>;
     triggerProcessing: jasmine.Spy;
+  };
+  syncScheduler: {
+    syncCountdownSeconds$: Observable<number | null>;
+    syncBlocked$: Observable<boolean>;
   };
   onlineState: OnlineStateMock;
   appToast: {
@@ -319,13 +326,19 @@ export function createManageOrdersMocks(options: SetupManageOrdersOptions = {}):
     sseService: {
       events$: sseEvents$,
       snapshotRefreshed$,
+      isReconciling$: of(false),
       listenToRestaurantEvents: jasmine.createSpy('listenToRestaurantEvents').and.returnValue(of({})),
       refreshRestaurantSnapshot: jasmine.createSpy('refreshRestaurantSnapshot').and.returnValue(Promise.resolve(true)),
     },
     offlineDb,
     queueProcessor: {
       orderConfirmed$,
+      isProcessing$: of(false),
       triggerProcessing: jasmine.createSpy('triggerProcessing'),
+    },
+    syncScheduler: {
+      syncCountdownSeconds$: of(null),
+      syncBlocked$: of(false),
     },
     onlineState: {
       isOnline: options.isOnline ?? true,
@@ -379,6 +392,7 @@ export async function setupManageOrdersComponent(
       { provide: OrderSyncService, useValue: mocks.sseService },
       { provide: OfflineDbService, useValue: mocks.offlineDb },
       { provide: OfflineQueueProcessor, useValue: mocks.queueProcessor },
+      { provide: OfflineSyncSchedulerService, useValue: mocks.syncScheduler },
       { provide: OnlineStateService, useValue: mocks.onlineState },
       { provide: AppToastService, useValue: mocks.appToast },
       { provide: MiscellaneousService, useValue: mocks.miscService },

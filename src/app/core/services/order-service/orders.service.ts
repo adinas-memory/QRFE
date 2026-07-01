@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment';
 import { firstValueFrom, Observable } from 'rxjs';
@@ -10,6 +10,11 @@ import { MiscellaneousService } from '../misc/miscellaneous.service';
 import { OfflineDbService } from '../../offline/offline-db';
 import { OnlineStateService } from '../../offline/online-state-service';
 import { PlatformStorageService } from '../../platform/platform-storage.service';
+import { SKIP_HTTP_ERROR_TOAST } from '../../interceptors/logging.interceptor';
+
+export interface OrderRequestOptions {
+  suppressErrorToast?: boolean;
+}
 
 
 
@@ -55,11 +60,24 @@ export class OrdersService {
   // HTTP METHODS (OBSERVABLES)
   // ------------------------------
 
-  newOrder(restaurantId: string, tableId: string, seatId?: string): Observable<{ order: OrderDTO }> {
+  private httpOpts(options?: OrderRequestOptions) {
+    const base = { withCredentials: true as const };
+    if (options?.suppressErrorToast) {
+      return { ...base, context: new HttpContext().set(SKIP_HTTP_ERROR_TOAST, true) };
+    }
+    return base;
+  }
+
+  newOrder(
+    restaurantId: string,
+    tableId: string,
+    seatId?: string,
+    options?: OrderRequestOptions,
+  ): Observable<{ order: OrderDTO }> {
     return this.http.post<{ order: OrderDTO }>(
       `${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/${tableId}/new-order`,
       {},
-      { withCredentials: true }
+      this.httpOpts(options),
     );
   }
 
@@ -76,16 +94,44 @@ export class OrdersService {
   }
 
   //confirm order
-  updateOrderItem(restaurantId: string, tableId: string, orderId: string, body: { orderItems: { menuItemId: string; quantity: number }[], seatId: string | null }): Observable<InitAddOrderResponse> {
-    return this.http.put<InitAddOrderResponse>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${orderId}/init-add-order-items`, body, { withCredentials: true });
+  updateOrderItem(
+    restaurantId: string,
+    tableId: string,
+    orderId: string,
+    body: { orderItems: { menuItemId: string; quantity: number }[]; seatId: string | null },
+    options?: OrderRequestOptions,
+  ): Observable<InitAddOrderResponse> {
+    return this.http.put<InitAddOrderResponse>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${orderId}/init-add-order-items`,
+      body,
+      this.httpOpts(options),
+    );
   }
 
-  deleteOrderItem(restaurantId: string, tableId: string, orderId: string, orderItemId: string): Observable<OrderDTO> {
-    return this.http.delete<OrderDTO>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${orderId}/${orderItemId}/delete-order-item`, { withCredentials: true });
+  deleteOrderItem(
+    restaurantId: string,
+    tableId: string,
+    orderId: string,
+    orderItemId: string,
+    options?: OrderRequestOptions,
+  ): Observable<OrderDTO> {
+    return this.http.delete<OrderDTO>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${orderId}/${orderItemId}/delete-order-item`,
+      this.httpOpts(options),
+    );
   }
 
-  closeOrder(restaurantId: string, tableId: string, orderId: string): Observable<OrderDTO> {
-    return this.http.post<OrderDTO>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${orderId}/close-order`, {}, { withCredentials: true });
+  closeOrder(
+    restaurantId: string,
+    tableId: string,
+    orderId: string,
+    options?: OrderRequestOptions,
+  ): Observable<OrderDTO> {
+    return this.http.post<OrderDTO>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${orderId}/close-order`,
+      {},
+      this.httpOpts(options),
+    );
   }
 
   getOrderPaymentLock(restaurantId: string, orderId: string): Observable<{ locked: boolean }> {
@@ -112,12 +158,34 @@ export class OrdersService {
   }
 
   // new methods
-  addOrderItem(restaurantId: string, tableId: string, currentOrderId: string, menuItemId: string, quantity: number): Observable<AddOrderItemResponse> {
-    return this.http.post<AddOrderItemResponse>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${currentOrderId}/add-order-item`, { menuItemId, quantity }, { withCredentials: true });
+  addOrderItem(
+    restaurantId: string,
+    tableId: string,
+    currentOrderId: string,
+    menuItemId: string,
+    quantity: number,
+    options?: OrderRequestOptions,
+  ): Observable<AddOrderItemResponse> {
+    return this.http.post<AddOrderItemResponse>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${currentOrderId}/add-order-item`,
+      { menuItemId, quantity },
+      this.httpOpts(options),
+    );
   }
 
-  updateOrderItemQuantity(restaurantId: string, tableId: string, currentOrderId: string, orderItemId: string, quantity: number): Observable<UpdateOrderItemQuantityResponse> {
-    return this.http.put<UpdateOrderItemQuantityResponse>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${currentOrderId}/items/${orderItemId}/update-order-item-qty`, { quantity }, { withCredentials: true });
+  updateOrderItemQuantity(
+    restaurantId: string,
+    tableId: string,
+    currentOrderId: string,
+    orderItemId: string,
+    quantity: number,
+    options?: OrderRequestOptions,
+  ): Observable<UpdateOrderItemQuantityResponse> {
+    return this.http.put<UpdateOrderItemQuantityResponse>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/${currentOrderId}/items/${orderItemId}/update-order-item-qty`,
+      { quantity },
+      this.httpOpts(options),
+    );
   }
 
   closeOrderAfterPayment(restaurantId: string, tableId: string, orderId: string): Observable<OrderDTO> {

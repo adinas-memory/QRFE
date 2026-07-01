@@ -1,17 +1,29 @@
 import { Injectable } from "@angular/core";
 import { OrdersService } from "../services/order-service/orders.service";
 import { OfflineAction, OfflineDbService } from "./offline-db";
-import { debounceTime, distinctUntilChanged, filter, firstValueFrom, Subject } from "rxjs";
+import { debounceTime, filter, firstValueFrom, Subject, BehaviorSubject } from "rxjs";
 import { CartItem, OrderItemDTO, cartItemFromOrderLine } from "../models/orderingModel";
 import { OnlineStateService } from "./online-state-service";
 import { AuthService } from "../auth/auth.service";
 import { AppToastService } from "../services/toast-service/toast-service.service";
+import { buildSyncOrderItemsFromPending, sortOfflineQueueActions } from "./offline-queue.util";
+import { OfflineSyncSchedulerService } from "./offline-sync-scheduler.service";
+
+const QUEUE_HTTP_OPTS = { suppressErrorToast: true as const };
+
+type ProcessActionResult = 'skip' | boolean;
 
 @Injectable({ providedIn: 'root' })
 export class OfflineQueueProcessor {
     private processing = false;
+    private drainAgain = false;
     private trigger$ = new Subject<void>();
+    private readonly processingSubject = new BehaviorSubject<boolean>(false);
+    readonly isProcessing$ = this.processingSubject.asObservable();
     readonly orderConfirmed$ = new Subject<{ tableId: string; orderId: string }>();
+    private readonly queueDrainedSubject = new Subject<void>();
+    /** Emitted when the offline queue finishes draining (pending → 0). */
+    readonly queueDrained$ = this.queueDrainedSubject.asObservable();
 
 
     constructor(
@@ -19,33 +31,32 @@ export class OfflineQueueProcessor {
         private ordersService: OrdersService,
         private onlineStateService: OnlineStateService,
         private authService: AuthService,
-        private toast: AppToastService
+        private toast: AppToastService,
+        private syncScheduler: OfflineSyncSchedulerService,
     ) {
-        this.authService.loggedIn$
-            .subscribe(async () => {
-                await this.recoverOrphanedCarts(); 
-                this.triggerProcessing();
-            });
-
         this.trigger$
             .pipe(
                 debounceTime(350)
             )
-            .subscribe(() => this.processQueue());
-
-        this.onlineStateService.online$
-            .pipe(
-                filter(isOnline => isOnline),
-                debounceTime(500) // lasă interceptorul să se stabilizeze
-            )
-            .subscribe(async () => {
-                await this.recoverOrphanedCarts();
-                this.processQueue();
+            .subscribe(() => {
+                if (this.syncScheduler.isSyncBlocked()) {
+                    void this.syncScheduler.runWhenAllowed();
+                    return;
+                }
+                void this.processQueue();
             });
     }
 
     triggerProcessing() {
+        if (this.syncScheduler.isSyncBlocked()) {
+            void this.syncScheduler.runWhenAllowed();
+            return;
+        }
         this.trigger$.next();
+    }
+
+    async recoverOrphanedCartsPublic(): Promise<void> {
+        await this.recoverOrphanedCarts();
     }
 
     private async getScopedRestaurantId(): Promise<string | null> {
@@ -120,85 +131,127 @@ export class OfflineQueueProcessor {
         }
     }
 
-    async processQueue() {
-        if (this.processing) return;
+    async processQueue(options?: { force?: boolean }) {
+        if (this.processing) {
+            this.drainAgain = true;
+            return;
+        }
         if (!this.onlineStateService.isOnline) return;
-
-        const restaurantId = await this.getScopedRestaurantId();
-        if (!restaurantId) return;
+        if (!options?.force && this.syncScheduler.isSyncBlocked()) {
+            void this.syncScheduler.runWhenAllowed();
+            return;
+        }
 
         this.processing = true;
-
+        this.processingSubject.next(true);
+        const restaurantIdAtStart = await this.getScopedRestaurantId();
+        const hadPendingAtStart = restaurantIdAtStart
+            ? (await this.offlineDB.getPendingActionsForRestaurant(restaurantIdAtStart)).length > 0
+            : false;
         try {
-            let pending = await this.offlineDB.getPendingActionsForRestaurant(restaurantId);
-            // #region agent log
-            if (pending.length > 0) {
-                fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
-                    body: JSON.stringify({
-                        sessionId: '38fcde',
-                        location: 'offline-queue-processor.service.ts:processQueue',
-                        message: 'processing scoped offline queue',
-                        data: {
-                            restaurantId,
-                            pendingCount: pending.length,
-                            actions: pending.map(a => ({
-                                type: a.type,
-                                tableId: a.tableId,
-                                orderId: a.orderId,
-                            })),
-                        },
-                        hypothesisId: 'H-OFFLINE-SCOPE',
-                        timestamp: Date.now(),
-                    }),
-                }).catch(() => {});
-            }
-            // #endregion
-            const compressed = await this.compressQueue(pending);
-            await this.offlineDB.replaceActions(compressed);
-
-            const actions = compressed.sort((a, b) =>
-                this.getActionOrder(a.type) - this.getActionOrder(b.type)
-            );
-
-            for (const action of actions) {
-                const ok = await this.processAction(action);
-
-                if (!ok) break;
-
-                await this.offlineDB.markActionDone(action.id!);
-
-                // ← FIX: după NEW_ORDER, Dexie are orderId-urile reale
-                // dar array-ul din memorie nu. Restart cu date proaspete.
-                if (action.type === 'NEW_ORDER' || action.type === 'INIT_ORDER_ITEMS_FINAL') {
-                    this.triggerProcessing(); // debounced 350ms
-                    return; // finally → processing = false
+            do {
+                this.drainAgain = false;
+                let rounds = 0;
+                while (rounds++ < 40) {
+                    const progressed = await this.runOneQueuePass();
+                    const restaurantId = await this.getScopedRestaurantId();
+                    const remaining = restaurantId
+                        ? (await this.offlineDB.getPendingActionsForRestaurant(restaurantId)).length
+                        : 0;
+                    if (!progressed || remaining === 0) {
+                        break;
+                    }
                 }
-            }
-
+            } while (this.drainAgain);
         } finally {
             this.processing = false;
+            this.processingSubject.next(false);
+            if (hadPendingAtStart && restaurantIdAtStart) {
+                const remaining = (await this.offlineDB.getPendingActionsForRestaurant(restaurantIdAtStart)).length;
+                if (remaining === 0) {
+                    this.queueDrainedSubject.next();
+                }
+            }
         }
     }
 
-    private getActionOrder(type: string): number {
-        switch (type) {
-            case 'NEW_ORDER': return 1;
-            case 'INIT_ORDER_ITEMS_FINAL': return 2;
-            case 'ADD_ITEM':
-            case 'UPDATE_QUANTITY':
-            case 'DELETE_ITEM': return 3;
-            case 'CLOSE_ORDER': return 4;
-            default: return 99;
+    /** One sorted pass over the pending queue (may stop early on retry/defer). */
+    private async runOneQueuePass(): Promise<boolean> {
+        if (!this.onlineStateService.isOnline) return false;
+
+        const restaurantId = await this.getScopedRestaurantId();
+        if (!restaurantId) return false;
+
+        let pending = await this.offlineDB.getPendingActionsForRestaurant(restaurantId);
+        if (pending.length === 0) return false;
+
+        pending = sortOfflineQueueActions(pending);
+        // #region agent log
+        fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
+            body: JSON.stringify({
+                sessionId: 'd38222',
+                location: 'offline-queue-processor.service.ts:runOneQueuePass',
+                message: 'queue pass started',
+                data: {
+                    restaurantId,
+                    pendingCount: pending.length,
+                    actions: pending.map(a => ({
+                        id: a.id,
+                        type: a.type,
+                        tableId: a.tableId,
+                        orderId: a.orderId,
+                        timestamp: a.timestamp,
+                    })),
+                },
+                hypothesisId: 'H5-trysync-race',
+                runId: 'post-fix-v2',
+                timestamp: Date.now(),
+            }),
+        }).catch(() => {});
+        // #endregion
+
+        const compressed = await this.compressQueue(pending);
+        await this.offlineDB.replaceActions(compressed);
+        const actions = sortOfflineQueueActions(compressed);
+
+        let progressed = false;
+        for (const action of actions) {
+            const result = await this.processAction(action);
+
+            if (result === 'skip') {
+                continue;
+            }
+
+            if (!result) {
+                this.triggerProcessing();
+                break;
+            }
+
+            progressed = true;
+
+            if (action.type !== 'NEW_ORDER') {
+                await this.offlineDB.markActionDone(action.id!);
+            }
+
+            if (action.type === 'NEW_ORDER') {
+                break;
+            }
         }
+
+        return progressed;
     }
 
+    private async hasPendingCloseForTable(restaurantId: string, tableId: string): Promise<boolean> {
+        const pending = await this.offlineDB.getPendingActionsForRestaurant(restaurantId);
+        return pending.some(a => a.type === 'CLOSE_ORDER' && a.tableId === tableId);
+    }
 
-    async processAction(action: OfflineAction): Promise<boolean> {
+    async processAction(action: OfflineAction): Promise<ProcessActionResult> {
         // 1. Dacă acțiunea NU este NEW_ORDER și orderId este local → așteptăm NEW_ORDER
         if (action.type !== 'NEW_ORDER' && action.orderId?.startsWith('local-')) {
-            return true;
+            return 'skip';
         }
 
         // 2. Dacă suntem offline → stop
@@ -213,12 +266,32 @@ export class OfflineQueueProcessor {
                 // NEW_ORDER → creează order real + trimite toate itemele
                 // -----------------------------------------------------
                 case 'NEW_ORDER': {
+                    // #region agent log
+                    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
+                        body: JSON.stringify({
+                            sessionId: 'd38222',
+                            location: 'offline-queue-processor.service.ts:NEW_ORDER',
+                            message: 'creating server order',
+                            data: {
+                                tableId: action.tableId,
+                                orderId: action.orderId,
+                                timestamp: action.timestamp,
+                            },
+                            hypothesisId: 'H5-trysync-race',
+                            runId: 'post-fix-v2',
+                            timestamp: Date.now(),
+                        }),
+                    }).catch(() => {});
+                    // #endregion
                     // 1. creăm order real
                     const res = await firstValueFrom(
                         this.ordersService.newOrder(
                             action.restaurantId,
                             action.tableId,
-                            action.payload.seatId ?? undefined
+                            action.payload.seatId ?? undefined,
+                            QUEUE_HTTP_OPTS,
                         )
                     );
 
@@ -228,12 +301,52 @@ export class OfflineQueueProcessor {
                     await this.offlineDB.replaceOrderId(action.orderId!, realOrderId);
 
                     const record = await this.offlineDB.loadCartRecord(action.tableId);
-                    if (record) {
+                    const cartBelongsToOrder =
+                        record?.orderId === action.orderId || record?.orderId === realOrderId;
+                    const cartItems =
+                        cartBelongsToOrder && record?.items?.length
+                            ? record.items.map(ci => ({
+                                menuItemId: ci.item.menuItemId,
+                                quantity: ci.quantity,
+                            }))
+                            : [];
+
+                    const pending = await this.offlineDB.getPendingActionsForRestaurant(action.restaurantId);
+                    const orderItems = buildSyncOrderItemsFromPending(
+                        pending,
+                        action.tableId,
+                        action.orderId!,
+                        realOrderId,
+                        cartItems,
+                    );
+
+                    // #region agent log
+                    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
+                        body: JSON.stringify({
+                            sessionId: 'd38222',
+                            location: 'offline-queue-processor.service.ts:NEW_ORDER:items',
+                            message: 'resolved sync items',
+                            data: {
+                                tableId: action.tableId,
+                                localOrderId: action.orderId,
+                                realOrderId,
+                                cartBelongsToOrder,
+                                cartItemCount: cartItems.length,
+                                syncItemCount: orderItems.length,
+                                syncItems: orderItems,
+                            },
+                            hypothesisId: 'H7-empty-cart-init',
+                            runId: 'post-fix-v3',
+                            timestamp: Date.now(),
+                        }),
+                    }).catch(() => {});
+                    // #endregion
+
+                    if (record && cartBelongsToOrder) {
                         await this.offlineDB.saveCart(action.tableId, record.items, realOrderId);
                     }
-
-                    // 3. reconstruim starea finală a cart-ului
-                    const finalCart = await this.offlineDB.loadCart(action.tableId);
 
                     // 4. trimitem toate itemele la backend
                     const finalRes = await firstValueFrom(
@@ -242,12 +355,10 @@ export class OfflineQueueProcessor {
                             action.tableId,
                             realOrderId,
                             {
-                                orderItems: finalCart.map(ci => ({
-                                    menuItemId: ci.item.menuItemId,
-                                    quantity: ci.quantity
-                                })),
+                                orderItems,
                                 seatId: null
-                            }
+                            },
+                            QUEUE_HTTP_OPTS,
                         )
                     );
 
@@ -287,7 +398,8 @@ export class OfflineQueueProcessor {
                             {
                                 orderItems: action.payload.items,
                                 seatId: null
-                            }
+                            },
+                            QUEUE_HTTP_OPTS,
                         )
                     );
                     await this.applyFinalOrderState(action.tableId, res.order.orderItems, res.order.orderId);
@@ -306,7 +418,8 @@ export class OfflineQueueProcessor {
                             action.tableId,
                             action.orderId!,
                             action.payload.menuItemId,
-                            action.payload.quantity
+                            action.payload.quantity,
+                            QUEUE_HTTP_OPTS,
                         )
                     );
 
@@ -342,7 +455,8 @@ export class OfflineQueueProcessor {
                                 action.tableId,
                                 action.orderId!,
                                 action.payload.menuItemId,
-                                action.payload.quantity
+                                action.payload.quantity,
+                                QUEUE_HTTP_OPTS,
                             )
                         );
                         const record = await this.offlineDB.loadCartRecord(action.tableId);
@@ -360,7 +474,8 @@ export class OfflineQueueProcessor {
                             action.tableId,
                             action.orderId!,
                             orderItemId,
-                            action.payload.quantity
+                            action.payload.quantity,
+                            QUEUE_HTTP_OPTS,
                         )
                     );
 
@@ -380,7 +495,8 @@ export class OfflineQueueProcessor {
                             action.restaurantId,
                             action.tableId,
                             action.orderId!,
-                            action.payload.orderItemId
+                            action.payload.orderItemId,
+                            QUEUE_HTTP_OPTS,
                         )
                     );
 
@@ -398,14 +514,35 @@ export class OfflineQueueProcessor {
                 // CLOSE_ORDER → trimitem direct la backend
                 // -----------------------------------------------------
                 case 'CLOSE_ORDER':
+                    // #region agent log
+                    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
+                        body: JSON.stringify({
+                            sessionId: 'd38222',
+                            location: 'offline-queue-processor.service.ts:CLOSE_ORDER',
+                            message: 'closing server order',
+                            data: {
+                                tableId: action.tableId,
+                                orderId: action.orderId,
+                                timestamp: action.timestamp,
+                            },
+                            hypothesisId: 'H5-trysync-race',
+                            runId: 'post-fix-v2',
+                            timestamp: Date.now(),
+                        }),
+                    }).catch(() => {});
+                    // #endregion
                     await firstValueFrom(
                         this.ordersService.closeOrder(
                             action.restaurantId,
                             action.tableId,
-                            action.orderId!
+                            action.orderId!,
+                            QUEUE_HTTP_OPTS,
                         )
                     );
                     await this.offlineDB.deleteCart(action.tableId);
+                    await this.offlineDB.markTableFreedLocally(action.tableId);
                     return true;
             }
 
@@ -431,12 +568,37 @@ export class OfflineQueueProcessor {
                 action.type === 'NEW_ORDER'
                 && /open order already exists/i.test(String(errorMessage))
             ) {
+                const pendingClose = await this.hasPendingCloseForTable(action.restaurantId, action.tableId);
+                if (pendingClose) {
+                    // #region agent log
+                    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
+                        body: JSON.stringify({
+                            sessionId: 'd38222',
+                            location: 'offline-queue-processor.service.ts:processAction',
+                            message: 'defer NEW_ORDER until pending CLOSE_ORDER runs',
+                            data: {
+                                restaurantId: action.restaurantId,
+                                tableId: action.tableId,
+                                orderId: action.orderId,
+                                errorMessage,
+                            },
+                            hypothesisId: 'H4-queue-order',
+                            runId: 'post-fix',
+                            timestamp: Date.now(),
+                        }),
+                    }).catch(() => {});
+                    // #endregion
+                    return false;
+                }
+
                 // #region agent log
                 fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
+                    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
                     body: JSON.stringify({
-                        sessionId: '38fcde',
+                        sessionId: 'd38222',
                         location: 'offline-queue-processor.service.ts:processAction',
                         message: 'dropped stale NEW_ORDER (open order exists)',
                         data: {
@@ -445,7 +607,8 @@ export class OfflineQueueProcessor {
                             orderId: action.orderId,
                             errorMessage,
                         },
-                        hypothesisId: 'H-OFFLINE-DUP',
+                        hypothesisId: 'H4-queue-order',
+                        runId: 'post-fix',
                         timestamp: Date.now(),
                     }),
                 }).catch(() => {});

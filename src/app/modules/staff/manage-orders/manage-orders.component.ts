@@ -1,6 +1,6 @@
 // ─── IMPORTS ──────────────────────────────────────────────────────────────────
 import { FormsModule } from '@angular/forms';
-import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, computed, inject } from '@angular/core';
 import Fuse from 'fuse.js';
 import { IconDirective } from '@coreui/icons-angular';
 import {
@@ -46,6 +46,8 @@ import { SseEvent } from '../../../core/models/sseModel';
 import { OnlineStateService } from '../../../core/offline/online-state-service';
 import { OfflinePolicyService } from '../../../core/offline/offline-policy.service';
 import { OfflinePrimaryService } from '../../../core/services/offline-primary/offline-primary.service';
+import { OfflineSyncSchedulerService } from '../../../core/offline/offline-sync-scheduler.service';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { KitchenService } from '../../../core/services/kitchen-service/kitchen.service';
 import { BarService } from '../../../core/services/bar-service/bar.service';
@@ -192,6 +194,20 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     private offlinePolicy: OfflinePolicyService,
     private offlinePrimary: OfflinePrimaryService,
   ) {}
+
+  private readonly syncScheduler = inject(OfflineSyncSchedulerService);
+
+  readonly offlineSyncCountdown = toSignal(this.syncScheduler.syncCountdownSeconds$, { initialValue: null });
+  readonly offlineSyncBlocked = toSignal(this.syncScheduler.syncBlocked$, { initialValue: false });
+  readonly offlineSyncInProgress = toSignal(this.queueProcessor.isProcessing$, { initialValue: false });
+  readonly offlineSyncReconciling = toSignal(this.sseService.isReconciling$, { initialValue: false });
+  readonly showOfflineSyncModal = computed(
+    () =>
+      this.offlineSyncBlocked()
+      || this.offlineSyncCountdown() !== null
+      || this.offlineSyncInProgress()
+      || this.offlineSyncReconciling(),
+  );
 
   bookingsForTable(tableId: string): ReservationItem[] {
     return this.bookingsByTableId[tableId] ?? [];
@@ -1089,6 +1105,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
       this.resetCanvasState();
       this.closeInFlight = false;
+      if (this.onlineStateService.isOnline) {
+        this.queueProcessor.triggerProcessing();
+      }
       return;
     }
 
