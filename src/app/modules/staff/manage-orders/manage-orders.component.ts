@@ -45,6 +45,8 @@ import { OfflineQueueProcessor } from '../../../core/offline/offline-queue-proce
 import { SseEvent } from '../../../core/models/sseModel';
 import { OnlineStateService } from '../../../core/offline/online-state-service';
 import { OfflinePolicyService } from '../../../core/offline/offline-policy.service';
+import { OfflinePrintContextService } from '../../../core/offline/offline-print-context.service';
+import { OfflinePrintService } from '../../../core/offline/offline-print.service';
 import { OfflinePrimaryService } from '../../../core/services/offline-primary/offline-primary.service';
 import { OfflineSyncSchedulerService } from '../../../core/offline/offline-sync-scheduler.service';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -193,6 +195,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     private reservationService: ReservationService,
     private offlinePolicy: OfflinePolicyService,
     private offlinePrimary: OfflinePrimaryService,
+    private offlinePrintContext: OfflinePrintContextService,
+    private offlinePrintService: OfflinePrintService,
   ) {}
 
   private readonly syncScheduler = inject(OfflineSyncSchedulerService);
@@ -403,6 +407,45 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   /** Online staff or designated primary device in full-offline mode. */
   get canBypassOfflineUiGates(): boolean {
     return this.isOnline || this.offlinePolicy.canUseFullOffline();
+  }
+
+  isTableActionDisabled(table: TableDTO, requireOnline: boolean): boolean {
+    const disabled = requireOnline && !this.canBypassOfflineUiGates;
+    if (!this.isOnline) {
+      // #region agent log
+      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
+        body: JSON.stringify({
+          sessionId: 'd38222',
+          location: 'manage-orders.component.ts:isTableActionDisabled',
+          message: 'table action gate (offline)',
+          data: {
+            tableId: table.tableId,
+            requireOnline,
+            disabled,
+            canBypassOfflineUiGates: this.canBypassOfflineUiGates,
+            isOfflinePrimaryDevice: this.offlinePolicy.isOfflinePrimaryDevice(),
+            canUseFullOffline: this.offlinePolicy.canUseFullOffline(),
+            hasTableOrder: !!table.order,
+            isTableOpen: table.isTableOpen,
+          },
+          hypothesisId: 'H1-H2',
+          runId: 'offline-multi-browser',
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
+    }
+    return disabled;
+  }
+
+  /** Print allowed online, or offline on primary device with cached agent config. */
+  get canPrintBill(): boolean {
+    if (this.isOnline) {
+      return true;
+    }
+    return this.offlinePolicy.canUseFullOffline() && this.offlinePrintContext.isReadyForOfflinePrint();
   }
 
   get shouldShowBindDeviceCta(): boolean {
@@ -894,6 +937,21 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.currentOrderId = record.orderId ?? null;
       this.orderIsConfirmed = !!this.currentOrderId && !this.currentOrderId.startsWith('local-');
       this.tableCarts[tableId] = record.items;
+      // #region agent log
+      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
+        body: JSON.stringify({
+          sessionId: 'd38222',
+          location: 'manage-orders.component.ts:openTable:cartRecord',
+          message: 'openTable from local cart',
+          data: { tableId, orderId: this.currentOrderId, orderIsConfirmed: this.orderIsConfirmed, itemCount: record.items.length },
+          hypothesisId: 'H5',
+          runId: 'offline-multi-browser',
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
       if (this.orderIsConfirmed) {
         this.claimPickupTargetForTable(tableId);
       }
@@ -915,6 +973,29 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.restaurantId, this.currentTableId
     );
 
+    // #region agent log
+    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
+      body: JSON.stringify({
+        sessionId: 'd38222',
+        location: 'manage-orders.component.ts:seeOrder',
+        message: 'seeOrder hydrate result',
+        data: {
+          tableId: table.tableId,
+          isOnline: this.isOnline,
+          tableOrderId: table.order?.orderId ?? null,
+          fallbackOrderId: order?.orderId ?? null,
+          fallbackItemCount: order?.orderItems?.length ?? 0,
+          orderIsConfirmedBefore: this.orderIsConfirmed,
+        },
+        hypothesisId: 'H3-H4',
+        runId: 'offline-multi-browser',
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+
     if (order) {
       this.currentOrderId = order.orderId;
       this.orderIsConfirmed = true;
@@ -927,6 +1008,26 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           .filter((o): o is OrderItemDTO => !!o)
           .map(o => cartItemFromOrderLine(o, this.menuItems));
       }
+    } else {
+      // #region agent log
+      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
+        body: JSON.stringify({
+          sessionId: 'd38222',
+          location: 'manage-orders.component.ts:seeOrder:noOrder',
+          message: 'seeOrder no order resolved — canvas may show Confirm',
+          data: {
+            tableId: table.tableId,
+            tableOrderId: table.order?.orderId ?? null,
+            orderIsConfirmedAfter: this.orderIsConfirmed,
+          },
+          hypothesisId: 'H3-H5',
+          runId: 'offline-multi-browser',
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
     }
   }
 
@@ -1148,19 +1249,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   private async enqueueBillPrintJob(args: { restaurantId: string; orderId: string }): Promise<void> {
     try {
-      // Staff should not need printer inventory; only the restaurant's configured default bill printer.
-      const cfg = await firstValueFrom(this.printJobs.getDefaultBillPrinterForStaff(args.restaurantId));
-      const printerId = (cfg?.defaultBillPrinterId ?? '').trim();
-      if (!printerId) {
-        this.appToast.info(
-          this.transloco.translate('manageOrders.printNoPrinterBody'),
-          this.transloco.translate('manageOrders.printNoPrinterTitle'),
-        );
-        return;
-      }
-
       const payload = {
-        type: 'bill',
+        type: 'bill' as const,
         orderId: args.orderId,
         restaurantName: this.authService.getUserSnapshot()?.restaurantName ?? '',
         tableName: (this.tableName ?? '').trim() || null,
@@ -1175,6 +1265,44 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           unitPrice: x.item.menuItemPriceAmount,
         })),
       };
+
+      if (!this.isOnline && this.offlinePolicy.canUseFullOffline()) {
+        const printerId = (this.offlinePrintContext.getDefaultBillPrinterId() ?? '').trim();
+        if (!printerId) {
+          this.appToast.info(
+            this.transloco.translate('manageOrders.printNoPrinterBody'),
+            this.transloco.translate('manageOrders.printNoPrinterTitle'),
+          );
+          return;
+        }
+        if (!this.offlinePrintContext.isReadyForOfflinePrint()) {
+          this.appToast.info(
+            this.transloco.translate('manageOrders.printOfflineConfigBody'),
+            this.transloco.translate('manageOrders.printOfflineConfigTitle'),
+          );
+          return;
+        }
+        await this.offlinePrintService.printBillSync({
+          restaurantId: args.restaurantId,
+          printerId,
+          payload,
+        });
+        this.appToast.success(
+          this.transloco.translate('manageOrders.printOfflineSuccessBody'),
+          this.transloco.translate('manageOrders.printOfflineSuccessTitle'),
+        );
+        return;
+      }
+
+      const cfg = await firstValueFrom(this.printJobs.getDefaultBillPrinterForStaff(args.restaurantId));
+      const printerId = (cfg?.defaultBillPrinterId ?? '').trim();
+      if (!printerId) {
+        this.appToast.info(
+          this.transloco.translate('manageOrders.printNoPrinterBody'),
+          this.transloco.translate('manageOrders.printNoPrinterTitle'),
+        );
+        return;
+      }
 
       await firstValueFrom(this.printJobs.createBillPrintJob(args.restaurantId, printerId, payload));
       this.appToast.success(
@@ -1660,6 +1788,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       )
       .subscribe(user => {
         this.restaurantId = user.restaurantId!;
+        void this.offlinePrintContext.init(this.restaurantId);
 
         // #region agent log
         fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
