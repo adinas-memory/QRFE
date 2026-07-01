@@ -8,6 +8,7 @@ import { SseEvent } from '../../models/sseModel';
 import { AuthService } from '../../auth/auth.service';
 import { isAssignedRestaurantId } from '../../auth/restaurant-id.util';
 import { OfflineQueueProcessor } from '../../offline/offline-queue-processor.service';
+import { OfflineSyncSchedulerService } from '../../offline/offline-sync-scheduler.service';
 import { OfflineDbService } from '../../offline/offline-db';
 import { OnlineStateService } from '../../offline/online-state-service';
 import { Capacitor } from '@capacitor/core';
@@ -63,6 +64,7 @@ export class OrderSyncService {
   constructor(private auth: AuthService,
     private ngZone: NgZone,
     private queueProcessor: OfflineQueueProcessor,
+    private syncScheduler: OfflineSyncSchedulerService,
     private offlineDB: OfflineDbService,
     private onlineStateService: OnlineStateService    
   ) {
@@ -134,7 +136,7 @@ export class OrderSyncService {
         }),
       }).catch(() => {});
       // #endregion
-      await this.queueProcessor.processQueue();
+      await this.syncScheduler.runWhenAllowed();
     } finally {
       this.syncInProgress = false;
     }
@@ -275,7 +277,7 @@ export class OrderSyncService {
         this.ngZone.run(() => {
           this.reconnectAttempts = 0;
         });
-        this.queueProcessor.processQueue();
+        void this.syncScheduler.runWhenAllowed();
       },
       onmessage: (msg) => {
         this.ngZone.run(() => {

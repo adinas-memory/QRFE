@@ -1,12 +1,13 @@
 import { Injectable } from "@angular/core";
 import { OrdersService } from "../services/order-service/orders.service";
 import { OfflineAction, OfflineDbService } from "./offline-db";
-import { debounceTime, distinctUntilChanged, filter, firstValueFrom, Subject } from "rxjs";
+import { debounceTime, filter, firstValueFrom, Subject, BehaviorSubject } from "rxjs";
 import { CartItem, OrderItemDTO, cartItemFromOrderLine } from "../models/orderingModel";
 import { OnlineStateService } from "./online-state-service";
 import { AuthService } from "../auth/auth.service";
 import { AppToastService } from "../services/toast-service/toast-service.service";
 import { buildSyncOrderItemsFromPending, sortOfflineQueueActions } from "./offline-queue.util";
+import { OfflineSyncSchedulerService } from "./offline-sync-scheduler.service";
 
 const QUEUE_HTTP_OPTS = { suppressErrorToast: true as const };
 
@@ -17,6 +18,8 @@ export class OfflineQueueProcessor {
     private processing = false;
     private drainAgain = false;
     private trigger$ = new Subject<void>();
+    private readonly processingSubject = new BehaviorSubject<boolean>(false);
+    readonly isProcessing$ = this.processingSubject.asObservable();
     readonly orderConfirmed$ = new Subject<{ tableId: string; orderId: string }>();
 
 
@@ -25,33 +28,35 @@ export class OfflineQueueProcessor {
         private ordersService: OrdersService,
         private onlineStateService: OnlineStateService,
         private authService: AuthService,
-        private toast: AppToastService
+        private toast: AppToastService,
+        private syncScheduler: OfflineSyncSchedulerService,
     ) {
         this.authService.loggedIn$
             .subscribe(async () => {
-                await this.recoverOrphanedCarts(); 
-                this.triggerProcessing();
+                await this.syncScheduler.onSessionRestored();
             });
 
         this.trigger$
             .pipe(
                 debounceTime(350)
             )
-            .subscribe(() => this.processQueue());
-
-        this.onlineStateService.online$
-            .pipe(
-                filter(isOnline => isOnline),
-                debounceTime(500) // lasă interceptorul să se stabilizeze
-            )
-            .subscribe(async () => {
-                await this.recoverOrphanedCarts();
-                this.processQueue();
+            .subscribe(() => {
+                if (this.syncScheduler.isCountdownActive()) {
+                    return;
+                }
+                void this.processQueue();
             });
     }
 
     triggerProcessing() {
+        if (this.syncScheduler.isCountdownActive()) {
+            return;
+        }
         this.trigger$.next();
+    }
+
+    async recoverOrphanedCartsPublic(): Promise<void> {
+        await this.recoverOrphanedCarts();
     }
 
     private async getScopedRestaurantId(): Promise<string | null> {
@@ -134,6 +139,7 @@ export class OfflineQueueProcessor {
         if (!this.onlineStateService.isOnline) return;
 
         this.processing = true;
+        this.processingSubject.next(true);
         try {
             do {
                 this.drainAgain = false;
@@ -151,6 +157,7 @@ export class OfflineQueueProcessor {
             } while (this.drainAgain);
         } finally {
             this.processing = false;
+            this.processingSubject.next(false);
         }
     }
 

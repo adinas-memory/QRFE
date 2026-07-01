@@ -458,6 +458,8 @@
     "bindOfflinePrimarySuccessBody": "Acest dispozitiv este acum POS offline. Modificările se sincronizează la reconectare.",
     "bindOfflinePrimaryErrorTitle": "Nu s-a putut înregistra dispozitivul",
     "offlinePrimaryDeviceActiveHint": "Acest dispozitiv este înregistrat pentru mod offline complet. Poți deschide mese și confirma comenzi fără internet.",
+    "offlineSyncCountdown": "Sincronizarea comenzilor începe în {{seconds}} s. Te rugăm să aștepți și să nu închizi aplicația.",
+    "offlineSyncInProgress": "Se sincronizează comenzile offline cu serverul. Te rugăm să aștepți…",
     "nonPrimaryOfflineHint": "Offline: poți edita doar comanda deschisă pe acest dispozitiv."
   },
   "salesReports": {
