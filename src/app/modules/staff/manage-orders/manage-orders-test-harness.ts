@@ -182,6 +182,7 @@ export interface ManageOrdersMocks {
   sseService: {
     events$: Subject<SseEvent<unknown>>;
     snapshotRefreshed$: Subject<{ restaurantId: string; activeGuestWaiterCalls: string[] }>;
+    isReconciling$: Observable<boolean>;
     listenToRestaurantEvents: jasmine.Spy;
     refreshRestaurantSnapshot: jasmine.Spy;
   };
@@ -325,6 +326,7 @@ export function createManageOrdersMocks(options: SetupManageOrdersOptions = {}):
     sseService: {
       events$: sseEvents$,
       snapshotRefreshed$,
+      isReconciling$: of(false),
       listenToRestaurantEvents: jasmine.createSpy('listenToRestaurantEvents').and.returnValue(of({})),
       refreshRestaurantSnapshot: jasmine.createSpy('refreshRestaurantSnapshot').and.returnValue(Promise.resolve(true)),
     },

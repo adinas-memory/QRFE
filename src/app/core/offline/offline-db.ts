@@ -381,6 +381,19 @@ export class OfflineDbService {
         await this.db.tablesStatus.put({ tableId, available });
     }
 
+    /** After CLOSE_ORDER sync, clear stale occupied state in Dexie until /api/sync runs. */
+    async markTableFreedLocally(tableId: string): Promise<void> {
+        const table = await this.db.tablesStore.get(tableId);
+        if (table) {
+            await this.db.tablesStore.put({
+                ...table,
+                isTableOpen: true,
+                order: undefined,
+            });
+        }
+        await this.upsertTableStatus(tableId, true);
+    }
+
     // saveTables
     async saveTables(tables: TableDTO[]): Promise<void> {
         const rows = tables.map(t => ({ ...t }));

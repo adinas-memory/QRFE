@@ -343,11 +343,17 @@
     @if (offlineSyncCountdown() !== null) {
       <div class="display-3 fw-bold tabular-nums mb-3">{{ offlineSyncCountdown() }}</div>
       <p class="mb-0 text-body-secondary">{{ 'manageOrders.offlineSyncCountdown' | transloco: { seconds: offlineSyncCountdown() } }}</p>
-    } @else if (offlineSyncInProgress()) {
+    } @else {
       <div class="spinner-border text-warning mb-3" role="status">
         <span class="visually-hidden">{{ 'manageOrders.offlineSyncInProgress' | transloco }}</span>
       </div>
-      <p class="mb-0 text-body-secondary">{{ 'manageOrders.offlineSyncInProgress' | transloco }}</p>
+      <p class="mb-0 text-body-secondary">
+        @if (offlineSyncReconciling()) {
+          {{ 'manageOrders.offlineSyncReconciling' | transloco }}
+        } @else {
+          {{ 'manageOrders.offlineSyncInProgress' | transloco }}
+        }
+      </p>
     }
   </c-modal-body>
 </c-modal>

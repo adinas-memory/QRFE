@@ -21,6 +21,9 @@ export class OfflineQueueProcessor {
     private readonly processingSubject = new BehaviorSubject<boolean>(false);
     readonly isProcessing$ = this.processingSubject.asObservable();
     readonly orderConfirmed$ = new Subject<{ tableId: string; orderId: string }>();
+    private readonly queueDrainedSubject = new Subject<void>();
+    /** Emitted when the offline queue finishes draining (pending → 0). */
+    readonly queueDrained$ = this.queueDrainedSubject.asObservable();
 
 
     constructor(
@@ -141,6 +144,10 @@ export class OfflineQueueProcessor {
 
         this.processing = true;
         this.processingSubject.next(true);
+        const restaurantIdAtStart = await this.getScopedRestaurantId();
+        const hadPendingAtStart = restaurantIdAtStart
+            ? (await this.offlineDB.getPendingActionsForRestaurant(restaurantIdAtStart)).length > 0
+            : false;
         try {
             do {
                 this.drainAgain = false;
@@ -159,6 +166,12 @@ export class OfflineQueueProcessor {
         } finally {
             this.processing = false;
             this.processingSubject.next(false);
+            if (hadPendingAtStart && restaurantIdAtStart) {
+                const remaining = (await this.offlineDB.getPendingActionsForRestaurant(restaurantIdAtStart)).length;
+                if (remaining === 0) {
+                    this.queueDrainedSubject.next();
+                }
+            }
         }
     }
 
@@ -529,6 +542,7 @@ export class OfflineQueueProcessor {
                         )
                     );
                     await this.offlineDB.deleteCart(action.tableId);
+                    await this.offlineDB.markTableFreedLocally(action.tableId);
                     return true;
             }
 
