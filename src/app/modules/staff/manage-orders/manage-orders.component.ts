@@ -974,7 +974,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     const record = await this.offlineDB.loadCartRecord(tableId);
     if (record) {
       this.currentOrderId = record.orderId ?? null;
-      this.orderIsConfirmed = !!this.currentOrderId && !this.currentOrderId.startsWith('local-');
+      // Confirmed offline orders keep local-* id until sync; draft carts have no orderId yet.
+      this.orderIsConfirmed = !!this.currentOrderId;
       this.tableCarts[tableId] = record.items;
       // #region agent log
       fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
@@ -984,9 +985,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           sessionId: 'd38222',
           location: 'manage-orders.component.ts:openTable:cartRecord',
           message: 'openTable from local cart',
-          data: { tableId, orderId: this.currentOrderId, orderIsConfirmed: this.orderIsConfirmed, itemCount: record.items.length },
+          data: {
+            tableId,
+            orderId: this.currentOrderId,
+            isLocalOrderId: this.currentOrderId?.startsWith('local-') ?? false,
+            orderIsConfirmed: this.orderIsConfirmed,
+            itemCount: record.items.length,
+          },
           hypothesisId: 'H5',
-          runId: 'offline-multi-browser',
+          runId: 'post-fix-h5-local-orderId',
           timestamp: Date.now(),
         }),
       }).catch(() => {});

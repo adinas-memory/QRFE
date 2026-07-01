@@ -678,6 +678,24 @@ describe('ManageOrdersComponent', () => {
       expect(component.isTableActionDisabled(table, true)).toBeTrue();
     });
 
+    it('openTable treats local-* orderId as confirmed on full offline re-entry', async () => {
+      const { component, mocks } = await setupManageOrdersComponent({
+        isOnline: false,
+        isOfflinePrimaryDevice: true,
+        skipNgOnInit: true,
+      });
+      mocks.offlineDb.loadCartRecord.and.resolveTo({
+        tableId: TABLE_A,
+        orderId: 'local-offline-confirmed',
+        items: [createCartItem()],
+      });
+
+      await component.openTable(createTable({ tableId: TABLE_A }));
+
+      expect(component.orderIsConfirmed).toBeTrue();
+      expect(component.currentOrderId).toBe('local-offline-confirmed');
+    });
+
     it('confirmCloseOrder offline cleans up local table state (Q3)', async () => {
       const { component, mocks } = await setupManageOrdersComponent({
         isOnline: false,
