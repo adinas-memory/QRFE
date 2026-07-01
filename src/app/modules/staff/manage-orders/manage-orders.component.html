@@ -113,7 +113,7 @@
           }
           <button cButton class="btn btn-primary ms-auto"
             [disabled]="isTableActionDisabled(table, requireOnline)"
-            (click)="table.order ? seeOrder(table) : openTable(table)">
+            (click)="onTableActionClick(table, requireOnline)">
             {{ !table.isTableOpen ? ('manageOrders.seeOrder' | transloco) : ('manageOrders.openTable' | transloco) }}
           </button>
         </footer>

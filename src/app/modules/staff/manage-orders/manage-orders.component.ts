@@ -17,7 +17,7 @@ import {
 import { TablesService } from '../../../core/services/tables-service/tables.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
-import { filter, Subject, take, takeUntil, debounceTime, forkJoin, from, firstValueFrom } from 'rxjs';
+import { filter, Subject, take, takeUntil, debounceTime, forkJoin, from, firstValueFrom, pairwise } from 'rxjs';
 import { NgFor, NgIf, NgStyle, CurrencyPipe, DecimalPipe, JsonPipe, NgClass, DatePipe, NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { cilBellExclamation } from '@coreui/icons';
@@ -410,34 +410,44 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   isTableActionDisabled(table: TableDTO, requireOnline: boolean): boolean {
-    const disabled = requireOnline && !this.canBypassOfflineUiGates;
-    if (!this.isOnline) {
-      // #region agent log
-      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
-        body: JSON.stringify({
-          sessionId: 'd38222',
-          location: 'manage-orders.component.ts:isTableActionDisabled',
-          message: 'table action gate (offline)',
-          data: {
-            tableId: table.tableId,
-            requireOnline,
-            disabled,
-            canBypassOfflineUiGates: this.canBypassOfflineUiGates,
-            isOfflinePrimaryDevice: this.offlinePolicy.isOfflinePrimaryDevice(),
-            canUseFullOffline: this.offlinePolicy.canUseFullOffline(),
-            hasTableOrder: !!table.order,
-            isTableOpen: table.isTableOpen,
-          },
-          hypothesisId: 'H1-H2',
-          runId: 'offline-multi-browser',
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
+    return requireOnline && !this.canBypassOfflineUiGates;
+  }
+
+  async onTableActionClick(table: TableDTO, requireOnline: boolean): Promise<void> {
+    const localCart = await this.offlineDB.loadCartRecord(table.tableId);
+    // #region agent log
+    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
+      body: JSON.stringify({
+        sessionId: 'd38222',
+        location: 'manage-orders.component.ts:onTableActionClick',
+        message: 'table action clicked',
+        data: {
+          tableId: table.tableId,
+          requireOnline,
+          disabled: this.isTableActionDisabled(table, requireOnline),
+          canBypassOfflineUiGates: this.canBypassOfflineUiGates,
+          isOfflinePrimaryDevice: this.offlinePolicy.isOfflinePrimaryDevice(),
+          canUseFullOffline: this.offlinePolicy.canUseFullOffline(),
+          hasTableOrder: !!table.order,
+          tableOrderId: table.order?.orderId ?? null,
+          isTableOpen: table.isTableOpen,
+          localCartOrderId: localCart?.orderId ?? null,
+          localCartItemCount: localCart?.items?.length ?? 0,
+          action: table.order ? 'seeOrder' : 'openTable',
+        },
+        hypothesisId: 'H1-H2-H4',
+        runId: 'offline-multi-browser',
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+    if (table.order) {
+      await this.seeOrder(table);
+    } else {
+      await this.openTable(table);
     }
-    return disabled;
   }
 
   /** Print allowed online, or offline on primary device with cached agent config. */
@@ -1020,9 +1030,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           data: {
             tableId: table.tableId,
             tableOrderId: table.order?.orderId ?? null,
+            tableOrderItemCount: table.order?.orderItems?.length ?? 0,
             orderIsConfirmedAfter: this.orderIsConfirmed,
+            unusedTableOrderFallback: tableHasActiveOrder(table.order) && !order,
           },
-          hypothesisId: 'H3-H5',
+          hypothesisId: 'H3-H4-H5',
           runId: 'offline-multi-browser',
           timestamp: Date.now(),
         }),
@@ -1779,6 +1791,39 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.sseService.snapshotRefreshed$
       .pipe(takeUntil(this.destroy$))
       .subscribe(({ activeGuestWaiterCalls }) => void this.reloadFromSyncSnapshot(activeGuestWaiterCalls));
+
+    this.onlineStateService.online$
+      .pipe(
+        takeUntil(this.destroy$),
+        pairwise(),
+        filter(([wasOnline, isOnline]) => wasOnline && !isOnline),
+      )
+      .subscribe(() => {
+        const user = this.authService.getUserSnapshot();
+        // #region agent log
+        fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
+          body: JSON.stringify({
+            sessionId: 'd38222',
+            location: 'manage-orders.component.ts:wentOffline',
+            message: 'client went offline — UI gate snapshot',
+            data: {
+              canBypassOfflineUiGates: this.canBypassOfflineUiGates,
+              isOfflinePrimaryDevice: this.offlinePolicy.isOfflinePrimaryDevice(),
+              canUseFullOffline: this.offlinePolicy.canUseFullOffline(),
+              designee: user?.isOfflinePrimaryStaffDesignee ?? null,
+              device: user?.isOfflinePrimaryDevice ?? null,
+              occupiedTableCount: this.closedTables.length,
+              tablesWithOrder: this.tables.filter(t => !!t.order).length,
+            },
+            hypothesisId: 'H1-H2',
+            runId: 'offline-multi-browser',
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
+      });
 
     this.authService.getUserContext()
       .pipe(
