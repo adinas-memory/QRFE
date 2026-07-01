@@ -1718,6 +1718,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         // Backend may emit TablesStatusesUpdate snapshots where orderId/subTotal are not yet consistent
         // with a just-confirmed order (race / eventual consistency). Don't let that overwrite local truth.
         const updatedTables: TableDTO[] = [];
+        const debugTableChanges: Array<{ tableId: string; before: { open: boolean; hasOrder: boolean }; after: { open: boolean; hasOrder: boolean }; orderId: string | null }> = [];
         for (const t of this.tables) {
           if (!t?.tableId) continue;
           const c = computedList.find(x => x.tableId === t.tableId);
@@ -1728,23 +1729,63 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
           const localRecord = await this.offlineDB.loadCartRecord(t.tableId);
           const localHasOrder = !!localRecord?.orderId || (localRecord?.items?.length ?? 0) > 0;
+          const snapshotOrderId = c.orderId ?? null;
 
           // Only accept "freed" snapshot if we do NOT have local evidence of an open order.
-          const snapshotSaysFreed = c.isTableOpen && !c.orderId;
+          const snapshotSaysFreed = !snapshotOrderId && c.isTableOpen;
           const allowFreeOverride = snapshotSaysFreed && !localHasOrder;
 
           if (allowFreeOverride) {
             updatedTables.push({ ...t, isTableOpen: true, order: undefined });
+            debugTableChanges.push({
+              tableId: t.tableId,
+              before: { open: !!t.isTableOpen, hasOrder: !!t.order },
+              after: { open: true, hasOrder: false },
+              orderId: null,
+            });
             continue;
           }
 
-          // Otherwise: keep occupied if localHasOrder, and only take snapshot's isTableOpen when it doesn't conflict.
-          // If snapshot says occupied (isTableOpen=false), accept it.
-          const nextIsTableOpen = localHasOrder ? false : c.isTableOpen;
-          updatedTables.push({ ...t, isTableOpen: nextIsTableOpen });
+          const snapshotHasOrder = !!snapshotOrderId;
+          const nextIsTableOpen = snapshotHasOrder || localHasOrder ? false : c.isTableOpen;
+          const nextOrder = snapshotHasOrder
+            ? {
+                ...(t.order ?? {}),
+                orderId: snapshotOrderId!,
+                isOrderOpen: true,
+              } as OrderDTO
+            : t.order;
+          updatedTables.push({ ...t, isTableOpen: nextIsTableOpen, order: nextOrder });
+          debugTableChanges.push({
+            tableId: t.tableId,
+            before: { open: !!t.isTableOpen, hasOrder: !!t.order },
+            after: { open: nextIsTableOpen, hasOrder: !!nextOrder },
+            orderId: snapshotOrderId,
+          });
         }
         this.tables = updatedTables;
         this.refreshTableLists();
+
+        // #region agent log
+        if (debugTableChanges.some(ch => ch.before.open !== ch.after.open || ch.before.hasOrder !== ch.after.hasOrder)) {
+          fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
+            body: JSON.stringify({
+              sessionId: 'd38222',
+              location: 'manage-orders.component.ts:TablesStatusesUpdate',
+              message: 'SSE table status merge',
+              data: {
+                changedTables: debugTableChanges.filter(ch => ch.before.open !== ch.after.open || ch.before.hasOrder !== ch.after.hasOrder),
+                initiatedBy: InitiatedBy,
+              },
+              hypothesisId: 'H-SSE-REFRESH-INVERT',
+              runId: 'post-fix-sse-broadcast',
+              timestamp: Date.now(),
+            }),
+          }).catch(() => {});
+        }
+        // #endregion
 
         for (const c of computedList) {
           if (!c?.tableId) continue;
@@ -1772,6 +1813,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           this.ordersService.saveComputed(this.tableComputed);
         }
         this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+        void this.offlineDB.saveTables(this.tables);
         break;
       }
 
@@ -1781,8 +1823,18 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.tables = this.tables.map(t => {
           const c = computedList.find(x => x.tableId === t.tableId);
           if (!c) return t;
-          const isFreed = c.isTableOpen && !c.orderId;
-          return { ...t, isTableOpen: c.isTableOpen, order: isFreed ? undefined : t.order };
+          const snapshotOrderId = c.orderId ?? null;
+          const isFreed = !snapshotOrderId && c.isTableOpen;
+          const nextOrder = isFreed
+            ? undefined
+            : snapshotOrderId
+              ? { ...(t.order ?? {}), orderId: snapshotOrderId, isOrderOpen: true } as OrderDTO
+              : t.order;
+          return {
+            ...t,
+            isTableOpen: snapshotOrderId ? false : c.isTableOpen,
+            order: nextOrder,
+          };
         });
 
         for (const c of computedList) {
