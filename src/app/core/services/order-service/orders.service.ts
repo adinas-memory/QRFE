@@ -287,6 +287,26 @@ export class OrdersService {
     const localOrder = await this.offlineDB.loadOrder(tableId);
 
     if (!this.onlineStateService.isOnline) {
+      // #region agent log
+      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
+        body: JSON.stringify({
+          sessionId: 'd38222',
+          location: 'orders.service.ts:listOpenOrderForTableWithFallback',
+          message: 'offline fallback — local order only',
+          data: {
+            tableId,
+            hasLocalOrder: !!localOrder?.orderId,
+            localOrderId: localOrder?.orderId ?? null,
+            localItemCount: localOrder?.orderItems?.length ?? 0,
+          },
+          hypothesisId: 'H3',
+          runId: 'offline-multi-browser',
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
       return localOrder;
     }
 

@@ -112,7 +112,7 @@
             </button>
           }
           <button cButton class="btn btn-primary ms-auto"
-            [disabled]="requireOnline && !canBypassOfflineUiGates"
+            [disabled]="isTableActionDisabled(table, requireOnline)"
             (click)="table.order ? seeOrder(table) : openTable(table)">
             {{ !table.isTableOpen ? ('manageOrders.seeOrder' | transloco) : ('manageOrders.openTable' | transloco) }}
           </button>
@@ -314,7 +314,7 @@
 
       <div class="d-flex gap-2" *ngIf="orderIsConfirmed">
         <button class="btn btn-outline-secondary" (click)="printOrder()"
-          [disabled]="selectedItems.length === 0">
+          [disabled]="selectedItems.length === 0 || !canPrintBill">
           <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
           {{ 'manageOrders.print' | transloco }}
         </button>

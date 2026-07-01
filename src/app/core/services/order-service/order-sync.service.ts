@@ -11,6 +11,8 @@ import { OfflineSyncSchedulerService } from '../../offline/offline-sync-schedule
 import { OfflineQueueProcessor } from '../../offline/offline-queue-processor.service';
 import { OfflineDbService } from '../../offline/offline-db';
 import { OnlineStateService } from '../../offline/online-state-service';
+import { OfflinePrintContextService } from '../../offline/offline-print-context.service';
+import { OfflinePrintConfigDto } from '../../offline/offline-print-config.model';
 import { Capacitor } from '@capacitor/core';
 
 @Injectable({
@@ -71,6 +73,7 @@ export class OrderSyncService {
     private queueProcessor: OfflineQueueProcessor,
     private offlineDB: OfflineDbService,
     private onlineStateService: OnlineStateService,
+    private offlinePrintContext: OfflinePrintContextService,
   ) {
     // Cross-tab fanout: if one tab receives SSE, share it to others.
     this.bc?.addEventListener('message', (ev: MessageEvent) => {
@@ -424,6 +427,7 @@ export class OrderSyncService {
         const tables = (json?.Tables ?? json?.tables ?? []) as any[];
         const activeGuestWaiterCalls = this.parseActiveGuestWaiterCalls(json);
         await this.offlineDB.applySyncSnapshot(tables as any);
+        await this.applyOfflinePrintConfigFromSync(json, restaurantId);
         this.lastSnapshotRefreshAt = Date.now();
         this.ngZone.run(() => {
           this.snapshotRefreshedSubject.next({ restaurantId, activeGuestWaiterCalls });
@@ -441,6 +445,19 @@ export class OrderSyncService {
       }
     }
     throw lastError;
+  }
+
+  private async applyOfflinePrintConfigFromSync(
+    json: Record<string, unknown>,
+    restaurantId: string,
+  ): Promise<void> {
+    const raw =
+      (json['OfflinePrintConfig'] as OfflinePrintConfigDto | undefined) ??
+      (json['offlinePrintConfig'] as OfflinePrintConfigDto | undefined);
+    if (!raw) {
+      return;
+    }
+    await this.offlinePrintContext.applyFromSyncSnapshot(raw, restaurantId);
   }
 
   private parseActiveGuestWaiterCalls(json: Record<string, unknown>): string[] {
