@@ -23,16 +23,6 @@
       <span class="small">{{ 'manageOrders.offlinePrimaryDeviceActiveHint' | transloco }}</span>
     </div>
   }
-  @if (offlineSyncCountdown() !== null) {
-    <div class="alert alert-warning mx-3 mt-3 mb-0 d-flex align-items-center gap-2" role="status" aria-live="polite">
-      <span class="fw-semibold fs-5 tabular-nums" aria-hidden="true">{{ offlineSyncCountdown() }}</span>
-      <span class="small">{{ 'manageOrders.offlineSyncCountdown' | transloco: { seconds: offlineSyncCountdown() } }}</span>
-    </div>
-  } @else if (offlineSyncInProgress()) {
-    <div class="alert alert-warning mx-3 mt-3 mb-0" role="status" aria-live="polite">
-      <span class="small">{{ 'manageOrders.offlineSyncInProgress' | transloco }}</span>
-    </div>
-  }
   <c-tabs-list variant="pills">
     <button cTab [itemKey]="0" class="ms-3">{{ 'manageOrders.tabAll' | transloco }}</button>
     <button cTab [itemKey]="1" class="ms-2">{{ 'manageOrders.tabFree' | transloco }}</button>
@@ -339,6 +329,28 @@
   </div>
 </c-offcanvas>
 <!-- END OFFCANVAS -->
+
+<c-modal
+  [visible]="showOfflineSyncModal()"
+  [backdrop]="'static'"
+  [keyboard]="false"
+  alignment="center"
+>
+  <c-modal-header>
+    <h5 cModalTitle>{{ 'manageOrders.offlineSyncModalTitle' | transloco }}</h5>
+  </c-modal-header>
+  <c-modal-body class="text-center py-4" role="status" aria-live="polite">
+    @if (offlineSyncCountdown() !== null) {
+      <div class="display-3 fw-bold tabular-nums mb-3">{{ offlineSyncCountdown() }}</div>
+      <p class="mb-0 text-body-secondary">{{ 'manageOrders.offlineSyncCountdown' | transloco: { seconds: offlineSyncCountdown() } }}</p>
+    } @else if (offlineSyncInProgress()) {
+      <div class="spinner-border text-warning mb-3" role="status">
+        <span class="visually-hidden">{{ 'manageOrders.offlineSyncInProgress' | transloco }}</span>
+      </div>
+      <p class="mb-0 text-body-secondary">{{ 'manageOrders.offlineSyncInProgress' | transloco }}</p>
+    }
+  </c-modal-body>
+</c-modal>
 
 <c-modal [(visible)]="setMenuModalVisible">
   <c-modal-header>
