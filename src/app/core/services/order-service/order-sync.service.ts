@@ -7,7 +7,6 @@ import { environment } from '../../../../environments/environment';
 import { SseEvent } from '../../models/sseModel';
 import { AuthService } from '../../auth/auth.service';
 import { isAssignedRestaurantId } from '../../auth/restaurant-id.util';
-import { OfflineQueueProcessor } from '../../offline/offline-queue-processor.service';
 import { OfflineSyncSchedulerService } from '../../offline/offline-sync-scheduler.service';
 import { OfflineDbService } from '../../offline/offline-db';
 import { OnlineStateService } from '../../offline/online-state-service';
@@ -63,7 +62,6 @@ export class OrderSyncService {
 
   constructor(private auth: AuthService,
     private ngZone: NgZone,
-    private queueProcessor: OfflineQueueProcessor,
     private syncScheduler: OfflineSyncSchedulerService,
     private offlineDB: OfflineDbService,
     private onlineStateService: OnlineStateService    

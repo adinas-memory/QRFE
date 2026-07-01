@@ -28,6 +28,7 @@ describe('OfflineSyncSchedulerService', () => {
 
     auth = jasmine.createSpyObj('AuthService', ['getUserSnapshot']);
     auth.getUserSnapshot.and.returnValue({ restaurantId: 'rest-1' } as never);
+    Object.defineProperty(auth, 'loggedIn$', { value: new Subject<void>().asObservable() });
 
     TestBed.configureTestingModule({
       providers: [

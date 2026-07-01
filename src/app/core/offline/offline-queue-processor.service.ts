@@ -31,11 +31,6 @@ export class OfflineQueueProcessor {
         private toast: AppToastService,
         private syncScheduler: OfflineSyncSchedulerService,
     ) {
-        this.authService.loggedIn$
-            .subscribe(async () => {
-                await this.syncScheduler.onSessionRestored();
-            });
-
         this.trigger$
             .pipe(
                 debounceTime(350)
