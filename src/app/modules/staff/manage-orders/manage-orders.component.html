@@ -23,6 +23,16 @@
       <span class="small">{{ 'manageOrders.offlinePrimaryDeviceActiveHint' | transloco }}</span>
     </div>
   }
+  @if (offlineSyncCountdown() !== null) {
+    <div class="alert alert-warning mx-3 mt-3 mb-0 d-flex align-items-center gap-2" role="status" aria-live="polite">
+      <span class="fw-semibold fs-5 tabular-nums" aria-hidden="true">{{ offlineSyncCountdown() }}</span>
+      <span class="small">{{ 'manageOrders.offlineSyncCountdown' | transloco: { seconds: offlineSyncCountdown() } }}</span>
+    </div>
+  } @else if (offlineSyncInProgress()) {
+    <div class="alert alert-warning mx-3 mt-3 mb-0" role="status" aria-live="polite">
+      <span class="small">{{ 'manageOrders.offlineSyncInProgress' | transloco }}</span>
+    </div>
+  }
   <c-tabs-list variant="pills">
     <button cTab [itemKey]="0" class="ms-3">{{ 'manageOrders.tabAll' | transloco }}</button>
     <button cTab [itemKey]="1" class="ms-2">{{ 'manageOrders.tabFree' | transloco }}</button>
