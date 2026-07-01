@@ -2,6 +2,7 @@ import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { OrderSyncService } from './order-sync.service';
 import { AuthService } from '../../auth/auth.service';
 import { OfflineSyncSchedulerService } from '../../offline/offline-sync-scheduler.service';
+import { OfflineQueueProcessor } from '../../offline/offline-queue-processor.service';
 import { OfflineDbService } from '../../offline/offline-db';
 import { OnlineStateService } from '../../offline/online-state-service';
 import { Observable, Subject, of, firstValueFrom } from 'rxjs';
@@ -19,6 +20,7 @@ describe('OrderSyncService', () => {
     resumeConnectivityOk$: Observable<void>;
   };
   let fetchSpy: jasmine.Spy;
+  let queueDrained$: Subject<void>;
 
   function lastSyncFetchUrl(): string {
     const syncCalls = fetchSpy.calls.all().filter(c => String(c.args[0]).includes('/api/sync'));
@@ -38,6 +40,7 @@ describe('OrderSyncService', () => {
 
     const syncSchedulerSpy = jasmine.createSpyObj('OfflineSyncSchedulerService', ['runWhenAllowed']);
     syncSchedulerSpy.runWhenAllowed.and.returnValue(Promise.resolve());
+    queueDrained$ = new Subject<void>();
     dbSpy = jasmine.createSpyObj('OfflineDbService', [
       'getPendingActions',
       'markActionDone',
@@ -69,6 +72,7 @@ describe('OrderSyncService', () => {
         OrderSyncService,
         { provide: AuthService, useValue: auth },
         { provide: OfflineSyncSchedulerService, useValue: syncSchedulerSpy },
+        { provide: OfflineQueueProcessor, useValue: { queueDrained$: queueDrained$.asObservable() } },
         { provide: OfflineDbService, useValue: dbSpy },
         { provide: OnlineStateService, useValue: onlineState },
       ],
@@ -272,6 +276,34 @@ describe('OrderSyncService', () => {
 
       expect(ok).toBe(false);
       expect(auth.refreshUserContext).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('reconcileAfterOfflineSync', () => {
+    beforeEach(() => {
+      (service as any).lastRestaurantId = 'restaurant-1';
+    });
+
+    it('pulls /api/sync and applies snapshot', async () => {
+      const emitted = firstValueFrom(service.snapshotRefreshed$);
+
+      const ok = await service.reconcileAfterOfflineSync();
+
+      expect(ok).toBe(true);
+      expect(lastSyncFetchUrl()).toContain('/api/sync?restaurantId=restaurant-1');
+      expect(dbSpy.applySyncSnapshot).toHaveBeenCalled();
+      await expectAsync(emitted).toBeResolvedTo({ restaurantId: 'restaurant-1', activeGuestWaiterCalls: [] });
+    });
+
+    it('runs when offline queue drain emits', async () => {
+      fetchSpy.calls.reset();
+      dbSpy.applySyncSnapshot.calls.reset();
+
+      queueDrained$.next();
+      await new Promise<void>(resolve => setTimeout(resolve, 0));
+
+      expect(lastSyncFetchUrl()).toContain('/api/sync?restaurantId=restaurant-1');
+      expect(dbSpy.applySyncSnapshot).toHaveBeenCalled();
     });
   });
 });

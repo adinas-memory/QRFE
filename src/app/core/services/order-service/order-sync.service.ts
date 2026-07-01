@@ -1,6 +1,6 @@
 // order-sync.service.ts
 import { Injectable, NgZone } from '@angular/core';
-import { Observable, Subject, of, timer, firstValueFrom } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, of, timer, firstValueFrom } from 'rxjs';
 import { take, catchError, filter, map } from 'rxjs/operators';
 import { fetchEventSource, EventStreamContentType } from '@microsoft/fetch-event-source';
 import { environment } from '../../../../environments/environment';
@@ -8,6 +8,7 @@ import { SseEvent } from '../../models/sseModel';
 import { AuthService } from '../../auth/auth.service';
 import { isAssignedRestaurantId } from '../../auth/restaurant-id.util';
 import { OfflineSyncSchedulerService } from '../../offline/offline-sync-scheduler.service';
+import { OfflineQueueProcessor } from '../../offline/offline-queue-processor.service';
 import { OfflineDbService } from '../../offline/offline-db';
 import { OnlineStateService } from '../../offline/online-state-service';
 import { Capacitor } from '@capacitor/core';
@@ -48,6 +49,10 @@ export class OrderSyncService {
   /** Emitted after /api/sync snapshot is applied to Dexie (resume, SSE reconnect, etc.). */
   readonly snapshotRefreshed$ = this.snapshotRefreshedSubject.asObservable();
 
+  private readonly reconcilingSubject = new BehaviorSubject(false);
+  /** True while post-offline-queue /api/sync reconciliation runs. */
+  readonly isReconciling$ = this.reconcilingSubject.asObservable();
+
   // optional buffering while reconnecting
   private bufferWhileReconnecting = true;
   private eventBuffer: SseEvent<any>[] = [];
@@ -63,8 +68,9 @@ export class OrderSyncService {
   constructor(private auth: AuthService,
     private ngZone: NgZone,
     private syncScheduler: OfflineSyncSchedulerService,
+    private queueProcessor: OfflineQueueProcessor,
     private offlineDB: OfflineDbService,
-    private onlineStateService: OnlineStateService    
+    private onlineStateService: OnlineStateService,
   ) {
     // Cross-tab fanout: if one tab receives SSE, share it to others.
     this.bc?.addEventListener('message', (ev: MessageEvent) => {
@@ -103,6 +109,11 @@ export class OrderSyncService {
           void this.refreshRestaurantSnapshot();
         }
       });
+
+    this.queueProcessor.queueDrained$
+      .subscribe(() => {
+        void this.reconcileAfterOfflineSync();
+      });
   }
 
   private resolveRestaurantId(): string | null {
@@ -137,6 +148,31 @@ export class OrderSyncService {
       await this.syncScheduler.runWhenAllowed();
     } finally {
       this.syncInProgress = false;
+    }
+  }
+
+  /**
+   * After offline queue drain, pull authoritative table state via GET /api/sync (batch).
+   * Replaces per-table polling; snapshotRefreshed$ reloads Manage Orders UI.
+   */
+  async reconcileAfterOfflineSync(): Promise<boolean> {
+    const restaurantId = this.resolveRestaurantId();
+    if (!restaurantId || !this.onlineStateService.isOnline) {
+      return false;
+    }
+    if (this.reconcilingSubject.value) {
+      return false;
+    }
+
+    this.reconcilingSubject.next(true);
+    try {
+      await this.syncRestaurantState(restaurantId);
+      return true;
+    } catch (e) {
+      console.warn('[OrderSync] reconcileAfterOfflineSync failed', e);
+      return false;
+    } finally {
+      this.reconcilingSubject.next(false);
     }
   }
 

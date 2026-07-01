@@ -754,6 +754,7 @@
     "offlineSyncModalTitle": "Offline order sync",
     "offlineSyncCountdown": "Sync starts in {{seconds}} seconds. Please wait and do not close the app.",
     "offlineSyncInProgress": "Syncing offline orders to the server. Please wait…",
+    "offlineSyncReconciling": "Updating table status from server. Please wait…",
     "nonPrimaryOfflineHint": "Offline: you can only edit the order already open on this device."
   },
   "faq": {
