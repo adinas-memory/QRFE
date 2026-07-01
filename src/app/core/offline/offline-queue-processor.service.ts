@@ -131,7 +131,7 @@ export class OfflineQueueProcessor {
         }
     }
 
-    async processQueue(options?: { force?: boolean }) {
+    async processQueue(options?: { force?: boolean; emitDrainedOnComplete?: boolean }) {
         if (this.processing) {
             this.drainAgain = true;
             return;
@@ -166,7 +166,7 @@ export class OfflineQueueProcessor {
         } finally {
             this.processing = false;
             this.processingSubject.next(false);
-            if (hadPendingAtStart && restaurantIdAtStart) {
+            if (options?.emitDrainedOnComplete && hadPendingAtStart && restaurantIdAtStart) {
                 const remaining = (await this.offlineDB.getPendingActionsForRestaurant(restaurantIdAtStart)).length;
                 if (remaining === 0) {
                     this.queueDrainedSubject.next();

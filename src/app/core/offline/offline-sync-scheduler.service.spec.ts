@@ -59,7 +59,7 @@ describe('OfflineSyncSchedulerService', () => {
     expect(queueProcessor.processQueue).not.toHaveBeenCalled();
 
     tick(60_000);
-    expect(queueProcessor.processQueue).toHaveBeenCalledWith({ force: true });
+    expect(queueProcessor.processQueue).toHaveBeenCalledWith({ force: true, emitDrainedOnComplete: true });
     expect(values[values.length - 1]).toBeNull();
   }));
 
@@ -118,6 +118,6 @@ describe('OfflineSyncSchedulerService', () => {
 
     tick(31_000);
     expect(service.isSyncBlocked()).toBeFalse();
-    expect(queueProcessor.processQueue).toHaveBeenCalledWith({ force: true });
+    expect(queueProcessor.processQueue).toHaveBeenCalledWith({ force: true, emitDrainedOnComplete: true });
   }));
 });

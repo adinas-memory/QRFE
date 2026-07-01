@@ -195,6 +195,7 @@ export interface ManageOrdersMocks {
   syncScheduler: {
     syncCountdownSeconds$: Observable<number | null>;
     syncBlocked$: Observable<boolean>;
+    batchSyncDraining$: Observable<boolean>;
   };
   onlineState: OnlineStateMock;
   appToast: {
@@ -339,6 +340,7 @@ export function createManageOrdersMocks(options: SetupManageOrdersOptions = {}):
     syncScheduler: {
       syncCountdownSeconds$: of(null),
       syncBlocked$: of(false),
+      batchSyncDraining$: of(false),
     },
     onlineState: {
       isOnline: options.isOnline ?? true,

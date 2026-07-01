@@ -203,13 +203,13 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   readonly offlineSyncCountdown = toSignal(this.syncScheduler.syncCountdownSeconds$, { initialValue: null });
   readonly offlineSyncBlocked = toSignal(this.syncScheduler.syncBlocked$, { initialValue: false });
-  readonly offlineSyncInProgress = toSignal(this.queueProcessor.isProcessing$, { initialValue: false });
+  readonly offlineSyncBatchDraining = toSignal(this.syncScheduler.batchSyncDraining$, { initialValue: false });
   readonly offlineSyncReconciling = toSignal(this.sseService.isReconciling$, { initialValue: false });
   readonly showOfflineSyncModal = computed(
     () =>
       this.offlineSyncBlocked()
       || this.offlineSyncCountdown() !== null
-      || this.offlineSyncInProgress()
+      || this.offlineSyncBatchDraining()
       || this.offlineSyncReconciling(),
   );
 

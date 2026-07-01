@@ -24,6 +24,10 @@ export class OfflineSyncSchedulerService {
   /** Emits true while reconnect jitter is preparing or counting down. */
   readonly syncBlocked$ = this.syncBlockedSubject.asObservable();
 
+  private readonly batchSyncDrainingSubject = new BehaviorSubject(false);
+  /** Emits true while the reconnect batch queue drain is in progress (after jitter). */
+  readonly batchSyncDraining$ = this.batchSyncDrainingSubject.asObservable();
+
   constructor(
     private readonly injector: Injector,
     private readonly onlineState: OnlineStateService,
@@ -143,7 +147,12 @@ export class OfflineSyncSchedulerService {
   }
 
   private async drainQueue(): Promise<void> {
-    await this.getQueueProcessor().processQueue({ force: true });
+    this.batchSyncDrainingSubject.next(true);
+    try {
+      await this.getQueueProcessor().processQueue({ force: true, emitDrainedOnComplete: true });
+    } finally {
+      this.batchSyncDrainingSubject.next(false);
+    }
   }
 
   private cancelCountdown(): void {
