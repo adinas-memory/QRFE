@@ -106,6 +106,14 @@ export class OfflineDbService {
         return await this.db.carts.get(tableId) ?? null;
     }
 
+    /** Table IDs with a local cart or confirmed order snapshot on this device. */
+    async getTableIdsWithLocalSession(): Promise<string[]> {
+        const records = await this.db.carts.toArray();
+        return records
+            .filter(r => !!r.orderId || (r.items?.length ?? 0) > 0)
+            .map(r => r.tableId);
+    }
+
     async loadAllCarts(): Promise<Record<string, TableCart[string]>> {
         const result: Record<string, TableCart[string]> = {};
         const records = await this.db.carts.toArray();

@@ -655,6 +655,29 @@ describe('ManageOrdersComponent', () => {
       expect(component.canBypassOfflineUiGates).toBeTrue();
     });
 
+    it('isTableActionDisabled allows All tab offline when table has local session (partial offline)', async () => {
+      const { component } = await setupManageOrdersComponent({
+        isOnline: false,
+        isOfflinePrimaryDevice: false,
+        skipNgOnInit: true,
+      });
+      (component as unknown as { localSessionTableIds: Set<string> }).localSessionTableIds = new Set([TABLE_A]);
+      const table = createTable({ tableId: TABLE_A, isTableOpen: false });
+
+      expect(component.isTableActionDisabled(table, true)).toBeFalse();
+    });
+
+    it('isTableActionDisabled blocks All tab offline without local session (partial offline)', async () => {
+      const { component } = await setupManageOrdersComponent({
+        isOnline: false,
+        isOfflinePrimaryDevice: false,
+        skipNgOnInit: true,
+      });
+      const table = createTable({ tableId: TABLE_B, isTableOpen: false });
+
+      expect(component.isTableActionDisabled(table, true)).toBeTrue();
+    });
+
     it('confirmCloseOrder offline cleans up local table state (Q3)', async () => {
       const { component, mocks } = await setupManageOrdersComponent({
         isOnline: false,

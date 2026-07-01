@@ -99,11 +99,13 @@ export function buildAvailabilityMap(tables: TableDTO[]): Record<string, boolean
 
 export interface OfflineDbMock {
   cartStore: Record<string, { items: CartItem[]; orderId?: string }>;
+  cartsChanged$: Observable<{ tableId: string }>;
   loadCartRecord: jasmine.Spy;
   loadCart: jasmine.Spy;
   saveCart: jasmine.Spy;
   deleteCart: jasmine.Spy;
   loadAllCarts: jasmine.Spy;
+  getTableIdsWithLocalSession: jasmine.Spy;
   loadTablesStatusMap: jasmine.Spy;
   loadLocalTables: jasmine.Spy;
   upsertTableStatus: jasmine.Spy;
@@ -117,9 +119,11 @@ export interface OfflineDbMock {
 
 export function createOfflineDbMock(): OfflineDbMock {
   const cartStore: Record<string, { items: CartItem[]; orderId?: string }> = {};
+  const cartsChangedSubject = new Subject<{ tableId: string }>();
 
   return {
     cartStore,
+    cartsChanged$: cartsChangedSubject.asObservable(),
     loadCartRecord: jasmine.createSpy('loadCartRecord').and.callFake(async (tableId: string) => {
       const rec = cartStore[tableId];
       return rec ? { tableId, items: [...rec.items], orderId: rec.orderId } : null;
@@ -142,6 +146,11 @@ export function createOfflineDbMock(): OfflineDbMock {
       }
       return result;
     }),
+    getTableIdsWithLocalSession: jasmine.createSpy('getTableIdsWithLocalSession').and.callFake(async () =>
+      Object.entries(cartStore)
+        .filter(([, rec]) => !!rec.orderId || rec.items.length > 0)
+        .map(([tableId]) => tableId),
+    ),
     loadTablesStatusMap: jasmine.createSpy('loadTablesStatusMap').and.resolveTo({}),
     loadLocalTables: jasmine.createSpy('loadLocalTables').and.resolveTo([]),
     upsertTableStatus: jasmine.createSpy('upsertTableStatus').and.resolveTo(undefined),

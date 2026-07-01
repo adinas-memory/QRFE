@@ -174,6 +174,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   bookingsByTableId: Record<string, ReservationItem[]> = {};
   bookingsLoading = false;
   bindOfflinePrimaryInProgress = false;
+  /** Tables with local Dexie cart/order on this device (partial offline re-entry). */
+  private localSessionTableIds = new Set<string>();
 
   constructor(
     private tablesService: TablesService,
@@ -409,12 +411,32 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     return this.isOnline || this.offlinePolicy.canUseFullOffline();
   }
 
+  private hasLocalSessionForTable(tableId: string): boolean {
+    return this.localSessionTableIds.has(tableId);
+  }
+
+  private async refreshLocalSessionTableIds(): Promise<void> {
+    const tableIds = await this.offlineDB.getTableIdsWithLocalSession();
+    this.localSessionTableIds = new Set(tableIds);
+  }
+
   isTableActionDisabled(table: TableDTO, requireOnline: boolean): boolean {
-    return requireOnline && !this.canBypassOfflineUiGates;
+    if (!requireOnline) {
+      return false;
+    }
+    if (this.canBypassOfflineUiGates) {
+      return false;
+    }
+    // Partial offline: allow re-entry on All tab for orders opened on this device.
+    if (!this.isOnline && this.hasLocalSessionForTable(table.tableId)) {
+      return false;
+    }
+    return true;
   }
 
   async onTableActionClick(table: TableDTO, requireOnline: boolean): Promise<void> {
     const localCart = await this.offlineDB.loadCartRecord(table.tableId);
+    const disabled = this.isTableActionDisabled(table, requireOnline);
     // #region agent log
     fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
       method: 'POST',
@@ -426,10 +448,12 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         data: {
           tableId: table.tableId,
           requireOnline,
-          disabled: this.isTableActionDisabled(table, requireOnline),
+          disabled,
           canBypassOfflineUiGates: this.canBypassOfflineUiGates,
           isOfflinePrimaryDevice: this.offlinePolicy.isOfflinePrimaryDevice(),
           canUseFullOffline: this.offlinePolicy.canUseFullOffline(),
+          hasLocalSession: this.hasLocalSessionForTable(table.tableId),
+          localSessionTableCount: this.localSessionTableIds.size,
           hasTableOrder: !!table.order,
           tableOrderId: table.order?.orderId ?? null,
           isTableOpen: table.isTableOpen,
@@ -437,12 +461,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           localCartItemCount: localCart?.items?.length ?? 0,
           action: table.order ? 'seeOrder' : 'openTable',
         },
-        hypothesisId: 'H1-H2-H4',
-        runId: 'offline-multi-browser',
+        hypothesisId: 'H2-partial-offline',
+        runId: 'post-fix-partial',
         timestamp: Date.now(),
       }),
     }).catch(() => {});
     // #endregion
+    if (disabled) {
+      return;
+    }
     if (table.order) {
       await this.seeOrder(table);
     } else {
@@ -635,6 +662,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
     this.markTableAsClosed(this.currentTableId);
     this.updateComputedLocal(this.currentTableId);
+
+    await this.refreshLocalSessionTableIds();
 
     if (this.onlineStateService.isOnline) this.queueProcessor.triggerProcessing();
   }
@@ -1218,6 +1247,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
       this.resetCanvasState();
       this.closeInFlight = false;
+      await this.refreshLocalSessionTableIds();
       if (this.onlineStateService.isOnline) {
         this.queueProcessor.triggerProcessing();
       }
@@ -1800,6 +1830,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       )
       .subscribe(() => {
         const user = this.authService.getUserSnapshot();
+        void this.refreshLocalSessionTableIds();
         // #region agent log
         fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
           method: 'POST',
@@ -1814,16 +1845,22 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
               canUseFullOffline: this.offlinePolicy.canUseFullOffline(),
               designee: user?.isOfflinePrimaryStaffDesignee ?? null,
               device: user?.isOfflinePrimaryDevice ?? null,
+              localSessionTableCount: this.localSessionTableIds.size,
+              localSessionTableIds: [...this.localSessionTableIds],
               occupiedTableCount: this.closedTables.length,
               tablesWithOrder: this.tables.filter(t => !!t.order).length,
             },
-            hypothesisId: 'H1-H2',
-            runId: 'offline-multi-browser',
+            hypothesisId: 'H2-partial-offline',
+            runId: 'post-fix-partial',
             timestamp: Date.now(),
           }),
         }).catch(() => {});
         // #endregion
       });
+
+    this.offlineDB.cartsChanged$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => void this.refreshLocalSessionTableIds());
 
     this.authService.getUserContext()
       .pipe(
@@ -1871,6 +1908,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           this.todaySetMenu = menu.todaySetMenu ?? null;
           this.categories = menu.categories ?? [];
           this.tablesAvailable = await this.offlineDB.loadTablesStatusMap();
+          await this.refreshLocalSessionTableIds();
           this.capturePersistedInitiatedBy({ replaceTableComputed: false });
 
           this.applyInitiatedByFromSyncedOrders();
