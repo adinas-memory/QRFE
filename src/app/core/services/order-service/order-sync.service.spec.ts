@@ -1,7 +1,6 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { OrderSyncService } from './order-sync.service';
 import { AuthService } from '../../auth/auth.service';
-import { OfflineQueueProcessor } from '../../offline/offline-queue-processor.service';
 import { OfflineSyncSchedulerService } from '../../offline/offline-sync-scheduler.service';
 import { OfflineDbService } from '../../offline/offline-db';
 import { OnlineStateService } from '../../offline/online-state-service';
@@ -37,7 +36,6 @@ describe('OrderSyncService', () => {
     auth.refreshUserContext.and.returnValue(of(null));
     auth.getUserRestaurantId.and.returnValue(null);
 
-    const queueSpy = jasmine.createSpyObj('OfflineQueueProcessor', ['processAction', 'processQueue']);
     const syncSchedulerSpy = jasmine.createSpyObj('OfflineSyncSchedulerService', ['runWhenAllowed']);
     syncSchedulerSpy.runWhenAllowed.and.returnValue(Promise.resolve());
     dbSpy = jasmine.createSpyObj('OfflineDbService', [
@@ -70,7 +68,6 @@ describe('OrderSyncService', () => {
       providers: [
         OrderSyncService,
         { provide: AuthService, useValue: auth },
-        { provide: OfflineQueueProcessor, useValue: queueSpy },
         { provide: OfflineSyncSchedulerService, useValue: syncSchedulerSpy },
         { provide: OfflineDbService, useValue: dbSpy },
         { provide: OnlineStateService, useValue: onlineState },
