@@ -6,7 +6,7 @@ import { CartItem, OrderItemDTO, cartItemFromOrderLine } from "../models/orderin
 import { OnlineStateService } from "./online-state-service";
 import { AuthService } from "../auth/auth.service";
 import { AppToastService } from "../services/toast-service/toast-service.service";
-import { sortOfflineQueueActions } from "./offline-queue.util";
+import { buildSyncOrderItemsFromPending, sortOfflineQueueActions } from "./offline-queue.util";
 
 const QUEUE_HTTP_OPTS = { suppressErrorToast: true as const };
 
@@ -280,12 +280,52 @@ export class OfflineQueueProcessor {
                     await this.offlineDB.replaceOrderId(action.orderId!, realOrderId);
 
                     const record = await this.offlineDB.loadCartRecord(action.tableId);
-                    if (record) {
+                    const cartBelongsToOrder =
+                        record?.orderId === action.orderId || record?.orderId === realOrderId;
+                    const cartItems =
+                        cartBelongsToOrder && record?.items?.length
+                            ? record.items.map(ci => ({
+                                menuItemId: ci.item.menuItemId,
+                                quantity: ci.quantity,
+                            }))
+                            : [];
+
+                    const pending = await this.offlineDB.getPendingActionsForRestaurant(action.restaurantId);
+                    const orderItems = buildSyncOrderItemsFromPending(
+                        pending,
+                        action.tableId,
+                        action.orderId!,
+                        realOrderId,
+                        cartItems,
+                    );
+
+                    // #region agent log
+                    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
+                        body: JSON.stringify({
+                            sessionId: 'd38222',
+                            location: 'offline-queue-processor.service.ts:NEW_ORDER:items',
+                            message: 'resolved sync items',
+                            data: {
+                                tableId: action.tableId,
+                                localOrderId: action.orderId,
+                                realOrderId,
+                                cartBelongsToOrder,
+                                cartItemCount: cartItems.length,
+                                syncItemCount: orderItems.length,
+                                syncItems: orderItems,
+                            },
+                            hypothesisId: 'H7-empty-cart-init',
+                            runId: 'post-fix-v3',
+                            timestamp: Date.now(),
+                        }),
+                    }).catch(() => {});
+                    // #endregion
+
+                    if (record && cartBelongsToOrder) {
                         await this.offlineDB.saveCart(action.tableId, record.items, realOrderId);
                     }
-
-                    // 3. reconstruim starea finală a cart-ului
-                    const finalCart = await this.offlineDB.loadCart(action.tableId);
 
                     // 4. trimitem toate itemele la backend
                     const finalRes = await firstValueFrom(
@@ -294,10 +334,7 @@ export class OfflineQueueProcessor {
                             action.tableId,
                             realOrderId,
                             {
-                                orderItems: finalCart.map(ci => ({
-                                    menuItemId: ci.item.menuItemId,
-                                    quantity: ci.quantity
-                                })),
+                                orderItems,
                                 seatId: null
                             },
                             QUEUE_HTTP_OPTS,
