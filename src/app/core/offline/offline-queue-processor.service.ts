@@ -36,7 +36,8 @@ export class OfflineQueueProcessor {
                 debounceTime(350)
             )
             .subscribe(() => {
-                if (this.syncScheduler.isCountdownActive()) {
+                if (this.syncScheduler.isSyncBlocked()) {
+                    void this.syncScheduler.runWhenAllowed();
                     return;
                 }
                 void this.processQueue();
@@ -44,7 +45,8 @@ export class OfflineQueueProcessor {
     }
 
     triggerProcessing() {
-        if (this.syncScheduler.isCountdownActive()) {
+        if (this.syncScheduler.isSyncBlocked()) {
+            void this.syncScheduler.runWhenAllowed();
             return;
         }
         this.trigger$.next();
@@ -126,12 +128,16 @@ export class OfflineQueueProcessor {
         }
     }
 
-    async processQueue() {
+    async processQueue(options?: { force?: boolean }) {
         if (this.processing) {
             this.drainAgain = true;
             return;
         }
         if (!this.onlineStateService.isOnline) return;
+        if (!options?.force && this.syncScheduler.isSyncBlocked()) {
+            void this.syncScheduler.runWhenAllowed();
+            return;
+        }
 
         this.processing = true;
         this.processingSubject.next(true);

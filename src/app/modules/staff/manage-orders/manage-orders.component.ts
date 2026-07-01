@@ -1,6 +1,6 @@
 // ─── IMPORTS ──────────────────────────────────────────────────────────────────
 import { FormsModule } from '@angular/forms';
-import { Component, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, computed, inject } from '@angular/core';
 import Fuse from 'fuse.js';
 import { IconDirective } from '@coreui/icons-angular';
 import {
@@ -198,7 +198,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   private readonly syncScheduler = inject(OfflineSyncSchedulerService);
 
   readonly offlineSyncCountdown = toSignal(this.syncScheduler.syncCountdownSeconds$, { initialValue: null });
+  readonly offlineSyncBlocked = toSignal(this.syncScheduler.syncBlocked$, { initialValue: false });
   readonly offlineSyncInProgress = toSignal(this.queueProcessor.isProcessing$, { initialValue: false });
+  readonly showOfflineSyncModal = computed(
+    () => this.offlineSyncBlocked() || this.offlineSyncCountdown() !== null || this.offlineSyncInProgress(),
+  );
 
   bookingsForTable(tableId: string): ReservationItem[] {
     return this.bookingsByTableId[tableId] ?? [];
