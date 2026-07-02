@@ -35,6 +35,8 @@ import {
   OrderDTO,
   OrderItemDTO,
   cartItemFromOrderLine,
+  cartItemsFromSseLines,
+  orderDtoFromSsePayload,
   readOrderLastInitiatedBy,
   tableHasActiveOrder,
 } from '../../../core/models/orderingModel';
@@ -1635,11 +1637,29 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           break;
         }
 
-        const cart = await this.offlineDB.loadCart(tableId);
+        const localRecord = await this.offlineDB.loadCartRecord(tableId);
+        const localItems = localRecord?.items ?? [];
+        const localQty = localItems.reduce((sum, line) => sum + line.quantity, 0);
+        const shouldFullHydrate = localItems.length === 0 || sseItemCount > localQty;
 
-        for (const sseItem of payload.Items) {
-          const localItem = cart.find(ci => ci.item.menuItemId === sseItem.MenuItemId);
-          if (localItem) localItem.orderItemId = sseItem.OrderItemId;
+        let cart: CartItem[];
+        if (shouldFullHydrate) {
+          const { menuItems } = await this.offlineDB.loadMenu();
+          cart = cartItemsFromSseLines(payload.Items, menuItems);
+        } else {
+          cart = localItems.map(line => ({
+            ...line,
+            item: { ...line.item },
+          }));
+          for (const sseItem of payload.Items ?? []) {
+            const rec = sseItem as unknown as Record<string, unknown>;
+            const menuItemId = String(rec['MenuItemId'] ?? rec['menuItemId'] ?? '');
+            const orderItemId = String(rec['OrderItemId'] ?? rec['orderItemId'] ?? '');
+            const localItem = cart.find(ci => ci.item.menuItemId === menuItemId);
+            if (localItem && orderItemId) {
+              localItem.orderItemId = orderItemId;
+            }
+          }
         }
 
         await this.offlineDB.saveCart(tableId, cart, payload.OrderId);
@@ -1650,29 +1670,19 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.tableCarts[tableId] = cart;
         this.ordersService.saveComputed(this.tableComputed);
 
-        // OrderUpdated implică o comandă activă pe masă → marchează masa ca ocupată local
-        // dacă încă figurează liberă; altfel getTableCss rămâne pe bg-success (verde).
         if (payload.OrderId) {
-          const existing = this.tables.find(t => t.tableId === tableId);
-          if (existing && (existing.isTableOpen || !existing.order)) {
-            const initiatedByName = InitiatedBy?.trim() || readOrderLastInitiatedBy(existing.order);
-            this.tables = this.tables.map(t =>
-              t.tableId === tableId
-                ? {
-                    ...t,
-                    isTableOpen: false,
-                    order: {
-                      ...(t.order ?? {}),
-                      orderId: payload.OrderId,
-                      isOrderOpen: true,
-                      lastInitiatedBy: initiatedByName || readOrderLastInitiatedBy(t.order),
-                    } as OrderDTO,
-                  }
-                : t,
-            );
-            this.refreshTableLists();
-            void this.offlineDB.saveTables(this.tables);
-          }
+          const initiatedByName = InitiatedBy?.trim()
+            || readOrderLastInitiatedBy(this.tables.find(t => t.tableId === tableId)?.order);
+          const nextOrder = orderDtoFromSsePayload(tableId, payload, initiatedByName);
+          this.tables = this.tables.map(t =>
+            t.tableId === tableId
+              ? { ...t, isTableOpen: false, order: nextOrder }
+              : t,
+          );
+          this.refreshTableLists();
+          this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+          void this.offlineDB.saveTables(this.tables);
+          void this.offlineDB.saveTablesStatus(this.tablesAvailable);
         }
         break;
       }

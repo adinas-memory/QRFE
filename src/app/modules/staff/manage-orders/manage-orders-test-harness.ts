@@ -108,6 +108,7 @@ export interface OfflineDbMock {
   getTableIdsWithLocalSession: jasmine.Spy;
   loadTablesStatusMap: jasmine.Spy;
   loadLocalTables: jasmine.Spy;
+  loadMenu: jasmine.Spy;
   upsertTableStatus: jasmine.Spy;
   saveTables: jasmine.Spy;
   saveTablesStatus: jasmine.Spy;
@@ -153,6 +154,7 @@ export function createOfflineDbMock(): OfflineDbMock {
     ),
     loadTablesStatusMap: jasmine.createSpy('loadTablesStatusMap').and.resolveTo({}),
     loadLocalTables: jasmine.createSpy('loadLocalTables').and.resolveTo([]),
+    loadMenu: jasmine.createSpy('loadMenu').and.resolveTo({ menuItems: [createMenuItem()], categories: ['Main'] }),
     upsertTableStatus: jasmine.createSpy('upsertTableStatus').and.resolveTo(undefined),
     saveTables: jasmine.createSpy('saveTables').and.resolveTo(undefined),
     saveTablesStatus: jasmine.createSpy('saveTablesStatus').and.resolveTo(undefined),

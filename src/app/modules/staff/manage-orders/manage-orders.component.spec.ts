@@ -482,6 +482,40 @@ describe('ManageOrdersComponent', () => {
       expect(component.tableComputed[TABLE_B]?.initiatedBy).toBe('waiter');
     });
 
+    it('OrderUpdated fully hydrates cart when no local session exists (cross-browser SSE)', async () => {
+      seedComponentTables(component);
+      (component as unknown as { initialTablesLoaded: boolean }).initialTablesLoaded = true;
+      mocks.offlineDb.loadCartRecord.and.resolveTo(null);
+
+      await invokeSse(component, 'OrderUpdated', {
+        TableId: TABLE_B,
+        OrderId: 'order-cross',
+        Items: [{
+          MenuItemId: 'menu-item-1',
+          OrderItemId: 'line-cross',
+          OrderItemName: 'Pizza',
+          Quantity: 1,
+          OrderItemPriceAmount: 25,
+          OrderItemPriceCurrency: 'RON',
+        }],
+        LastActionAt: new Date().toISOString(),
+        ItemCount: 1,
+        SubTotal: { Amount: 25, Currency: 'RON' },
+      }, 'manager');
+
+      expect(mocks.offlineDb.saveCart).toHaveBeenCalledWith(
+        TABLE_B,
+        jasmine.arrayContaining([jasmine.objectContaining({ quantity: 1, orderItemId: 'line-cross' })]),
+        'order-cross',
+      );
+      expect(mocks.offlineDb.saveTables).toHaveBeenCalled();
+      const table = component.tables.find(t => t.tableId === TABLE_B);
+      expect(table?.isTableOpen).toBeFalse();
+      expect(table?.order?.orderId).toBe('order-cross');
+      expect(table?.order?.orderItems?.length).toBe(1);
+      expect(component.tableCarts[TABLE_B]?.length).toBe(1);
+    });
+
     it('OrderUpdated with zero items frees the table instead of marking it occupied', async () => {
       component.tables = createDefaultTables().map(t =>
         t.tableId === TABLE_A ? { ...t, isTableOpen: false, order: { orderId: 'order-a', isOrderOpen: true } as never } : t,
