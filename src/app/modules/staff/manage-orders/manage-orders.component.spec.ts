@@ -793,7 +793,7 @@ describe('ManageOrdersComponent', () => {
       expect(component.currentOrderId).toBe('local-offline-confirmed');
     });
 
-    it('confirmCloseOrder offline keeps table occupied and records closer name', async () => {
+    it('confirmCloseOrder offline frees table locally and records closer name', async () => {
       const { component, mocks } = await setupManageOrdersComponent({
         isOnline: false,
         isOfflinePrimaryDevice: true,
@@ -810,9 +810,10 @@ describe('ManageOrdersComponent', () => {
 
       expect(mocks.offlineDb.addOfflineAction).toHaveBeenCalled();
       expect(mocks.offlineDb.deleteCart).toHaveBeenCalledWith(TABLE_A);
-      expect(mocks.offlineDb.upsertTableStatus).toHaveBeenCalledWith(TABLE_A, false);
-      expect(component.tables.find(t => t.tableId === TABLE_A)?.isTableOpen).toBeFalse();
+      expect(mocks.offlineDb.upsertTableStatus).toHaveBeenCalledWith(TABLE_A, true);
+      expect(component.tables.find(t => t.tableId === TABLE_A)?.isTableOpen).toBeTrue();
       expect(component.tableComputed[TABLE_A]?.initiatedBy).toBe('Popescu A.');
+      expect(component.tableComputed[TABLE_A]?.itemCount).toBe(0);
       expect(component.canvasVisible).toBeFalse();
     });
 

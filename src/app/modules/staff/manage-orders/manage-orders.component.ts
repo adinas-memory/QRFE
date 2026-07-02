@@ -1307,28 +1307,22 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       }
       await this.offlineDB.deleteCart(tableId);
       this.tableCarts[tableId] = [];
-      const table = this.tables.find(t => t.tableId === tableId);
-      const cssClass = this.miscService.getTableCss(
-        {
-          ...(table ?? { tableId, tableName: '' }),
-          isTableOpen: false,
-          order: undefined,
-        } as TableDTO,
-        this.waiterState,
-      );
+      this.markTableAsOpen(tableId);
+      await this.offlineDB.upsertTableStatus(tableId, true);
+      this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+      const freedTable = this.tables.find(t => t.tableId === tableId);
       this.tableComputed[tableId] = {
         lastActionAt: new Date().toISOString(),
         lastAddedItem: '—',
         total: 0,
         currency: this.tableComputed[tableId]?.currency ?? '',
         itemCount: 0,
-        cssClass,
+        cssClass: this.miscService.getTableCss(freedTable ?? { tableId, isTableOpen: true } as TableDTO, this.waiterState),
         initiatedBy: closedBy,
       };
       this.ordersService.saveComputed(this.tableComputed);
-      this.markTableAsClosed(tableId);
-      await this.offlineDB.upsertTableStatus(tableId, false);
-      this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+      void this.offlineDB.saveTables(this.tables);
+      void this.offlineDB.saveTablesStatus(this.tablesAvailable);
       this.resetCanvasState();
       this.closeInFlight = false;
       await this.refreshLocalSessionTableIds();
