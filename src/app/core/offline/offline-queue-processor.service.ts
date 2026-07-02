@@ -52,6 +52,9 @@ export class OfflineQueueProcessor {
             void this.syncScheduler.runWhenAllowed();
             return;
         }
+        if (!this.authService.getUserSnapshot()?.isOfflinePrimaryDevice) {
+            return;
+        }
         this.trigger$.next();
     }
 
@@ -137,6 +140,9 @@ export class OfflineQueueProcessor {
             return;
         }
         if (!this.onlineStateService.isOnline) return;
+        if (!this.authService.getUserSnapshot()?.isOfflinePrimaryDevice) {
+            return;
+        }
         if (!options?.force && this.syncScheduler.isSyncBlocked()) {
             void this.syncScheduler.runWhenAllowed();
             return;

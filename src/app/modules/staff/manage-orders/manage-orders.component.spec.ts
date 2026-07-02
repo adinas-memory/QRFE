@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { TranslocoService } from '@jsverse/transloco';
 import { WaiterCallState } from '../../../core/models/callWaiter/callWaiter';
+import { Currency } from '../../../core/models/restaurantTablesModel';
 import { ManageOrdersComponent } from './manage-orders.component';
 import {
   TABLE_A,
@@ -675,7 +676,7 @@ describe('ManageOrdersComponent', () => {
       expect(component.canBypassOfflineUiGates).toBeTrue();
     });
 
-    it('isTableActionDisabled allows All tab offline when table has local session (partial offline)', async () => {
+    it('isTableActionDisabled blocks All tab offline for semi-offline even with local session', async () => {
       const { component } = await setupManageOrdersComponent({
         isOnline: false,
         isOfflinePrimaryDevice: false,
@@ -684,7 +685,7 @@ describe('ManageOrdersComponent', () => {
       (component as unknown as { localSessionTableIds: Set<string> }).localSessionTableIds = new Set([TABLE_A]);
       const table = createTable({ tableId: TABLE_A, isTableOpen: false });
 
-      expect(component.isTableActionDisabled(table, true)).toBeFalse();
+      expect(component.isTableActionDisabled(table, true)).toBeTrue();
     });
 
     it('isTableActionDisabled blocks All tab offline without local session (partial offline)', async () => {
@@ -696,6 +697,48 @@ describe('ManageOrdersComponent', () => {
       const table = createTable({ tableId: TABLE_B, isTableOpen: false });
 
       expect(component.isTableActionDisabled(table, true)).toBeTrue();
+    });
+
+    it('seeOrder hydrates from table.order when offline without local Dexie cart', async () => {
+      const { component, mocks } = await setupManageOrdersComponent({
+        isOnline: false,
+        isOfflinePrimaryDevice: true,
+        skipNgOnInit: true,
+      });
+      const orderId = 'server-order-semi';
+      component.menuItems = [createMenuItem()];
+      component.tables = [
+        createTable({
+          tableId: TABLE_A,
+          isTableOpen: false,
+          order: {
+            orderId,
+            isOrderOpen: true,
+            createdOn: new Date().toISOString(),
+            currency: Currency.RON,
+            orderItems: [{
+              orderItemId: 'oi-1',
+              menuItemId: createMenuItem().menuItemId,
+              orderItemName: 'Pizza',
+              orderItemDescription: '',
+              orderItemPriceAmount: 10,
+              orderItemPriceCurrency: Currency.RON,
+              category: 'Main',
+              quantity: 1,
+            }],
+          },
+        }),
+      ];
+      mocks.ordersService.listOpenOrderForTableWithFallback.and.resolveTo(null);
+      mocks.offlineDb.loadCartRecord.and.resolveTo(null);
+      mocks.offlineDb.saveCart.and.resolveTo(undefined);
+
+      await component.seeOrder(component.tables[0]);
+
+      expect(component.orderIsConfirmed).toBeTrue();
+      expect(component.currentOrderId).toBe(orderId);
+      expect(component.tableCarts[TABLE_A]?.length).toBe(1);
+      expect(mocks.offlineDb.saveCart).toHaveBeenCalled();
     });
 
     it('openTable treats local-* orderId as confirmed on full offline re-entry', async () => {

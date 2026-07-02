@@ -319,7 +319,7 @@
           {{ 'manageOrders.print' | transloco }}
         </button>
         <button class="btn btn-warning flex-grow-1" (click)="closeOrder()"
-          [disabled]="selectedItems.length === 0">
+          [disabled]="selectedItems.length === 0 || !canBypassOfflineUiGates">
           {{ 'manageOrders.closeOrder' | transloco }} – {{ cartSubTotal | currency: cartCurrency }}
         </button>
       </div>

@@ -33,4 +33,14 @@ export class OfflinePolicyService {
   readonly shouldShowOfflinePrimaryDeviceBanner = computed(
     () => this.isOfflinePrimaryStaffDesignee() && this.isOfflinePrimaryDevice(),
   );
+
+  /** True when offline and this browser is not the bound primary device (no table/canvas/queue ops). */
+  readonly shouldFreezeWhenOffline = computed(
+    () => !this.isOnline() && !this.canUseFullOffline(),
+  );
+
+  /** Only the bound primary device may drain the shared offline queue on reconnect. */
+  readonly canProcessOfflineQueue = computed(
+    () => this.isOnline() && this.isOfflinePrimaryDevice(),
+  );
 }

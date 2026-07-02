@@ -63,6 +63,27 @@ export class OfflineSyncSchedulerService {
   private refreshSyncBlocked(): void {
     const blocked = this.schedulingInProgress || this.drainScheduled || this.isCountdownActive();
     if (blocked !== this.syncBlockedSubject.value) {
+      // #region agent log
+      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
+        body: JSON.stringify({
+          sessionId: 'd38222',
+          location: 'offline-sync-scheduler.service.ts:refreshSyncBlocked',
+          message: 'syncBlocked changed',
+          data: {
+            blocked,
+            schedulingInProgress: this.schedulingInProgress,
+            drainScheduled: this.drainScheduled,
+            countdownActive: this.isCountdownActive(),
+            countdown: this.countdownSubject.value,
+          },
+          hypothesisId: 'H-MODAL-STUCK',
+          runId: 'offline-multi-browser-v2',
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
       this.syncBlockedSubject.next(blocked);
     }
   }
@@ -81,6 +102,9 @@ export class OfflineSyncSchedulerService {
   /** Coalesce concurrent schedule attempts (reconnect, SSE, trySyncNow). */
   async ensureScheduled(): Promise<void> {
     if (!this.onlineState.isOnline) {
+      return;
+    }
+    if (!this.auth.getUserSnapshot()?.isOfflinePrimaryDevice) {
       return;
     }
     if (!this.schedulePromise) {
@@ -152,6 +176,8 @@ export class OfflineSyncSchedulerService {
       await this.getQueueProcessor().processQueue({ force: true, emitDrainedOnComplete: true });
     } finally {
       this.batchSyncDrainingSubject.next(false);
+      this.drainScheduled = false;
+      this.refreshSyncBlocked();
     }
   }
 

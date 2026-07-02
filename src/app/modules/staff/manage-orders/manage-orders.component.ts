@@ -209,8 +209,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   readonly offlineSyncReconciling = toSignal(this.sseService.isReconciling$, { initialValue: false });
   readonly showOfflineSyncModal = computed(
     () =>
-      this.offlineSyncBlocked()
-      || this.offlineSyncCountdown() !== null
+      this.offlineSyncCountdown() !== null
       || this.offlineSyncBatchDraining()
       || this.offlineSyncReconciling(),
   );
@@ -424,14 +423,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     if (!requireOnline) {
       return false;
     }
-    if (this.canBypassOfflineUiGates) {
+    if (this.isOnline) {
       return false;
     }
-    // Partial offline: allow re-entry on All tab for orders opened on this device.
-    if (!this.isOnline && this.hasLocalSessionForTable(table.tableId)) {
-      return false;
-    }
-    return true;
+    // Offline: only the bound primary device may operate (semi-offline frozen).
+    return !this.offlinePolicy.canUseFullOffline();
   }
 
   async onTableActionClick(table: TableDTO, requireOnline: boolean): Promise<void> {
@@ -635,6 +631,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   async confirmOrder() {
     if (document.hidden) return;
+    if (!this.isOnline && !this.offlinePolicy.canUseFullOffline()) {
+      return;
+    }
 
     const localOrderId =
       'local-' + (crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2));
@@ -1028,6 +1027,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.restaurantId, this.currentTableId
     );
 
+    const resolvedOrder =
+      order ?? (tableHasActiveOrder(table.order) ? table.order! : null);
+
     // #region agent log
     fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
       method: 'POST',
@@ -1041,27 +1043,33 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           isOnline: this.isOnline,
           tableOrderId: table.order?.orderId ?? null,
           fallbackOrderId: order?.orderId ?? null,
-          fallbackItemCount: order?.orderItems?.length ?? 0,
-          orderIsConfirmedBefore: this.orderIsConfirmed,
+          resolvedOrderId: resolvedOrder?.orderId ?? null,
+          resolvedItemCount: resolvedOrder?.orderItems?.length ?? 0,
+          usedTableOrderFallback: !order && !!resolvedOrder,
+          canUseFullOffline: this.offlinePolicy.canUseFullOffline(),
         },
         hypothesisId: 'H3-H4',
-        runId: 'offline-multi-browser',
+        runId: 'offline-multi-browser-v2',
         timestamp: Date.now(),
       }),
     }).catch(() => {});
     // #endregion
 
-    if (order) {
-      this.currentOrderId = order.orderId;
+    if (resolvedOrder?.orderId) {
+      this.currentOrderId = resolvedOrder.orderId;
       this.orderIsConfirmed = true;
       this.claimPickupTargetForTable(this.currentTableId);
       const record = await this.offlineDB.loadCartRecord(this.currentTableId);
       if (record?.items?.length) {
         this.tableCarts[this.currentTableId] = record.items;
       } else {
-        this.tableCarts[this.currentTableId] = (order.orderItems ?? [])
+        const hydrated = (resolvedOrder.orderItems ?? [])
           .filter((o): o is OrderItemDTO => !!o)
           .map(o => cartItemFromOrderLine(o, this.menuItems));
+        this.tableCarts[this.currentTableId] = hydrated;
+        if (hydrated.length) {
+          await this.offlineDB.saveCart(this.currentTableId, hydrated, resolvedOrder.orderId);
+        }
       }
     } else {
       // #region agent log
@@ -1077,14 +1085,17 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
             tableOrderId: table.order?.orderId ?? null,
             tableOrderItemCount: table.order?.orderItems?.length ?? 0,
             orderIsConfirmedAfter: this.orderIsConfirmed,
-            unusedTableOrderFallback: tableHasActiveOrder(table.order) && !order,
+            unusedTableOrderFallback: tableHasActiveOrder(table.order) && !resolvedOrder,
           },
           hypothesisId: 'H3-H4-H5',
-          runId: 'offline-multi-browser',
+          runId: 'offline-multi-browser-v2',
           timestamp: Date.now(),
         }),
       }).catch(() => {});
       // #endregion
+      this.orderIsConfirmed = false;
+      this.currentOrderId = null;
+      this.tableCarts[this.currentTableId] = [];
     }
   }
 
@@ -1227,6 +1238,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   async confirmCloseOrder() {
     if (document.hidden) return;
     if (this.closeInFlight) return;
+    if (!this.isOnline && !this.offlinePolicy.canUseFullOffline()) {
+      return;
+    }
     this.closeInFlight = true;
     this.showCloseConfirm = false;
 
