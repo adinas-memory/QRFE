@@ -33,7 +33,8 @@ describe('ManageOrdersComponent', () => {
       expect(mocks.reservationService.list).toHaveBeenCalled();
       expect(component.tables.length).toBe(3);
       expect(component.menuItems.length).toBeGreaterThan(0);
-      expect(mocks.offlineDb.loadTablesStatusMap).toHaveBeenCalled();
+      expect(mocks.offlineDb.saveTables).toHaveBeenCalled();
+      expect(mocks.offlineDb.saveTablesStatus).toHaveBeenCalled();
     });
 
     it('groups today bookings by table on init', async () => {
@@ -554,6 +555,7 @@ describe('ManageOrdersComponent', () => {
     it('TablesStatusesUpdate keeps table occupied when local cart exists', async () => {
       component.tables = createDefaultTables();
       component.refreshTableLists();
+      (component as unknown as { initialTablesLoaded: boolean }).initialTablesLoaded = true;
       mocks.offlineDb.loadCartRecord.and.callFake(async (tableId: string) => {
         if (tableId === TABLE_A) {
           return { tableId, items: [createCartItem()], orderId: 'local-1' };
@@ -567,6 +569,23 @@ describe('ManageOrdersComponent', () => {
 
       expect(component.tables.find(t => t.tableId === TABLE_A)?.isTableOpen).toBeFalse();
       expect(mocks.ordersService.mapComputedDtoToComputed).not.toHaveBeenCalled();
+    });
+
+    it('TablesStatusesUpdate ignores stale snapshot without order evidence', async () => {
+      const tables = createDefaultTables().map(t =>
+        t.tableId === TABLE_A ? { ...t, isTableOpen: true, order: undefined } : t,
+      );
+      component.tables = tables;
+      component.refreshTableLists();
+      (component as unknown as { initialTablesLoaded: boolean }).initialTablesLoaded = true;
+      mocks.offlineDb.loadCartRecord.and.resolveTo(null);
+
+      await invokeSse(component, 'TablesStatusesUpdate', [
+        { tableId: TABLE_A, isTableOpen: false, orderId: undefined, subTotal: { amount: 0, currency: 'RON' }, itemCount: 0 },
+      ]);
+
+      expect(component.tables.find(t => t.tableId === TABLE_A)?.isTableOpen).toBeTrue();
+      expect(component.tables.find(t => t.tableId === TABLE_A)?.order).toBeUndefined();
     });
 
     it('TablesStatusesUpdate before initial load preserves persisted initiatedBy and skips save', async () => {
@@ -589,7 +608,8 @@ describe('ManageOrdersComponent', () => {
       ]);
 
       expect(mocks.ordersService.saveComputed).not.toHaveBeenCalled();
-      expect(component.tableComputed[TABLE_B]?.initiatedBy).toBe('waiter');
+      expect(mocks.ordersService.mapComputedDtoToComputed).not.toHaveBeenCalled();
+      expect((component as unknown as { persistedInitiatedBy: Record<string, string> }).persistedInitiatedBy[TABLE_B]).toBe('waiter');
     });
 
     it('applyPersistedInitiatedByToComputed restores name after hydrate cleared it', async () => {

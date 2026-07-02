@@ -792,6 +792,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** Apply authoritative table list from GET /api/sync or get-tables-status. */
+  private applyAuthoritativeTables(tables: TableDTO[]): void {
+    this.tables = tables;
+    this.refreshTableLists();
+    this.tablesAvailable = this.tablesService.buildAvailabilityMap(tables);
+    void this.offlineDB.saveTables(tables);
+    void this.offlineDB.saveTablesStatus(this.tablesAvailable);
+  }
+
   /** Reload in-memory state from Dexie after /api/sync (e.g. app resume from background). */
   private async reloadFromSyncSnapshot(activeGuestWaiterCalls: string[] = []): Promise<void> {
     if (!this.initialTablesLoaded || !this.restaurantId) return;
@@ -1204,12 +1213,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   private async syncTablesAvailability(): Promise<void> {
     try {
       const tables = await firstValueFrom(this.tablesService.getAll(this.restaurantId));
-      await this.offlineDB.saveTables(tables);
-      const map = this.tablesService.buildAvailabilityMap(tables);
-      await this.offlineDB.saveTablesStatus(map);
-      this.tables = tables;   // referință nouă → Angular detectează
-      this.tablesAvailable = map;
-      this.refreshTableLists();
+      this.applyAuthoritativeTables(tables);
     } catch (err) {
       console.warn('[syncTablesAvailability] Failed to refresh:', err);
     }
@@ -1712,13 +1716,17 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       }
 
       case 'TablesStatusesUpdate': {
+        if (!this.initialTablesLoaded) {
+          break;
+        }
+
         const computedList = Data as TableComputedDTO[];
 
         // IMPORTANT:
         // Backend may emit TablesStatusesUpdate snapshots where orderId/subTotal are not yet consistent
         // with a just-confirmed order (race / eventual consistency). Don't let that overwrite local truth.
         const updatedTables: TableDTO[] = [];
-        const debugTableChanges: Array<{ tableId: string; before: { open: boolean; hasOrder: boolean }; after: { open: boolean; hasOrder: boolean }; orderId: string | null }> = [];
+        const debugTableChanges: Array<{ tableId: string; before: { open: boolean; hasOrder: boolean }; after: { open: boolean; hasOrder: boolean }; orderId: string | null; skipped?: boolean }> = [];
         for (const t of this.tables) {
           if (!t?.tableId) continue;
           const c = computedList.find(x => x.tableId === t.tableId);
@@ -1730,9 +1738,24 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           const localRecord = await this.offlineDB.loadCartRecord(t.tableId);
           const localHasOrder = !!localRecord?.orderId || (localRecord?.items?.length ?? 0) > 0;
           const snapshotOrderId = c.orderId ?? null;
+          const snapshotItemCount = c.itemCount ?? 0;
+          const snapshotHasActiveOrder = !!snapshotOrderId || snapshotItemCount > 0;
+
+          // Stale DB snapshots: isTableOpen=false but no order evidence — do not flip UI.
+          if (!snapshotHasActiveOrder && !c.isTableOpen && !localHasOrder) {
+            updatedTables.push(t);
+            debugTableChanges.push({
+              tableId: t.tableId,
+              before: { open: !!t.isTableOpen, hasOrder: !!t.order },
+              after: { open: !!t.isTableOpen, hasOrder: !!t.order },
+              orderId: snapshotOrderId,
+              skipped: true,
+            });
+            continue;
+          }
 
           // Only accept "freed" snapshot if we do NOT have local evidence of an open order.
-          const snapshotSaysFreed = !snapshotOrderId && c.isTableOpen;
+          const snapshotSaysFreed = !snapshotHasActiveOrder && c.isTableOpen;
           const allowFreeOverride = snapshotSaysFreed && !localHasOrder;
 
           if (allowFreeOverride) {
@@ -1746,12 +1769,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
             continue;
           }
 
-          const snapshotHasOrder = !!snapshotOrderId;
-          const nextIsTableOpen = snapshotHasOrder || localHasOrder ? false : c.isTableOpen;
-          const nextOrder = snapshotHasOrder
+          const nextIsTableOpen = snapshotHasActiveOrder || localHasOrder ? false : c.isTableOpen;
+          const nextOrder = snapshotHasActiveOrder
             ? {
                 ...(t.order ?? {}),
-                orderId: snapshotOrderId!,
+                orderId: snapshotOrderId ?? t.order?.orderId ?? '',
                 isOrderOpen: true,
               } as OrderDTO
             : t.order;
@@ -1767,7 +1789,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.refreshTableLists();
 
         // #region agent log
-        if (debugTableChanges.some(ch => ch.before.open !== ch.after.open || ch.before.hasOrder !== ch.after.hasOrder)) {
+        const skippedStale = debugTableChanges.filter(ch => ch.skipped);
+        const changedTables = debugTableChanges.filter(ch => ch.before.open !== ch.after.open || ch.before.hasOrder !== ch.after.hasOrder);
+        if (skippedStale.length || changedTables.length) {
           fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
@@ -1776,11 +1800,13 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
               location: 'manage-orders.component.ts:TablesStatusesUpdate',
               message: 'SSE table status merge',
               data: {
-                changedTables: debugTableChanges.filter(ch => ch.before.open !== ch.after.open || ch.before.hasOrder !== ch.after.hasOrder),
+                changedTables,
+                skippedStaleCount: skippedStale.length,
+                skippedTableIds: skippedStale.map(ch => ch.tableId),
                 initiatedBy: InitiatedBy,
               },
               hypothesisId: 'H-SSE-REFRESH-INVERT',
-              runId: 'post-fix-sse-broadcast',
+              runId: 'post-fix-sse-v2',
               timestamp: Date.now(),
             }),
           }).catch(() => {});
@@ -1813,7 +1839,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           this.ordersService.saveComputed(this.tableComputed);
         }
         this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
-        void this.offlineDB.saveTables(this.tables);
+        void this.offlineDB.saveTablesStatus(this.tablesAvailable);
         break;
       }
 
@@ -1960,13 +1986,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           await this.ordersService.ensureInitiatedByCacheReady();
           this.capturePersistedInitiatedBy();
 
-          this.tables = tables;
-          this.refreshTableLists();
+          this.applyAuthoritativeTables(tables);
 
           this.menuItems = menu.menuItems ?? [];
           this.todaySetMenu = menu.todaySetMenu ?? null;
           this.categories = menu.categories ?? [];
-          this.tablesAvailable = await this.offlineDB.loadTablesStatusMap();
           await this.refreshLocalSessionTableIds();
           this.capturePersistedInitiatedBy({ replaceTableComputed: false });
 
@@ -1975,6 +1999,27 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           this.applyPersistedInitiatedByToComputed();
           this.initialTablesLoaded = true;
           this.ordersService.saveComputed(this.tableComputed);
+
+          // #region agent log
+          fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
+            body: JSON.stringify({
+              sessionId: 'd38222',
+              location: 'manage-orders.component.ts:tablesLoadedFromApi',
+              message: 'authoritative tables from API',
+              data: {
+                total: tables.length,
+                openCount: tables.filter(t => t.isTableOpen).length,
+                withOrderCount: tables.filter(t => !!t.order?.orderId).length,
+                closedWithoutOrder: tables.filter(t => !t.isTableOpen && !t.order?.orderId).length,
+              },
+              hypothesisId: 'H-SSE-REFRESH-INVERT',
+              runId: 'post-fix-sse-v2',
+              timestamp: Date.now(),
+            }),
+          }).catch(() => {});
+          // #endregion
 
           // Sync if SSE onopen has not refreshed recently (snapshotRefreshed$ reloads UI).
           await this.sseService.refreshRestaurantSnapshot();
