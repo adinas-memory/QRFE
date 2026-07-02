@@ -169,7 +169,7 @@ export function createOfflineDbMock(): OfflineDbMock {
 }
 
 export interface ManageOrdersMocks {
-  auth: { getUserContext: jasmine.Spy };
+  auth: { getUserContext: jasmine.Spy; getUserSnapshot: jasmine.Spy };
   tablesService: {
     getAllWithFallback: jasmine.Spy;
     getAll: jasmine.Spy;
@@ -288,6 +288,13 @@ export function createManageOrdersMocks(options: SetupManageOrdersOptions = {}):
       getUserContext: jasmine.createSpy('getUserContext').and.returnValue(
         of({ id: '1', role: 'staff', restaurantId: TEST_RESTAURANT_ID }),
       ),
+      getUserSnapshot: jasmine.createSpy('getUserSnapshot').and.returnValue({
+        id: '1',
+        role: 'staff',
+        restaurantId: TEST_RESTAURANT_ID,
+        name: 'Ana',
+        surname: 'Popescu',
+      }),
     },
     tablesService: {
       getAllWithFallback: jasmine.createSpy('getAllWithFallback').and.resolveTo(tables),

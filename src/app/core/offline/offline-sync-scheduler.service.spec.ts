@@ -1,10 +1,14 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { BehaviorSubject, Subject } from 'rxjs';
-import { OfflineSyncSchedulerService } from './offline-sync-scheduler.service';
+import {
+  OFFLINE_RECONNECT_DELAY_RESOLVER,
+  OfflineSyncSchedulerService,
+} from './offline-sync-scheduler.service';
 import { OfflineQueueProcessor } from './offline-queue-processor.service';
 import { OfflineDbService } from './offline-db';
 import { OnlineStateService } from './online-state-service';
 import { AuthService } from '../auth/auth.service';
+import { OrderSyncService } from '../services/order-service/order-sync.service';
 
 describe('OfflineSyncSchedulerService', () => {
   let service: OfflineSyncSchedulerService;
@@ -13,8 +17,11 @@ describe('OfflineSyncSchedulerService', () => {
   let queueProcessor: jasmine.SpyObj<OfflineQueueProcessor>;
   let offlineDb: jasmine.SpyObj<OfflineDbService>;
   let auth: jasmine.SpyObj<AuthService>;
+  let orderSync: jasmine.SpyObj<OrderSyncService>;
+  const delayConfig = { seconds: 54 };
 
   beforeEach(() => {
+    delayConfig.seconds = 54;
     online$ = new Subject<boolean>();
     onlineState = { isOnline: true, online$: online$.asObservable() };
 
@@ -32,6 +39,9 @@ describe('OfflineSyncSchedulerService', () => {
     auth.getUserSnapshot.and.returnValue({ restaurantId: 'rest-1', isOfflinePrimaryDevice: true } as never);
     Object.defineProperty(auth, 'loggedIn$', { value: new Subject<void>().asObservable() });
 
+    orderSync = jasmine.createSpyObj('OrderSyncService', ['reconcileAfterOfflineSync']);
+    orderSync.reconcileAfterOfflineSync.and.returnValue(Promise.resolve(true));
+
     TestBed.configureTestingModule({
       providers: [
         OfflineSyncSchedulerService,
@@ -39,14 +49,15 @@ describe('OfflineSyncSchedulerService', () => {
         { provide: OfflineDbService, useValue: offlineDb },
         { provide: AuthService, useValue: auth },
         { provide: OfflineQueueProcessor, useValue: queueProcessor },
+        { provide: OrderSyncService, useValue: orderSync },
+        { provide: OFFLINE_RECONNECT_DELAY_RESOLVER, useFactory: () => () => delayConfig.seconds },
       ],
     });
 
     service = TestBed.inject(OfflineSyncSchedulerService);
   });
 
-  it('starts countdown on reconnect when pending actions exist', fakeAsync(() => {
-    spyOn(Math, 'random').and.returnValue(0.9);
+  it('starts centralized countdown on reconnect when pending actions exist', fakeAsync(() => {
     const values: Array<number | null> = [];
     service.syncCountdownSeconds$.subscribe(v => values.push(v));
 
@@ -58,12 +69,12 @@ describe('OfflineSyncSchedulerService', () => {
     expect(values.some(v => v !== null && v > 0)).toBeTrue();
     expect(queueProcessor.processQueue).not.toHaveBeenCalled();
 
-    tick(60_000);
+    tick(54_000);
     expect(queueProcessor.processQueue).toHaveBeenCalledWith({ force: true, emitDrainedOnComplete: true });
     expect(values[values.length - 1]).toBeNull();
   }));
 
-  it('does not schedule when queue is empty', fakeAsync(() => {
+  it('does not schedule when queue is empty and not a reconnect', fakeAsync(() => {
     offlineDb.getPendingActionsForRestaurant.and.returnValue(Promise.resolve([]));
     const countdown = new BehaviorSubject<number | null>(-1);
     service.syncCountdownSeconds$.subscribe(v => countdown.next(v));
@@ -73,11 +84,10 @@ describe('OfflineSyncSchedulerService', () => {
 
     expect(countdown.value).toBeNull();
     expect(queueProcessor.processQueue).not.toHaveBeenCalled();
+    expect(orderSync.reconcileAfterOfflineSync).not.toHaveBeenCalled();
   }));
 
   it('cancels countdown when going offline', fakeAsync(() => {
-    spyOn(Math, 'random').and.returnValue(0.5);
-
     online$.next(false);
     onlineState.isOnline = true;
     online$.next(true);
@@ -94,21 +104,17 @@ describe('OfflineSyncSchedulerService', () => {
   }));
 
   it('runWhenAllowed does not drain before countdown finishes', fakeAsync(() => {
-    spyOn(Math, 'random').and.returnValue(0.9);
-
     void service.runWhenAllowed();
     tick();
 
     expect(service.isCountdownActive()).toBeTrue();
     expect(queueProcessor.processQueue).not.toHaveBeenCalled();
 
-    tick(60_000);
+    tick(54_000);
     expect(queueProcessor.processQueue).toHaveBeenCalledTimes(1);
   }));
 
   it('blocks processQueue until countdown completes', fakeAsync(() => {
-    spyOn(Math, 'random').and.returnValue(0.5);
-
     online$.next(false);
     onlineState.isOnline = true;
     online$.next(true);
@@ -116,21 +122,40 @@ describe('OfflineSyncSchedulerService', () => {
 
     expect(service.isSyncBlocked()).toBeTrue();
 
-    tick(31_000);
+    tick(54_000);
     expect(service.isSyncBlocked()).toBeFalse();
     expect(queueProcessor.processQueue).toHaveBeenCalledWith({ force: true, emitDrainedOnComplete: true });
   }));
 
-  it('drains queue immediately on reconnect for non-primary devices', fakeAsync(() => {
+  it('reconciles on reconnect for non-primary devices without local pending queue', fakeAsync(() => {
+    delayConfig.seconds = 0;
     auth.getUserSnapshot.and.returnValue({
       restaurantId: 'rest-1',
       isOfflinePrimaryDevice: false,
     } as never);
+    offlineDb.getPendingActionsForRestaurant.and.returnValue(Promise.resolve([]));
 
-    void service.ensureScheduled();
+    online$.next(false);
+    onlineState.isOnline = true;
+    online$.next(true);
     tick();
 
-    expect(queueProcessor.processQueue).toHaveBeenCalledWith({ force: true, emitDrainedOnComplete: true });
-    expect(service.isCountdownActive()).toBeFalse();
+    expect(queueProcessor.processQueue).not.toHaveBeenCalled();
+    expect(orderSync.reconcileAfterOfflineSync).toHaveBeenCalled();
+  }));
+
+  it('shows centralized countdown on reconnect even without local pending queue', fakeAsync(() => {
+    offlineDb.getPendingActionsForRestaurant.and.returnValue(Promise.resolve([]));
+
+    online$.next(false);
+    onlineState.isOnline = true;
+    online$.next(true);
+    tick();
+
+    expect(service.isCountdownActive()).toBeTrue();
+    expect(queueProcessor.processQueue).not.toHaveBeenCalled();
+
+    tick(54_000);
+    expect(orderSync.reconcileAfterOfflineSync).toHaveBeenCalled();
   }));
 });

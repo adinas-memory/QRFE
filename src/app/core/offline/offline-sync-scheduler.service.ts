@@ -1,12 +1,23 @@
-import { Injectable, Injector } from '@angular/core';
+import { Injectable, Injector, InjectionToken, inject } from '@angular/core';
 import { BehaviorSubject, filter, firstValueFrom, take } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { OfflineDbService } from './offline-db';
 import { OfflineQueueProcessor } from './offline-queue-processor.service';
 import { OnlineStateService } from './online-state-service';
+import { OrderSyncService } from '../services/order-service/order-sync.service';
+import {
+  computeCentralizedReconnectDelaySeconds,
+  OFFLINE_SYNC_JITTER_MAX_SECONDS,
+} from './offline-sync.util';
 
-/** Spread offline sync after reconnect to reduce thundering herd (seconds, inclusive). */
-export const OFFLINE_SYNC_JITTER_MAX_SECONDS = 60;
+export { OFFLINE_SYNC_JITTER_MAX_SECONDS };
+
+export type OfflineReconnectDelayResolver = (restaurantId: string, nowMs?: number) => number;
+
+export const OFFLINE_RECONNECT_DELAY_RESOLVER = new InjectionToken<OfflineReconnectDelayResolver>(
+  'OFFLINE_RECONNECT_DELAY_RESOLVER',
+  { factory: () => computeCentralizedReconnectDelaySeconds },
+);
 
 @Injectable({ providedIn: 'root' })
 export class OfflineSyncSchedulerService {
@@ -16,10 +27,13 @@ export class OfflineSyncSchedulerService {
 
   private countdownIntervalId: ReturnType<typeof setInterval> | null = null;
   private wasOnline = true;
+  private reconnectSyncPending = false;
   private drainScheduled = false;
   private schedulingInProgress = false;
   private schedulePromise: Promise<void> | null = null;
   private queueProcessor: OfflineQueueProcessor | null = null;
+  private orderSync: OrderSyncService | null = null;
+  private readonly resolveReconnectDelay = inject(OFFLINE_RECONNECT_DELAY_RESOLVER);
   private readonly syncBlockedSubject = new BehaviorSubject(false);
   /** Emits true while reconnect jitter is preparing or counting down. */
   readonly syncBlocked$ = this.syncBlockedSubject.asObservable();
@@ -40,6 +54,7 @@ export class OfflineSyncSchedulerService {
 
     this.onlineState.online$.pipe(filter(isOnline => isOnline)).subscribe(() => {
       if (!this.wasOnline) {
+        this.reconnectSyncPending = true;
         void this.ensureScheduled();
       }
       this.wasOnline = true;
@@ -47,6 +62,7 @@ export class OfflineSyncSchedulerService {
 
     this.onlineState.online$.pipe(filter(isOnline => !isOnline)).subscribe(() => {
       this.wasOnline = false;
+      this.reconnectSyncPending = false;
       this.cancelCountdown();
     });
   }
@@ -63,27 +79,6 @@ export class OfflineSyncSchedulerService {
   private refreshSyncBlocked(): void {
     const blocked = this.schedulingInProgress || this.drainScheduled || this.isCountdownActive();
     if (blocked !== this.syncBlockedSubject.value) {
-      // #region agent log
-      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
-        body: JSON.stringify({
-          sessionId: 'd38222',
-          location: 'offline-sync-scheduler.service.ts:refreshSyncBlocked',
-          message: 'syncBlocked changed',
-          data: {
-            blocked,
-            schedulingInProgress: this.schedulingInProgress,
-            drainScheduled: this.drainScheduled,
-            countdownActive: this.isCountdownActive(),
-            countdown: this.countdownSubject.value,
-          },
-          hypothesisId: 'H-MODAL-STUCK',
-          runId: 'offline-multi-browser-v2',
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
       this.syncBlockedSubject.next(blocked);
     }
   }
@@ -104,14 +99,6 @@ export class OfflineSyncSchedulerService {
     if (!this.onlineState.isOnline) {
       return;
     }
-    const isPrimary = this.auth.getUserSnapshot()?.isOfflinePrimaryDevice === true;
-    if (!isPrimary) {
-      const pendingCount = await this.getPendingCount();
-      if (pendingCount > 0) {
-        await this.getQueueProcessor().processQueue({ force: true, emitDrainedOnComplete: true });
-      }
-      return;
-    }
     if (!this.schedulePromise) {
       this.schedulePromise = this.schedulePendingSyncWithJitter().finally(() => {
         this.schedulePromise = null;
@@ -125,6 +112,11 @@ export class OfflineSyncSchedulerService {
     return this.queueProcessor;
   }
 
+  private getOrderSync(): OrderSyncService {
+    this.orderSync ??= this.injector.get(OrderSyncService);
+    return this.orderSync;
+  }
+
   private async schedulePendingSyncWithJitter(): Promise<void> {
     this.schedulingInProgress = true;
     this.refreshSyncBlocked();
@@ -132,7 +124,10 @@ export class OfflineSyncSchedulerService {
       await this.getQueueProcessor().recoverOrphanedCartsPublic();
 
       const pendingCount = await this.getPendingCount();
-      if (pendingCount === 0) {
+      const isReconnect = this.reconnectSyncPending;
+      this.reconnectSyncPending = false;
+
+      if (pendingCount === 0 && !isReconnect) {
         return;
       }
 
@@ -140,10 +135,13 @@ export class OfflineSyncSchedulerService {
         return;
       }
 
-      const delaySeconds = Math.floor(Math.random() * (OFFLINE_SYNC_JITTER_MAX_SECONDS + 1));
+      const restaurantId = this.auth.getUserSnapshot()?.restaurantId ?? '';
+      const delaySeconds = restaurantId
+        ? this.resolveReconnectDelay(restaurantId)
+        : 0;
 
       if (delaySeconds <= 0) {
-        await this.drainQueue();
+        await this.finishReconnectSync();
         return;
       }
 
@@ -162,7 +160,7 @@ export class OfflineSyncSchedulerService {
           this.countdownSubject.next(null);
           this.drainScheduled = false;
           this.refreshSyncBlocked();
-          void this.drainQueue();
+          void this.finishReconnectSync();
           return;
         }
         this.countdownSubject.next(current - 1);
@@ -173,6 +171,15 @@ export class OfflineSyncSchedulerService {
       }
       this.refreshSyncBlocked();
     }
+  }
+
+  private async finishReconnectSync(): Promise<void> {
+    const pendingCount = await this.getPendingCount();
+    if (pendingCount > 0) {
+      await this.drainQueue();
+      return;
+    }
+    await this.getOrderSync().reconcileAfterOfflineSync();
   }
 
   private async drainQueue(): Promise<void> {

@@ -16,6 +16,7 @@ import {
 } from '@coreui/angular';
 import { TablesService } from '../../../core/services/tables-service/tables.service';
 import { AuthService } from '../../../core/auth/auth.service';
+import { formatStaffDisplayName } from '../../../core/auth/user-display-name';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
 import { filter, Subject, take, takeUntil, debounceTime, forkJoin, from, firstValueFrom, pairwise } from 'rxjs';
 import { NgFor, NgIf, NgStyle, CurrencyPipe, DecimalPipe, JsonPipe, NgClass, DatePipe, NgTemplateOutlet } from '@angular/common';
@@ -209,11 +210,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   readonly offlineSyncBlocked = toSignal(this.syncScheduler.syncBlocked$, { initialValue: false });
   readonly offlineSyncBatchDraining = toSignal(this.syncScheduler.batchSyncDraining$, { initialValue: false });
   readonly offlineSyncReconciling = toSignal(this.sseService.isReconciling$, { initialValue: false });
-  readonly showOfflineSyncModal = computed(
+  readonly isReconnectSyncInProgress = computed(
     () =>
       this.offlineSyncCountdown() !== null
+      || this.offlineSyncBlocked()
       || this.offlineSyncBatchDraining()
       || this.offlineSyncReconciling(),
+  );
+  readonly showOfflineSyncModal = computed(
+    () => this.isReconnectSyncInProgress(),
   );
 
   bookingsForTable(tableId: string): ReservationItem[] {
@@ -259,6 +264,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     if (!v) return '';
     if (v === 'stripe') return this.transloco.translate('manageOrders.byCardPayment');
     return raw;
+  }
+
+  private currentStaffDisplayName(): string {
+    return formatStaffDisplayName(this.authService.getUserSnapshot() ?? {});
   }
 
   /**
@@ -409,6 +418,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   /** Online staff or designated primary device in full-offline mode. */
   get canBypassOfflineUiGates(): boolean {
+    if (this.isReconnectSyncInProgress()) {
+      return false;
+    }
     return this.isOnline || this.offlinePolicy.canUseFullOffline();
   }
 
@@ -422,6 +434,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   isTableActionDisabled(table: TableDTO, requireOnline: boolean): boolean {
+    if (this.isReconnectSyncInProgress()) {
+      return true;
+    }
     if (!requireOnline) {
       return false;
     }
@@ -429,6 +444,16 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       return false;
     }
     // Offline: only the bound primary device may operate (semi-offline frozen).
+    return !this.offlinePolicy.canUseFullOffline();
+  }
+
+  isSetMenuActionDisabled(): boolean {
+    if (this.isReconnectSyncInProgress()) {
+      return true;
+    }
+    if (this.isOnline) {
+      return false;
+    }
     return !this.offlinePolicy.canUseFullOffline();
   }
 
@@ -660,6 +685,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       orderId: localOrderId,
       payload: { items: cart.map(ci => ({ menuItemId: ci.item.menuItemId, quantity: ci.quantity })) }
     });
+
+    const confirmedBy = this.currentStaffDisplayName();
+    if (confirmedBy) {
+      this.rememberInitiatedBy(this.currentTableId, confirmedBy);
+    }
 
     this.markTableAsClosed(this.currentTableId);
     this.updateComputedLocal(this.currentTableId);
@@ -945,6 +975,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   openSetMenuModal(table: TableDTO, event?: Event): void {
     event?.stopPropagation();
+    if (this.isSetMenuActionDisabled()) {
+      return;
+    }
     if (!this.todaySetMenu?.linkedMenuItemId) return;
     this.setMenuTargetTable = table;
     this.setMenuQty = 1;
@@ -952,6 +985,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   async confirmSetMenuOrder(): Promise<void> {
+    if (this.isSetMenuActionDisabled()) {
+      return;
+    }
     if (!this.todaySetMenu || !this.setMenuTargetTable) return;
     const table = this.setMenuTargetTable;
     this.setMenuModalVisible = false;
@@ -1265,12 +1301,33 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         orderId,
         payload: {}
       });
+      const closedBy = this.currentStaffDisplayName();
+      if (closedBy) {
+        this.rememberInitiatedBy(tableId, closedBy);
+      }
       await this.offlineDB.deleteCart(tableId);
-      delete this.tableComputed[tableId];
-      this.ordersService.saveComputed(this.tableComputed);
       this.tableCarts[tableId] = [];
-      this.markTableAsOpen(tableId);
-      await this.offlineDB.upsertTableStatus(tableId, true);
+      const table = this.tables.find(t => t.tableId === tableId);
+      const cssClass = this.miscService.getTableCss(
+        {
+          ...(table ?? { tableId, tableName: '' }),
+          isTableOpen: false,
+          order: undefined,
+        } as TableDTO,
+        this.waiterState,
+      );
+      this.tableComputed[tableId] = {
+        lastActionAt: new Date().toISOString(),
+        lastAddedItem: '—',
+        total: 0,
+        currency: this.tableComputed[tableId]?.currency ?? '',
+        itemCount: 0,
+        cssClass,
+        initiatedBy: closedBy,
+      };
+      this.ordersService.saveComputed(this.tableComputed);
+      this.markTableAsClosed(tableId);
+      await this.offlineDB.upsertTableStatus(tableId, false);
       this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
       this.resetCanvasState();
       this.closeInFlight = false;

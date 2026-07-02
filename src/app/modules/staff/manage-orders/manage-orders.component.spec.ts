@@ -793,7 +793,7 @@ describe('ManageOrdersComponent', () => {
       expect(component.currentOrderId).toBe('local-offline-confirmed');
     });
 
-    it('confirmCloseOrder offline cleans up local table state (Q3)', async () => {
+    it('confirmCloseOrder offline keeps table occupied and records closer name', async () => {
       const { component, mocks } = await setupManageOrdersComponent({
         isOnline: false,
         isOfflinePrimaryDevice: true,
@@ -810,9 +810,37 @@ describe('ManageOrdersComponent', () => {
 
       expect(mocks.offlineDb.addOfflineAction).toHaveBeenCalled();
       expect(mocks.offlineDb.deleteCart).toHaveBeenCalledWith(TABLE_A);
-      expect(mocks.offlineDb.upsertTableStatus).toHaveBeenCalledWith(TABLE_A, true);
-      expect(component.tables.find(t => t.tableId === TABLE_A)?.isTableOpen).toBeTrue();
+      expect(mocks.offlineDb.upsertTableStatus).toHaveBeenCalledWith(TABLE_A, false);
+      expect(component.tables.find(t => t.tableId === TABLE_A)?.isTableOpen).toBeFalse();
+      expect(component.tableComputed[TABLE_A]?.initiatedBy).toBe('Popescu A.');
       expect(component.canvasVisible).toBeFalse();
+    });
+
+    it('isSetMenuActionDisabled blocks semi-offline device while offline', async () => {
+      const { component } = await setupManageOrdersComponent({
+        isOnline: false,
+        isOfflinePrimaryDevice: false,
+        skipNgOnInit: true,
+      });
+
+      expect(component.isSetMenuActionDisabled()).toBeTrue();
+    });
+
+    it('openSetMenuModal is ignored when semi-offline device is offline', async () => {
+      const { component } = await setupManageOrdersComponent({
+        isOnline: false,
+        isOfflinePrimaryDevice: false,
+        skipNgOnInit: true,
+      });
+      component.todaySetMenu = {
+        title: 'Menu',
+        linkedMenuItemId: 'menu-1',
+        lines: [],
+      } as never;
+
+      component.openSetMenuModal(createTable({ tableId: TABLE_A }));
+
+      expect(component.setMenuModalVisible).toBeFalse();
     });
   });
 
