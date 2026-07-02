@@ -458,38 +458,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   async onTableActionClick(table: TableDTO, requireOnline: boolean): Promise<void> {
-    const localCart = await this.offlineDB.loadCartRecord(table.tableId);
     const disabled = this.isTableActionDisabled(table, requireOnline);
-    // #region agent log
-    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
-      body: JSON.stringify({
-        sessionId: 'd38222',
-        location: 'manage-orders.component.ts:onTableActionClick',
-        message: 'table action clicked',
-        data: {
-          tableId: table.tableId,
-          requireOnline,
-          disabled,
-          canBypassOfflineUiGates: this.canBypassOfflineUiGates,
-          isOfflinePrimaryDevice: this.offlinePolicy.isOfflinePrimaryDevice(),
-          canUseFullOffline: this.offlinePolicy.canUseFullOffline(),
-          hasLocalSession: this.hasLocalSessionForTable(table.tableId),
-          localSessionTableCount: this.localSessionTableIds.size,
-          hasTableOrder: !!table.order,
-          tableOrderId: table.order?.orderId ?? null,
-          isTableOpen: table.isTableOpen,
-          localCartOrderId: localCart?.orderId ?? null,
-          localCartItemCount: localCart?.items?.length ?? 0,
-          action: table.order ? 'seeOrder' : 'openTable',
-        },
-        hypothesisId: 'H2-partial-offline',
-        runId: 'post-fix-partial',
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     if (disabled) {
       return;
     }
@@ -529,27 +498,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         });
       }
       await firstValueFrom(this.authService.pingSession());
-      // #region agent log
-      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
-        body: JSON.stringify({
-          sessionId: 'd38222',
-          location: 'manage-orders.component.ts:bindOfflinePrimaryDevice',
-          message: 'post-bind user context',
-          data: {
-            bindResult,
-            mergedDevice: this.authService.getUserSnapshot()?.isOfflinePrimaryDevice,
-            shouldShowBindDeviceCta: this.shouldShowBindDeviceCta,
-            canBypassOfflineUiGates: this.canBypassOfflineUiGates,
-            isOnline: this.isOnline,
-          },
-          hypothesisId: 'H3-refresh-wipes-device-flag',
-          runId: 'post-fix',
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
       this.appToast.success(
         this.transloco.translate('manageOrders.bindOfflinePrimarySuccessBody'),
         this.transloco.translate('manageOrders.bindOfflinePrimarySuccessTitle'),
@@ -1023,27 +971,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       // Confirmed offline orders keep local-* id until sync; draft carts have no orderId yet.
       this.orderIsConfirmed = !!this.currentOrderId;
       this.tableCarts[tableId] = record.items;
-      // #region agent log
-      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
-        body: JSON.stringify({
-          sessionId: 'd38222',
-          location: 'manage-orders.component.ts:openTable:cartRecord',
-          message: 'openTable from local cart',
-          data: {
-            tableId,
-            orderId: this.currentOrderId,
-            isLocalOrderId: this.currentOrderId?.startsWith('local-') ?? false,
-            orderIsConfirmed: this.orderIsConfirmed,
-            itemCount: record.items.length,
-          },
-          hypothesisId: 'H5',
-          runId: 'post-fix-h5-local-orderId',
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
       if (this.orderIsConfirmed) {
         this.claimPickupTargetForTable(tableId);
       }
@@ -1068,31 +995,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     const resolvedOrder =
       order ?? (tableHasActiveOrder(table.order) ? table.order! : null);
 
-    // #region agent log
-    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
-      body: JSON.stringify({
-        sessionId: 'd38222',
-        location: 'manage-orders.component.ts:seeOrder',
-        message: 'seeOrder hydrate result',
-        data: {
-          tableId: table.tableId,
-          isOnline: this.isOnline,
-          tableOrderId: table.order?.orderId ?? null,
-          fallbackOrderId: order?.orderId ?? null,
-          resolvedOrderId: resolvedOrder?.orderId ?? null,
-          resolvedItemCount: resolvedOrder?.orderItems?.length ?? 0,
-          usedTableOrderFallback: !order && !!resolvedOrder,
-          canUseFullOffline: this.offlinePolicy.canUseFullOffline(),
-        },
-        hypothesisId: 'H3-H4',
-        runId: 'offline-multi-browser-v2',
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-
     if (resolvedOrder?.orderId) {
       this.currentOrderId = resolvedOrder.orderId;
       this.orderIsConfirmed = true;
@@ -1110,27 +1012,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         }
       }
     } else {
-      // #region agent log
-      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
-        body: JSON.stringify({
-          sessionId: 'd38222',
-          location: 'manage-orders.component.ts:seeOrder:noOrder',
-          message: 'seeOrder no order resolved — canvas may show Confirm',
-          data: {
-            tableId: table.tableId,
-            tableOrderId: table.order?.orderId ?? null,
-            tableOrderItemCount: table.order?.orderItems?.length ?? 0,
-            orderIsConfirmedAfter: this.orderIsConfirmed,
-            unusedTableOrderFallback: tableHasActiveOrder(table.order) && !resolvedOrder,
-          },
-          hypothesisId: 'H3-H4-H5',
-          runId: 'offline-multi-browser-v2',
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
       this.orderIsConfirmed = false;
       this.currentOrderId = null;
       this.tableCarts[this.currentTableId] = [];
@@ -1863,31 +1744,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.tables = updatedTables;
         this.refreshTableLists();
 
-        // #region agent log
-        const skippedStale = debugTableChanges.filter(ch => ch.skipped);
-        const changedTables = debugTableChanges.filter(ch => ch.before.open !== ch.after.open || ch.before.hasOrder !== ch.after.hasOrder);
-        if (skippedStale.length || changedTables.length) {
-          fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
-            body: JSON.stringify({
-              sessionId: 'd38222',
-              location: 'manage-orders.component.ts:TablesStatusesUpdate',
-              message: 'SSE table status merge',
-              data: {
-                changedTables,
-                skippedStaleCount: skippedStale.length,
-                skippedTableIds: skippedStale.map(ch => ch.tableId),
-                initiatedBy: InitiatedBy,
-              },
-              hypothesisId: 'H-SSE-REFRESH-INVERT',
-              runId: 'post-fix-sse-v2',
-              timestamp: Date.now(),
-            }),
-          }).catch(() => {});
-        }
-        // #endregion
-
         for (const c of computedList) {
           if (!c?.tableId) continue;
           const table = this.tables.find(t => t.tableId === c.tableId);
@@ -1991,31 +1847,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       .subscribe(() => {
         const user = this.authService.getUserSnapshot();
         void this.refreshLocalSessionTableIds();
-        // #region agent log
-        fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
-          body: JSON.stringify({
-            sessionId: 'd38222',
-            location: 'manage-orders.component.ts:wentOffline',
-            message: 'client went offline — UI gate snapshot',
-            data: {
-              canBypassOfflineUiGates: this.canBypassOfflineUiGates,
-              isOfflinePrimaryDevice: this.offlinePolicy.isOfflinePrimaryDevice(),
-              canUseFullOffline: this.offlinePolicy.canUseFullOffline(),
-              designee: user?.isOfflinePrimaryStaffDesignee ?? null,
-              device: user?.isOfflinePrimaryDevice ?? null,
-              localSessionTableCount: this.localSessionTableIds.size,
-              localSessionTableIds: [...this.localSessionTableIds],
-              occupiedTableCount: this.closedTables.length,
-              tablesWithOrder: this.tables.filter(t => !!t.order).length,
-            },
-            hypothesisId: 'H2-partial-offline',
-            runId: 'post-fix-partial',
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
       });
 
     this.offlineDB.cartsChanged$
@@ -2031,26 +1862,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       .subscribe(user => {
         this.restaurantId = user.restaurantId!;
         void this.offlinePrintContext.init(this.restaurantId);
-
-        // #region agent log
-        fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
-          body: JSON.stringify({
-            sessionId: 'd38222',
-            location: 'manage-orders.component.ts:ngOnInit',
-            message: 'bind CTA state on manage orders',
-            data: {
-              designee: user.isOfflinePrimaryStaffDesignee,
-              device: user.isOfflinePrimaryDevice,
-              shouldShowBindDeviceCta: this.shouldShowBindDeviceCta,
-              isOnline: this.isOnline,
-            },
-            hypothesisId: 'H2-cta-gates',
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
 
         this.loadTodayBookings();
 
@@ -2075,49 +1886,12 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           this.initialTablesLoaded = true;
           this.ordersService.saveComputed(this.tableComputed);
 
-          // #region agent log
-          fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
-            body: JSON.stringify({
-              sessionId: 'd38222',
-              location: 'manage-orders.component.ts:tablesLoadedFromApi',
-              message: 'authoritative tables from API',
-              data: {
-                total: tables.length,
-                openCount: tables.filter(t => t.isTableOpen).length,
-                withOrderCount: tables.filter(t => !!t.order?.orderId).length,
-                closedWithoutOrder: tables.filter(t => !t.isTableOpen && !t.order?.orderId).length,
-              },
-              hypothesisId: 'H-SSE-REFRESH-INVERT',
-              runId: 'post-fix-sse-v2',
-              timestamp: Date.now(),
-            }),
-          }).catch(() => {});
-          // #endregion
-
           // Sync if SSE onopen has not refreshed recently (snapshotRefreshed$ reloads UI).
           await this.sseService.refreshRestaurantSnapshot();
 
           const purgedTables = await this.offlineDB.purgeCartsNotInTableIds(
             this.tables.map(t => t.tableId),
           );
-          // #region agent log
-          if (purgedTables > 0) {
-            fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
-              body: JSON.stringify({
-                sessionId: '38fcde',
-                location: 'manage-orders.component.ts:ngOnInit',
-                message: 'purged carts for unknown tables',
-                data: { restaurantId: this.restaurantId, purgedTables },
-                hypothesisId: 'H-OFFLINE-SCOPE',
-                timestamp: Date.now(),
-              }),
-            }).catch(() => {});
-          }
-          // #endregion
 
           Object.keys(this.tableComputed).forEach(tableId => {
             const table = this.tables.find(t => t.tableId === tableId);

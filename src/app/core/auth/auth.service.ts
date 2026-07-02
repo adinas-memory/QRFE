@@ -209,27 +209,6 @@ export class AuthService {
     localStorage.setItem('UserCtx', JSON.stringify(merged));
     this.setRestaurantCtx();
 
-    // #region agent log
-    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
-      body: JSON.stringify({
-        sessionId: 'd38222',
-        location: 'auth.service.ts:setUser',
-        message: 'user context merged',
-        data: {
-          incomingDesignee: incoming.isOfflinePrimaryStaffDesignee,
-          incomingDevice: incoming.isOfflinePrimaryDevice,
-          mergedDesignee: merged.isOfflinePrimaryStaffDesignee,
-          mergedDevice: merged.isOfflinePrimaryDevice,
-          previousDesignee: previous?.isOfflinePrimaryStaffDesignee,
-        },
-        hypothesisId: 'H1-ping-wipes-flags',
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-
     if (wasLoggedOut) {
       this.loggedIn$.next();  // ← emite doar la login real, nu la restore session
     }
