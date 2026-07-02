@@ -104,7 +104,12 @@ export class OfflineSyncSchedulerService {
     if (!this.onlineState.isOnline) {
       return;
     }
-    if (!this.auth.getUserSnapshot()?.isOfflinePrimaryDevice) {
+    const isPrimary = this.auth.getUserSnapshot()?.isOfflinePrimaryDevice === true;
+    if (!isPrimary) {
+      const pendingCount = await this.getPendingCount();
+      if (pendingCount > 0) {
+        await this.getQueueProcessor().processQueue({ force: true, emitDrainedOnComplete: true });
+      }
       return;
     }
     if (!this.schedulePromise) {

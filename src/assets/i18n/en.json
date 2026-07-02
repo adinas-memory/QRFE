@@ -668,7 +668,7 @@
   },
   "offline": {
     "bannerPrimary": "OFFLINE — full POS mode (syncs when you reconnect)",
-    "bannerLimited": "OFFLINE — limited mode (current order only on this device)"
+    "bannerLimited": "OFFLINE! Move to the device configured for offline work."
   },
   "kitchen": {
     "title": "Kitchen",

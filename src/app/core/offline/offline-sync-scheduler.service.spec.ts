@@ -120,4 +120,17 @@ describe('OfflineSyncSchedulerService', () => {
     expect(service.isSyncBlocked()).toBeFalse();
     expect(queueProcessor.processQueue).toHaveBeenCalledWith({ force: true, emitDrainedOnComplete: true });
   }));
+
+  it('drains queue immediately on reconnect for non-primary devices', fakeAsync(() => {
+    auth.getUserSnapshot.and.returnValue({
+      restaurantId: 'rest-1',
+      isOfflinePrimaryDevice: false,
+    } as never);
+
+    void service.ensureScheduled();
+    tick();
+
+    expect(queueProcessor.processQueue).toHaveBeenCalledWith({ force: true, emitDrainedOnComplete: true });
+    expect(service.isCountdownActive()).toBeFalse();
+  }));
 });

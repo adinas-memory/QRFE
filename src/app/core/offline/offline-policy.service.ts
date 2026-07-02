@@ -39,8 +39,8 @@ export class OfflinePolicyService {
     () => !this.isOnline() && !this.canUseFullOffline(),
   );
 
-  /** Only the bound primary device may drain the shared offline queue on reconnect. */
+  /** Each device may drain its own offline queue while online (primary-only applies to POS actions when offline). */
   readonly canProcessOfflineQueue = computed(
-    () => this.isOnline() && this.isOfflinePrimaryDevice(),
+    () => this.isOnline(),
   );
 }

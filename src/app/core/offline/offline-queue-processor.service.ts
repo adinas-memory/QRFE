@@ -48,11 +48,11 @@ export class OfflineQueueProcessor {
     }
 
     triggerProcessing() {
-        if (this.syncScheduler.isSyncBlocked()) {
-            void this.syncScheduler.runWhenAllowed();
+        if (!this.onlineStateService.isOnline) {
             return;
         }
-        if (!this.authService.getUserSnapshot()?.isOfflinePrimaryDevice) {
+        if (this.syncScheduler.isSyncBlocked()) {
+            void this.syncScheduler.runWhenAllowed();
             return;
         }
         this.trigger$.next();
@@ -140,9 +140,6 @@ export class OfflineQueueProcessor {
             return;
         }
         if (!this.onlineStateService.isOnline) return;
-        if (!this.authService.getUserSnapshot()?.isOfflinePrimaryDevice) {
-            return;
-        }
         if (!options?.force && this.syncScheduler.isSyncBlocked()) {
             void this.syncScheduler.runWhenAllowed();
             return;
@@ -568,6 +565,21 @@ export class OfflineQueueProcessor {
                 this.toast.info(msg, 'Order locked for payment');
                 // keep action pending; we'll retry after payment completes
                 return false;
+            }
+
+            const exceptionName = String(err?.error?.exception ?? '');
+            const isOrderNotFound =
+                action.type === 'CLOSE_ORDER'
+                && (
+                    status === 404
+                    || (status === 500 && /not found/i.test(String(errorMessage)))
+                    || /KeyNotFoundException/i.test(exceptionName)
+                );
+            if (isOrderNotFound) {
+                await this.offlineDB.markActionDone(action.id!);
+                await this.offlineDB.deleteCart(action.tableId);
+                await this.offlineDB.markTableFreedLocally(action.tableId);
+                return true;
             }
 
             if (

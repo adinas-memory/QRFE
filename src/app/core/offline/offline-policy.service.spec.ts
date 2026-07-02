@@ -98,7 +98,20 @@ describe('OfflinePolicyService', () => {
     expect(service.canProcessOfflineQueue()).toBeFalse();
   });
 
-  it('canProcessOfflineQueue only when online on primary device', () => {
+  it('canProcessOfflineQueue when online on any device', () => {
+    userSubject.next({
+      id: 'u1',
+      role: 'staff',
+      isOfflinePrimaryDevice: false,
+    });
+    onlineSubject.next(true);
+    expect(service.canProcessOfflineQueue()).toBeTrue();
+
+    onlineSubject.next(false);
+    expect(service.canProcessOfflineQueue()).toBeFalse();
+  });
+
+  it('canProcessOfflineQueue when online on primary device', () => {
     userSubject.next({
       id: 'u1',
       role: 'staff',
