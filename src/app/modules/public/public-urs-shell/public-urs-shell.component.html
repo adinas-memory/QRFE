@@ -49,11 +49,12 @@
           }
         </ul>
         <div class="d-flex flex-wrap gap-2 align-items-center">
-          <app-feedback-launch
-            [allowAnonymous]="true"
-            appearance="outline"
-            [outlineColor]="outlineBtnColor"
-          />
+          @if (showFeedback) {
+            <app-feedback-launch
+              appearance="outline"
+              [outlineColor]="outlineBtnColor"
+            />
+          }
           <c-dropdown class="urs-lang">
             <button cDropdownToggle type="button" class="urs-lang-toggle" aria-label="Choose language">
               <span class="lang-flag" [ngClass]="activeLangFlagClass"></span>
@@ -136,5 +137,7 @@
     </footer>
   }
 
-  <app-feedback-modal />
+  @if (showFeedback) {
+    <app-feedback-modal />
+  }
 </div>

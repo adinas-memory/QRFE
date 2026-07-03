@@ -83,9 +83,10 @@ export class FeedbackModalComponent {
         routeContext: this.router.url
       })
       .subscribe({
-        next: () => {
+        next: res => {
+          const shortId = res.id.replace(/-/g, '').slice(0, 8);
           this.toast.success(
-            this.transloco.translate('feedbackModal.toastThanksBody'),
+            this.transloco.translate('feedbackModal.toastThanksBody', { ticketId: shortId }),
             this.transloco.translate('feedbackModal.toastThanksTitle')
           );
           this.form.reset({

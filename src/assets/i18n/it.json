@@ -721,7 +721,7 @@
     "cancel": "Annulla",
     "sending": "Invio…",
     "send": "Invia",
-    "toastThanksBody": "Grazie — il feedback è stato inviato.",
+    "toastThanksBody": "Grazie — il ticket #{{ticketId}} è stato inviato.",
     "toastThanksTitle": "Feedback",
     "toastErrorTitle": "Impossibile inviare il feedback"
   },

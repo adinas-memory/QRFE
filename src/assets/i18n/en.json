@@ -872,7 +872,7 @@
     "cancel": "Cancel",
     "sending": "Sending…",
     "send": "Send",
-    "toastThanksBody": "Thank you — your feedback was sent.",
+    "toastThanksBody": "Thank you — ticket #{{ticketId}} was sent.",
     "toastThanksTitle": "Feedback",
     "toastErrorTitle": "Could not send feedback"
   },
