@@ -65,6 +65,10 @@ export class OfflineSyncSchedulerService {
       this.reconnectSyncPending = false;
       this.cancelCountdown();
     });
+
+    this.onlineState.pingOk$.subscribe(() => {
+      this.releaseStuckReconnectUi();
+    });
   }
 
   isCountdownActive(): boolean {
@@ -174,12 +178,34 @@ export class OfflineSyncSchedulerService {
   }
 
   private async finishReconnectSync(): Promise<void> {
-    const pendingCount = await this.getPendingCount();
-    if (pendingCount > 0) {
-      await this.drainQueue();
+    try {
+      const pendingCount = await this.getPendingCount();
+      if (pendingCount > 0) {
+        await this.drainQueue();
+        return;
+      }
+      await this.getOrderSync().reconcileAfterOfflineSync();
+    } finally {
+      this.releaseStuckReconnectUi();
+    }
+  }
+
+  /**
+   * Clears reconnect sync UI when /api/sync did not run or ping-lite confirms connectivity.
+   * Does not interrupt an active countdown or queue drain.
+   */
+  private releaseStuckReconnectUi(): void {
+    if (this.isCountdownActive() || this.batchSyncDrainingSubject.value) {
       return;
     }
-    await this.getOrderSync().reconcileAfterOfflineSync();
+
+    this.clearCountdownTimer();
+    this.countdownSubject.next(null);
+    this.drainScheduled = false;
+    this.schedulingInProgress = false;
+    this.schedulePromise = null;
+    this.batchSyncDrainingSubject.next(false);
+    this.refreshSyncBlocked();
   }
 
   private async drainQueue(): Promise<void> {

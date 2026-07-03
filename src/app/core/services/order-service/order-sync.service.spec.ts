@@ -12,12 +12,14 @@ describe('OrderSyncService', () => {
   let auth: jasmine.SpyObj<AuthService>;
   let dbSpy: jasmine.SpyObj<OfflineDbService>;
   let resumeConnectivityOk$: Subject<void>;
+  let pingOk$: Subject<void>;
   let onlineState: {
     isOnline: boolean;
     setOffline: jasmine.Spy;
     setOnline: jasmine.Spy;
     online$: Observable<boolean>;
     resumeConnectivityOk$: Observable<void>;
+    pingOk$: Observable<void>;
   };
   let fetchSpy: jasmine.Spy;
   let queueDrained$: Subject<void>;
@@ -51,12 +53,14 @@ describe('OrderSyncService', () => {
     dbSpy.applySyncSnapshot.and.returnValue(Promise.resolve());
 
     resumeConnectivityOk$ = new Subject<void>();
+    pingOk$ = new Subject<void>();
     onlineState = {
       isOnline: true,
       setOffline: jasmine.createSpy('setOffline'),
       setOnline: jasmine.createSpy('setOnline'),
       online$: of(true),
       resumeConnectivityOk$: resumeConnectivityOk$.asObservable(),
+      pingOk$: pingOk$.asObservable(),
     };
 
     fetchSpy = jasmine.createSpy('fetch').and.returnValue(
@@ -304,6 +308,13 @@ describe('OrderSyncService', () => {
 
       expect(lastSyncFetchUrl()).toContain('/api/sync?restaurantId=restaurant-1');
       expect(dbSpy.applySyncSnapshot).toHaveBeenCalled();
+    });
+
+    it('clears reconciling flag on pingOk$ when snapshot refresh is not in progress', async () => {
+      (service as any).reconcilingSubject.next(true);
+      pingOk$.next();
+      await new Promise<void>(resolve => setTimeout(resolve, 0));
+      expect(await firstValueFrom(service.isReconciling$)).toBeFalse();
     });
   });
 });

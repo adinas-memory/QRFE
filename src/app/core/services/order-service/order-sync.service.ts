@@ -92,6 +92,12 @@ export class OrderSyncService {
         this.flushPendingSseConnection();
       });
 
+    this.onlineStateService.pingOk$.subscribe(() => {
+      if (!this.snapshotRefreshInProgress) {
+        this.reconcilingSubject.next(false);
+      }
+    });
+
     if (!Capacitor.isNativePlatform()) {
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {

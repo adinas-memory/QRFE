@@ -10,5 +10,5 @@ export const environment: Environment = {
    * Replace OWNER/REPO with your Printer-Agent repository after the first release.
    */
   printerAgentDownloadUrl:
-    'https://github.com/adrian-badulescu/Printer-Agent/releases/download/v1.2.4/URSPrinterAgentSetup.exe',
+    'https://github.com/adrian-badulescu/Printer-Agent/releases/download/v1.4.2/URSPrinterAgentSetup.exe',
 };

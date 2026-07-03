@@ -79,6 +79,14 @@ describe('OnlineStateService', () => {
     expect(fetchSpy).toHaveBeenCalled();
   }));
 
+  it('emits pingOk$ when ping-lite returns HTTP 200', fakeAsync(async () => {
+    const pingPromise = firstValueFrom(service.pingOk$);
+    await service.confirmConnectivity(true);
+    tick();
+    await pingPromise;
+    expect(fetchSpy).toHaveBeenCalled();
+  }));
+
   it('triggerResumeCheck ignores duplicate resume within cooldown', fakeAsync(() => {
     service.triggerResumeCheck();
     tick(300);
