@@ -721,7 +721,7 @@
     "cancel": "Avbryt",
     "sending": "Skickar…",
     "send": "Skicka",
-    "toastThanksBody": "Tack — din feedback har skickats.",
+    "toastThanksBody": "Tack — ticket #{{ticketId}} har skickats.",
     "toastThanksTitle": "Feedback",
     "toastErrorTitle": "Kunde inte skicka feedback"
   },

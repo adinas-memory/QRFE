@@ -721,7 +721,7 @@
     "cancel": "Abbrechen",
     "sending": "Senden…",
     "send": "Senden",
-    "toastThanksBody": "Danke — dein Feedback wurde gesendet.",
+    "toastThanksBody": "Danke — Ticket #{{ticketId}} wurde gesendet.",
     "toastThanksTitle": "Feedback",
     "toastErrorTitle": "Feedback konnte nicht gesendet werden"
   },

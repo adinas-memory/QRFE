@@ -721,7 +721,7 @@
     "cancel": "Cancelar",
     "sending": "Enviando…",
     "send": "Enviar",
-    "toastThanksBody": "Gracias — tu comentario se ha enviado.",
+    "toastThanksBody": "Gracias — el ticket #{{ticketId}} se ha enviado.",
     "toastThanksTitle": "Comentarios",
     "toastErrorTitle": "No se pudo enviar el comentario"
   },

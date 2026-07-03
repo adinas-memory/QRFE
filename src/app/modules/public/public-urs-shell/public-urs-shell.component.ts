@@ -50,6 +50,7 @@ export class PublicUrsShellComponent implements OnInit, OnDestroy {
   @Input() fragmentNav = false;
   @Input() activeSection = 'top';
   @Input() showFooter = true;
+  @Input() showFeedback = true;
   @Input() mainTopPadding = '9rem';
 
   @Output() sectionNavigate = new EventEmitter<string>();

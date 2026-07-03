@@ -868,7 +868,7 @@
     "cancel": "Anulează",
     "sending": "Se trimite…",
     "send": "Trimite",
-    "toastThanksBody": "Mulțumim — feedback-ul tău a fost trimis.",
+    "toastThanksBody": "Mulțumim — ticketul #{{ticketId}} a fost trimis.",
     "toastThanksTitle": "Feedback",
     "toastErrorTitle": "Nu s-a putut trimite feedback-ul"
   },
