@@ -85,4 +85,41 @@ describe('OfflinePolicyService', () => {
     expect(service.shouldShowOfflinePrimaryDeviceBanner()).toBeTrue();
     expect(service.shouldShowBindDeviceCta()).toBeFalse();
   });
+
+  it('shouldFreezeWhenOffline for semi-offline designee not on primary device', () => {
+    userSubject.next({
+      id: 'u1',
+      role: 'staff',
+      isOfflinePrimaryStaffDesignee: true,
+      isOfflinePrimaryDevice: false,
+    });
+    onlineSubject.next(false);
+    expect(service.shouldFreezeWhenOffline()).toBeTrue();
+    expect(service.canProcessOfflineQueue()).toBeFalse();
+  });
+
+  it('canProcessOfflineQueue when online on any device', () => {
+    userSubject.next({
+      id: 'u1',
+      role: 'staff',
+      isOfflinePrimaryDevice: false,
+    });
+    onlineSubject.next(true);
+    expect(service.canProcessOfflineQueue()).toBeTrue();
+
+    onlineSubject.next(false);
+    expect(service.canProcessOfflineQueue()).toBeFalse();
+  });
+
+  it('canProcessOfflineQueue when online on primary device', () => {
+    userSubject.next({
+      id: 'u1',
+      role: 'staff',
+      isOfflinePrimaryDevice: true,
+    });
+    onlineSubject.next(true);
+    expect(service.canProcessOfflineQueue()).toBeTrue();
+    onlineSubject.next(false);
+    expect(service.canProcessOfflineQueue()).toBeFalse();
+  });
 });

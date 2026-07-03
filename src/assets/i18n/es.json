@@ -536,7 +536,7 @@
   },
   "offline": {
     "bannerPrimary": "OFFLINE — full POS mode (syncs when you reconnect)",
-    "bannerLimited": "OFFLINE — limited mode (current order only on this device)"
+    "bannerLimited": "OFFLINE! Cambia al dispositivo configurado para trabajo sin conexión."
   },
   "kitchen": {
     "title": "Cocina",
@@ -744,18 +744,18 @@
     "closeOrder": "Cerrar pedido",
     "print": "Imprimir",
     "bookingsToday": "Reservas de hoy",
-    "bindOfflinePrimaryCta": "Register this device as offline POS",
-    "bindOfflinePrimaryBinding": "Registering…",
-    "bindOfflinePrimaryHint": "You are designated for full offline mode. Register this device so it can open tables and confirm orders without internet.",
-    "bindOfflinePrimarySuccessTitle": "Device registered",
-    "bindOfflinePrimarySuccessBody": "This device is now the offline POS. Changes sync when you reconnect.",
-    "bindOfflinePrimaryErrorTitle": "Could not register device",
-    "offlinePrimaryDeviceActiveHint": "This device is registered for full offline mode. You can open tables and confirm orders without internet.",
-    "offlineSyncModalTitle": "Offline order sync",
-    "offlineSyncCountdown": "Sync starts in {{seconds}} seconds. Please wait and do not close the app.",
-    "offlineSyncInProgress": "Syncing offline orders to the server. Please wait…",
-    "offlineSyncReconciling": "Updating table status from server. Please wait…",
-    "nonPrimaryOfflineHint": "Offline: you can only edit the order already open on this device."
+    "bindOfflinePrimaryCta": "Registrar este dispositivo como TPV sin conexión",
+    "bindOfflinePrimaryBinding": "Registrando…",
+    "bindOfflinePrimaryHint": "Estás designado para el modo sin conexión completo. Registra este dispositivo para poder abrir mesas y confirmar pedidos sin internet.",
+    "bindOfflinePrimarySuccessTitle": "Dispositivo registrado",
+    "bindOfflinePrimarySuccessBody": "Este dispositivo es ahora el TPV sin conexión. Los cambios se sincronizan al reconectarse.",
+    "bindOfflinePrimaryErrorTitle": "No se pudo registrar el dispositivo",
+    "offlinePrimaryDeviceActiveHint": "Este dispositivo está registrado para el modo sin conexión completo. Puedes abrir mesas y confirmar pedidos sin internet.",
+    "offlineSyncModalTitle": "Sincronización de pedidos sin conexión",
+    "offlineSyncCountdown": "La sincronización comienza en {{seconds}} segundos. Espera y no cierres la aplicación.",
+    "offlineSyncInProgress": "Sincronizando pedidos sin conexión con el servidor. Espera…",
+    "offlineSyncReconciling": "Actualizando el estado de las mesas desde el servidor. Espera…",
+    "nonPrimaryOfflineHint": "Sin conexión: solo puedes editar el pedido abierto en este dispositivo."
   },
   "faq": {
     "navLink": "FAQ",

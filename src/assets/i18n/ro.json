@@ -664,7 +664,7 @@
   },
   "offline": {
     "bannerPrimary": "OFFLINE — mod POS complet (se sincronizează la reconectare)",
-    "bannerLimited": "OFFLINE — mod limitat (doar comanda curentă pe acest dispozitiv)"
+    "bannerLimited": "OFFLINE! Mutați-vă pe dispozitivul configurat pentru lucru OFFLINE."
   },
   "kitchen": {
     "title": "Bucătărie",

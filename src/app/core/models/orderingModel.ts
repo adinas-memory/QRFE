@@ -154,11 +154,72 @@ export interface OrderUpdatedSSEPayload {
     OrderItemId: string;
     MenuItemId: string;
     Quantity: number;
+    OrderItemName?: string;
     OrderItemDescription?: string;
     Category?: string;
     OrderItemPriceAmount: number;
     OrderItemPriceCurrency: string;
   }[];
+}
+
+export type OrderUpdatedSseLineItem = OrderUpdatedSSEPayload['Items'][number];
+
+function readSseLineString(line: OrderUpdatedSseLineItem, camel: string, pascal: string): string {
+  const rec = line as unknown as Record<string, unknown>;
+  const v = rec[camel] ?? rec[pascal];
+  return typeof v === 'string' ? v : '';
+}
+
+function readSseLineNumber(line: OrderUpdatedSseLineItem, camel: string, pascal: string): number {
+  const rec = line as unknown as Record<string, unknown>;
+  const v = rec[camel] ?? rec[pascal];
+  return typeof v === 'number' ? v : 0;
+}
+
+/** Map one SSE order line to OrderItemDTO (PascalCase/camelCase tolerant). */
+export function orderItemDtoFromSseLine(line: OrderUpdatedSseLineItem): OrderItemDTO {
+  const currency = (readSseLineString(line, 'orderItemPriceCurrency', 'OrderItemPriceCurrency') || 'EUR') as Currency;
+  return {
+    orderItemId: readSseLineString(line, 'orderItemId', 'OrderItemId') || undefined,
+    menuItemId: readSseLineString(line, 'menuItemId', 'MenuItemId'),
+    orderItemName: readSseLineString(line, 'orderItemName', 'OrderItemName'),
+    orderItemDescription: readSseLineString(line, 'orderItemDescription', 'OrderItemDescription'),
+    category: readSseLineString(line, 'category', 'Category'),
+    orderItemPriceAmount: readSseLineNumber(line, 'orderItemPriceAmount', 'OrderItemPriceAmount'),
+    orderItemPriceCurrency: currency,
+    quantity: readSseLineNumber(line, 'quantity', 'Quantity'),
+  };
+}
+
+/** Build cart lines from SSE Items[] using optional menu cache for icons/names. */
+export function cartItemsFromSseLines(
+  lines: OrderUpdatedSseLineItem[] | null | undefined,
+  menuItems?: MenuItem[],
+): CartItem[] {
+  return (lines ?? []).map(line => cartItemFromOrderLine(orderItemDtoFromSseLine(line), menuItems));
+}
+
+/** Minimal OrderDTO for local replica from SSE snapshot. */
+export function orderDtoFromSsePayload(
+  tableId: string,
+  payload: OrderUpdatedSSEPayload,
+  initiatedBy?: string,
+): OrderDTO {
+  const sub = payload.SubTotal as { Amount?: number; Currency?: string; amount?: number; currency?: string } | null;
+  const currency = (sub?.Currency ?? sub?.currency ?? payload.Items?.[0]?.OrderItemPriceCurrency ?? 'EUR') as Currency;
+  const orderItems = (payload.Items ?? []).map(orderItemDtoFromSseLine);
+  return {
+    orderId: payload.OrderId,
+    tableId,
+    createdOn: payload.LastActionAt || new Date().toISOString(),
+    isOrderOpen: true,
+    currency,
+    orderItems,
+    subTotal: sub
+      ? { amount: sub.Amount ?? sub.amount ?? 0, currency }
+      : undefined,
+    lastInitiatedBy: initiatedBy?.trim() || undefined,
+  };
 }
 
 export interface TableComputedDTO {

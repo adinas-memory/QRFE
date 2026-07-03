@@ -132,28 +132,6 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // #region agent log
-    const snap = this.authService.getUserSnapshot();
-    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
-      body: JSON.stringify({
-        sessionId: '38fcde',
-        runId: 'pre-fix',
-        hypothesisId: 'A',
-        location: 'manager-settings.component.ts:ngOnInit',
-        message: 'settings page init',
-        data: {
-          restaurantId: this.restaurantId,
-          rawRestaurantId: snap?.restaurantId ?? null,
-          userId: snap?.id ?? null,
-          role: snap?.role ?? null,
-          apiUrl: this.apiUrl,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     this.miscellaneousService.getCurrencies().subscribe({
       next: list => {
         if (list?.length) {
@@ -614,26 +592,6 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
         this.billPrinters = printers ?? [];
         this.defaultBillPrinterId = defaults?.defaultBillPrinterId ?? null;
         this.loadingBillPrinters = false;
-        // #region agent log
-        fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
-          body: JSON.stringify({
-            sessionId: '38fcde',
-            runId: 'pre-fix',
-            hypothesisId: 'C_D',
-            location: 'manager-settings.component.ts:fetchBillPrinters',
-            message: 'bill printers merged',
-            data: {
-              restaurantId: this.restaurantId,
-              billPrinterCount: this.billPrinters.length,
-              billPrinterIds: this.billPrinters.map(p => p.id),
-              defaultBillPrinterId: this.defaultBillPrinterId,
-            },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
         this.maybeAutoSelectBillPrinter();
         this.syncBillPrinterPolling();
       },

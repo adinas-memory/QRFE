@@ -536,7 +536,7 @@
   },
   "offline": {
     "bannerPrimary": "OFFLINE — full POS mode (syncs when you reconnect)",
-    "bannerLimited": "OFFLINE — limited mode (current order only on this device)"
+    "bannerLimited": "OFFLINE! Wechseln Sie zum für Offline-Betrieb konfigurierten Gerät."
   },
   "kitchen": {
     "title": "Küche",
@@ -744,18 +744,18 @@
     "closeOrder": "Bestellung schließen",
     "print": "Drucken",
     "bookingsToday": "Heutige Reservierungen",
-    "bindOfflinePrimaryCta": "Register this device as offline POS",
-    "bindOfflinePrimaryBinding": "Registering…",
-    "bindOfflinePrimaryHint": "You are designated for full offline mode. Register this device so it can open tables and confirm orders without internet.",
-    "bindOfflinePrimarySuccessTitle": "Device registered",
-    "bindOfflinePrimarySuccessBody": "This device is now the offline POS. Changes sync when you reconnect.",
-    "bindOfflinePrimaryErrorTitle": "Could not register device",
-    "offlinePrimaryDeviceActiveHint": "This device is registered for full offline mode. You can open tables and confirm orders without internet.",
-    "offlineSyncModalTitle": "Offline order sync",
-    "offlineSyncCountdown": "Sync starts in {{seconds}} seconds. Please wait and do not close the app.",
-    "offlineSyncInProgress": "Syncing offline orders to the server. Please wait…",
-    "offlineSyncReconciling": "Updating table status from server. Please wait…",
-    "nonPrimaryOfflineHint": "Offline: you can only edit the order already open on this device."
+    "bindOfflinePrimaryCta": "Dieses Gerät als Offline-Kasse registrieren",
+    "bindOfflinePrimaryBinding": "Wird registriert…",
+    "bindOfflinePrimaryHint": "Sie sind für den vollständigen Offline-Modus vorgesehen. Registrieren Sie dieses Gerät, damit Sie Tische öffnen und Bestellungen ohne Internet bestätigen können.",
+    "bindOfflinePrimarySuccessTitle": "Gerät registriert",
+    "bindOfflinePrimarySuccessBody": "Dieses Gerät ist jetzt die Offline-Kasse. Änderungen werden bei erneuter Verbindung synchronisiert.",
+    "bindOfflinePrimaryErrorTitle": "Gerät konnte nicht registriert werden",
+    "offlinePrimaryDeviceActiveHint": "Dieses Gerät ist für den vollständigen Offline-Modus registriert. Sie können Tische öffnen und Bestellungen ohne Internet bestätigen.",
+    "offlineSyncModalTitle": "Offline-Bestellungssynchronisierung",
+    "offlineSyncCountdown": "Synchronisierung beginnt in {{seconds}} Sekunden. Bitte warten Sie und schließen Sie die App nicht.",
+    "offlineSyncInProgress": "Offline-Bestellungen werden mit dem Server synchronisiert. Bitte warten…",
+    "offlineSyncReconciling": "Tischstatus wird vom Server aktualisiert. Bitte warten…",
+    "nonPrimaryOfflineHint": "Offline: Sie können nur die auf diesem Gerät geöffnete Bestellung bearbeiten."
   },
   "faq": {
     "navLink": "FAQ",

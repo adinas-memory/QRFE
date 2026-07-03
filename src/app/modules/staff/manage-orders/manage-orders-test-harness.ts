@@ -99,13 +99,16 @@ export function buildAvailabilityMap(tables: TableDTO[]): Record<string, boolean
 
 export interface OfflineDbMock {
   cartStore: Record<string, { items: CartItem[]; orderId?: string }>;
+  cartsChanged$: Observable<{ tableId: string }>;
   loadCartRecord: jasmine.Spy;
   loadCart: jasmine.Spy;
   saveCart: jasmine.Spy;
   deleteCart: jasmine.Spy;
   loadAllCarts: jasmine.Spy;
+  getTableIdsWithLocalSession: jasmine.Spy;
   loadTablesStatusMap: jasmine.Spy;
   loadLocalTables: jasmine.Spy;
+  loadMenu: jasmine.Spy;
   upsertTableStatus: jasmine.Spy;
   saveTables: jasmine.Spy;
   saveTablesStatus: jasmine.Spy;
@@ -117,9 +120,11 @@ export interface OfflineDbMock {
 
 export function createOfflineDbMock(): OfflineDbMock {
   const cartStore: Record<string, { items: CartItem[]; orderId?: string }> = {};
+  const cartsChangedSubject = new Subject<{ tableId: string }>();
 
   return {
     cartStore,
+    cartsChanged$: cartsChangedSubject.asObservable(),
     loadCartRecord: jasmine.createSpy('loadCartRecord').and.callFake(async (tableId: string) => {
       const rec = cartStore[tableId];
       return rec ? { tableId, items: [...rec.items], orderId: rec.orderId } : null;
@@ -142,8 +147,14 @@ export function createOfflineDbMock(): OfflineDbMock {
       }
       return result;
     }),
+    getTableIdsWithLocalSession: jasmine.createSpy('getTableIdsWithLocalSession').and.callFake(async () =>
+      Object.entries(cartStore)
+        .filter(([, rec]) => !!rec.orderId || rec.items.length > 0)
+        .map(([tableId]) => tableId),
+    ),
     loadTablesStatusMap: jasmine.createSpy('loadTablesStatusMap').and.resolveTo({}),
     loadLocalTables: jasmine.createSpy('loadLocalTables').and.resolveTo([]),
+    loadMenu: jasmine.createSpy('loadMenu').and.resolveTo({ menuItems: [createMenuItem()], categories: ['Main'] }),
     upsertTableStatus: jasmine.createSpy('upsertTableStatus').and.resolveTo(undefined),
     saveTables: jasmine.createSpy('saveTables').and.resolveTo(undefined),
     saveTablesStatus: jasmine.createSpy('saveTablesStatus').and.resolveTo(undefined),
@@ -158,7 +169,7 @@ export function createOfflineDbMock(): OfflineDbMock {
 }
 
 export interface ManageOrdersMocks {
-  auth: { getUserContext: jasmine.Spy };
+  auth: { getUserContext: jasmine.Spy; getUserSnapshot: jasmine.Spy };
   tablesService: {
     getAllWithFallback: jasmine.Spy;
     getAll: jasmine.Spy;
@@ -195,6 +206,7 @@ export interface ManageOrdersMocks {
   syncScheduler: {
     syncCountdownSeconds$: Observable<number | null>;
     syncBlocked$: Observable<boolean>;
+    batchSyncDraining$: Observable<boolean>;
   };
   onlineState: OnlineStateMock;
   appToast: {
@@ -276,6 +288,13 @@ export function createManageOrdersMocks(options: SetupManageOrdersOptions = {}):
       getUserContext: jasmine.createSpy('getUserContext').and.returnValue(
         of({ id: '1', role: 'staff', restaurantId: TEST_RESTAURANT_ID }),
       ),
+      getUserSnapshot: jasmine.createSpy('getUserSnapshot').and.returnValue({
+        id: '1',
+        role: 'staff',
+        restaurantId: TEST_RESTAURANT_ID,
+        name: 'Ana',
+        surname: 'Popescu',
+      }),
     },
     tablesService: {
       getAllWithFallback: jasmine.createSpy('getAllWithFallback').and.resolveTo(tables),
@@ -339,6 +358,7 @@ export function createManageOrdersMocks(options: SetupManageOrdersOptions = {}):
     syncScheduler: {
       syncCountdownSeconds$: of(null),
       syncBlocked$: of(false),
+      batchSyncDraining$: of(false),
     },
     onlineState: {
       isOnline: options.isOnline ?? true,

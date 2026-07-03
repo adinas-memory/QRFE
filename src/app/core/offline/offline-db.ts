@@ -106,6 +106,14 @@ export class OfflineDbService {
         return await this.db.carts.get(tableId) ?? null;
     }
 
+    /** Table IDs with a local cart or confirmed order snapshot on this device. */
+    async getTableIdsWithLocalSession(): Promise<string[]> {
+        const records = await this.db.carts.toArray();
+        return records
+            .filter(r => !!r.orderId || (r.items?.length ?? 0) > 0)
+            .map(r => r.tableId);
+    }
+
     async loadAllCarts(): Promise<Record<string, TableCart[string]>> {
         const result: Record<string, TableCart[string]> = {};
         const records = await this.db.carts.toArray();
@@ -272,13 +280,14 @@ export class OfflineDbService {
      * Server state wins; local offline queue will be replayed separately.
      */
     async applySyncSnapshot(tables: TableDTO[]): Promise<void> {
-        await this.saveTables(tables);
-        const availability = this.buildAvailabilityMapFromTables(tables);
+        const mergedTables = await this.mergeSnapshotWithPendingLocalOrders(tables);
+        await this.saveTables(mergedTables);
+        const availability = this.buildAvailabilityMapFromTables(mergedTables);
         await this.saveTablesStatus(availability);
 
         const openOrderTableIds = new Set<string>();
 
-        for (const t of tables ?? []) {
+        for (const t of mergedTables ?? []) {
             if (!t?.tableId) continue;
             const order = (t as any).order as OrderDTO | undefined;
             if (tableHasActiveOrder(order)) {
@@ -299,6 +308,40 @@ export class OfflineDbService {
                 await this.deleteCart(t.tableId);
             }
         }
+    }
+
+    /** Keep occupied tables visible when a local queue action has not reached the server yet. */
+    private async mergeSnapshotWithPendingLocalOrders(tables: TableDTO[]): Promise<TableDTO[]> {
+        const byId = new Map((tables ?? []).filter(t => t?.tableId).map(t => [t.tableId, { ...t }]));
+
+        for (const t of tables ?? []) {
+            if (!t?.tableId) continue;
+
+            const hasPendingForTable = await this.hasPendingActionsForTable(t.tableId);
+            const local = await this.loadCartRecord(t.tableId);
+            const localOrderId = local?.orderId;
+            const hasLocalUnconfirmed = !!localOrderId && localOrderId.startsWith('local-');
+
+            if (!hasPendingForTable && !hasLocalUnconfirmed) {
+                continue;
+            }
+
+            const localOrder = await this.loadOrder(t.tableId);
+            if (!localOrder) {
+                continue;
+            }
+
+            const existing = byId.get(t.tableId);
+            if (existing) {
+                byId.set(t.tableId, {
+                    ...existing,
+                    isTableOpen: false,
+                    order: localOrder,
+                });
+            }
+        }
+
+        return Array.from(byId.values());
     }
 
     private async hasPendingActionsForTable(tableId: string): Promise<boolean> {

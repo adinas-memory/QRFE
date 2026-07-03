@@ -16,8 +16,9 @@ import {
 } from '@coreui/angular';
 import { TablesService } from '../../../core/services/tables-service/tables.service';
 import { AuthService } from '../../../core/auth/auth.service';
+import { formatStaffDisplayName } from '../../../core/auth/user-display-name';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
-import { filter, Subject, take, takeUntil, debounceTime, forkJoin, from, firstValueFrom } from 'rxjs';
+import { filter, Subject, take, takeUntil, debounceTime, forkJoin, from, firstValueFrom, pairwise } from 'rxjs';
 import { NgFor, NgIf, NgStyle, CurrencyPipe, DecimalPipe, JsonPipe, NgClass, DatePipe, NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { cilBellExclamation } from '@coreui/icons';
@@ -35,6 +36,8 @@ import {
   OrderDTO,
   OrderItemDTO,
   cartItemFromOrderLine,
+  cartItemsFromSseLines,
+  orderDtoFromSsePayload,
   readOrderLastInitiatedBy,
   tableHasActiveOrder,
 } from '../../../core/models/orderingModel';
@@ -45,6 +48,8 @@ import { OfflineQueueProcessor } from '../../../core/offline/offline-queue-proce
 import { SseEvent } from '../../../core/models/sseModel';
 import { OnlineStateService } from '../../../core/offline/online-state-service';
 import { OfflinePolicyService } from '../../../core/offline/offline-policy.service';
+import { OfflinePrintContextService } from '../../../core/offline/offline-print-context.service';
+import { OfflinePrintService } from '../../../core/offline/offline-print.service';
 import { OfflinePrimaryService } from '../../../core/services/offline-primary/offline-primary.service';
 import { OfflineSyncSchedulerService } from '../../../core/offline/offline-sync-scheduler.service';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -172,6 +177,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   bookingsByTableId: Record<string, ReservationItem[]> = {};
   bookingsLoading = false;
   bindOfflinePrimaryInProgress = false;
+  /** Tables with local Dexie cart/order on this device (partial offline re-entry). */
+  private localSessionTableIds = new Set<string>();
 
   constructor(
     private tablesService: TablesService,
@@ -193,20 +200,25 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     private reservationService: ReservationService,
     private offlinePolicy: OfflinePolicyService,
     private offlinePrimary: OfflinePrimaryService,
+    private offlinePrintContext: OfflinePrintContextService,
+    private offlinePrintService: OfflinePrintService,
   ) {}
 
   private readonly syncScheduler = inject(OfflineSyncSchedulerService);
 
   readonly offlineSyncCountdown = toSignal(this.syncScheduler.syncCountdownSeconds$, { initialValue: null });
   readonly offlineSyncBlocked = toSignal(this.syncScheduler.syncBlocked$, { initialValue: false });
-  readonly offlineSyncInProgress = toSignal(this.queueProcessor.isProcessing$, { initialValue: false });
+  readonly offlineSyncBatchDraining = toSignal(this.syncScheduler.batchSyncDraining$, { initialValue: false });
   readonly offlineSyncReconciling = toSignal(this.sseService.isReconciling$, { initialValue: false });
-  readonly showOfflineSyncModal = computed(
+  readonly isReconnectSyncInProgress = computed(
     () =>
-      this.offlineSyncBlocked()
-      || this.offlineSyncCountdown() !== null
-      || this.offlineSyncInProgress()
+      this.offlineSyncCountdown() !== null
+      || this.offlineSyncBlocked()
+      || this.offlineSyncBatchDraining()
       || this.offlineSyncReconciling(),
+  );
+  readonly showOfflineSyncModal = computed(
+    () => this.isReconnectSyncInProgress(),
   );
 
   bookingsForTable(tableId: string): ReservationItem[] {
@@ -252,6 +264,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     if (!v) return '';
     if (v === 'stripe') return this.transloco.translate('manageOrders.byCardPayment');
     return raw;
+  }
+
+  private currentStaffDisplayName(): string {
+    return formatStaffDisplayName(this.authService.getUserSnapshot() ?? {});
   }
 
   /**
@@ -402,7 +418,63 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   /** Online staff or designated primary device in full-offline mode. */
   get canBypassOfflineUiGates(): boolean {
+    if (this.isReconnectSyncInProgress()) {
+      return false;
+    }
     return this.isOnline || this.offlinePolicy.canUseFullOffline();
+  }
+
+  private hasLocalSessionForTable(tableId: string): boolean {
+    return this.localSessionTableIds.has(tableId);
+  }
+
+  private async refreshLocalSessionTableIds(): Promise<void> {
+    const tableIds = await this.offlineDB.getTableIdsWithLocalSession();
+    this.localSessionTableIds = new Set(tableIds);
+  }
+
+  isTableActionDisabled(table: TableDTO, requireOnline: boolean): boolean {
+    if (this.isReconnectSyncInProgress()) {
+      return true;
+    }
+    if (!requireOnline) {
+      return false;
+    }
+    if (this.isOnline) {
+      return false;
+    }
+    // Offline: only the bound primary device may operate (semi-offline frozen).
+    return !this.offlinePolicy.canUseFullOffline();
+  }
+
+  isSetMenuActionDisabled(): boolean {
+    if (this.isReconnectSyncInProgress()) {
+      return true;
+    }
+    if (this.isOnline) {
+      return false;
+    }
+    return !this.offlinePolicy.canUseFullOffline();
+  }
+
+  async onTableActionClick(table: TableDTO, requireOnline: boolean): Promise<void> {
+    const disabled = this.isTableActionDisabled(table, requireOnline);
+    if (disabled) {
+      return;
+    }
+    if (table.order) {
+      await this.seeOrder(table);
+    } else {
+      await this.openTable(table);
+    }
+  }
+
+  /** Print allowed online, or offline on primary device with cached agent config. */
+  get canPrintBill(): boolean {
+    if (this.isOnline) {
+      return true;
+    }
+    return this.offlinePolicy.canUseFullOffline() && this.offlinePrintContext.isReadyForOfflinePrint();
   }
 
   get shouldShowBindDeviceCta(): boolean {
@@ -426,27 +498,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         });
       }
       await firstValueFrom(this.authService.pingSession());
-      // #region agent log
-      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
-        body: JSON.stringify({
-          sessionId: 'd38222',
-          location: 'manage-orders.component.ts:bindOfflinePrimaryDevice',
-          message: 'post-bind user context',
-          data: {
-            bindResult,
-            mergedDevice: this.authService.getUserSnapshot()?.isOfflinePrimaryDevice,
-            shouldShowBindDeviceCta: this.shouldShowBindDeviceCta,
-            canBypassOfflineUiGates: this.canBypassOfflineUiGates,
-            isOnline: this.isOnline,
-          },
-          hypothesisId: 'H3-refresh-wipes-device-flag',
-          runId: 'post-fix',
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
       this.appToast.success(
         this.transloco.translate('manageOrders.bindOfflinePrimarySuccessBody'),
         this.transloco.translate('manageOrders.bindOfflinePrimarySuccessTitle'),
@@ -555,6 +606,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   async confirmOrder() {
     if (document.hidden) return;
+    if (!this.isOnline && !this.offlinePolicy.canUseFullOffline()) {
+      return;
+    }
 
     const localOrderId =
       'local-' + (crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2));
@@ -580,8 +634,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       payload: { items: cart.map(ci => ({ menuItemId: ci.item.menuItemId, quantity: ci.quantity })) }
     });
 
+    const confirmedBy = this.currentStaffDisplayName();
+    if (confirmedBy) {
+      this.rememberInitiatedBy(this.currentTableId, confirmedBy);
+    }
+
     this.markTableAsClosed(this.currentTableId);
     this.updateComputedLocal(this.currentTableId);
+
+    await this.refreshLocalSessionTableIds();
 
     if (this.onlineStateService.isOnline) this.queueProcessor.triggerProcessing();
   }
@@ -708,6 +769,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       const by = (computed as { initiatedBy?: string })?.initiatedBy?.trim();
       if (by) this.persistedInitiatedBy[tableId] = by;
     }
+  }
+
+  /** Apply authoritative table list from GET /api/sync or get-tables-status. */
+  private applyAuthoritativeTables(tables: TableDTO[]): void {
+    this.tables = tables;
+    this.refreshTableLists();
+    this.tablesAvailable = this.tablesService.buildAvailabilityMap(tables);
+    void this.offlineDB.saveTables(tables);
+    void this.offlineDB.saveTablesStatus(this.tablesAvailable);
   }
 
   /** Reload in-memory state from Dexie after /api/sync (e.g. app resume from background). */
@@ -853,6 +923,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   openSetMenuModal(table: TableDTO, event?: Event): void {
     event?.stopPropagation();
+    if (this.isSetMenuActionDisabled()) {
+      return;
+    }
     if (!this.todaySetMenu?.linkedMenuItemId) return;
     this.setMenuTargetTable = table;
     this.setMenuQty = 1;
@@ -860,6 +933,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   async confirmSetMenuOrder(): Promise<void> {
+    if (this.isSetMenuActionDisabled()) {
+      return;
+    }
     if (!this.todaySetMenu || !this.setMenuTargetTable) return;
     const table = this.setMenuTargetTable;
     this.setMenuModalVisible = false;
@@ -892,7 +968,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     const record = await this.offlineDB.loadCartRecord(tableId);
     if (record) {
       this.currentOrderId = record.orderId ?? null;
-      this.orderIsConfirmed = !!this.currentOrderId && !this.currentOrderId.startsWith('local-');
+      // Confirmed offline orders keep local-* id until sync; draft carts have no orderId yet.
+      this.orderIsConfirmed = !!this.currentOrderId;
       this.tableCarts[tableId] = record.items;
       if (this.orderIsConfirmed) {
         this.claimPickupTargetForTable(tableId);
@@ -915,18 +992,29 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.restaurantId, this.currentTableId
     );
 
-    if (order) {
-      this.currentOrderId = order.orderId;
+    const resolvedOrder =
+      order ?? (tableHasActiveOrder(table.order) ? table.order! : null);
+
+    if (resolvedOrder?.orderId) {
+      this.currentOrderId = resolvedOrder.orderId;
       this.orderIsConfirmed = true;
       this.claimPickupTargetForTable(this.currentTableId);
       const record = await this.offlineDB.loadCartRecord(this.currentTableId);
       if (record?.items?.length) {
         this.tableCarts[this.currentTableId] = record.items;
       } else {
-        this.tableCarts[this.currentTableId] = (order.orderItems ?? [])
+        const hydrated = (resolvedOrder.orderItems ?? [])
           .filter((o): o is OrderItemDTO => !!o)
           .map(o => cartItemFromOrderLine(o, this.menuItems));
+        this.tableCarts[this.currentTableId] = hydrated;
+        if (hydrated.length) {
+          await this.offlineDB.saveCart(this.currentTableId, hydrated, resolvedOrder.orderId);
+        }
       }
+    } else {
+      this.orderIsConfirmed = false;
+      this.currentOrderId = null;
+      this.tableCarts[this.currentTableId] = [];
     }
   }
 
@@ -1055,12 +1143,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   private async syncTablesAvailability(): Promise<void> {
     try {
       const tables = await firstValueFrom(this.tablesService.getAll(this.restaurantId));
-      await this.offlineDB.saveTables(tables);
-      const map = this.tablesService.buildAvailabilityMap(tables);
-      await this.offlineDB.saveTablesStatus(map);
-      this.tables = tables;   // referință nouă → Angular detectează
-      this.tablesAvailable = map;
-      this.refreshTableLists();
+      this.applyAuthoritativeTables(tables);
     } catch (err) {
       console.warn('[syncTablesAvailability] Failed to refresh:', err);
     }
@@ -1074,6 +1157,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   async confirmCloseOrder() {
     if (document.hidden) return;
     if (this.closeInFlight) return;
+    if (!this.isOnline && !this.offlinePolicy.canUseFullOffline()) {
+      return;
+    }
     this.closeInFlight = true;
     this.showCloseConfirm = false;
 
@@ -1096,15 +1182,31 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         orderId,
         payload: {}
       });
+      const closedBy = this.currentStaffDisplayName();
+      if (closedBy) {
+        this.rememberInitiatedBy(tableId, closedBy);
+      }
       await this.offlineDB.deleteCart(tableId);
-      delete this.tableComputed[tableId];
-      this.ordersService.saveComputed(this.tableComputed);
       this.tableCarts[tableId] = [];
       this.markTableAsOpen(tableId);
       await this.offlineDB.upsertTableStatus(tableId, true);
       this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+      const freedTable = this.tables.find(t => t.tableId === tableId);
+      this.tableComputed[tableId] = {
+        lastActionAt: new Date().toISOString(),
+        lastAddedItem: '—',
+        total: 0,
+        currency: this.tableComputed[tableId]?.currency ?? '',
+        itemCount: 0,
+        cssClass: this.miscService.getTableCss(freedTable ?? { tableId, isTableOpen: true } as TableDTO, this.waiterState),
+        initiatedBy: closedBy,
+      };
+      this.ordersService.saveComputed(this.tableComputed);
+      void this.offlineDB.saveTables(this.tables);
+      void this.offlineDB.saveTablesStatus(this.tablesAvailable);
       this.resetCanvasState();
       this.closeInFlight = false;
+      await this.refreshLocalSessionTableIds();
       if (this.onlineStateService.isOnline) {
         this.queueProcessor.triggerProcessing();
       }
@@ -1148,19 +1250,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   private async enqueueBillPrintJob(args: { restaurantId: string; orderId: string }): Promise<void> {
     try {
-      // Staff should not need printer inventory; only the restaurant's configured default bill printer.
-      const cfg = await firstValueFrom(this.printJobs.getDefaultBillPrinterForStaff(args.restaurantId));
-      const printerId = (cfg?.defaultBillPrinterId ?? '').trim();
-      if (!printerId) {
-        this.appToast.info(
-          this.transloco.translate('manageOrders.printNoPrinterBody'),
-          this.transloco.translate('manageOrders.printNoPrinterTitle'),
-        );
-        return;
-      }
-
+      // #region agent log
+      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ac8dee'},body:JSON.stringify({sessionId:'ac8dee',location:'manage-orders.component.ts:enqueueBillPrintJob:entry',message:'print job start',data:{isOnline:this.isOnline,canUseFullOffline:this.offlinePolicy.canUseFullOffline(),isReadyForOfflinePrint:this.offlinePrintContext.isReadyForOfflinePrint(),hasPrinterId:!!(this.offlinePrintContext.getDefaultBillPrinterId()??'').trim(),agentBaseUrl:this.offlinePrintContext.getAgentLocalBaseUrl(),hasAuthToken:!!this.offlinePrintContext.getLocalPrintAuthToken()},timestamp:Date.now(),hypothesisId:'H1-H4'})}).catch(()=>{});
+      // #endregion
       const payload = {
-        type: 'bill',
+        type: 'bill' as const,
         orderId: args.orderId,
         restaurantName: this.authService.getUserSnapshot()?.restaurantName ?? '',
         tableName: (this.tableName ?? '').trim() || null,
@@ -1176,12 +1270,56 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         })),
       };
 
+      if (!this.isOnline && this.offlinePolicy.canUseFullOffline()) {
+        // #region agent log
+        fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ac8dee'},body:JSON.stringify({sessionId:'ac8dee',location:'manage-orders.component.ts:enqueueBillPrintJob:offlineBranch',message:'offline LAN print branch',data:{restaurantId:args.restaurantId,orderId:args.orderId},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
+        // #endregion
+        const printerId = (this.offlinePrintContext.getDefaultBillPrinterId() ?? '').trim();
+        if (!printerId) {
+          this.appToast.info(
+            this.transloco.translate('manageOrders.printNoPrinterBody'),
+            this.transloco.translate('manageOrders.printNoPrinterTitle'),
+          );
+          return;
+        }
+        if (!this.offlinePrintContext.isReadyForOfflinePrint()) {
+          this.appToast.info(
+            this.transloco.translate('manageOrders.printOfflineConfigBody'),
+            this.transloco.translate('manageOrders.printOfflineConfigTitle'),
+          );
+          return;
+        }
+        await this.offlinePrintService.printBillSync({
+          restaurantId: args.restaurantId,
+          printerId,
+          payload,
+        });
+        this.appToast.success(
+          this.transloco.translate('manageOrders.printOfflineSuccessBody'),
+          this.transloco.translate('manageOrders.printOfflineSuccessTitle'),
+        );
+        return;
+      }
+
+      const cfg = await firstValueFrom(this.printJobs.getDefaultBillPrinterForStaff(args.restaurantId));
+      const printerId = (cfg?.defaultBillPrinterId ?? '').trim();
+      if (!printerId) {
+        this.appToast.info(
+          this.transloco.translate('manageOrders.printNoPrinterBody'),
+          this.transloco.translate('manageOrders.printNoPrinterTitle'),
+        );
+        return;
+      }
+
       await firstValueFrom(this.printJobs.createBillPrintJob(args.restaurantId, printerId, payload));
       this.appToast.success(
         this.transloco.translate('manageOrders.printQueuedBody'),
         this.transloco.translate('manageOrders.printQueuedTitle'),
       );
     } catch (err) {
+      // #region agent log
+      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ac8dee'},body:JSON.stringify({sessionId:'ac8dee',location:'manage-orders.component.ts:enqueueBillPrintJob:catch',message:'print job failed',data:{isOnline:this.isOnline,canUseFullOffline:this.offlinePolicy.canUseFullOffline(),errorName:err instanceof Error?err.name:'unknown',errorMessage:err instanceof Error?err.message:String(err)},timestamp:Date.now(),hypothesisId:'H2-H5'})}).catch(()=>{});
+      // #endregion
       console.error('Print job failed', err);
       this.appToast.error(
         this.transloco.translate('manageOrders.printErrorBody'),
@@ -1440,11 +1578,29 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           break;
         }
 
-        const cart = await this.offlineDB.loadCart(tableId);
+        const localRecord = await this.offlineDB.loadCartRecord(tableId);
+        const localItems = localRecord?.items ?? [];
+        const localQty = localItems.reduce((sum, line) => sum + line.quantity, 0);
+        const shouldFullHydrate = localItems.length === 0 || sseItemCount > localQty;
 
-        for (const sseItem of payload.Items) {
-          const localItem = cart.find(ci => ci.item.menuItemId === sseItem.MenuItemId);
-          if (localItem) localItem.orderItemId = sseItem.OrderItemId;
+        let cart: CartItem[];
+        if (shouldFullHydrate) {
+          const { menuItems } = await this.offlineDB.loadMenu();
+          cart = cartItemsFromSseLines(payload.Items, menuItems);
+        } else {
+          cart = localItems.map(line => ({
+            ...line,
+            item: { ...line.item },
+          }));
+          for (const sseItem of payload.Items ?? []) {
+            const rec = sseItem as unknown as Record<string, unknown>;
+            const menuItemId = String(rec['MenuItemId'] ?? rec['menuItemId'] ?? '');
+            const orderItemId = String(rec['OrderItemId'] ?? rec['orderItemId'] ?? '');
+            const localItem = cart.find(ci => ci.item.menuItemId === menuItemId);
+            if (localItem && orderItemId) {
+              localItem.orderItemId = orderItemId;
+            }
+          }
         }
 
         await this.offlineDB.saveCart(tableId, cart, payload.OrderId);
@@ -1455,29 +1611,19 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.tableCarts[tableId] = cart;
         this.ordersService.saveComputed(this.tableComputed);
 
-        // OrderUpdated implică o comandă activă pe masă → marchează masa ca ocupată local
-        // dacă încă figurează liberă; altfel getTableCss rămâne pe bg-success (verde).
         if (payload.OrderId) {
-          const existing = this.tables.find(t => t.tableId === tableId);
-          if (existing && (existing.isTableOpen || !existing.order)) {
-            const initiatedByName = InitiatedBy?.trim() || readOrderLastInitiatedBy(existing.order);
-            this.tables = this.tables.map(t =>
-              t.tableId === tableId
-                ? {
-                    ...t,
-                    isTableOpen: false,
-                    order: {
-                      ...(t.order ?? {}),
-                      orderId: payload.OrderId,
-                      isOrderOpen: true,
-                      lastInitiatedBy: initiatedByName || readOrderLastInitiatedBy(t.order),
-                    } as OrderDTO,
-                  }
-                : t,
-            );
-            this.refreshTableLists();
-            void this.offlineDB.saveTables(this.tables);
-          }
+          const initiatedByName = InitiatedBy?.trim()
+            || readOrderLastInitiatedBy(this.tables.find(t => t.tableId === tableId)?.order);
+          const nextOrder = orderDtoFromSsePayload(tableId, payload, initiatedByName);
+          this.tables = this.tables.map(t =>
+            t.tableId === tableId
+              ? { ...t, isTableOpen: false, order: nextOrder }
+              : t,
+          );
+          this.refreshTableLists();
+          this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+          void this.offlineDB.saveTables(this.tables);
+          void this.offlineDB.saveTablesStatus(this.tablesAvailable);
         }
         break;
       }
@@ -1535,12 +1681,17 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       }
 
       case 'TablesStatusesUpdate': {
+        if (!this.initialTablesLoaded) {
+          break;
+        }
+
         const computedList = Data as TableComputedDTO[];
 
         // IMPORTANT:
         // Backend may emit TablesStatusesUpdate snapshots where orderId/subTotal are not yet consistent
         // with a just-confirmed order (race / eventual consistency). Don't let that overwrite local truth.
         const updatedTables: TableDTO[] = [];
+        const debugTableChanges: Array<{ tableId: string; before: { open: boolean; hasOrder: boolean }; after: { open: boolean; hasOrder: boolean }; orderId: string | null; skipped?: boolean }> = [];
         for (const t of this.tables) {
           if (!t?.tableId) continue;
           const c = computedList.find(x => x.tableId === t.tableId);
@@ -1551,20 +1702,53 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
           const localRecord = await this.offlineDB.loadCartRecord(t.tableId);
           const localHasOrder = !!localRecord?.orderId || (localRecord?.items?.length ?? 0) > 0;
+          const snapshotOrderId = c.orderId ?? null;
+          const snapshotItemCount = c.itemCount ?? 0;
+          const snapshotHasActiveOrder = !!snapshotOrderId || snapshotItemCount > 0;
+
+          // Stale DB snapshots: isTableOpen=false but no order evidence — do not flip UI.
+          if (!snapshotHasActiveOrder && !c.isTableOpen && !localHasOrder) {
+            updatedTables.push(t);
+            debugTableChanges.push({
+              tableId: t.tableId,
+              before: { open: !!t.isTableOpen, hasOrder: !!t.order },
+              after: { open: !!t.isTableOpen, hasOrder: !!t.order },
+              orderId: snapshotOrderId,
+              skipped: true,
+            });
+            continue;
+          }
 
           // Only accept "freed" snapshot if we do NOT have local evidence of an open order.
-          const snapshotSaysFreed = c.isTableOpen && !c.orderId;
+          const snapshotSaysFreed = !snapshotHasActiveOrder && c.isTableOpen;
           const allowFreeOverride = snapshotSaysFreed && !localHasOrder;
 
           if (allowFreeOverride) {
             updatedTables.push({ ...t, isTableOpen: true, order: undefined });
+            debugTableChanges.push({
+              tableId: t.tableId,
+              before: { open: !!t.isTableOpen, hasOrder: !!t.order },
+              after: { open: true, hasOrder: false },
+              orderId: null,
+            });
             continue;
           }
 
-          // Otherwise: keep occupied if localHasOrder, and only take snapshot's isTableOpen when it doesn't conflict.
-          // If snapshot says occupied (isTableOpen=false), accept it.
-          const nextIsTableOpen = localHasOrder ? false : c.isTableOpen;
-          updatedTables.push({ ...t, isTableOpen: nextIsTableOpen });
+          const nextIsTableOpen = snapshotHasActiveOrder || localHasOrder ? false : c.isTableOpen;
+          const nextOrder = snapshotHasActiveOrder
+            ? {
+                ...(t.order ?? {}),
+                orderId: snapshotOrderId ?? t.order?.orderId ?? '',
+                isOrderOpen: true,
+              } as OrderDTO
+            : t.order;
+          updatedTables.push({ ...t, isTableOpen: nextIsTableOpen, order: nextOrder });
+          debugTableChanges.push({
+            tableId: t.tableId,
+            before: { open: !!t.isTableOpen, hasOrder: !!t.order },
+            after: { open: nextIsTableOpen, hasOrder: !!nextOrder },
+            orderId: snapshotOrderId,
+          });
         }
         this.tables = updatedTables;
         this.refreshTableLists();
@@ -1595,6 +1779,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           this.ordersService.saveComputed(this.tableComputed);
         }
         this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+        void this.offlineDB.saveTablesStatus(this.tablesAvailable);
         break;
       }
 
@@ -1604,8 +1789,18 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.tables = this.tables.map(t => {
           const c = computedList.find(x => x.tableId === t.tableId);
           if (!c) return t;
-          const isFreed = c.isTableOpen && !c.orderId;
-          return { ...t, isTableOpen: c.isTableOpen, order: isFreed ? undefined : t.order };
+          const snapshotOrderId = c.orderId ?? null;
+          const isFreed = !snapshotOrderId && c.isTableOpen;
+          const nextOrder = isFreed
+            ? undefined
+            : snapshotOrderId
+              ? { ...(t.order ?? {}), orderId: snapshotOrderId, isOrderOpen: true } as OrderDTO
+              : t.order;
+          return {
+            ...t,
+            isTableOpen: snapshotOrderId ? false : c.isTableOpen,
+            order: nextOrder,
+          };
         });
 
         for (const c of computedList) {
@@ -1652,6 +1847,21 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(({ activeGuestWaiterCalls }) => void this.reloadFromSyncSnapshot(activeGuestWaiterCalls));
 
+    this.onlineStateService.online$
+      .pipe(
+        takeUntil(this.destroy$),
+        pairwise(),
+        filter(([wasOnline, isOnline]) => wasOnline && !isOnline),
+      )
+      .subscribe(() => {
+        const user = this.authService.getUserSnapshot();
+        void this.refreshLocalSessionTableIds();
+      });
+
+    this.offlineDB.cartsChanged$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => void this.refreshLocalSessionTableIds());
+
     this.authService.getUserContext()
       .pipe(
         takeUntil(this.destroy$),
@@ -1660,26 +1870,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       )
       .subscribe(user => {
         this.restaurantId = user.restaurantId!;
-
-        // #region agent log
-        fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
-          body: JSON.stringify({
-            sessionId: 'd38222',
-            location: 'manage-orders.component.ts:ngOnInit',
-            message: 'bind CTA state on manage orders',
-            data: {
-              designee: user.isOfflinePrimaryStaffDesignee,
-              device: user.isOfflinePrimaryDevice,
-              shouldShowBindDeviceCta: this.shouldShowBindDeviceCta,
-              isOnline: this.isOnline,
-            },
-            hypothesisId: 'H2-cta-gates',
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
+        void this.offlinePrintContext.init(this.restaurantId);
 
         this.loadTodayBookings();
 
@@ -1690,13 +1881,12 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           await this.ordersService.ensureInitiatedByCacheReady();
           this.capturePersistedInitiatedBy();
 
-          this.tables = tables;
-          this.refreshTableLists();
+          this.applyAuthoritativeTables(tables);
 
           this.menuItems = menu.menuItems ?? [];
           this.todaySetMenu = menu.todaySetMenu ?? null;
           this.categories = menu.categories ?? [];
-          this.tablesAvailable = await this.offlineDB.loadTablesStatusMap();
+          await this.refreshLocalSessionTableIds();
           this.capturePersistedInitiatedBy({ replaceTableComputed: false });
 
           this.applyInitiatedByFromSyncedOrders();
@@ -1711,22 +1901,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           const purgedTables = await this.offlineDB.purgeCartsNotInTableIds(
             this.tables.map(t => t.tableId),
           );
-          // #region agent log
-          if (purgedTables > 0) {
-            fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '38fcde' },
-              body: JSON.stringify({
-                sessionId: '38fcde',
-                location: 'manage-orders.component.ts:ngOnInit',
-                message: 'purged carts for unknown tables',
-                data: { restaurantId: this.restaurantId, purgedTables },
-                hypothesisId: 'H-OFFLINE-SCOPE',
-                timestamp: Date.now(),
-              }),
-            }).catch(() => {});
-          }
-          // #endregion
 
           Object.keys(this.tableComputed).forEach(tableId => {
             const table = this.tables.find(t => t.tableId === tableId);

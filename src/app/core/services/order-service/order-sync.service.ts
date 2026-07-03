@@ -11,6 +11,8 @@ import { OfflineSyncSchedulerService } from '../../offline/offline-sync-schedule
 import { OfflineQueueProcessor } from '../../offline/offline-queue-processor.service';
 import { OfflineDbService } from '../../offline/offline-db';
 import { OnlineStateService } from '../../offline/online-state-service';
+import { OfflinePrintContextService } from '../../offline/offline-print-context.service';
+import { OfflinePrintConfigDto } from '../../offline/offline-print-config.model';
 import { Capacitor } from '@capacitor/core';
 
 @Injectable({
@@ -71,6 +73,7 @@ export class OrderSyncService {
     private queueProcessor: OfflineQueueProcessor,
     private offlineDB: OfflineDbService,
     private onlineStateService: OnlineStateService,
+    private offlinePrintContext: OfflinePrintContextService,
   ) {
     // Cross-tab fanout: if one tab receives SSE, share it to others.
     this.bc?.addEventListener('message', (ev: MessageEvent) => {
@@ -130,21 +133,6 @@ export class OrderSyncService {
     this.syncInProgress = true;
 
     try {
-      // #region agent log
-      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'd38222' },
-        body: JSON.stringify({
-          sessionId: 'd38222',
-          location: 'order-sync.service.ts:trySyncNow',
-          message: 'delegating to processQueue (no parallel processAction loop)',
-          data: {},
-          hypothesisId: 'H5-trysync-race',
-          runId: 'post-fix-v2',
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
       await this.syncScheduler.runWhenAllowed();
     } finally {
       this.syncInProgress = false;
@@ -424,6 +412,7 @@ export class OrderSyncService {
         const tables = (json?.Tables ?? json?.tables ?? []) as any[];
         const activeGuestWaiterCalls = this.parseActiveGuestWaiterCalls(json);
         await this.offlineDB.applySyncSnapshot(tables as any);
+        await this.applyOfflinePrintConfigFromSync(json, restaurantId);
         this.lastSnapshotRefreshAt = Date.now();
         this.ngZone.run(() => {
           this.snapshotRefreshedSubject.next({ restaurantId, activeGuestWaiterCalls });
@@ -441,6 +430,19 @@ export class OrderSyncService {
       }
     }
     throw lastError;
+  }
+
+  private async applyOfflinePrintConfigFromSync(
+    json: Record<string, unknown>,
+    restaurantId: string,
+  ): Promise<void> {
+    const raw =
+      (json['OfflinePrintConfig'] as OfflinePrintConfigDto | undefined) ??
+      (json['offlinePrintConfig'] as OfflinePrintConfigDto | undefined);
+    if (!raw) {
+      return;
+    }
+    await this.offlinePrintContext.applyFromSyncSnapshot(raw, restaurantId);
   }
 
   private parseActiveGuestWaiterCalls(json: Record<string, unknown>): string[] {

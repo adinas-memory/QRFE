@@ -19,7 +19,7 @@
     </div>
   }
   @if (shouldShowOfflinePrimaryDeviceBanner) {
-    <div class="alert alert-info mx-3 mt-3 mb-0" role="status">
+    <div class="alert alert-info mx-3 mt-3 mb-3" role="status">
       <span class="small">{{ 'manageOrders.offlinePrimaryDeviceActiveHint' | transloco }}</span>
     </div>
   }
@@ -107,13 +107,15 @@
         </c-card-body>
         <footer class="d-flex justify-content-between align-items-center gap-2 px-2 pb-2">
           @if (todaySetMenu) {
-            <button cButton color="primary" size="sm" (click)="openSetMenuModal(table, $event)">
+            <button cButton color="primary" size="sm"
+              [disabled]="isSetMenuActionDisabled()"
+              (click)="openSetMenuModal(table, $event)">
               Meniul zilei
             </button>
           }
           <button cButton class="btn btn-primary ms-auto"
-            [disabled]="requireOnline && !canBypassOfflineUiGates"
-            (click)="table.order ? seeOrder(table) : openTable(table)">
+            [disabled]="isTableActionDisabled(table, requireOnline)"
+            (click)="onTableActionClick(table, requireOnline)">
             {{ !table.isTableOpen ? ('manageOrders.seeOrder' | transloco) : ('manageOrders.openTable' | transloco) }}
           </button>
         </footer>
@@ -314,12 +316,12 @@
 
       <div class="d-flex gap-2" *ngIf="orderIsConfirmed">
         <button class="btn btn-outline-secondary" (click)="printOrder()"
-          [disabled]="selectedItems.length === 0">
+          [disabled]="selectedItems.length === 0 || !canPrintBill">
           <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
           {{ 'manageOrders.print' | transloco }}
         </button>
         <button class="btn btn-warning flex-grow-1" (click)="closeOrder()"
-          [disabled]="selectedItems.length === 0">
+          [disabled]="selectedItems.length === 0 || !canBypassOfflineUiGates">
           {{ 'manageOrders.closeOrder' | transloco }} – {{ cartSubTotal | currency: cartCurrency }}
         </button>
       </div>
