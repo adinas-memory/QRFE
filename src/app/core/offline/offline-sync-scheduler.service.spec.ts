@@ -13,7 +13,12 @@ import { OrderSyncService } from '../services/order-service/order-sync.service';
 describe('OfflineSyncSchedulerService', () => {
   let service: OfflineSyncSchedulerService;
   let online$: Subject<boolean>;
-  let onlineState: { isOnline: boolean; online$: Subject<boolean>['asObservable'] extends () => infer R ? R : never };
+  let pingOk$: Subject<void>;
+  let onlineState: {
+    isOnline: boolean;
+    online$: Subject<boolean>['asObservable'] extends () => infer R ? R : never;
+    pingOk$: Subject<void>['asObservable'] extends () => infer R ? R : never;
+  };
   let queueProcessor: jasmine.SpyObj<OfflineQueueProcessor>;
   let offlineDb: jasmine.SpyObj<OfflineDbService>;
   let auth: jasmine.SpyObj<AuthService>;
@@ -23,7 +28,8 @@ describe('OfflineSyncSchedulerService', () => {
   beforeEach(() => {
     delayConfig.seconds = 54;
     online$ = new Subject<boolean>();
-    onlineState = { isOnline: true, online$: online$.asObservable() };
+    pingOk$ = new Subject<void>();
+    onlineState = { isOnline: true, online$: online$.asObservable(), pingOk$: pingOk$.asObservable() };
 
     queueProcessor = jasmine.createSpyObj('OfflineQueueProcessor', [
       'processQueue',
@@ -157,5 +163,34 @@ describe('OfflineSyncSchedulerService', () => {
 
     tick(54_000);
     expect(orderSync.reconcileAfterOfflineSync).toHaveBeenCalled();
+  }));
+
+  it('clears sync UI after reconnect when reconcile does not call /api/sync', fakeAsync(() => {
+    delayConfig.seconds = 0;
+    offlineDb.getPendingActionsForRestaurant.and.returnValue(Promise.resolve([]));
+    orderSync.reconcileAfterOfflineSync.and.returnValue(Promise.resolve(false));
+
+    online$.next(false);
+    onlineState.isOnline = true;
+    online$.next(true);
+    tick();
+
+    expect(orderSync.reconcileAfterOfflineSync).toHaveBeenCalled();
+    expect(service.isSyncBlocked()).toBeFalse();
+    expect(service.isCountdownActive()).toBeFalse();
+  }));
+
+  it('does not dismiss countdown early on ping-lite while countdown is active', fakeAsync(() => {
+    offlineDb.getPendingActionsForRestaurant.and.returnValue(Promise.resolve([]));
+
+    online$.next(false);
+    onlineState.isOnline = true;
+    online$.next(true);
+    tick();
+
+    expect(service.isCountdownActive()).toBeTrue();
+    pingOk$.next();
+    tick();
+    expect(service.isCountdownActive()).toBeTrue();
   }));
 });

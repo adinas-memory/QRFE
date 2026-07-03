@@ -23,6 +23,10 @@ export class OnlineStateService {
   /** After forced ping-lite succeeds on resume (tab visible / app foreground). */
   readonly resumeConnectivityOk$ = this.resumeConnectivitySubject.asObservable();
 
+  private readonly pingOkSubject = new Subject<void>();
+  /** Emits when ping-lite returns HTTP 2xx (connectivity confirmed). */
+  readonly pingOk$ = this.pingOkSubject.asObservable();
+
   private lastHeartbeat = 0;
   private readonly heartbeatInterval = 10000;
   private heartbeatInProgress: Promise<boolean> | null = null;
@@ -138,6 +142,7 @@ export class OnlineStateService {
       });
       const ok = res.ok || res.status < 500;
       if (ok) {
+        this.pingOkSubject.next();
         this.setOnline();
       } else {
         this.setOffline();
