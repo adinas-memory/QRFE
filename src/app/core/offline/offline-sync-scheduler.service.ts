@@ -1,5 +1,5 @@
 import { Injectable, Injector, InjectionToken, inject } from '@angular/core';
-import { BehaviorSubject, debounceTime, filter, firstValueFrom, pairwise, startWith, take } from 'rxjs';
+import { BehaviorSubject, filter, firstValueFrom, pairwise, startWith, take } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { OfflineDbService } from './offline-db';
 import { OfflineQueueProcessor } from './offline-queue-processor.service';
@@ -67,7 +67,6 @@ export class OfflineSyncSchedulerService {
         startWith(this.onlineState.isOnline),
         pairwise(),
         filter(([wasOnline, isOnline]) => !wasOnline && isOnline),
-        debounceTime(500),
       )
       .subscribe(() => {
         const offlineMs = this.wentOfflineAt != null ? Date.now() - this.wentOfflineAt : Number.POSITIVE_INFINITY;
@@ -91,7 +90,6 @@ export class OfflineSyncSchedulerService {
         startWith(this.onlineState.isOnline),
         pairwise(),
         filter(([wasOnline, isOnline]) => wasOnline && !isOnline),
-        debounceTime(500),
       )
       .subscribe(() => {
         this.wentOfflineAt = Date.now();

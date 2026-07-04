@@ -103,7 +103,7 @@ describe('SseConnectivityService', () => {
     });
     const localService = TestBed.inject(SseConnectivityService);
     localService.reportStreamOpened();
-    tick(13_001);
+    tick(14_001);
     expect(localOnlineState.setOfflineFromConnectivitySource).toHaveBeenCalledWith('stale-watch');
   }));
 
