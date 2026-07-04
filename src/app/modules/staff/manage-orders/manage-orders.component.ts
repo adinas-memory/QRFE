@@ -669,9 +669,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   async addCartItem(item: MenuItem) {
     const blocked = this.isPosMutationBlocked();
-    // #region agent log
-    fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H6-H8',location:'manage-orders.component.ts:addCartItem',message:'addCartItem guard',data:{blocked,isOnline:this.isOnline,isPrimary:this.offlinePolicy.isOfflinePrimaryDevice(),shouldFreezePos:this.offlinePolicy.shouldFreezePosActions(),shouldFreezeSync:this.offlinePolicy.shouldFreezeForRestaurantSync(),reconnectUi:this.isReconnectSyncInProgress()},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     if (blocked) {
       return;
     }

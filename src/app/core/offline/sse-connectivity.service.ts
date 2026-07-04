@@ -53,9 +53,6 @@ export class SseConnectivityService {
     if (isPulse) {
       this.lastPulseAt = Date.now();
       this.lastActivityAt = this.lastPulseAt;
-      // #region agent log
-      fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H16',location:'sse-connectivity.service.ts:reportStreamActivity',message:'ConnectivityPulse received',data:{streamOpen:this.streamOpen,isOnline:this.onlineState.isOnline,lastPulseAgeMs:0,tabId:this.debugTabId()},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       if (!this.onlineState.isOnline) {
         this.clearOfflineDebounce();
         this.onlineState.setOnlineFromConnectivitySource();
@@ -152,9 +149,6 @@ export class SseConnectivityService {
       const pulseStale = this.lastPulseAt > 0 && Date.now() - this.lastPulseAt > STALE_THRESHOLD_MS;
       const stale = !this.streamOpen || pulseStale;
       if (stale || reason === 'http-network' || reason === 'native-network-lost' || reason === 'sse-error') {
-        // #region agent log
-        fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H16',location:'sse-connectivity.service.ts:scheduleOffline',message:'sse offline scheduled firing',data:{reason,stale,streamOpen:this.streamOpen,lastPulseAgeMs:this.lastPulseAt>0?Date.now()-this.lastPulseAt:0,tabId:this.debugTabId()},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         this.onlineState.setOfflineFromConnectivitySource(reason);
       }
     }, debounceMs);
@@ -196,18 +190,5 @@ export class SseConnectivityService {
         this.scheduleOffline('stale-watch');
       }
     }, STALE_WATCH_INTERVAL_MS);
-  }
-
-  private debugTabId(): string {
-    if (typeof sessionStorage === 'undefined') {
-      return 'unknown';
-    }
-    const key = 'debugTabId';
-    let id = sessionStorage.getItem(key);
-    if (!id) {
-      id = `tab-${Math.random().toString(36).slice(2, 8)}`;
-      sessionStorage.setItem(key, id);
-    }
-    return id;
   }
 }

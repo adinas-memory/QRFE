@@ -73,15 +73,9 @@ export class OfflineSyncSchedulerService {
         const recentReconnect = this.lastSuccessfulReconnectAt > 0
           && Date.now() - this.lastSuccessfulReconnectAt < 120_000;
         if (offlineMs < 3000 && recentReconnect) {
-          // #region agent log
-          fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H9',location:'offline-sync-scheduler.service.ts:online$',message:'skipped reconnect — post-reconnect flap',data:{offlineMs,recentReconnectMs:Date.now()-this.lastSuccessfulReconnectAt},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
           return;
         }
         this.reconnectSyncPending = true;
-        // #region agent log
-        fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H5-H7',location:'offline-sync-scheduler.service.ts:online$',message:'offline→online transition',data:{isPrimary:this.offlinePolicy.isOfflinePrimaryDevice(),reconnectSyncPending:this.reconnectSyncPending},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         void this.ensureScheduled();
       });
 
@@ -331,9 +325,6 @@ export class OfflineSyncSchedulerService {
 
   private async handleSecondaryReconnect(): Promise<void> {
     const restaurantId = this.auth.getUserSnapshot()?.restaurantId ?? '';
-    // #region agent log
-    fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H7',location:'offline-sync-scheduler.service.ts:handleSecondaryReconnect',message:'secondary reconnect started',data:{restaurantId,isPrimary:this.offlinePolicy.isOfflinePrimaryDevice(),reconnectSyncPending:this.reconnectSyncPending},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     if (!restaurantId) {
       return;
     }
@@ -345,9 +336,6 @@ export class OfflineSyncSchedulerService {
 
     try {
       const status = await lock.refreshStatus();
-      // #region agent log
-      fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H14-H15',location:'offline-sync-scheduler.service.ts:handleSecondaryReconnect',message:'after refreshStatus',data:{locked:status.locked,secondaryAwaiting:lock.isSecondaryAwaitingPrimaryReconnect(),restaurantLocked:lock.isRestaurantSyncLocked()},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       if (status.locked) {
         this.secondarySawServerLock = true;
       }
@@ -416,9 +404,6 @@ export class OfflineSyncSchedulerService {
 
       // Unfreeze only after primary held the restaurant lock and released it.
       if (this.secondarySawServerLock && !status.locked) {
-        // #region agent log
-        fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H6',location:'offline-sync-scheduler.service.ts:tickSecondaryPoll',message:'secondary unfreeze',data:{locked:status.locked,secondarySawServerLock:this.secondarySawServerLock,jitterElapsedMs:Date.now()-this.secondaryReconnectStartedAt,jitterSeconds},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         this.stopSecondaryReconnectAwait();
       }
     } catch (err) {
