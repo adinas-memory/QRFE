@@ -29,6 +29,8 @@ export class OfflineSyncSchedulerService {
 
   private countdownIntervalId: ReturnType<typeof setInterval> | null = null;
   private reconnectSyncPending = false;
+  private wentOfflineAt: number | null = null;
+  private lastSuccessfulReconnectAt = 0;
   private drainScheduled = false;
   private schedulingInProgress = false;
   private schedulePromise: Promise<void> | null = null;
@@ -67,6 +69,15 @@ export class OfflineSyncSchedulerService {
         filter(([wasOnline, isOnline]) => !wasOnline && isOnline),
       )
       .subscribe(() => {
+        const offlineMs = this.wentOfflineAt != null ? Date.now() - this.wentOfflineAt : Number.POSITIVE_INFINITY;
+        const recentReconnect = this.lastSuccessfulReconnectAt > 0
+          && Date.now() - this.lastSuccessfulReconnectAt < 120_000;
+        if (offlineMs < 3000 && recentReconnect) {
+          // #region agent log
+          fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H9',location:'offline-sync-scheduler.service.ts:online$',message:'skipped reconnect — post-reconnect flap',data:{offlineMs,recentReconnectMs:Date.now()-this.lastSuccessfulReconnectAt},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
+          return;
+        }
         this.reconnectSyncPending = true;
         // #region agent log
         fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H5-H7',location:'offline-sync-scheduler.service.ts:online$',message:'offline→online transition',data:{isPrimary:this.offlinePolicy.isOfflinePrimaryDevice(),reconnectSyncPending:this.reconnectSyncPending},timestamp:Date.now()})}).catch(()=>{});
@@ -81,6 +92,7 @@ export class OfflineSyncSchedulerService {
         filter(([wasOnline, isOnline]) => wasOnline && !isOnline),
       )
       .subscribe(() => {
+        this.wentOfflineAt = Date.now();
         this.reconnectSyncPending = false;
         this.stopSecondaryPoll();
         this.cancelCountdown();
@@ -251,6 +263,7 @@ export class OfflineSyncSchedulerService {
         await this.releaseReconnectRestaurantLock();
       }
     } finally {
+      this.lastSuccessfulReconnectAt = Date.now();
       this.releaseStuckReconnectUi();
     }
   }

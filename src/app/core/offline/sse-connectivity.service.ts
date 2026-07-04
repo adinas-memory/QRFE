@@ -29,6 +29,9 @@ export class SseConnectivityService {
   }
 
   reportStreamActivity(_eventType?: string): void {
+    if (!this.streamOpen) {
+      return;
+    }
     this.lastActivityAt = Date.now();
     if (_eventType === 'ConnectivityPulse') {
       // #region agent log
@@ -85,16 +88,28 @@ export class SseConnectivityService {
     this.scheduleOffline('native-network-lost');
   }
 
-  /**
-   * Ping-lite failed. Mark offline immediately unless SSE pulse arrived very recently
-   * (stream still authoritative within the stale window).
-   */
+  /** Ping-lite failed — mark offline immediately and invalidate zombie SSE activity. */
   reportPingFailed(reason: string): void {
-    const sseFresh = this.streamOpen && Date.now() - this.lastActivityAt <= STALE_THRESHOLD_MS;
-    if (sseFresh) {
-      return;
+    if (this.streamOpen) {
+      this.lastActivityAt = 0;
     }
     this.onlineState.setOfflineFromConnectivitySource(reason);
+  }
+
+  /**
+   * Ping-lite succeeded. Only mark online when SSE is healthy or the stream is not open
+   * (bootstrap / reconnect path). Ignores ping when a zombie SSE socket is stale.
+   */
+  reportPingSuccess(): void {
+    const sseStale = this.streamOpen && this.lastActivityAt > 0
+      && Date.now() - this.lastActivityAt > STALE_THRESHOLD_MS;
+    if (sseStale) {
+      // #region agent log
+      fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H8',location:'sse-connectivity.service.ts:reportPingSuccess',message:'ping ok ignored — stale SSE',data:{streamOpen:this.streamOpen,lastActivityAgeMs:Date.now()-this.lastActivityAt},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      return;
+    }
+    this.onlineState.setOnlineFromConnectivitySource();
   }
 
   private scheduleOffline(reason: string): void {

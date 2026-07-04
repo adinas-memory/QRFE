@@ -49,7 +49,27 @@ describe('SseConnectivityService', () => {
   }));
 
   it('reportStreamActivity on ConnectivityPulse keeps online', () => {
+    service.reportStreamOpened();
     service.reportStreamActivity('ConnectivityPulse');
     expect(onlineState.notifyConnectivityPulse).toHaveBeenCalled();
+  });
+
+  it('reportPingFailed marks offline immediately', () => {
+    service.reportStreamOpened();
+    service.reportPingFailed('ping-lite-error');
+    expect(onlineState.setOfflineFromConnectivitySource).toHaveBeenCalledWith('ping-lite-error');
+  });
+
+  it('reportPingSuccess ignores ok when SSE activity is stale', fakeAsync(() => {
+    service.reportStreamOpened();
+    tick(23_000);
+    onlineState.setOnlineFromConnectivitySource.calls.reset();
+    service.reportPingSuccess();
+    expect(onlineState.setOnlineFromConnectivitySource).not.toHaveBeenCalled();
+  }));
+
+  it('reportPingSuccess marks online when stream is not open', () => {
+    service.reportPingSuccess();
+    expect(onlineState.setOnlineFromConnectivitySource).toHaveBeenCalled();
   });
 });

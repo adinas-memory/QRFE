@@ -142,7 +142,7 @@ export class OnlineStateService {
       // #endregion
       if (ok) {
         this.notifyConnectivityPulse();
-        this.setOnlineFromConnectivitySource();
+        this.injector.get(SseConnectivityService).reportPingSuccess();
       } else {
         this.injector.get(SseConnectivityService).reportPingFailed('ping-lite-fail');
       }
