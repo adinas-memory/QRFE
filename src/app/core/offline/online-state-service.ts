@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject, Injector } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { SseConnectivityService } from './sse-connectivity.service';
 
 function isCapacitorNative(): boolean {
   if (typeof window === 'undefined') return false;
@@ -12,6 +13,7 @@ function isCapacitorNative(): boolean {
 
 @Injectable({ providedIn: 'root' })
 export class OnlineStateService {
+  private readonly injector = inject(Injector);
   private _isOnline = true;
   get isOnline() { return this._isOnline; }
   private apiUrl = environment.apiUrl;
@@ -141,13 +143,15 @@ export class OnlineStateService {
       if (ok) {
         this.notifyConnectivityPulse();
         this.setOnlineFromConnectivitySource();
+      } else {
+        this.injector.get(SseConnectivityService).reportPingFailed('ping-lite-fail');
       }
-      // Ping failure does not mark offline — SSE stale-watch / http-network handle that.
       return ok;
     } catch {
       // #region agent log
-      fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H1-postfix',location:'online-state-service.ts:executePing',message:'ping-lite failed; offline deferred to SSE',data:{wasOnline:this._isOnline},timestamp:Date.now()})}).catch(()=>{});
+      fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H1-postfix',location:'online-state-service.ts:executePing',message:'ping-lite failed',data:{wasOnline:this._isOnline},timestamp:Date.now()})}).catch(()=>{});
       // #endregion
+      this.injector.get(SseConnectivityService).reportPingFailed('ping-lite-error');
       return false;
     } finally {
       this.heartbeatInProgress = null;

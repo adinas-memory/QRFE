@@ -1,5 +1,5 @@
 import { Injectable, Injector, InjectionToken, inject } from '@angular/core';
-import { BehaviorSubject, filter, firstValueFrom, take } from 'rxjs';
+import { BehaviorSubject, filter, firstValueFrom, pairwise, startWith, take } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { OfflineDbService } from './offline-db';
 import { OfflineQueueProcessor } from './offline-queue-processor.service';
@@ -28,7 +28,6 @@ export class OfflineSyncSchedulerService {
   readonly syncCountdownSeconds$ = this.countdownSubject.asObservable();
 
   private countdownIntervalId: ReturnType<typeof setInterval> | null = null;
-  private wasOnline = true;
   private reconnectSyncPending = false;
   private drainScheduled = false;
   private schedulingInProgress = false;
@@ -61,23 +60,31 @@ export class OfflineSyncSchedulerService {
       void this.ensureScheduled();
     });
 
-    this.onlineState.online$.pipe(filter(isOnline => isOnline)).subscribe(() => {
-      if (!this.wasOnline) {
+    this.onlineState.online$
+      .pipe(
+        startWith(this.onlineState.isOnline),
+        pairwise(),
+        filter(([wasOnline, isOnline]) => !wasOnline && isOnline),
+      )
+      .subscribe(() => {
         this.reconnectSyncPending = true;
         // #region agent log
         fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H5-H7',location:'offline-sync-scheduler.service.ts:online$',message:'offline→online transition',data:{isPrimary:this.offlinePolicy.isOfflinePrimaryDevice(),reconnectSyncPending:this.reconnectSyncPending},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         void this.ensureScheduled();
-      }
-      this.wasOnline = true;
-    });
+      });
 
-    this.onlineState.online$.pipe(filter(isOnline => !isOnline)).subscribe(() => {
-      this.wasOnline = false;
-      this.reconnectSyncPending = false;
-      this.stopSecondaryPoll();
-      this.cancelCountdown();
-    });
+    this.onlineState.online$
+      .pipe(
+        startWith(this.onlineState.isOnline),
+        pairwise(),
+        filter(([wasOnline, isOnline]) => wasOnline && !isOnline),
+      )
+      .subscribe(() => {
+        this.reconnectSyncPending = false;
+        this.stopSecondaryPoll();
+        this.cancelCountdown();
+      });
   }
 
   /** True while primary reconnect jitter, lock, drain, or reconcile is in progress. */
@@ -127,6 +134,9 @@ export class OfflineSyncSchedulerService {
   /** Coalesce concurrent schedule attempts (reconnect, SSE, trySyncNow). */
   async ensureScheduled(): Promise<void> {
     if (!this.onlineState.isOnline) {
+      return;
+    }
+    if (this.isCountdownActive() || this.drainScheduled || this.batchSyncDrainingSubject.value) {
       return;
     }
     if (!this.schedulePromise) {
@@ -309,7 +319,7 @@ export class OfflineSyncSchedulerService {
   private async handleSecondaryReconnect(): Promise<void> {
     const restaurantId = this.auth.getUserSnapshot()?.restaurantId ?? '';
     // #region agent log
-    fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H7',location:'offline-sync-scheduler.service.ts:handleSecondaryReconnect',message:'secondary reconnect started',data:{restaurantId,isPrimary:this.offlinePolicy.isOfflinePrimaryDevice(),wasOnline:this.wasOnline,reconnectSyncPending:this.reconnectSyncPending},timestamp:Date.now()})}).catch(()=>{});
+    fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H7',location:'offline-sync-scheduler.service.ts:handleSecondaryReconnect',message:'secondary reconnect started',data:{restaurantId,isPrimary:this.offlinePolicy.isOfflinePrimaryDevice(),reconnectSyncPending:this.reconnectSyncPending},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
     if (!restaurantId) {
       return;

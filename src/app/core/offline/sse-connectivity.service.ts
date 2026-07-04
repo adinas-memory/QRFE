@@ -85,7 +85,22 @@ export class SseConnectivityService {
     this.scheduleOffline('native-network-lost');
   }
 
+  /**
+   * Ping-lite failed. Mark offline immediately unless SSE pulse arrived very recently
+   * (stream still authoritative within the stale window).
+   */
+  reportPingFailed(reason: string): void {
+    const sseFresh = this.streamOpen && Date.now() - this.lastActivityAt <= STALE_THRESHOLD_MS;
+    if (sseFresh) {
+      return;
+    }
+    this.onlineState.setOfflineFromConnectivitySource(reason);
+  }
+
   private scheduleOffline(reason: string): void {
+    if (this.onlineState.isOnline === false && reason === 'stale-watch') {
+      return;
+    }
     const debounceMs = this.offlineDebounceMsFor(reason);
     if (this.offlineDebounceTimer !== null) {
       return;
