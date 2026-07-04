@@ -122,14 +122,14 @@ export class OrderSyncService {
         if (!this.controller) {
           this.reconnectAttempts = 0;
           this.openConnection(rid);
-        } else if (!this.syncScheduler.isReconnectWorkflowActive()) {
-          void this.refreshRestaurantSnapshot();
         }
       });
 
     this.queueProcessor.queueDrained$
       .subscribe(() => {
-        void this.reconcileAfterOfflineSync();
+        if (!this.syncScheduler.isReconnectWorkflowActive()) {
+          void this.reconcileAfterOfflineSync();
+        }
       });
 
     this.sseConnectivity.scheduleBootstrapConnectivityCheck();
@@ -306,15 +306,8 @@ export class OrderSyncService {
         this.sseConnectivity.reportStreamOpened();
 
         const reconnectBusy = this.syncScheduler.isReconnectWorkflowActive();
-        if (
-          !reconnectBusy
-          && Date.now() - this.lastSnapshotRefreshAt >= this.snapshotRefreshMinIntervalMs
-        ) {
-          try {
-            await this.syncRestaurantState(restaurantId, 'sse-onopen');
-          } catch (e) {
-            console.warn('[SSE][internal] /api/sync failed (continuing live SSE only)', e);
-          }
+        if (!reconnectBusy) {
+          void this.refreshRestaurantSnapshot();
         }
 
         this.ngZone.run(() => {

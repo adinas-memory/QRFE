@@ -17,10 +17,6 @@ export class SseConnectivityService {
 
   constructor() {
     this.startStaleWatch();
-    this.onlineState.pingOk$?.subscribe(() => {
-      this.lastActivityAt = Date.now();
-      this.clearOfflineDebounce();
-    });
   }
 
   reportStreamOpened(): void {

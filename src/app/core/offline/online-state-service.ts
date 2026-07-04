@@ -141,12 +141,13 @@ export class OnlineStateService {
       if (ok) {
         this.notifyConnectivityPulse();
         this.setOnlineFromConnectivitySource();
-      } else {
-        this.setOfflineFromConnectivitySource('ping-lite-fail');
       }
+      // Ping failure does not mark offline — SSE stale-watch / http-network handle that.
       return ok;
     } catch {
-      this.setOfflineFromConnectivitySource('ping-lite-error');
+      // #region agent log
+      fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H1-postfix',location:'online-state-service.ts:executePing',message:'ping-lite failed; offline deferred to SSE',data:{wasOnline:this._isOnline},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       return false;
     } finally {
       this.heartbeatInProgress = null;

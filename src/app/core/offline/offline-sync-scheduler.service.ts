@@ -75,7 +75,7 @@ export class OfflineSyncSchedulerService {
     this.onlineState.online$.pipe(filter(isOnline => !isOnline)).subscribe(() => {
       this.wasOnline = false;
       this.reconnectSyncPending = false;
-      this.stopSecondaryReconnectAwait();
+      this.stopSecondaryPoll();
       this.cancelCountdown();
     });
   }
@@ -380,12 +380,16 @@ export class OfflineSyncSchedulerService {
       }
 
       const jitterSeconds = this.resolveReconnectDelay(restaurantId, this.secondaryReconnectStartedAt);
-      const jitterElapsedMs = Date.now() - this.secondaryReconnectStartedAt >= jitterSeconds * 1000;
-      if (!jitterElapsedMs) {
+      if (this.secondaryReconnectStartedAt <= 0) {
+        return;
+      }
+      const jitterElapsed = Date.now() - this.secondaryReconnectStartedAt >= jitterSeconds * 1000;
+      if (!jitterElapsed) {
         return;
       }
 
-      if (!this.secondarySawServerLock || !status.locked) {
+      // Unfreeze only after primary held the restaurant lock and released it.
+      if (this.secondarySawServerLock && !status.locked) {
         // #region agent log
         fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H6',location:'offline-sync-scheduler.service.ts:tickSecondaryPoll',message:'secondary unfreeze',data:{locked:status.locked,secondarySawServerLock:this.secondarySawServerLock,jitterElapsedMs:Date.now()-this.secondaryReconnectStartedAt,jitterSeconds},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
