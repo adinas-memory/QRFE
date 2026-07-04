@@ -4,14 +4,49 @@ Același codebase Angular servește **browser**, **PWA instalată** și **APK Ca
 
 ## Build matrix
 
-| Scop | Comandă | `apiUrl` | Service worker |
-|------|---------|----------|----------------|
-| Producție web/PWA | `npm run build` (production) | `https://universalrestaurant.systems` | da (same host) |
-| LAN dev (nginx) | `npm run build:devhost` | IP LAN, aliniat la origin :80 | da dacă același host |
-| APK Android | `npm run build:capacitor` | prod HTTPS | **nu** |
-| Test PWA local | `npm run build:pwa` + `serve:localhost` | `localhost:7051` | dezactivat pe :8080 |
+| Scop | Comandă | `apiUrl` | Service worker | Capacitor `server.url` |
+|------|---------|----------|----------------|------------------------|
+| Producție web/PWA | `npm run build` (production) | `https://universalrestaurant.systems` | da (same host) | — |
+| LAN dev (nginx) | `npm run build:devhost` | IP LAN, aliniat la origin :80 | nu | — |
+| **APK release (prod)** | `npm run android:prod` | prod HTTPS | **nu** | **nu** (bundle local) |
+| APK LAN tabletă | `npm run android:lan` | IP LAN | **nu** | da (live reload LAN) |
+| Test PWA local | `npm run build:pwa` + `serve:localhost` | `localhost:7051` | dezactivat pe :8080 | — |
 
-**Nu folosi `devhost` în APK release.** Pentru debug LAN pe tabletă, setează `server.url` în `capacitor.config.ts` către `http://<IP>/` (same-origin).
+**Nu folosi `capacitor-lan` / `android:lan` pentru APK release.** Release-ul folosește assets bundled + HTTPS prod.
+
+## Release APK intern (semnat)
+
+```bash
+npm install
+npm run android:prod
+npm run cap:android   # Android Studio
+```
+
+În Android Studio: **Build → Generate Signed Bundle / APK → APK**
+
+1. Creează sau selectează keystore local (nu se commită în git).
+2. Alege **release** build variant.
+3. Instalează APK-ul pe tabletă (sideload / MDM).
+
+Alternativ, build headless (necesită signing configurat în `android/app/build.gradle`):
+
+```bash
+npm run android:release
+# APK: android/app/build/outputs/apk/release/app-release-unsigned.apk
+# Semnează în Studio sau adaugă signingConfigs release.
+```
+
+**Versioning:** la fiecare release, incrementează `versionCode` și `versionName` în `android/app/build.gradle`.
+
+## Debug LAN pe tabletă
+
+```bash
+npm run android:lan
+```
+
+Folosește `environment.capacitor.lan.ts` + `capacitor.config.lan.ts` (copiat temporar la sync via `scripts/cap-sync-lan.mjs`). Editează IP-ul în ambele fișiere dacă LAN-ul tău diferă de `192.168.43.142`.
+
+Pentru LAN cu cleartext HTTP, poți seta temporar `android:usesCleartextTraffic="true"` și adăuga IP-ul în `network_security_config.xml` — **nu** include asta în build-ul de producție.
 
 ## Prima instalare Android
 
@@ -38,19 +73,32 @@ API-ul trebuie să accepte origin Capacitor (`https://localhost`, `capacitor://l
 | `resolve-api-url.ts` | nu rescrie `apiUrl` pe native |
 | `device-feedback.service.ts` | `navigator.vibrate` vs `@capacitor/haptics` |
 | `pickup-notification.service.ts` | SSE kitchen/bar → haptics |
+| `pull-to-refresh-host.component.ts` | swipe-down refresh pe layout staff |
+
+## Pull-to-refresh (staff)
+
+Pe layout-ul staff (orders, kitchen, bar): trage de sus în jos când scroll-ul e la top → `GET /api/sync` forțat. Dezactivat offline sau când un modal/offcanvas e deschis.
+
+## Offline sync countdown (Android)
+
+La reconectare după offline, toate tabletele aceluiași restaurant așteaptă **0–60 s** (delay determinist anti–thundering herd) înainte de drain coadă / reconciliere. UI modal cu număr invers apare **doar pe Manage Orders**; kitchen/bar sincronizează în fundal cu aceeași logică.
 
 ## Pickup haptics
 
 Vibrează doar dispozitivul cu `ClientInstanceId` egal cu payload-ul SSE (`X-Client-Instance-Id` la mutații staff). Toggle în **Manage orders**.
 
-## QA minim APK
+## QA minim APK release
 
 1. Login staff, fără spinner blocat.
-2. Modifică comandă → header device id la backend.
-3. Kitchen pickup → vibrație doar pe device-ul care a editat comanda.
-4. Toggle haptics off → fără vibrație, toast/badge OK.
+2. Request-uri API către `https://universalrestaurant.systems` (nu LAN).
+3. Modifică comandă → header device id la backend.
+4. Kitchen pickup → vibrație doar pe device-ul care a editat comanda.
+5. Toggle haptics off → fără vibrație, toast/badge OK.
+6. Offline → online → countdown + sync pe Manage Orders.
+7. Pull-to-refresh pe orders/kitchen când ești online.
 
 ## Limitări v1
 
 - SSE în foreground (fără background service nativ).
+- Countdown reconnect vizibil doar pe Manage Orders (kitchen/bar: sync fără modal).
 - iOS: separat, același pattern Haptics.

@@ -9,6 +9,9 @@ import { OfflineDbService } from './offline-db';
 import { OnlineStateService } from './online-state-service';
 import { AuthService } from '../auth/auth.service';
 import { OrderSyncService } from '../services/order-service/order-sync.service';
+import { OfflinePolicyService } from './offline-policy.service';
+import { OfflineSyncLockService } from './offline-sync-lock.service';
+import { UserContextModel } from '../models/userContextModel';
 
 describe('OfflineSyncSchedulerService', () => {
   let service: OfflineSyncSchedulerService;
@@ -23,6 +26,7 @@ describe('OfflineSyncSchedulerService', () => {
   let offlineDb: jasmine.SpyObj<OfflineDbService>;
   let auth: jasmine.SpyObj<AuthService>;
   let orderSync: jasmine.SpyObj<OrderSyncService>;
+  let userSubject: BehaviorSubject<UserContextModel | null>;
   const delayConfig = { seconds: 54 };
 
   beforeEach(() => {
@@ -41,9 +45,20 @@ describe('OfflineSyncSchedulerService', () => {
     offlineDb = jasmine.createSpyObj('OfflineDbService', ['getPendingActionsForRestaurant']);
     offlineDb.getPendingActionsForRestaurant.and.returnValue(Promise.resolve([{ id: 'a1' } as never]));
 
+    const offlineSyncLock = jasmine.createSpyObj('OfflineSyncLockService', ['beginSync', 'completeSync']);
+    offlineSyncLock.beginSync.and.returnValue(Promise.resolve(true));
+    offlineSyncLock.completeSync.and.returnValue(Promise.resolve(true));
+    Object.defineProperty(offlineSyncLock, 'restaurantSyncLocked$', { value: new BehaviorSubject(false).asObservable() });
+
     auth = jasmine.createSpyObj('AuthService', ['getUserSnapshot']);
     auth.getUserSnapshot.and.returnValue({ restaurantId: 'rest-1', isOfflinePrimaryDevice: true } as never);
+    userSubject = new BehaviorSubject<UserContextModel | null>({
+      id: 'u1',
+      role: 'staff',
+      isOfflinePrimaryDevice: true,
+    });
     Object.defineProperty(auth, 'loggedIn$', { value: new Subject<void>().asObservable() });
+    Object.defineProperty(auth, 'user$', { value: userSubject.asObservable() });
 
     orderSync = jasmine.createSpyObj('OrderSyncService', ['reconcileAfterOfflineSync']);
     orderSync.reconcileAfterOfflineSync.and.returnValue(Promise.resolve(true));
@@ -51,11 +66,13 @@ describe('OfflineSyncSchedulerService', () => {
     TestBed.configureTestingModule({
       providers: [
         OfflineSyncSchedulerService,
+        OfflinePolicyService,
         { provide: OnlineStateService, useValue: onlineState },
         { provide: OfflineDbService, useValue: offlineDb },
         { provide: AuthService, useValue: auth },
         { provide: OfflineQueueProcessor, useValue: queueProcessor },
         { provide: OrderSyncService, useValue: orderSync },
+        { provide: OfflineSyncLockService, useValue: offlineSyncLock },
         { provide: OFFLINE_RECONNECT_DELAY_RESOLVER, useFactory: () => () => delayConfig.seconds },
       ],
     });
@@ -76,7 +93,7 @@ describe('OfflineSyncSchedulerService', () => {
     expect(queueProcessor.processQueue).not.toHaveBeenCalled();
 
     tick(54_000);
-    expect(queueProcessor.processQueue).toHaveBeenCalledWith({ force: true, emitDrainedOnComplete: true });
+    expect(queueProcessor.processQueue).toHaveBeenCalledWith({ force: true, emitDrainedOnComplete: false });
     expect(values[values.length - 1]).toBeNull();
   }));
 
@@ -118,6 +135,7 @@ describe('OfflineSyncSchedulerService', () => {
 
     tick(54_000);
     expect(queueProcessor.processQueue).toHaveBeenCalledTimes(1);
+    expect(orderSync.reconcileAfterOfflineSync).toHaveBeenCalled();
   }));
 
   it('blocks processQueue until countdown completes', fakeAsync(() => {
@@ -130,11 +148,16 @@ describe('OfflineSyncSchedulerService', () => {
 
     tick(54_000);
     expect(service.isSyncBlocked()).toBeFalse();
-    expect(queueProcessor.processQueue).toHaveBeenCalledWith({ force: true, emitDrainedOnComplete: true });
+    expect(queueProcessor.processQueue).toHaveBeenCalledWith({ force: true, emitDrainedOnComplete: false });
   }));
 
-  it('reconciles on reconnect for non-primary devices without local pending queue', fakeAsync(() => {
+  it('does not reconcile on reconnect for non-primary devices without local pending queue', fakeAsync(() => {
     delayConfig.seconds = 0;
+    userSubject.next({
+      id: 'u1',
+      role: 'staff',
+      isOfflinePrimaryDevice: false,
+    });
     auth.getUserSnapshot.and.returnValue({
       restaurantId: 'rest-1',
       isOfflinePrimaryDevice: false,
@@ -147,7 +170,7 @@ describe('OfflineSyncSchedulerService', () => {
     tick();
 
     expect(queueProcessor.processQueue).not.toHaveBeenCalled();
-    expect(orderSync.reconcileAfterOfflineSync).toHaveBeenCalled();
+    expect(orderSync.reconcileAfterOfflineSync).not.toHaveBeenCalled();
   }));
 
   it('shows centralized countdown on reconnect even without local pending queue', fakeAsync(() => {

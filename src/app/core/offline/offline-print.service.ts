@@ -40,9 +40,6 @@ export class OfflinePrintService {
     const timeout = setTimeout(() => controller.abort(), 15_000);
 
     try {
-      // #region agent log
-      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ac8dee'},body:JSON.stringify({sessionId:'ac8dee',location:'offline-print.service.ts:printBillSync:preFetch',message:'local print fetch start',data:{baseUrl,hasToken:!!token,restaurantId:args.restaurantId,printerId:args.printerId},timestamp:Date.now(),hypothesisId:'H2-H3-H5'})}).catch(()=>{});
-      // #endregion
       const res = await fetch(`${baseUrl}/local/print-jobs`, {
         method: 'POST',
         headers,
@@ -54,9 +51,6 @@ export class OfflinePrintService {
         signal: controller.signal,
       });
 
-      // #region agent log
-      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ac8dee'},body:JSON.stringify({sessionId:'ac8dee',location:'offline-print.service.ts:printBillSync:postFetch',message:'local print fetch response',data:{status:res.status,ok:res.ok},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
-      // #endregion
       if (!res.ok) {
         throw new Error(`Local print failed: HTTP ${res.status}`);
       }

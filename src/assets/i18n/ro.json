@@ -664,7 +664,8 @@
   },
   "offline": {
     "bannerPrimary": "OFFLINE — mod POS complet (se sincronizează la reconectare)",
-    "bannerLimited": "OFFLINE! Mutați-vă pe dispozitivul configurat pentru lucru OFFLINE."
+    "bannerLimited": "OFFLINE! Mutați-vă pe dispozitivul configurat pentru lucru OFFLINE.",
+    "bannerRestaurantSyncLocked": "SINCRONIZARE OFFLINE ÎN CURS — așteptați până când dispozitivul principal termină sincronizarea comenzilor."
   },
   "kitchen": {
     "title": "Bucătărie",
@@ -988,5 +989,11 @@
         "a": "Nivelurile de abonament definesc ca limite numărul de mese. Plata și reînnoirea trec prin Stripe; după plată reușită urmează onboarding-ul restaurantului, iar managerii pot gestiona facturarea din setări când e activat."
       }
     }
+  },
+  "pullToRefresh": {
+    "pull": "Trage în jos pentru reîmprospătare",
+    "release": "Eliberează pentru reîmprospătare",
+    "syncing": "Se actualizează…",
+    "offline": "Nu se poate reîmprospăta offline."
   }
 }

@@ -5,6 +5,8 @@ import { OfflineDbService } from './offline-db';
 import { OfflineQueueProcessor } from './offline-queue-processor.service';
 import { OnlineStateService } from './online-state-service';
 import { OrderSyncService } from '../services/order-service/order-sync.service';
+import { OfflinePolicyService } from './offline-policy.service';
+import { OfflineSyncLockService } from './offline-sync-lock.service';
 import {
   computeCentralizedReconnectDelaySeconds,
   OFFLINE_SYNC_JITTER_MAX_SECONDS,
@@ -33,6 +35,7 @@ export class OfflineSyncSchedulerService {
   private schedulePromise: Promise<void> | null = null;
   private queueProcessor: OfflineQueueProcessor | null = null;
   private orderSync: OrderSyncService | null = null;
+  private offlineSyncLock: OfflineSyncLockService | null = null;
   private readonly resolveReconnectDelay = inject(OFFLINE_RECONNECT_DELAY_RESOLVER);
   private readonly syncBlockedSubject = new BehaviorSubject(false);
   /** Emits true while reconnect jitter is preparing or counting down. */
@@ -47,6 +50,7 @@ export class OfflineSyncSchedulerService {
     private readonly onlineState: OnlineStateService,
     private readonly offlineDb: OfflineDbService,
     private readonly auth: AuthService,
+    private readonly offlinePolicy: OfflinePolicyService,
   ) {
     this.auth.loggedIn$.subscribe(() => {
       void this.ensureScheduled();
@@ -73,6 +77,11 @@ export class OfflineSyncSchedulerService {
 
   isCountdownActive(): boolean {
     return this.countdownSubject.value !== null;
+  }
+
+  /** True when an offline→online transition is pending heavy reconnect scheduling. */
+  isReconnectPending(): boolean {
+    return this.reconnectSyncPending;
   }
 
   /** True while jitter is being calculated or countdown is running — queue must not drain yet. */
@@ -121,6 +130,11 @@ export class OfflineSyncSchedulerService {
     return this.orderSync;
   }
 
+  private getOfflineSyncLock(): OfflineSyncLockService {
+    this.offlineSyncLock ??= this.injector.get(OfflineSyncLockService);
+    return this.offlineSyncLock;
+  }
+
   private async schedulePendingSyncWithJitter(): Promise<void> {
     this.schedulingInProgress = true;
     this.refreshSyncBlocked();
@@ -131,7 +145,7 @@ export class OfflineSyncSchedulerService {
       const isReconnect = this.reconnectSyncPending;
       this.reconnectSyncPending = false;
 
-      if (pendingCount === 0 && !isReconnect) {
+      if (!this.offlinePolicy.shouldRunHeavyOfflineReconnectSync({ isReconnect, pendingQueueCount: pendingCount })) {
         return;
       }
 
@@ -181,7 +195,18 @@ export class OfflineSyncSchedulerService {
     try {
       const pendingCount = await this.getPendingCount();
       if (pendingCount > 0) {
-        await this.drainQueue();
+        const shouldLock = this.offlinePolicy.isOfflinePrimaryDevice();
+        if (shouldLock) {
+          await this.getOfflineSyncLock().beginSync();
+        }
+        try {
+          await this.drainQueue(false);
+          await this.getOrderSync().reconcileAfterOfflineSync();
+        } finally {
+          if (shouldLock) {
+            await this.getOfflineSyncLock().completeSync();
+          }
+        }
         return;
       }
       await this.getOrderSync().reconcileAfterOfflineSync();
@@ -208,10 +233,13 @@ export class OfflineSyncSchedulerService {
     this.refreshSyncBlocked();
   }
 
-  private async drainQueue(): Promise<void> {
+  private async drainQueue(emitDrainedOnComplete = true): Promise<void> {
     this.batchSyncDrainingSubject.next(true);
     try {
-      await this.getQueueProcessor().processQueue({ force: true, emitDrainedOnComplete: true });
+      await this.getQueueProcessor().processQueue({
+        force: true,
+        emitDrainedOnComplete,
+      });
     } finally {
       this.batchSyncDrainingSubject.next(false);
       this.drainScheduled = false;

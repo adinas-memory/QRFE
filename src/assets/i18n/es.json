@@ -873,5 +873,11 @@
         "a": "Los niveles definen límites (mesas, bares, plazas). El pago y la renovación pasan por Stripe; tras un pago correcto sigue el onboarding del restaurante; los managers gestionan facturación en ajustes."
       }
     }
+  },
+  "pullToRefresh": {
+    "pull": "Desliza hacia abajo para actualizar",
+    "release": "Suelta para actualizar",
+    "syncing": "Actualizando…",
+    "offline": "No se puede actualizar sin conexión."
   }
 }

@@ -5,7 +5,10 @@ import { OfflineSyncSchedulerService } from '../../offline/offline-sync-schedule
 import { OfflineQueueProcessor } from '../../offline/offline-queue-processor.service';
 import { OfflineDbService } from '../../offline/offline-db';
 import { OnlineStateService } from '../../offline/online-state-service';
-import { Observable, Subject, of, firstValueFrom } from 'rxjs';
+import { Observable, Subject, of, firstValueFrom, BehaviorSubject } from 'rxjs';
+import { OfflinePolicyService } from '../../offline/offline-policy.service';
+import { OfflineSyncLockService } from '../../offline/offline-sync-lock.service';
+import { UserContextModel } from '../../models/userContextModel';
 
 describe('OrderSyncService', () => {
   let service: OrderSyncService;
@@ -23,6 +26,8 @@ describe('OrderSyncService', () => {
   };
   let fetchSpy: jasmine.Spy;
   let queueDrained$: Subject<void>;
+  let syncSchedulerSpy: jasmine.SpyObj<OfflineSyncSchedulerService>;
+  let userSubject: BehaviorSubject<UserContextModel | null>;
 
   function lastSyncFetchUrl(): string {
     const syncCalls = fetchSpy.calls.all().filter(c => String(c.args[0]).includes('/api/sync'));
@@ -40,16 +45,35 @@ describe('OrderSyncService', () => {
     auth.refreshUserContext.and.returnValue(of(null));
     auth.getUserRestaurantId.and.returnValue(null);
 
-    const syncSchedulerSpy = jasmine.createSpyObj('OfflineSyncSchedulerService', ['runWhenAllowed']);
+    syncSchedulerSpy = jasmine.createSpyObj('OfflineSyncSchedulerService', [
+      'runWhenAllowed',
+      'isReconnectPending',
+    ]);
     syncSchedulerSpy.runWhenAllowed.and.returnValue(Promise.resolve());
+    syncSchedulerSpy.isReconnectPending.and.returnValue(false);
+    const offlineSyncLockSpy = jasmine.createSpyObj('OfflineSyncLockService', [
+      'setRestaurantSyncLocked',
+      'beginSync',
+      'completeSync',
+    ]);
+    Object.defineProperty(offlineSyncLockSpy, 'restaurantSyncLocked$', {
+      value: new BehaviorSubject(false).asObservable(),
+    });
+    userSubject = new BehaviorSubject<UserContextModel | null>({
+      id: 'u1',
+      role: 'staff',
+      isOfflinePrimaryDevice: true,
+    });
     queueDrained$ = new Subject<void>();
     dbSpy = jasmine.createSpyObj('OfflineDbService', [
       'getPendingActions',
+      'getPendingActionsForRestaurant',
       'markActionDone',
       'setOffline',
       'applySyncSnapshot',
     ]);
     dbSpy.getPendingActions.and.returnValue(Promise.resolve([]));
+    dbSpy.getPendingActionsForRestaurant.and.returnValue(Promise.resolve([]));
     dbSpy.applySyncSnapshot.and.returnValue(Promise.resolve());
 
     resumeConnectivityOk$ = new Subject<void>();
@@ -74,8 +98,10 @@ describe('OrderSyncService', () => {
     TestBed.configureTestingModule({
       providers: [
         OrderSyncService,
-        { provide: AuthService, useValue: auth },
+        OfflinePolicyService,
+        { provide: AuthService, useValue: { ...auth, user$: userSubject.asObservable() } },
         { provide: OfflineSyncSchedulerService, useValue: syncSchedulerSpy },
+        { provide: OfflineSyncLockService, useValue: offlineSyncLockSpy },
         { provide: OfflineQueueProcessor, useValue: { queueDrained$: queueDrained$.asObservable() } },
         { provide: OfflineDbService, useValue: dbSpy },
         { provide: OnlineStateService, useValue: onlineState },
@@ -280,6 +306,22 @@ describe('OrderSyncService', () => {
 
       expect(ok).toBe(false);
       expect(auth.refreshUserContext).not.toHaveBeenCalled();
+    });
+
+    it('fromResume on non-primary skips scheduler but still calls /api/sync', async () => {
+      userSubject.next({
+        id: 'u1',
+        role: 'staff',
+        isOfflinePrimaryDevice: false,
+      });
+      syncSchedulerSpy.isReconnectPending.and.returnValue(true);
+      dbSpy.getPendingActionsForRestaurant.and.returnValue(Promise.resolve([{ id: 'a1' } as never]));
+
+      const ok = await service.refreshRestaurantSnapshot({ fromResume: true, force: true });
+
+      expect(ok).toBe(true);
+      expect(syncSchedulerSpy.runWhenAllowed).not.toHaveBeenCalled();
+      expect(lastSyncFetchUrl()).toContain('/api/sync?restaurantId=restaurant-1');
     });
   });
 

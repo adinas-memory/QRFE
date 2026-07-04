@@ -13,6 +13,8 @@ import { OfflineDbService } from '../../offline/offline-db';
 import { OnlineStateService } from '../../offline/online-state-service';
 import { OfflinePrintContextService } from '../../offline/offline-print-context.service';
 import { OfflinePrintConfigDto } from '../../offline/offline-print-config.model';
+import { OfflinePolicyService } from '../../offline/offline-policy.service';
+import { OfflineSyncLockService } from '../../offline/offline-sync-lock.service';
 import { Capacitor } from '@capacitor/core';
 
 @Injectable({
@@ -74,6 +76,8 @@ export class OrderSyncService {
     private offlineDB: OfflineDbService,
     private onlineStateService: OnlineStateService,
     private offlinePrintContext: OfflinePrintContextService,
+    private offlinePolicy: OfflinePolicyService,
+    private offlineSyncLock: OfflineSyncLockService,
   ) {
     // Cross-tab fanout: if one tab receives SSE, share it to others.
     this.bc?.addEventListener('message', (ev: MessageEvent) => {
@@ -131,6 +135,18 @@ export class OrderSyncService {
     }
     const fromAuth = this.auth.getUserRestaurantId();
     return typeof fromAuth === 'string' && isAssignedRestaurantId(fromAuth) ? fromAuth : null;
+  }
+
+  private async needsHeavyOfflineSync(): Promise<boolean> {
+    const restaurantId = this.resolveRestaurantId();
+    if (!restaurantId) {
+      return false;
+    }
+    const pending = await this.offlineDB.getPendingActionsForRestaurant(restaurantId);
+    return this.offlinePolicy.shouldRunHeavyOfflineReconnectSync({
+      isReconnect: this.syncScheduler.isReconnectPending(),
+      pendingQueueCount: pending.length,
+    });
   }
 
   async trySyncNow() {
@@ -193,7 +209,9 @@ export class OrderSyncService {
     this.snapshotRefreshInProgress = true;
     let succeeded = false;
     try {
-      await this.trySyncNow();
+      if (await this.needsHeavyOfflineSync()) {
+        await this.trySyncNow();
+      }
       await this.syncRestaurantState(restaurantId);
       if (!this.controller) {
         this.openConnection(restaurantId);
@@ -305,7 +323,9 @@ export class OrderSyncService {
         this.ngZone.run(() => {
           this.reconnectAttempts = 0;
         });
-        void this.syncScheduler.runWhenAllowed();
+        if (await this.needsHeavyOfflineSync()) {
+          void this.syncScheduler.runWhenAllowed();
+        }
       },
       onmessage: (msg) => {
         this.ngZone.run(() => {
@@ -341,6 +361,12 @@ export class OrderSyncService {
           if (!EventType && (typeof msg.data === 'string') && msg.data.trim() === '') return;
 
           const sse: SseEvent<any> = { EventType, Data, Sequence, RestaurantId, InitiatedBy };
+
+          if (EventType === 'RestaurantSyncLocked') {
+            this.offlineSyncLock.setRestaurantSyncLocked(true);
+          } else if (EventType === 'RestaurantSyncUnlocked') {
+            this.offlineSyncLock.setRestaurantSyncLocked(false);
+          }
 
           if (Sequence && Sequence <= this.watermarkSequence) {
             // already included in last /api/sync snapshot or previously applied
