@@ -15,6 +15,7 @@ import { OfflinePrintContextService } from '../../offline/offline-print-context.
 import { OfflinePrintConfigDto } from '../../offline/offline-print-config.model';
 import { OfflinePolicyService } from '../../offline/offline-policy.service';
 import { OfflineSyncLockService } from '../../offline/offline-sync-lock.service';
+import { SseConnectivityService } from '../../offline/sse-connectivity.service';
 import { Capacitor } from '@capacitor/core';
 
 @Injectable({
@@ -78,6 +79,7 @@ export class OrderSyncService {
     private offlinePrintContext: OfflinePrintContextService,
     private offlinePolicy: OfflinePolicyService,
     private offlineSyncLock: OfflineSyncLockService,
+    private sseConnectivity: SseConnectivityService,
   ) {
     // Cross-tab fanout: if one tab receives SSE, share it to others.
     this.bc?.addEventListener('message', (ev: MessageEvent) => {
@@ -127,6 +129,8 @@ export class OrderSyncService {
       .subscribe(() => {
         void this.reconcileAfterOfflineSync();
       });
+
+    this.sseConnectivity.scheduleBootstrapConnectivityCheck();
   }
 
   private resolveRestaurantId(): string | null {
@@ -241,6 +245,7 @@ export class OrderSyncService {
   }
 
   close() {
+    this.sseConnectivity.reportStreamClosed();
     try {
       console.warn('[SSE][internal] close() called');
       this.controller?.abort();
@@ -258,7 +263,8 @@ export class OrderSyncService {
     return document.hidden;
   }
 
-  private flushPendingSseConnection(): void {
+  /** Opens deferred SSE after tab/app becomes visible or native network returns. */
+  flushPendingSseConnection(): void {
     const rid = this.pendingOpenRestaurantId ?? this.resolveRestaurantId();
     if (!rid || this.controller) {
       return;
@@ -310,7 +316,7 @@ export class OrderSyncService {
         if (!contentType?.startsWith(EventStreamContentType)) {
           throw new Error(`SSE expected ${EventStreamContentType}, got: ${contentType ?? 'none'}`);
         }
-        this.onlineStateService.setOnline();
+        this.sseConnectivity.reportStreamOpened();
 
         if (Date.now() - this.lastSnapshotRefreshAt >= this.snapshotRefreshMinIntervalMs) {
           try {
@@ -345,6 +351,12 @@ export class OrderSyncService {
 
           const EventType = msg.event || raw?.EventType || raw?.event || raw?.type || '';
 
+          this.sseConnectivity.reportStreamActivity(EventType);
+
+          if (EventType === 'ConnectivityPulse') {
+            return;
+          }
+
           // support both envelopes:
           // A) { EventType, Data, Sequence, RestaurantId, InitiatedBy }
           // B) payload-only (no wrapper) -> treat raw as Data
@@ -369,9 +381,6 @@ export class OrderSyncService {
 
           if (EventType === 'RestaurantSyncLocked') {
             this.offlineSyncLock.setRestaurantSyncLocked(true);
-            // #region agent log
-            fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H4',location:'order-sync.service.ts:SSE',message:'RestaurantSyncLocked SSE received',data:{restaurantId:RestaurantId},timestamp:Date.now()})}).catch(()=>{});
-            // #endregion
           } else if (EventType === 'RestaurantSyncUnlocked') {
             this.offlineSyncLock.setRestaurantSyncLocked(false);
           }
@@ -404,7 +413,7 @@ export class OrderSyncService {
 
         // 401 (expired token) is NOT "offline". Let refresh flow handle it.
         if (!isAuth401) {
-          this.onlineStateService.setOffline();
+          this.sseConnectivity.reportStreamError(isAuth401);
         }
         this.ngZone.run(() => {
           // if server sends a specific auth error payload, you can detect it here

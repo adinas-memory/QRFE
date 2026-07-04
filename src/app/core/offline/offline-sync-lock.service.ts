@@ -23,15 +23,32 @@ export class OfflineSyncLockService {
   /** True while the restaurant is locked for offline replay (SSE or local begin). */
   readonly restaurantSyncLocked$ = this.lockedSubject.asObservable();
 
+  private readonly secondaryAwaitingSubject = new BehaviorSubject(false);
+  /** Secondary device waits for primary reconnect sync to finish. */
+  readonly secondaryAwaitingPrimaryReconnect$ = this.secondaryAwaitingSubject.asObservable();
+
   private localLockHeld = false;
 
   isRestaurantSyncLocked(): boolean {
     return this.lockedSubject.value;
   }
 
+  isSecondaryAwaitingPrimaryReconnect(): boolean {
+    return this.secondaryAwaitingSubject.value;
+  }
+
+  setSecondaryAwaitingPrimaryReconnect(awaiting: boolean): void {
+    if (awaiting !== this.secondaryAwaitingSubject.value) {
+      this.secondaryAwaitingSubject.next(awaiting);
+    }
+  }
+
   setRestaurantSyncLocked(locked: boolean): void {
     if (locked !== this.lockedSubject.value) {
       this.lockedSubject.next(locked);
+    }
+    if (!locked) {
+      this.setSecondaryAwaitingPrimaryReconnect(false);
     }
   }
 
@@ -61,9 +78,6 @@ export class OfflineSyncLockService {
 
     const clientInstanceId = (await this.clientInstance.whenReady())?.trim() ?? '';
     if (!clientInstanceId) {
-      // #region agent log
-      fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H2',location:'offline-sync-lock.service.ts:beginSync',message:'beginSync aborted — no client instance id',data:{restaurantId},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       return false;
     }
 
@@ -81,24 +95,12 @@ export class OfflineSyncLockService {
       );
 
       const acquired = response?.acquired === true;
-      // #region agent log
-      fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H1',location:'offline-sync-lock.service.ts:beginSync',message:'beginSync response',data:{restaurantId,acquired,hasClientInstanceId:true},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       if (acquired) {
         this.localLockHeld = true;
         this.setRestaurantSyncLocked(true);
       }
       return acquired;
-    } catch (err) {
-      const status = err instanceof HttpErrorResponse ? err.status : null;
-      const message = err instanceof HttpErrorResponse
-        ? (typeof err.error === 'object' && err.error && 'message' in err.error
-          ? String((err.error as { message?: string }).message)
-          : err.message)
-        : String(err);
-      // #region agent log
-      fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H1',location:'offline-sync-lock.service.ts:beginSync',message:'beginSync failed',data:{restaurantId,status,message,hasClientInstanceId:!!clientInstanceId},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
+    } catch {
       return false;
     }
   }

@@ -15,6 +15,10 @@ export class OfflinePolicyService {
   private readonly restaurantSyncLocked = toSignal(this.offlineSyncLock.restaurantSyncLocked$, {
     initialValue: false,
   });
+  private readonly secondaryAwaitingPrimaryReconnect = toSignal(
+    this.offlineSyncLock.secondaryAwaitingPrimaryReconnect$,
+    { initialValue: false },
+  );
 
   readonly isOfflinePrimaryDevice = computed(
     () => this.user()?.isOfflinePrimaryDevice === true,
@@ -46,7 +50,9 @@ export class OfflinePolicyService {
 
   /** True when primary device is replaying offline queue and this device must stay read-only. */
   readonly shouldFreezeForRestaurantSync = computed(
-    () => this.restaurantSyncLocked() && !this.isOfflinePrimaryDevice(),
+    () =>
+      !this.isOfflinePrimaryDevice()
+      && (this.restaurantSyncLocked() || this.secondaryAwaitingPrimaryReconnect()),
   );
 
   /** Block POS/table actions when offline-frozen or restaurant sync lock applies. */

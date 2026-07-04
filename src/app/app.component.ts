@@ -22,6 +22,7 @@ import { Location } from '@angular/common';
 import { SubscriptionService } from './core/services/subscription-service/subscription.service';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { OfflinePolicyService } from './core/offline/offline-policy.service';
+import { NetworkMonitorService } from './core/platform/network-monitor.service';
 import { navigateToRoleHome } from './core/auth/auth-redirect.util';
 import { isAssignedRestaurantId } from './core/auth/restaurant-id.util';
 
@@ -68,6 +69,7 @@ export class AppComponent implements OnInit {
   readonly #orderSyncService = inject(OrderSyncService);
   readonly #onlineStateService = inject(OnlineStateService);
   readonly #offlinePolicy = inject(OfflinePolicyService);
+  readonly #networkMonitor = inject(NetworkMonitorService);
   readonly #loadingService = inject(LoadingService);
   readonly #httpNavCancel = inject(HttpNavigationCancelService);
   readonly #pushRegistration = inject(PushRegistrationService);
@@ -127,7 +129,12 @@ export class AppComponent implements OnInit {
           this.sseStarted = true;
           this.#orderSyncService.listenToRestaurantEvents(user!.restaurantId!);
         }
+        void this.#networkMonitor.syncWithAuthState();
       });
+
+    this.#authService.loggedIn$.subscribe(() => {
+      void this.#networkMonitor.syncWithAuthState();
+    });
 
     this.#router.events
       .pipe(

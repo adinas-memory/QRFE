@@ -45,11 +45,6 @@ export const clientInstanceInterceptor: HttpInterceptorFn = (req, next) => {
       if (!trimmed) {
         return next(req);
       }
-      // #region agent log
-      if (isOfflineSyncLockApi(path)) {
-        fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H1',location:'client-instance.interceptor.ts',message:'offline-sync request gets client instance header',data:{path,hasClientInstanceId:!!trimmed},timestamp:Date.now()})}).catch(()=>{});
-      }
-      // #endregion
       return next(
         req.clone({
           setHeaders: { [CLIENT_INSTANCE_HEADER]: trimmed },

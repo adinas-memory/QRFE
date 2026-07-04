@@ -6,6 +6,7 @@ import { TableDTO } from '../../models/restaurantTablesModel';
 import { NgZone } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { OnlineStateService } from '../../offline/online-state-service';
+import { SseConnectivityService } from '../../offline/sse-connectivity.service';
 import { OfflineDbService } from '../../offline/offline-db';
 
 @Injectable({
@@ -18,6 +19,7 @@ export class TablesService {
     private http: HttpClient,
     private ngZone: NgZone,
     private onlineStateService: OnlineStateService,
+    private sseConnectivity: SseConnectivityService,
     private offlineDB: OfflineDbService
   ) {}
 
@@ -85,7 +87,7 @@ export class TablesService {
         return tables;
       } catch (err) {
         console.warn('[TablesService] Online fetch failed, using local snapshot');
-        this.onlineStateService.setOffline();
+        this.sseConnectivity.reportHttpNetworkFailure();
         return this.offlineDB.loadLocalTables();
       }
     }

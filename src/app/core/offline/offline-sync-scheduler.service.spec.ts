@@ -45,11 +45,21 @@ describe('OfflineSyncSchedulerService', () => {
     offlineDb = jasmine.createSpyObj('OfflineDbService', ['getPendingActionsForRestaurant']);
     offlineDb.getPendingActionsForRestaurant.and.returnValue(Promise.resolve([{ id: 'a1' } as never]));
 
-    const offlineSyncLock = jasmine.createSpyObj('OfflineSyncLockService', ['beginSync', 'completeSync', 'refreshStatus']);
+    const offlineSyncLock = jasmine.createSpyObj('OfflineSyncLockService', [
+      'beginSync',
+      'completeSync',
+      'refreshStatus',
+      'setSecondaryAwaitingPrimaryReconnect',
+      'isSecondaryAwaitingPrimaryReconnect',
+    ]);
     offlineSyncLock.beginSync.and.returnValue(Promise.resolve(true));
     offlineSyncLock.completeSync.and.returnValue(Promise.resolve(true));
     offlineSyncLock.refreshStatus.and.returnValue(Promise.resolve({ locked: false }));
+    offlineSyncLock.isSecondaryAwaitingPrimaryReconnect.and.returnValue(false);
     Object.defineProperty(offlineSyncLock, 'restaurantSyncLocked$', { value: new BehaviorSubject(false).asObservable() });
+    Object.defineProperty(offlineSyncLock, 'secondaryAwaitingPrimaryReconnect$', {
+      value: new BehaviorSubject(false).asObservable(),
+    });
 
     auth = jasmine.createSpyObj('AuthService', ['getUserSnapshot']);
     auth.getUserSnapshot.and.returnValue({ restaurantId: 'rest-1', isOfflinePrimaryDevice: true } as never);
@@ -61,8 +71,9 @@ describe('OfflineSyncSchedulerService', () => {
     Object.defineProperty(auth, 'loggedIn$', { value: new Subject<void>().asObservable() });
     Object.defineProperty(auth, 'user$', { value: userSubject.asObservable() });
 
-    orderSync = jasmine.createSpyObj('OrderSyncService', ['reconcileAfterOfflineSync']);
+    orderSync = jasmine.createSpyObj('OrderSyncService', ['reconcileAfterOfflineSync', 'refreshRestaurantSnapshot']);
     orderSync.reconcileAfterOfflineSync.and.returnValue(Promise.resolve(true));
+    orderSync.refreshRestaurantSnapshot.and.returnValue(Promise.resolve(true));
 
     TestBed.configureTestingModule({
       providers: [
@@ -174,25 +185,45 @@ describe('OfflineSyncSchedulerService', () => {
     online$.next(true);
     tick();
 
+    expect(lock.setSecondaryAwaitingPrimaryReconnect).toHaveBeenCalledWith(true);
     expect(lock.refreshStatus).toHaveBeenCalled();
+    expect(orderSync.refreshRestaurantSnapshot).toHaveBeenCalledWith({ force: true });
     expect(lock.beginSync).not.toHaveBeenCalled();
     expect(queueProcessor.processQueue).not.toHaveBeenCalled();
     expect(orderSync.reconcileAfterOfflineSync).not.toHaveBeenCalled();
   }));
 
-  it('shows centralized countdown on reconnect even without local pending queue', fakeAsync(() => {
+  it('acquires lock on primary reconnect even without pending queue', fakeAsync(() => {
+    delayConfig.seconds = 0;
     offlineDb.getPendingActionsForRestaurant.and.returnValue(Promise.resolve([]));
+    const lock = TestBed.inject(OfflineSyncLockService) as jasmine.SpyObj<OfflineSyncLockService>;
 
     online$.next(false);
     onlineState.isOnline = true;
     online$.next(true);
     tick();
 
+    expect(lock.beginSync).toHaveBeenCalled();
+    expect(orderSync.reconcileAfterOfflineSync).toHaveBeenCalled();
+    expect(lock.completeSync).toHaveBeenCalled();
+  }));
+
+  it('shows centralized countdown on reconnect even without local pending queue', fakeAsync(() => {
+    offlineDb.getPendingActionsForRestaurant.and.returnValue(Promise.resolve([]));
+    const lock = TestBed.inject(OfflineSyncLockService) as jasmine.SpyObj<OfflineSyncLockService>;
+
+    online$.next(false);
+    onlineState.isOnline = true;
+    online$.next(true);
+    tick();
+
+    expect(lock.beginSync).toHaveBeenCalled();
     expect(service.isCountdownActive()).toBeTrue();
     expect(queueProcessor.processQueue).not.toHaveBeenCalled();
 
     tick(54_000);
     expect(orderSync.reconcileAfterOfflineSync).toHaveBeenCalled();
+    expect(lock.completeSync).toHaveBeenCalled();
   }));
 
   it('clears sync UI after reconnect when reconcile does not call /api/sync', fakeAsync(() => {

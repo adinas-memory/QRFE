@@ -5,13 +5,13 @@ import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { authInterceptor } from './auth.interceptor';
 import { AuthService } from '../auth/auth.service';
-import { OnlineStateService } from '../offline/online-state-service';
+import { SseConnectivityService } from '../offline/sse-connectivity.service';
 
 describe('authInterceptor offline behavior', () => {
   let http: HttpClient;
   let httpMock: HttpTestingController;
   let auth: jasmine.SpyObj<AuthService>;
-  let onlineState: jasmine.SpyObj<OnlineStateService>;
+  let sseConnectivity: jasmine.SpyObj<SseConnectivityService>;
   let router: jasmine.SpyObj<Router>;
 
   beforeEach(() => {
@@ -23,9 +23,10 @@ describe('authInterceptor offline behavior', () => {
     ]);
     auth.hydrateSessionFromStorageIfNeeded.and.stub();
     auth.isAuthenticated.and.returnValue(true);
-    onlineState = jasmine.createSpyObj('OnlineStateService', ['setOffline', 'setOnline']);
-    Object.defineProperty(onlineState, 'isOnline', { get: () => onlineState['_isOnline'] ?? true, configurable: true });
-    (onlineState as any)._isOnline = true;
+    sseConnectivity = jasmine.createSpyObj('SseConnectivityService', [
+      'reportHttpNetworkFailure',
+      'reportStreamActivity',
+    ]);
     router = jasmine.createSpyObj('Router', ['navigate']);
 
     TestBed.configureTestingModule({
@@ -33,7 +34,7 @@ describe('authInterceptor offline behavior', () => {
         provideHttpClient(withInterceptors([authInterceptor])),
         provideHttpClientTesting(),
         { provide: AuthService, useValue: auth },
-        { provide: OnlineStateService, useValue: onlineState },
+        { provide: SseConnectivityService, useValue: sseConnectivity },
         { provide: Router, useValue: router },
       ],
     });
@@ -52,14 +53,13 @@ describe('authInterceptor offline behavior', () => {
     const req = httpMock.expectOne('/api/restaurants/x/staff/metrics');
     req.error(new ProgressEvent('error'), { status: 0, statusText: 'Unknown Error' });
 
-    expect(onlineState.setOffline).toHaveBeenCalled();
+    expect(sseConnectivity.reportHttpNetworkFailure).toHaveBeenCalled();
     expect(auth.refreshUserContext).not.toHaveBeenCalled();
     expect(auth.clearUser).not.toHaveBeenCalled();
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
   it('401 while offline flag still attempts refresh and retries request', () => {
-    (onlineState as any)._isOnline = false;
     auth.refreshUserContext.and.returnValue(
       of({ id: '1', role: 'manager', restaurantId: 'r1', restaurantName: 'R', restaurantType: 'Small' }),
     );
@@ -73,7 +73,7 @@ describe('authInterceptor offline behavior', () => {
     const req1 = httpMock.expectOne('/api/user/ping');
     req1.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
 
-    expect(onlineState.setOnline).toHaveBeenCalled();
+    expect(sseConnectivity.reportStreamActivity).toHaveBeenCalledWith('http-401');
     expect(auth.refreshUserContext).toHaveBeenCalledWith({ redirectOnFailure: false });
 
     const req2 = httpMock.expectOne('/api/user/ping');
@@ -103,7 +103,6 @@ describe('authInterceptor offline behavior', () => {
   });
 
   it('401 while online attempts refresh and retries request on success', () => {
-    (onlineState as any)._isOnline = true;
     auth.refreshUserContext.and.returnValue(
       of({ id: '1', role: 'manager', restaurantId: 'r1', restaurantName: 'R', restaurantType: 'Small' })
     );
@@ -147,7 +146,6 @@ describe('authInterceptor offline behavior', () => {
   });
 
   it('401 while online with failed refresh only logs out on auth failure', () => {
-    (onlineState as any)._isOnline = true;
     auth.refreshUserContext.and.returnValue(
       throwError(() => new HttpErrorResponse({ status: 0 }))
     );
@@ -163,7 +161,6 @@ describe('authInterceptor offline behavior', () => {
   });
 
   it('401 after refresh retry logs out instead of looping refresh', () => {
-    (onlineState as any)._isOnline = true;
     auth.refreshUserContext.and.returnValue(
       of({ id: '1', role: 'manager', restaurantId: 'r1', restaurantName: 'R', restaurantType: 'Small' })
     );

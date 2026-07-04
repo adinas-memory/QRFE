@@ -11,11 +11,13 @@ describe('OfflinePolicyService', () => {
   let userSubject: BehaviorSubject<UserContextModel | null>;
   let onlineSubject: BehaviorSubject<boolean>;
   let restaurantSyncLockedSubject: BehaviorSubject<boolean>;
+  let secondaryAwaitingSubject: BehaviorSubject<boolean>;
 
   beforeEach(() => {
     userSubject = new BehaviorSubject<UserContextModel | null>(null);
     onlineSubject = new BehaviorSubject<boolean>(true);
     restaurantSyncLockedSubject = new BehaviorSubject<boolean>(false);
+    secondaryAwaitingSubject = new BehaviorSubject<boolean>(false);
 
     TestBed.configureTestingModule({
       providers: [
@@ -35,6 +37,7 @@ describe('OfflinePolicyService', () => {
           provide: OfflineSyncLockService,
           useValue: {
             restaurantSyncLocked$: restaurantSyncLockedSubject.asObservable(),
+            secondaryAwaitingPrimaryReconnect$: secondaryAwaitingSubject.asObservable(),
           },
         },
       ],
@@ -190,6 +193,16 @@ describe('OfflinePolicyService', () => {
       });
       restaurantSyncLockedSubject.next(true);
       expect(service.shouldFreezeForRestaurantSync()).toBeFalse();
+    });
+
+    it('freezes non-primary while awaiting primary reconnect sync', () => {
+      userSubject.next({
+        id: 'u1',
+        role: 'staff',
+        isOfflinePrimaryDevice: false,
+      });
+      secondaryAwaitingSubject.next(true);
+      expect(service.shouldFreezeForRestaurantSync()).toBeTrue();
     });
   });
 });

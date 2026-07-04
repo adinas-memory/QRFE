@@ -8,6 +8,7 @@ import { OnlineStateService } from '../../offline/online-state-service';
 import { Observable, Subject, of, firstValueFrom, BehaviorSubject } from 'rxjs';
 import { OfflinePolicyService } from '../../offline/offline-policy.service';
 import { OfflineSyncLockService } from '../../offline/offline-sync-lock.service';
+import { SseConnectivityService } from '../../offline/sse-connectivity.service';
 import { UserContextModel } from '../../models/userContextModel';
 
 describe('OrderSyncService', () => {
@@ -59,6 +60,9 @@ describe('OrderSyncService', () => {
     Object.defineProperty(offlineSyncLockSpy, 'restaurantSyncLocked$', {
       value: new BehaviorSubject(false).asObservable(),
     });
+    Object.defineProperty(offlineSyncLockSpy, 'secondaryAwaitingPrimaryReconnect$', {
+      value: new BehaviorSubject(false).asObservable(),
+    });
     userSubject = new BehaviorSubject<UserContextModel | null>({
       id: 'u1',
       role: 'staff',
@@ -105,6 +109,16 @@ describe('OrderSyncService', () => {
         { provide: OfflineQueueProcessor, useValue: { queueDrained$: queueDrained$.asObservable() } },
         { provide: OfflineDbService, useValue: dbSpy },
         { provide: OnlineStateService, useValue: onlineState },
+        {
+          provide: SseConnectivityService,
+          useValue: jasmine.createSpyObj('SseConnectivityService', [
+            'reportStreamOpened',
+            'reportStreamActivity',
+            'reportStreamError',
+            'reportStreamClosed',
+            'scheduleBootstrapConnectivityCheck',
+          ]),
+        },
       ],
     });
 
