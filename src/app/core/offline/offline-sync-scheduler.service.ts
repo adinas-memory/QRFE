@@ -197,7 +197,14 @@ export class OfflineSyncSchedulerService {
       if (pendingCount > 0) {
         const shouldLock = this.offlinePolicy.isOfflinePrimaryDevice();
         if (shouldLock) {
-          await this.getOfflineSyncLock().beginSync();
+          const acquired = await this.getOfflineSyncLock().beginSync();
+          // #region agent log
+          fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H3',location:'offline-sync-scheduler.service.ts:finishReconnectSync',message:'restaurant lock begin result',data:{pendingCount,acquired,shouldLock},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
+          if (!acquired) {
+            console.warn('[OfflineSync] Could not acquire restaurant sync lock; skipping queue drain.');
+            return;
+          }
         }
         try {
           await this.drainQueue(false);

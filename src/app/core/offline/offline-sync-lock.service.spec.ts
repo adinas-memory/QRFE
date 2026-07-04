@@ -3,6 +3,8 @@ import { OfflineSyncLockService } from './offline-sync-lock.service';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { AuthService } from '../auth/auth.service';
 import { environment } from '../../../environments/environment';
+import { ClientInstanceService } from '../services/device/client-instance.service';
+import { CLIENT_INSTANCE_HEADER } from '../interceptors/client-instance.interceptor';
 
 describe('OfflineSyncLockService', () => {
   let service: OfflineSyncLockService;
@@ -20,6 +22,10 @@ describe('OfflineSyncLockService', () => {
             getUserSnapshot: () => ({ restaurantId: 'rest-1' }),
             getUserRestaurantId: () => 'rest-1',
           },
+        },
+        {
+          provide: ClientInstanceService,
+          useValue: { whenReady: () => Promise.resolve('test-device-id') },
         },
       ],
     });
@@ -42,8 +48,10 @@ describe('OfflineSyncLockService', () => {
 
   it('beginSync marks restaurant locked locally', async () => {
     const promise = service.beginSync();
+    await Promise.resolve();
     const req = httpMock.expectOne(r => r.url === `${apiUrl}/api/offline-sync/begin`);
     expect(req.request.method).toBe('POST');
+    expect(req.request.headers.get(CLIENT_INSTANCE_HEADER)).toBe('test-device-id');
     req.flush({ acquired: true });
     await expectAsync(promise).toBeResolvedTo(true);
     expect(service.isRestaurantSyncLocked()).toBeTrue();
@@ -54,6 +62,7 @@ describe('OfflineSyncLockService', () => {
     (service as unknown as { localLockHeld: boolean }).localLockHeld = true;
 
     const promise = service.completeSync();
+    await Promise.resolve();
     const req = httpMock.expectOne(r => r.url === `${apiUrl}/api/offline-sync/complete`);
     req.flush({ released: true });
     await expectAsync(promise).toBeResolvedTo(true);
