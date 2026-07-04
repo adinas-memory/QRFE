@@ -37,6 +37,7 @@ describe('AppComponent', () => {
     onlineStateSpy = {
       isOnline: true,
       online$: of(true),
+      pingOk$: of(undefined),
     };
 
     colorModeSpy = {

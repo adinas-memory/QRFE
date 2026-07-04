@@ -13,7 +13,11 @@ import { OfflineDbService } from '../../offline/offline-db';
 import { OnlineStateService } from '../../offline/online-state-service';
 import { OfflinePrintContextService } from '../../offline/offline-print-context.service';
 import { OfflinePrintConfigDto } from '../../offline/offline-print-config.model';
+import { OfflinePolicyService } from '../../offline/offline-policy.service';
+import { OfflineSyncLockService } from '../../offline/offline-sync-lock.service';
+import { SseConnectivityService } from '../../offline/sse-connectivity.service';
 import { Capacitor } from '@capacitor/core';
+import { NetworkMonitor } from '../../plugins/network-monitor.plugin';
 
 @Injectable({
   providedIn: 'root'
@@ -74,6 +78,9 @@ export class OrderSyncService {
     private offlineDB: OfflineDbService,
     private onlineStateService: OnlineStateService,
     private offlinePrintContext: OfflinePrintContextService,
+    private offlinePolicy: OfflinePolicyService,
+    private offlineSyncLock: OfflineSyncLockService,
+    private sseConnectivity: SseConnectivityService,
   ) {
     // Cross-tab fanout: if one tab receives SSE, share it to others.
     this.bc?.addEventListener('message', (ev: MessageEvent) => {
@@ -88,7 +95,9 @@ export class OrderSyncService {
 
     this.onlineStateService.resumeConnectivityOk$
       .subscribe(() => {
-        void this.refreshRestaurantSnapshot({ fromResume: true });
+        if (!this.syncScheduler.isReconnectWorkflowActive()) {
+          void this.refreshRestaurantSnapshot({ fromResume: true });
+        }
         this.flushPendingSseConnection();
       });
 
@@ -114,15 +123,17 @@ export class OrderSyncService {
         if (!this.controller) {
           this.reconnectAttempts = 0;
           this.openConnection(rid);
-        } else {
-          void this.refreshRestaurantSnapshot();
         }
       });
 
     this.queueProcessor.queueDrained$
       .subscribe(() => {
-        void this.reconcileAfterOfflineSync();
+        if (!this.syncScheduler.isReconnectWorkflowActive()) {
+          void this.reconcileAfterOfflineSync();
+        }
       });
+
+    this.sseConnectivity.scheduleBootstrapConnectivityCheck();
   }
 
   private resolveRestaurantId(): string | null {
@@ -160,7 +171,7 @@ export class OrderSyncService {
 
     this.reconcilingSubject.next(true);
     try {
-      await this.syncRestaurantState(restaurantId);
+      await this.syncRestaurantState(restaurantId, 'reconcileAfterOfflineSync');
       return true;
     } catch (e) {
       console.warn('[OrderSync] reconcileAfterOfflineSync failed', e);
@@ -193,8 +204,7 @@ export class OrderSyncService {
     this.snapshotRefreshInProgress = true;
     let succeeded = false;
     try {
-      await this.trySyncNow();
-      await this.syncRestaurantState(restaurantId);
+      await this.syncRestaurantState(restaurantId, 'refreshRestaurantSnapshot');
       if (!this.controller) {
         this.openConnection(restaurantId);
       }
@@ -222,7 +232,12 @@ export class OrderSyncService {
     return this.events$ as Observable<SseEvent<T>>;
   }
 
-  close() {
+  close(markOffline = true) {
+    if (markOffline) {
+      this.sseConnectivity.reportStreamClosed();
+    } else {
+      this.sseConnectivity.reportStreamReconnecting();
+    }
     try {
       console.warn('[SSE][internal] close() called');
       this.controller?.abort();
@@ -240,7 +255,8 @@ export class OrderSyncService {
     return document.hidden;
   }
 
-  private flushPendingSseConnection(): void {
+  /** Opens deferred SSE after tab/app becomes visible or native network returns. */
+  flushPendingSseConnection(): void {
     const rid = this.pendingOpenRestaurantId ?? this.resolveRestaurantId();
     if (!rid || this.controller) {
       return;
@@ -264,7 +280,7 @@ export class OrderSyncService {
     }
     this.pendingOpenRestaurantId = null;
     // ensure single controller/connection (switching restaurants)
-    if (this.controller) this.close();
+    if (this.controller) this.close(false);
     this.controller = new AbortController();
     this.connectedRestaurantId = restaurantId;
 
@@ -292,20 +308,21 @@ export class OrderSyncService {
         if (!contentType?.startsWith(EventStreamContentType)) {
           throw new Error(`SSE expected ${EventStreamContentType}, got: ${contentType ?? 'none'}`);
         }
-        this.onlineStateService.setOnline();
+        this.sseConnectivity.reportStreamOpened();
 
-        if (Date.now() - this.lastSnapshotRefreshAt >= this.snapshotRefreshMinIntervalMs) {
-          try {
-            await this.syncRestaurantState(restaurantId);
-          } catch (e) {
-            console.warn('[SSE][internal] /api/sync failed (continuing live SSE only)', e);
-          }
+        const reconnectBusy = this.syncScheduler.isReconnectWorkflowActive();
+        if (!reconnectBusy) {
+          void this.refreshRestaurantSnapshot();
         }
 
         this.ngZone.run(() => {
           this.reconnectAttempts = 0;
         });
-        void this.syncScheduler.runWhenAllowed();
+        if (!this.offlinePolicy.isOfflinePrimaryDevice()) {
+          void this.offlineSyncLock.refreshStatus().catch(err => {
+            console.warn('[SSE][internal] lock status refresh failed', err);
+          });
+        }
       },
       onmessage: (msg) => {
         this.ngZone.run(() => {
@@ -319,6 +336,12 @@ export class OrderSyncService {
           }
 
           const EventType = msg.event || raw?.EventType || raw?.event || raw?.type || '';
+
+          this.sseConnectivity.reportStreamActivity(EventType);
+
+          if (EventType === 'ConnectivityPulse') {
+            return;
+          }
 
           // support both envelopes:
           // A) { EventType, Data, Sequence, RestaurantId, InitiatedBy }
@@ -341,6 +364,12 @@ export class OrderSyncService {
           if (!EventType && (typeof msg.data === 'string') && msg.data.trim() === '') return;
 
           const sse: SseEvent<any> = { EventType, Data, Sequence, RestaurantId, InitiatedBy };
+
+          if (EventType === 'RestaurantSyncLocked') {
+            this.offlineSyncLock.setRestaurantSyncLocked(true);
+          } else if (EventType === 'RestaurantSyncUnlocked') {
+            this.offlineSyncLock.setRestaurantSyncLocked(false);
+          }
 
           if (Sequence && Sequence <= this.watermarkSequence) {
             // already included in last /api/sync snapshot or previously applied
@@ -367,10 +396,22 @@ export class OrderSyncService {
         const status = (err as { status?: number })?.status;
         const msg = String((err as Error)?.message ?? '');
         const isAuth401 = status === 401 || msg.includes('HTTP 401') || msg.includes('invalid_token');
+        // #region agent log
+        if (Capacitor.isNativePlatform()) {
+          void NetworkMonitor.writeDebugLog({
+            hypothesisId: 'H_B2_3',
+            location: 'order-sync.service.ts:onerror',
+            message: 'fetchEventSource onerror',
+            dataJson: JSON.stringify({
+              status, msg, isAuth401, documentHidden: typeof document !== 'undefined' ? document.hidden : null,
+            }),
+          }).catch(() => {});
+        }
+        // #endregion
 
         // 401 (expired token) is NOT "offline". Let refresh flow handle it.
         if (!isAuth401) {
-          this.onlineStateService.setOffline();
+          this.sseConnectivity.reportStreamError(isAuth401);
         }
         this.ngZone.run(() => {
           // if server sends a specific auth error payload, you can detect it here
@@ -385,7 +426,7 @@ export class OrderSyncService {
     });
   }
 
-  private async syncRestaurantState(restaurantId: string): Promise<void> {
+  private async syncRestaurantState(restaurantId: string, caller = 'unknown'): Promise<void> {
     const url = `${this.apiUrl.replace(/\/$/, '')}/api/sync?restaurantId=${encodeURIComponent(restaurantId)}`;
     let lastError: unknown;
     let refreshedAfter401 = false;

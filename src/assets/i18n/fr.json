@@ -873,5 +873,11 @@
         "a": "Les paliers définissent des limites (tables, bars, places). Paiement et renouvellement passent par Stripe ; après paiement, onboarding restaurant ; les managers gèrent la facturation dans les paramètres."
       }
     }
+  },
+  "pullToRefresh": {
+    "pull": "Tirez vers le bas pour actualiser",
+    "release": "Relâchez pour actualiser",
+    "syncing": "Actualisation…",
+    "offline": "Impossible d’actualiser hors ligne."
   }
 }

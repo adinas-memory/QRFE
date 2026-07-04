@@ -26,10 +26,15 @@ function isOfflinePrimaryAuthApi(path: string): boolean {
   return path.includes('/api/user/login') || path.includes('/api/user/refresh-token');
 }
 
-/** Attaches device id to staff order APIs and auth refresh/login for offline-primary resolution. */
+/** Restaurant-wide offline replay lock (begin/complete must identify the primary device holder). */
+function isOfflineSyncLockApi(path: string): boolean {
+  return path.includes('/api/offline-sync/');
+}
+
+/** Attaches device id to staff order APIs, offline-sync lock, and auth refresh/login. */
 export const clientInstanceInterceptor: HttpInterceptorFn = (req, next) => {
   const path = requestPath(req.url);
-  if (!isStaffOrderApi(path) && !isOfflinePrimaryAuthApi(path)) {
+  if (!isStaffOrderApi(path) && !isOfflinePrimaryAuthApi(path) && !isOfflineSyncLockApi(path)) {
     return next(req);
   }
 

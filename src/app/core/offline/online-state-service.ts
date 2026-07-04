@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject, Injector } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { SseConnectivityService } from './sse-connectivity.service';
 
 function isCapacitorNative(): boolean {
   if (typeof window === 'undefined') return false;
@@ -12,6 +13,7 @@ function isCapacitorNative(): boolean {
 
 @Injectable({ providedIn: 'root' })
 export class OnlineStateService {
+  private readonly injector = inject(Injector);
   private _isOnline = true;
   get isOnline() { return this._isOnline; }
   private apiUrl = environment.apiUrl;
@@ -20,15 +22,13 @@ export class OnlineStateService {
   readonly online$ = this.onlineSubject.asObservable();
 
   private resumeConnectivitySubject = new Subject<void>();
-  /** After forced ping-lite succeeds on resume (tab visible / app foreground). */
+  /** After connectivity confirmed on resume (tab visible / app foreground). */
   readonly resumeConnectivityOk$ = this.resumeConnectivitySubject.asObservable();
 
   private readonly pingOkSubject = new Subject<void>();
-  /** Emits when ping-lite returns HTTP 2xx (connectivity confirmed). */
+  /** Emits when connectivity is confirmed (SSE pulse or bootstrap ping-lite). */
   readonly pingOk$ = this.pingOkSubject.asObservable();
 
-  private lastHeartbeat = 0;
-  private readonly heartbeatInterval = 10000;
   private heartbeatInProgress: Promise<boolean> | null = null;
 
   private resumeCheckTimer: ReturnType<typeof setTimeout> | null = null;
@@ -38,20 +38,19 @@ export class OnlineStateService {
   private lastForcedPingAt = 0;
   private readonly forcedPingMinIntervalMs = 2000;
   private resumeCheckInProgress = false;
+  private supplementalHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  /** Fast offline/online detection alongside SSE pulse (max ~10s when API stops). */
+  private readonly supplementalHeartbeatMs = 10_000;
 
   constructor() {
-    this.startHeartbeat();
-
     window.addEventListener('online', () => {
-      void this.runHeartbeat(true);
+      void this.confirmConnectivity(true);
     });
 
     window.addEventListener('offline', () => {
-      // Confirm with ping-lite before showing offline banner (browser "offline" is often wrong on LAN).
-      void this.runHeartbeat(true);
+      void this.confirmConnectivity(true);
     });
 
-    // Capacitor: app.component appStateChange already calls triggerResumeCheck().
     if (!isCapacitorNative()) {
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
@@ -59,6 +58,20 @@ export class OnlineStateService {
         }
       });
     }
+
+    this.startSupplementalHeartbeat();
+  }
+
+  private startSupplementalHeartbeat(): void {
+    if (this.supplementalHeartbeatTimer !== null) {
+      return;
+    }
+    this.supplementalHeartbeatTimer = setInterval(() => {
+      if (this.injector.get(SseConnectivityService).isStreamActive()) {
+        return;
+      }
+      void this.confirmConnectivity(false);
+    }, this.supplementalHeartbeatMs);
   }
 
   /** Debounced resume entry (PWA Alt+Tab, Capacitor appStateChange). */
@@ -95,26 +108,12 @@ export class OnlineStateService {
     }
   }
 
-  private startHeartbeat() {
-    setInterval(() => void this.runHeartbeat(), this.heartbeatInterval);
-  }
-
-  private async runHeartbeat(force = false): Promise<boolean> {
-    return this.confirmConnectivity(force);
-  }
-
-  /** Ping-lite; updates isOnline. Returns true when server responds OK. */
+  /** Bootstrap ping-lite before SSE is connected. Returns true when server responds OK. */
   async confirmConnectivity(force = false): Promise<boolean> {
     const now = Date.now();
 
     if (force && now - this.lastForcedPingAt < this.forcedPingMinIntervalMs) {
       return this._isOnline;
-    }
-
-    if (!force) {
-      if (now - this.lastHeartbeat < this.heartbeatInterval) {
-        return this._isOnline;
-      }
     }
 
     if (this.heartbeatInProgress) {
@@ -141,29 +140,47 @@ export class OnlineStateService {
         ...(hasAbortTimeout ? { signal: AbortSignal.timeout(8000) } : {}),
       });
       const ok = res.ok || res.status < 500;
+      const sseConnectivity = this.injector.get(SseConnectivityService);
+      if (sseConnectivity.isStreamActive()) {
+        return ok;
+      }
       if (ok) {
-        this.pingOkSubject.next();
-        this.setOnline();
+        this.notifyConnectivityPulse();
+        sseConnectivity.reportPingSuccess();
       } else {
-        this.setOffline();
+        sseConnectivity.reportPingFailed('ping-lite-fail');
       }
       return ok;
     } catch {
-      this.setOffline();
+      const sseConnectivity = this.injector.get(SseConnectivityService);
+      if (!sseConnectivity.isStreamActive()) {
+        sseConnectivity.reportPingFailed('ping-lite-error');
+      }
       return false;
     } finally {
-      this.lastHeartbeat = Date.now();
       this.heartbeatInProgress = null;
     }
   }
 
-  setOffline() {
+  notifyConnectivityPulse(): void {
+    this.pingOkSubject.next();
+  }
+
+  setOfflineFromConnectivitySource(reason?: string): void {
+    this.setOffline();
+  }
+
+  setOnlineFromConnectivitySource(): void {
+    this.setOnline();
+  }
+
+  setOffline(): void {
     if (!this._isOnline) return;
     this._isOnline = false;
     this.onlineSubject.next(false);
   }
 
-  setOnline() {
+  setOnline(): void {
     if (this._isOnline) return;
     this._isOnline = true;
     this.onlineSubject.next(true);

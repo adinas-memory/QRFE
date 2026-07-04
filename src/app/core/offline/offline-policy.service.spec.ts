@@ -3,16 +3,21 @@ import { BehaviorSubject } from 'rxjs';
 import { OfflinePolicyService } from './offline-policy.service';
 import { AuthService } from '../auth/auth.service';
 import { OnlineStateService } from './online-state-service';
+import { OfflineSyncLockService } from './offline-sync-lock.service';
 import { UserContextModel } from '../models/userContextModel';
 
 describe('OfflinePolicyService', () => {
   let service: OfflinePolicyService;
   let userSubject: BehaviorSubject<UserContextModel | null>;
   let onlineSubject: BehaviorSubject<boolean>;
+  let restaurantSyncLockedSubject: BehaviorSubject<boolean>;
+  let secondaryAwaitingSubject: BehaviorSubject<boolean>;
 
   beforeEach(() => {
     userSubject = new BehaviorSubject<UserContextModel | null>(null);
     onlineSubject = new BehaviorSubject<boolean>(true);
+    restaurantSyncLockedSubject = new BehaviorSubject<boolean>(false);
+    secondaryAwaitingSubject = new BehaviorSubject<boolean>(false);
 
     TestBed.configureTestingModule({
       providers: [
@@ -26,6 +31,13 @@ describe('OfflinePolicyService', () => {
           useValue: {
             isOnline: true,
             online$: onlineSubject.asObservable(),
+          },
+        },
+        {
+          provide: OfflineSyncLockService,
+          useValue: {
+            restaurantSyncLocked$: restaurantSyncLockedSubject.asObservable(),
+            secondaryAwaitingPrimaryReconnect$: secondaryAwaitingSubject.asObservable(),
           },
         },
       ],
@@ -121,5 +133,76 @@ describe('OfflinePolicyService', () => {
     expect(service.canProcessOfflineQueue()).toBeTrue();
     onlineSubject.next(false);
     expect(service.canProcessOfflineQueue()).toBeFalse();
+  });
+
+  describe('shouldRunHeavyOfflineReconnectSync', () => {
+    it('returns false for non-primary regardless of reconnect or pending queue', () => {
+      userSubject.next({
+        id: 'u1',
+        role: 'staff',
+        isOfflinePrimaryDevice: false,
+      });
+      expect(service.shouldRunHeavyOfflineReconnectSync({ isReconnect: true, pendingQueueCount: 5 })).toBeFalse();
+      expect(service.shouldRunHeavyOfflineReconnectSync({ isReconnect: false, pendingQueueCount: 5 })).toBeFalse();
+    });
+
+    it('returns true for primary on reconnect even without pending queue', () => {
+      userSubject.next({
+        id: 'u1',
+        role: 'staff',
+        isOfflinePrimaryDevice: true,
+      });
+      expect(service.shouldRunHeavyOfflineReconnectSync({ isReconnect: true, pendingQueueCount: 0 })).toBeTrue();
+    });
+
+    it('returns true for primary with pending queue even without reconnect', () => {
+      userSubject.next({
+        id: 'u1',
+        role: 'staff',
+        isOfflinePrimaryDevice: true,
+      });
+      expect(service.shouldRunHeavyOfflineReconnectSync({ isReconnect: false, pendingQueueCount: 2 })).toBeTrue();
+    });
+
+    it('returns false for primary with no reconnect and empty queue', () => {
+      userSubject.next({
+        id: 'u1',
+        role: 'staff',
+        isOfflinePrimaryDevice: true,
+      });
+      expect(service.shouldRunHeavyOfflineReconnectSync({ isReconnect: false, pendingQueueCount: 0 })).toBeFalse();
+    });
+  });
+
+  describe('shouldFreezeForRestaurantSync', () => {
+    it('freezes non-primary when restaurant sync lock is active', () => {
+      userSubject.next({
+        id: 'u1',
+        role: 'staff',
+        isOfflinePrimaryDevice: false,
+      });
+      restaurantSyncLockedSubject.next(true);
+      expect(service.shouldFreezeForRestaurantSync()).toBeTrue();
+    });
+
+    it('does not freeze primary device holding the lock', () => {
+      userSubject.next({
+        id: 'u1',
+        role: 'staff',
+        isOfflinePrimaryDevice: true,
+      });
+      restaurantSyncLockedSubject.next(true);
+      expect(service.shouldFreezeForRestaurantSync()).toBeFalse();
+    });
+
+    it('freezes non-primary while awaiting primary reconnect sync', () => {
+      userSubject.next({
+        id: 'u1',
+        role: 'staff',
+        isOfflinePrimaryDevice: false,
+      });
+      secondaryAwaitingSubject.next(true);
+      expect(service.shouldFreezeForRestaurantSync()).toBeTrue();
+    });
   });
 });

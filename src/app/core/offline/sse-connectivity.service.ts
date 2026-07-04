@@ -1,0 +1,240 @@
+import { Injectable, inject } from '@angular/core';
+import { Capacitor } from '@capacitor/core';
+import { NetworkMonitor } from '../plugins/network-monitor.plugin';
+import { OnlineStateService } from './online-state-service';
+
+// #region agent log
+// Production devices use mobile data (no LAN/tunnel reachable from dev machine) —
+// write to a local file on-device via the native plugin instead of network fetch.
+function debugLog(hypothesisId: string, location: string, message: string, data: unknown): void {
+  void NetworkMonitor.writeDebugLog({
+    hypothesisId,
+    location,
+    message,
+    dataJson: JSON.stringify(data ?? {}),
+  }).catch(() => {});
+}
+// #endregion
+
+/** Must stay aligned with SSEController KeepAliveLoop delay (seconds) + grace. */
+export const SSE_PULSE_INTERVAL_MS = 5_000;
+export const SSE_STALE_GRACE_MS = 3_000;
+/** Allow one missed pulse before offline (2× interval + grace). */
+export const STALE_THRESHOLD_MS = SSE_PULSE_INTERVAL_MS * 2 + SSE_STALE_GRACE_MS;
+const STALE_WATCH_INTERVAL_MS = 1_000;
+const OFFLINE_DEBOUNCE_MS = 2_000;
+const FAST_OFFLINE_DEBOUNCE_MS = 500;
+
+@Injectable({ providedIn: 'root' })
+export class SseConnectivityService {
+  private readonly onlineState = inject(OnlineStateService);
+
+  private lastActivityAt = 0;
+  private lastPulseAt = 0;
+  private streamOpen = false;
+  private sseReconnecting = false;
+  private offlineDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private staleWatchTimer: ReturnType<typeof setInterval> | null = null;
+  private bootstrapFallbackTimer: ReturnType<typeof setTimeout> | null = null;
+  // #region agent log
+  private debugHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  // #endregion
+
+  constructor() {
+    this.startStaleWatch();
+    // #region agent log
+    if (Capacitor.isNativePlatform()) {
+      this.debugHeartbeatTimer = setInterval(() => {
+        debugLog('H_B2_2', 'sse-connectivity.service.ts:heartbeat', 'js heartbeat', {
+          streamOpen: this.streamOpen,
+          pulseGapMs: this.lastPulseAt ? Date.now() - this.lastPulseAt : null,
+          documentHidden: typeof document !== 'undefined' ? document.hidden : null,
+          isOnline: this.onlineState.isOnline,
+        });
+      }, 3000);
+    }
+    // #endregion
+  }
+
+  /** True when the restaurant SSE stream is open — ping-lite must not drive online/offline. */
+  isStreamActive(): boolean {
+    return this.streamOpen;
+  }
+
+  reportStreamOpened(): void {
+    this.sseReconnecting = false;
+    this.streamOpen = true;
+    this.lastActivityAt = Date.now();
+    this.lastPulseAt = this.lastActivityAt;
+    this.clearOfflineDebounce();
+    this.clearBootstrapFallback();
+    this.onlineState.setOnlineFromConnectivitySource();
+    this.onlineState.notifyConnectivityPulse();
+  }
+
+  reportStreamActivity(_eventType?: string): void {
+    if (!this.streamOpen) {
+      return;
+    }
+    if (_eventType === 'reconnect-check') {
+      return;
+    }
+    const isPulse = _eventType === 'ConnectivityPulse';
+    if (isPulse) {
+      this.lastPulseAt = Date.now();
+      this.lastActivityAt = this.lastPulseAt;
+      if (!this.onlineState.isOnline) {
+        this.clearOfflineDebounce();
+        this.onlineState.setOnlineFromConnectivitySource();
+      }
+      this.onlineState.notifyConnectivityPulse();
+      return;
+    }
+    this.lastActivityAt = Date.now();
+  }
+
+  reportStreamError(isAuth401: boolean): void {
+    if (isAuth401) {
+      return;
+    }
+    this.scheduleOffline('sse-error');
+  }
+
+  /** Intentional SSE reconnect — do not mark offline until the new stream opens or errors. */
+  reportStreamReconnecting(): void {
+    this.sseReconnecting = true;
+    this.streamOpen = false;
+    this.clearOfflineDebounce();
+  }
+
+  reportStreamClosed(): void {
+    this.streamOpen = false;
+    if (this.sseReconnecting) {
+      return;
+    }
+    this.scheduleOffline('sse-closed');
+  }
+
+  reportHttpNetworkFailure(): void {
+    this.scheduleOffline('http-network');
+  }
+
+  /** Fallback when SSE is not yet connected (login, pre-restaurant). */
+  scheduleBootstrapConnectivityCheck(delayMs = 3_000): void {
+    this.clearBootstrapFallback();
+    this.bootstrapFallbackTimer = setTimeout(() => {
+      this.bootstrapFallbackTimer = null;
+      if (!this.streamOpen && !this.onlineState.isOnline) {
+        void this.onlineState.confirmConnectivity(true);
+      }
+    }, delayMs);
+  }
+
+  requestReconnectCheck(): void {
+    if (this.streamOpen) {
+      this.reportStreamActivity('reconnect-check');
+      return;
+    }
+    void this.onlineState.confirmConnectivity(true);
+  }
+
+  reportNativeNetworkAvailable(): void {
+    if (this.streamOpen) {
+      this.requestReconnectCheck();
+      return;
+    }
+    void this.onlineState.confirmConnectivity(true);
+  }
+
+  reportNativeNetworkLost(): void {
+    // #region agent log
+    debugLog('H_B2_1', 'sse-connectivity.service.ts:reportNativeNetworkLost', 'native network lost event received in JS', {
+      streamOpen: this.streamOpen,
+      lastPulseAgeMs: this.lastPulseAt ? Date.now() - this.lastPulseAt : null,
+    });
+    // #endregion
+    this.scheduleOffline('native-network-lost');
+  }
+
+  /** Ping-lite failed — only when SSE is not active (bootstrap / pre-stream). */
+  reportPingFailed(reason: string): void {
+    if (this.streamOpen) {
+      return;
+    }
+    this.onlineState.setOfflineFromConnectivitySource(reason);
+  }
+
+  /** Ping-lite succeeded — only when SSE is not active. */
+  reportPingSuccess(): void {
+    if (this.streamOpen) {
+      return;
+    }
+    this.onlineState.setOnlineFromConnectivitySource();
+  }
+
+  private scheduleOffline(reason: string): void {
+    // #region agent log
+    if (Capacitor.isNativePlatform()) {
+      debugLog('H_B2_1', 'sse-connectivity.service.ts:scheduleOffline', 'scheduleOffline invoked', {
+        reason,
+        streamOpen: this.streamOpen,
+        lastPulseAgeMs: this.lastPulseAt ? Date.now() - this.lastPulseAt : null,
+        documentHidden: typeof document !== 'undefined' ? document.hidden : null,
+      });
+    }
+    // #endregion
+    if (this.onlineState.isOnline === false && reason === 'stale-watch') {
+      return;
+    }
+    const debounceMs = this.offlineDebounceMsFor(reason);
+    if (this.offlineDebounceTimer !== null) {
+      return;
+    }
+    this.offlineDebounceTimer = setTimeout(() => {
+      this.offlineDebounceTimer = null;
+      const pulseStale = this.lastPulseAt > 0 && Date.now() - this.lastPulseAt > STALE_THRESHOLD_MS;
+      const stale = !this.streamOpen || pulseStale;
+      if (stale || reason === 'http-network' || reason === 'native-network-lost' || reason === 'sse-error') {
+        this.onlineState.setOfflineFromConnectivitySource(reason);
+      }
+    }, debounceMs);
+  }
+
+  private offlineDebounceMsFor(reason: string): number {
+    if (reason === 'http-network' || reason === 'native-network-lost' || reason === 'stale-watch') {
+      return 0;
+    }
+    if (reason === 'sse-error' || reason === 'sse-closed') {
+      return FAST_OFFLINE_DEBOUNCE_MS;
+    }
+    return OFFLINE_DEBOUNCE_MS;
+  }
+
+  private clearOfflineDebounce(): void {
+    if (this.offlineDebounceTimer !== null) {
+      clearTimeout(this.offlineDebounceTimer);
+      this.offlineDebounceTimer = null;
+    }
+  }
+
+  private clearBootstrapFallback(): void {
+    if (this.bootstrapFallbackTimer !== null) {
+      clearTimeout(this.bootstrapFallbackTimer);
+      this.bootstrapFallbackTimer = null;
+    }
+  }
+
+  private startStaleWatch(): void {
+    if (this.staleWatchTimer !== null) {
+      return;
+    }
+    this.staleWatchTimer = setInterval(() => {
+      if (!this.streamOpen || this.lastPulseAt === 0) {
+        return;
+      }
+      if (Date.now() - this.lastPulseAt > STALE_THRESHOLD_MS) {
+        this.scheduleOffline('stale-watch');
+      }
+    }, STALE_WATCH_INTERVAL_MS);
+  }
+}

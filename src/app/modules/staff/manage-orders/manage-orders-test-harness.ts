@@ -431,6 +431,8 @@ export async function setupManageOrdersComponent(
             (options.isOfflinePrimaryDevice ?? false) && (options.isOfflinePrimaryStaffDesignee ?? false),
           isOfflinePrimaryDevice: () => options.isOfflinePrimaryDevice ?? false,
           isOfflinePrimaryStaffDesignee: () => options.isOfflinePrimaryStaffDesignee ?? false,
+          shouldFreezeForRestaurantSync: () => false,
+          shouldFreezePosActions: () => false,
         },
       },
       {

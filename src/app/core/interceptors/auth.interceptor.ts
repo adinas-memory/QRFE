@@ -2,7 +2,7 @@ import { HttpInterceptorFn, HttpErrorResponse, HttpContextToken } from '@angular
 import { inject } from '@angular/core';
 import { AuthService, isHttpAuthFailure } from '../auth/auth.service';
 import { Router } from '@angular/router';
-import { OnlineStateService } from '../offline/online-state-service';
+import { SseConnectivityService } from '../offline/sse-connectivity.service';
 import { catchError, switchMap, throwError, timeout } from 'rxjs';
 
 const REFRESH_TIMEOUT_MS = 15_000;
@@ -13,7 +13,7 @@ export const AUTH_RETRIED = new HttpContextToken<boolean>(() => false);
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  const onlineState = inject(OnlineStateService);
+  const sseConnectivity = inject(SseConnectivityService);
 
   const isPublic = req.url.includes('/public/');
   const isRefresh = req.url.includes('/refresh-token');
@@ -28,7 +28,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       if (error.status === 0) {
-        onlineState.setOffline();
+        sseConnectivity.reportHttpNetworkFailure();
         return throwError(() => error);
       }
 
@@ -39,7 +39,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
           return throwError(() => error);
         }
         // 401 means the API responded — session may be expired while network is fine.
-        onlineState.setOnline();
+        sseConnectivity.reportStreamActivity('http-401');
         auth.hydrateSessionFromStorageIfNeeded();
         return auth.refreshUserContext({ redirectOnFailure: false }).pipe(
           timeout({ first: REFRESH_TIMEOUT_MS }),

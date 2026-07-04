@@ -1,4 +1,4 @@
-import { Component, DestroyRef, HostListener, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, effect, HostListener, inject, OnInit } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, ActivatedRouteSnapshot, NavigationEnd, NavigationStart, Router, RouterOutlet } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -22,6 +22,7 @@ import { Location } from '@angular/common';
 import { SubscriptionService } from './core/services/subscription-service/subscription.service';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { OfflinePolicyService } from './core/offline/offline-policy.service';
+import { NetworkMonitorService } from './core/platform/network-monitor.service';
 import { navigateToRoleHome } from './core/auth/auth-redirect.util';
 import { isAssignedRestaurantId } from './core/auth/restaurant-id.util';
 
@@ -29,11 +30,17 @@ import { isAssignedRestaurantId } from './core/auth/restaurant-id.util';
 @Component({
   selector: 'app-root',
   standalone: true,
-  template: `<div class="offline-wrapper" [class.offline-active]="isOffline">
+  template: `<div class="offline-wrapper" [class.offline-active]="isOffline || restaurantSyncFrozen">
 
   @if (isOffline) {
     <div class="offline-banner">
       <span class="blink">{{ offlineBannerKey | transloco }}</span>
+    </div>
+  }
+
+  @if (restaurantSyncFrozen) {
+    <div class="offline-banner restaurant-sync-banner">
+      <span class="blink">{{ 'offline.bannerRestaurantSyncLocked' | transloco }}</span>
     </div>
   }
 
@@ -48,6 +55,7 @@ export class AppComponent implements OnInit {
   title = 'U.R.S.';
   private sseStarted = false;
   isOffline = false;
+  restaurantSyncFrozen = false;
   offlineBannerKey = 'offline.bannerLimited';
   private navHistory: string[] = [];
 
@@ -61,6 +69,7 @@ export class AppComponent implements OnInit {
   readonly #orderSyncService = inject(OrderSyncService);
   readonly #onlineStateService = inject(OnlineStateService);
   readonly #offlinePolicy = inject(OfflinePolicyService);
+  readonly #networkMonitor = inject(NetworkMonitorService);
   readonly #loadingService = inject(LoadingService);
   readonly #httpNavCancel = inject(HttpNavigationCancelService);
   readonly #pushRegistration = inject(PushRegistrationService);
@@ -75,6 +84,10 @@ export class AppComponent implements OnInit {
     this.#iconSetService.icons = { ...iconSubset };
     this.#colorModeService.localStorageItemName.set('coreui-free-angular-admin-template-theme-default');
     this.#colorModeService.eventName.set('ColorSchemeChange');
+
+    effect(() => {
+      this.restaurantSyncFrozen = this.#offlinePolicy.shouldFreezeForRestaurantSync();
+    });
   }
 
   // prevent refresh in offline mode
@@ -116,7 +129,12 @@ export class AppComponent implements OnInit {
           this.sseStarted = true;
           this.#orderSyncService.listenToRestaurantEvents(user!.restaurantId!);
         }
+        void this.#networkMonitor.syncWithAuthState();
       });
+
+    this.#authService.loggedIn$.subscribe(() => {
+      void this.#networkMonitor.syncWithAuthState();
+    });
 
     this.#router.events
       .pipe(
@@ -222,11 +240,6 @@ export class AppComponent implements OnInit {
 
   private initNativeAppLifecycle(): void {
     if (!Capacitor.isNativePlatform()) return;
-
-    App.addListener('resume', () => {
-      if (!this.#authService.isAuthenticated()) return;
-      this.#onlineStateService.triggerResumeCheck();
-    });
 
     App.addListener('appStateChange', ({ isActive }) => {
       if (!isActive || !this.#authService.isAuthenticated()) return;

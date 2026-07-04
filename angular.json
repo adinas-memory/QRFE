@@ -151,6 +151,26 @@
               "extractLicenses": true,
               "sourceMap": false,
               "outputHashing": "all"
+            },
+            "capacitor-lan": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "7mb",
+                  "maximumError": "8mb"
+                }
+              ],
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.capacitor.lan.ts"
+                }
+              ],
+              "optimization": true,
+              "outputPath": "dist",
+              "extractLicenses": true,
+              "sourceMap": false,
+              "outputHashing": "all"
             }
           },
           "defaultConfiguration": "production"

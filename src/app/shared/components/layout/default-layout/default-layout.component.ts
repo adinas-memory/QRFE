@@ -20,6 +20,7 @@ import {
 
 import { DefaultFooterComponent, DefaultHeaderComponent } from './';
 import { FeedbackModalComponent } from '@app/shared/components/feedback/feedback-modal.component';
+import { PullToRefreshComponent } from '@app/shared/components/pull-to-refresh/pull-to-refresh-host.component';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { TitleCasePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -49,6 +50,7 @@ function isOverflown(element: HTMLElement) {
     DefaultFooterComponent,
     DefaultHeaderComponent,
     FeedbackModalComponent,
+    PullToRefreshComponent,
     IconDirective,
     NgScrollbar,
     RouterOutlet,

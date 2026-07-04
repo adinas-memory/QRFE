@@ -873,5 +873,11 @@
         "a": "Nivåer sätter gränser (bord, barer, platser). Betalning och förnyelse går via Stripe; efter lyckad betalning följer onboarding; chefer hanterar fakturering i inställningar."
       }
     }
+  },
+  "pullToRefresh": {
+    "pull": "Dra nedåt för att uppdatera",
+    "release": "Släpp för att uppdatera",
+    "syncing": "Uppdaterar…",
+    "offline": "Kan inte uppdatera offline."
   }
 }

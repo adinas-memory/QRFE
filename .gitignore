@@ -48,3 +48,6 @@ Thumbs.db
 # Cursor debug session logs (agent instrumentation)
 .cursor/debug-*.log
 debug-*.log
+
+# Capacitor LAN sync script backup
+capacitor.config.prod.backup.ts

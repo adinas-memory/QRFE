@@ -873,5 +873,11 @@
         "a": "I livelli definiscono limiti (tavoli, bar, posti). Pagamento e rinnovo passano da Stripe; dopo il pagamento segue l’onboarding; i manager gestiscono la fatturazione dalle impostazioni."
       }
     }
+  },
+  "pullToRefresh": {
+    "pull": "Trascina verso il basso per aggiornare",
+    "release": "Rilascia per aggiornare",
+    "syncing": "Aggiornamento…",
+    "offline": "Impossibile aggiornare offline."
   }
 }

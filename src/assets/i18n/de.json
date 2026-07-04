@@ -873,5 +873,11 @@
         "a": "Abostufen definieren Limits (Tische, Bars, Plätze). Checkout und Verlängerung laufen über Stripe; nach erfolgreicher Zahlung folgt das Restaurant-Onboarding, Manager verwalten Billing in den Einstellungen."
       }
     }
+  },
+  "pullToRefresh": {
+    "pull": "Nach unten ziehen zum Aktualisieren",
+    "release": "Loslassen zum Aktualisieren",
+    "syncing": "Wird aktualisiert…",
+    "offline": "Offline kann nicht aktualisiert werden."
   }
 }

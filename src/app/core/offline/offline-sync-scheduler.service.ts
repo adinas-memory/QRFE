@@ -1,10 +1,12 @@
 import { Injectable, Injector, InjectionToken, inject } from '@angular/core';
-import { BehaviorSubject, filter, firstValueFrom, take } from 'rxjs';
+import { BehaviorSubject, filter, firstValueFrom, pairwise, startWith, take } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { OfflineDbService } from './offline-db';
 import { OfflineQueueProcessor } from './offline-queue-processor.service';
 import { OnlineStateService } from './online-state-service';
 import { OrderSyncService } from '../services/order-service/order-sync.service';
+import { OfflinePolicyService } from './offline-policy.service';
+import { OfflineSyncLockService } from './offline-sync-lock.service';
 import {
   computeCentralizedReconnectDelaySeconds,
   OFFLINE_SYNC_JITTER_MAX_SECONDS,
@@ -26,13 +28,20 @@ export class OfflineSyncSchedulerService {
   readonly syncCountdownSeconds$ = this.countdownSubject.asObservable();
 
   private countdownIntervalId: ReturnType<typeof setInterval> | null = null;
-  private wasOnline = true;
   private reconnectSyncPending = false;
+  private wentOfflineAt: number | null = null;
+  private lastSuccessfulReconnectAt = 0;
   private drainScheduled = false;
   private schedulingInProgress = false;
   private schedulePromise: Promise<void> | null = null;
   private queueProcessor: OfflineQueueProcessor | null = null;
   private orderSync: OrderSyncService | null = null;
+  private offlineSyncLock: OfflineSyncLockService | null = null;
+  /** True when this primary session acquired the restaurant lock for reconnect drain. */
+  private reconnectRestaurantLockHeld = false;
+  private secondaryPollIntervalId: ReturnType<typeof setInterval> | null = null;
+  private secondaryReconnectStartedAt = 0;
+  private secondarySawServerLock = false;
   private readonly resolveReconnectDelay = inject(OFFLINE_RECONNECT_DELAY_RESOLVER);
   private readonly syncBlockedSubject = new BehaviorSubject(false);
   /** Emits true while reconnect jitter is preparing or counting down. */
@@ -47,32 +56,62 @@ export class OfflineSyncSchedulerService {
     private readonly onlineState: OnlineStateService,
     private readonly offlineDb: OfflineDbService,
     private readonly auth: AuthService,
+    private readonly offlinePolicy: OfflinePolicyService,
   ) {
     this.auth.loggedIn$.subscribe(() => {
       void this.ensureScheduled();
     });
 
-    this.onlineState.online$.pipe(filter(isOnline => isOnline)).subscribe(() => {
-      if (!this.wasOnline) {
+    this.onlineState.online$
+      .pipe(
+        startWith(this.onlineState.isOnline),
+        pairwise(),
+        filter(([wasOnline, isOnline]) => !wasOnline && isOnline),
+      )
+      .subscribe(() => {
+        const offlineMs = this.wentOfflineAt != null ? Date.now() - this.wentOfflineAt : Number.POSITIVE_INFINITY;
+        const recentReconnect = this.lastSuccessfulReconnectAt > 0
+          && Date.now() - this.lastSuccessfulReconnectAt < 120_000;
+        if (offlineMs < 3000 && recentReconnect) {
+          return;
+        }
         this.reconnectSyncPending = true;
         void this.ensureScheduled();
-      }
-      this.wasOnline = true;
-    });
+      });
 
-    this.onlineState.online$.pipe(filter(isOnline => !isOnline)).subscribe(() => {
-      this.wasOnline = false;
-      this.reconnectSyncPending = false;
-      this.cancelCountdown();
-    });
+    this.onlineState.online$
+      .pipe(
+        startWith(this.onlineState.isOnline),
+        pairwise(),
+        filter(([wasOnline, isOnline]) => wasOnline && !isOnline),
+      )
+      .subscribe(() => {
+        this.wentOfflineAt = Date.now();
+        this.reconnectSyncPending = false;
+        this.stopSecondaryPoll();
+        this.cancelCountdown();
+      });
+  }
 
-    this.onlineState.pingOk$.subscribe(() => {
-      this.releaseStuckReconnectUi();
-    });
+  /** True while primary reconnect jitter, lock, drain, or reconcile is in progress. */
+  isReconnectWorkflowActive(): boolean {
+    return (
+      this.reconnectSyncPending
+      || this.schedulingInProgress
+      || this.isCountdownActive()
+      || this.drainScheduled
+      || this.batchSyncDrainingSubject.value
+      || this.reconnectRestaurantLockHeld
+    );
   }
 
   isCountdownActive(): boolean {
     return this.countdownSubject.value !== null;
+  }
+
+  /** True when an offline→online transition is pending heavy reconnect scheduling. */
+  isReconnectPending(): boolean {
+    return this.reconnectSyncPending;
   }
 
   /** True while jitter is being calculated or countdown is running — queue must not drain yet. */
@@ -103,6 +142,9 @@ export class OfflineSyncSchedulerService {
     if (!this.onlineState.isOnline) {
       return;
     }
+    if (this.isCountdownActive() || this.drainScheduled || this.batchSyncDrainingSubject.value) {
+      return;
+    }
     if (!this.schedulePromise) {
       this.schedulePromise = this.schedulePendingSyncWithJitter().finally(() => {
         this.schedulePromise = null;
@@ -121,6 +163,11 @@ export class OfflineSyncSchedulerService {
     return this.orderSync;
   }
 
+  private getOfflineSyncLock(): OfflineSyncLockService {
+    this.offlineSyncLock ??= this.injector.get(OfflineSyncLockService);
+    return this.offlineSyncLock;
+  }
+
   private async schedulePendingSyncWithJitter(): Promise<void> {
     this.schedulingInProgress = true;
     this.refreshSyncBlocked();
@@ -131,12 +178,33 @@ export class OfflineSyncSchedulerService {
       const isReconnect = this.reconnectSyncPending;
       this.reconnectSyncPending = false;
 
-      if (pendingCount === 0 && !isReconnect) {
+      if (!this.offlinePolicy.shouldRunHeavyOfflineReconnectSync({ isReconnect, pendingQueueCount: pendingCount })) {
+        if (!this.offlinePolicy.isOfflinePrimaryDevice() && isReconnect) {
+          await this.handleSecondaryReconnect();
+        } else if (!this.offlinePolicy.isOfflinePrimaryDevice()) {
+          void this.refreshSecondaryLockStatus();
+        }
         return;
       }
 
       if (this.isCountdownActive() || this.drainScheduled) {
         return;
+      }
+
+      const shouldLock = this.offlinePolicy.isOfflinePrimaryDevice();
+      if (shouldLock) {
+        const acquired = await this.getOfflineSyncLock().beginSync();
+        if (!acquired) {
+          const lock = this.getOfflineSyncLock();
+          if (lock.hasLocalLockHeld()) {
+            this.reconnectRestaurantLockHeld = true;
+          } else {
+            console.warn('[OfflineSync] Could not acquire restaurant sync lock before countdown; skipping heavy sync.');
+            return;
+          }
+        } else {
+          this.reconnectRestaurantLockHeld = true;
+        }
       }
 
       const restaurantId = this.auth.getUserSnapshot()?.restaurantId ?? '';
@@ -180,12 +248,16 @@ export class OfflineSyncSchedulerService {
   private async finishReconnectSync(): Promise<void> {
     try {
       const pendingCount = await this.getPendingCount();
-      if (pendingCount > 0) {
-        await this.drainQueue();
-        return;
+      try {
+        if (pendingCount > 0) {
+          await this.drainQueue(false);
+        }
+        await this.getOrderSync().reconcileAfterOfflineSync();
+      } finally {
+        await this.releaseReconnectRestaurantLock();
       }
-      await this.getOrderSync().reconcileAfterOfflineSync();
     } finally {
+      this.lastSuccessfulReconnectAt = Date.now();
       this.releaseStuckReconnectUi();
     }
   }
@@ -198,6 +270,9 @@ export class OfflineSyncSchedulerService {
     if (this.isCountdownActive() || this.batchSyncDrainingSubject.value) {
       return;
     }
+    if (this.isReconnectWorkflowActive()) {
+      return;
+    }
 
     this.clearCountdownTimer();
     this.countdownSubject.next(null);
@@ -208,10 +283,13 @@ export class OfflineSyncSchedulerService {
     this.refreshSyncBlocked();
   }
 
-  private async drainQueue(): Promise<void> {
+  private async drainQueue(emitDrainedOnComplete = true): Promise<void> {
     this.batchSyncDrainingSubject.next(true);
     try {
-      await this.getQueueProcessor().processQueue({ force: true, emitDrainedOnComplete: true });
+      await this.getQueueProcessor().processQueue({
+        force: true,
+        emitDrainedOnComplete,
+      });
     } finally {
       this.batchSyncDrainingSubject.next(false);
       this.drainScheduled = false;
@@ -225,7 +303,112 @@ export class OfflineSyncSchedulerService {
     this.drainScheduled = false;
     this.schedulingInProgress = false;
     this.schedulePromise = null;
+    void this.releaseReconnectRestaurantLock();
     this.refreshSyncBlocked();
+  }
+
+  private async releaseReconnectRestaurantLock(): Promise<void> {
+    if (!this.reconnectRestaurantLockHeld) {
+      return;
+    }
+    this.reconnectRestaurantLockHeld = false;
+    await this.getOfflineSyncLock().completeSync();
+  }
+
+  private async refreshSecondaryLockStatus(): Promise<void> {
+    try {
+      await this.getOfflineSyncLock().refreshStatus();
+    } catch (err) {
+      console.warn('[OfflineSync] Failed to refresh restaurant sync lock status', err);
+    }
+  }
+
+  private async handleSecondaryReconnect(): Promise<void> {
+    const restaurantId = this.auth.getUserSnapshot()?.restaurantId ?? '';
+    if (!restaurantId) {
+      return;
+    }
+
+    const lock = this.getOfflineSyncLock();
+    lock.setSecondaryAwaitingPrimaryReconnect(true);
+    this.secondaryReconnectStartedAt = Date.now();
+    this.secondarySawServerLock = false;
+
+    try {
+      const status = await lock.refreshStatus();
+      if (status.locked) {
+        this.secondarySawServerLock = true;
+      }
+      await this.getOrderSync().refreshRestaurantSnapshot({ force: true });
+    } catch (err) {
+      console.warn('[OfflineSync] Secondary reconnect coordination failed', err);
+    }
+
+    this.startSecondaryPoll(restaurantId);
+  }
+
+  private startSecondaryPoll(restaurantId: string): void {
+    this.stopSecondaryPoll();
+    this.secondaryPollIntervalId = setInterval(() => {
+      void this.tickSecondaryPoll(restaurantId);
+    }, 2000);
+    void this.tickSecondaryPoll(restaurantId);
+  }
+
+  private stopSecondaryPoll(): void {
+    if (this.secondaryPollIntervalId !== null) {
+      clearInterval(this.secondaryPollIntervalId);
+      this.secondaryPollIntervalId = null;
+    }
+  }
+
+  private stopSecondaryReconnectAwait(): void {
+    this.stopSecondaryPoll();
+    try {
+      this.offlineSyncLock ??= this.injector.get(OfflineSyncLockService);
+      this.offlineSyncLock.setSecondaryAwaitingPrimaryReconnect(false);
+    } catch {
+      // ignore when lock service is unavailable during teardown
+    }
+    this.secondarySawServerLock = false;
+    this.secondaryReconnectStartedAt = 0;
+  }
+
+  private async tickSecondaryPoll(restaurantId: string): Promise<void> {
+    if (!this.onlineState.isOnline) {
+      this.stopSecondaryPoll();
+      return;
+    }
+
+    const lock = this.getOfflineSyncLock();
+    if (!lock.isSecondaryAwaitingPrimaryReconnect()) {
+      this.stopSecondaryPoll();
+      return;
+    }
+
+    try {
+      const status = await lock.refreshStatus();
+      if (status.locked) {
+        this.secondarySawServerLock = true;
+        return;
+      }
+
+      const jitterSeconds = this.resolveReconnectDelay(restaurantId, this.secondaryReconnectStartedAt);
+      if (this.secondaryReconnectStartedAt <= 0) {
+        return;
+      }
+      const jitterElapsed = Date.now() - this.secondaryReconnectStartedAt >= jitterSeconds * 1000;
+      if (!jitterElapsed) {
+        return;
+      }
+
+      // Unfreeze only after primary held the restaurant lock and released it.
+      if (this.secondarySawServerLock && !status.locked) {
+        this.stopSecondaryReconnectAwait();
+      }
+    } catch (err) {
+      console.warn('[OfflineSync] Secondary lock poll failed', err);
+    }
   }
 
   private clearCountdownTimer(): void {

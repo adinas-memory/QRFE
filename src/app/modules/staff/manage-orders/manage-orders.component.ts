@@ -416,9 +416,20 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   get isOnline() { return this.onlineStateService.isOnline; }
 
+  /** Blocks staff POS writes during reconnect UI, offline freeze, or restaurant-wide sync lock. */
+  private isPosMutationBlocked(): boolean {
+    if (this.isReconnectSyncInProgress()) {
+      return true;
+    }
+    return this.offlinePolicy.shouldFreezePosActions();
+  }
+
   /** Online staff or designated primary device in full-offline mode. */
   get canBypassOfflineUiGates(): boolean {
     if (this.isReconnectSyncInProgress()) {
+      return false;
+    }
+    if (this.offlinePolicy.shouldFreezeForRestaurantSync()) {
       return false;
     }
     return this.isOnline || this.offlinePolicy.canUseFullOffline();
@@ -437,6 +448,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     if (this.isReconnectSyncInProgress()) {
       return true;
     }
+    if (this.offlinePolicy.shouldFreezeForRestaurantSync()) {
+      return true;
+    }
     if (!requireOnline) {
       return false;
     }
@@ -449,6 +463,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   isSetMenuActionDisabled(): boolean {
     if (this.isReconnectSyncInProgress()) {
+      return true;
+    }
+    if (this.offlinePolicy.shouldFreezeForRestaurantSync()) {
       return true;
     }
     if (this.isOnline) {
@@ -606,6 +623,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   async confirmOrder() {
     if (document.hidden) return;
+    if (this.isPosMutationBlocked()) {
+      return;
+    }
     if (!this.isOnline && !this.offlinePolicy.canUseFullOffline()) {
       return;
     }
@@ -648,6 +668,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   async addCartItem(item: MenuItem) {
+    const blocked = this.isPosMutationBlocked();
+    if (blocked) {
+      return;
+    }
     const tableId = this.currentTableId;
     if (!(await this.ensureNotPaymentLockedAsync())) {
       return;
@@ -845,6 +869,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   async decrementItem(sel: CartItem) {
+    if (this.isPosMutationBlocked()) {
+      return;
+    }
     const tableId = this.currentTableId;
     if (!(await this.ensureNotPaymentLockedAsync())) {
       return;
@@ -887,6 +914,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   async removeItem(sel: CartItem) {
+    if (this.isPosMutationBlocked()) {
+      return;
+    }
     const tableId = this.currentTableId;
     if (!(await this.ensureNotPaymentLockedAsync())) {
       return;
@@ -1157,6 +1187,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   async confirmCloseOrder() {
     if (document.hidden) return;
     if (this.closeInFlight) return;
+    if (this.isPosMutationBlocked()) {
+      return;
+    }
     if (!this.isOnline && !this.offlinePolicy.canUseFullOffline()) {
       return;
     }
@@ -1250,9 +1283,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   private async enqueueBillPrintJob(args: { restaurantId: string; orderId: string }): Promise<void> {
     try {
-      // #region agent log
-      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ac8dee'},body:JSON.stringify({sessionId:'ac8dee',location:'manage-orders.component.ts:enqueueBillPrintJob:entry',message:'print job start',data:{isOnline:this.isOnline,canUseFullOffline:this.offlinePolicy.canUseFullOffline(),isReadyForOfflinePrint:this.offlinePrintContext.isReadyForOfflinePrint(),hasPrinterId:!!(this.offlinePrintContext.getDefaultBillPrinterId()??'').trim(),agentBaseUrl:this.offlinePrintContext.getAgentLocalBaseUrl(),hasAuthToken:!!this.offlinePrintContext.getLocalPrintAuthToken()},timestamp:Date.now(),hypothesisId:'H1-H4'})}).catch(()=>{});
-      // #endregion
       const payload = {
         type: 'bill' as const,
         orderId: args.orderId,
@@ -1271,9 +1301,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       };
 
       if (!this.isOnline && this.offlinePolicy.canUseFullOffline()) {
-        // #region agent log
-        fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ac8dee'},body:JSON.stringify({sessionId:'ac8dee',location:'manage-orders.component.ts:enqueueBillPrintJob:offlineBranch',message:'offline LAN print branch',data:{restaurantId:args.restaurantId,orderId:args.orderId},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-        // #endregion
         const printerId = (this.offlinePrintContext.getDefaultBillPrinterId() ?? '').trim();
         if (!printerId) {
           this.appToast.info(
@@ -1317,9 +1344,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.transloco.translate('manageOrders.printQueuedTitle'),
       );
     } catch (err) {
-      // #region agent log
-      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ac8dee'},body:JSON.stringify({sessionId:'ac8dee',location:'manage-orders.component.ts:enqueueBillPrintJob:catch',message:'print job failed',data:{isOnline:this.isOnline,canUseFullOffline:this.offlinePolicy.canUseFullOffline(),errorName:err instanceof Error?err.name:'unknown',errorMessage:err instanceof Error?err.message:String(err)},timestamp:Date.now(),hypothesisId:'H2-H5'})}).catch(()=>{});
-      // #endregion
       console.error('Print job failed', err);
       this.appToast.error(
         this.transloco.translate('manageOrders.printErrorBody'),
@@ -1440,7 +1464,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   private async handleSseEvent({ EventType, Data, InitiatedBy, Sequence }: SseEvent<any>): Promise<void> {
     if (!EventType) return;
     if (typeof Sequence === 'number' && Sequence > 0) {
-      if (this.recentSseSequenceSet.has(Sequence)) return;
+      if (this.recentSseSequenceSet.has(Sequence)) {
+        return;
+      }
       this.recentSseSequenceSet.add(Sequence);
       this.recentSseSequences.push(Sequence);
       if (this.recentSseSequences.length > this.maxRecentSseSequences) {
@@ -1770,7 +1796,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
             c,
             this.tables,
             this.waiterState,
-            this.resolveInitiatedBy(c.tableId) || this.tableComputed[c.tableId]?.initiatedBy?.trim() || '',
+            this.resolveInitiatedBy(c.tableId, InitiatedBy) || this.tableComputed[c.tableId]?.initiatedBy?.trim() || '',
           );
         }
 

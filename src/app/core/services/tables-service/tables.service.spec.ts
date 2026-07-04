@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
 import { OnlineStateService } from '../../offline/online-state-service';
+import { SseConnectivityService } from '../../offline/sse-connectivity.service';
 import { OfflineDbService } from '../../offline/offline-db';
 import { TablesService } from './tables.service';
 
@@ -12,11 +13,14 @@ describe('TablesService', () => {
     const onlineSpy = jasmine.createSpyObj('OnlineStateService', ['setOffline', 'setOnline'], { isOnline: true });
     const offlineSpy = jasmine.createSpyObj('OfflineDbService', ['saveTables', 'saveTablesStatus', 'loadLocalTables']);
 
+    const sseSpy = jasmine.createSpyObj('SseConnectivityService', ['reportHttpNetworkFailure']);
+
     TestBed.configureTestingModule({
       providers: [
         TablesService,
         { provide: HttpClient, useValue: httpSpy },
         { provide: OnlineStateService, useValue: onlineSpy },
+        { provide: SseConnectivityService, useValue: sseSpy },
         { provide: OfflineDbService, useValue: offlineSpy }
       ]
     });

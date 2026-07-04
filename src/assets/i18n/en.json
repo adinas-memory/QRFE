@@ -668,7 +668,8 @@
   },
   "offline": {
     "bannerPrimary": "OFFLINE — full POS mode (syncs when you reconnect)",
-    "bannerLimited": "OFFLINE! Move to the device configured for offline work."
+    "bannerLimited": "OFFLINE! Move to the device configured for offline work.",
+    "bannerRestaurantSyncLocked": "OFFLINE SYNC IN PROGRESS — please wait until the primary device finishes syncing orders."
   },
   "kitchen": {
     "title": "Kitchen",
@@ -992,5 +993,11 @@
         "a": "Subscription tiers define limits such as tables, bars, and seats. Checkout and renewals run through Stripe; successful payment triggers the restaurant onboarding path, while managers can manage billing details from their settings when enabled."
       }
     }
+  },
+  "pullToRefresh": {
+    "pull": "Pull down to refresh",
+    "release": "Release to refresh",
+    "syncing": "Refreshing…",
+    "offline": "Cannot refresh while offline."
   }
 }
