@@ -67,6 +67,9 @@ export class OnlineStateService {
       return;
     }
     this.supplementalHeartbeatTimer = setInterval(() => {
+      if (this.injector.get(SseConnectivityService).isStreamActive()) {
+        return;
+      }
       void this.confirmConnectivity(false);
     }, this.supplementalHeartbeatMs);
   }
@@ -140,18 +143,25 @@ export class OnlineStateService {
       // #region agent log
       fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H1',location:'online-state-service.ts:executePing',message:'ping-lite result',data:{ok,status:res.status,wasOnline:this._isOnline},timestamp:Date.now()})}).catch(()=>{});
       // #endregion
+      const sseConnectivity = this.injector.get(SseConnectivityService);
+      if (sseConnectivity.isStreamActive()) {
+        return ok;
+      }
       if (ok) {
         this.notifyConnectivityPulse();
-        this.injector.get(SseConnectivityService).reportPingSuccess();
+        sseConnectivity.reportPingSuccess();
       } else {
-        this.injector.get(SseConnectivityService).reportPingFailed('ping-lite-fail');
+        sseConnectivity.reportPingFailed('ping-lite-fail');
       }
       return ok;
     } catch {
       // #region agent log
       fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H1-postfix',location:'online-state-service.ts:executePing',message:'ping-lite failed',data:{wasOnline:this._isOnline},timestamp:Date.now()})}).catch(()=>{});
       // #endregion
-      this.injector.get(SseConnectivityService).reportPingFailed('ping-lite-error');
+      const sseConnectivity = this.injector.get(SseConnectivityService);
+      if (!sseConnectivity.isStreamActive()) {
+        sseConnectivity.reportPingFailed('ping-lite-error');
+      }
       return false;
     } finally {
       this.heartbeatInProgress = null;

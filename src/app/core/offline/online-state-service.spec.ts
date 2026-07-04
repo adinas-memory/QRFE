@@ -1,10 +1,18 @@
 import { TestBed, fakeAsync, tick, discardPeriodicTasks } from '@angular/core/testing';
 import { OnlineStateService } from './online-state-service';
+import { SseConnectivityService } from './sse-connectivity.service';
 import { firstValueFrom } from 'rxjs';
 
 describe('OnlineStateService', () => {
   let service: OnlineStateService;
   let fetchSpy: jasmine.Spy;
+  let sseConnectivity: jasmine.SpyObj<SseConnectivityService>;
+
+  const pingLiteFetchCalls = (): number =>
+    fetchSpy.calls.all().filter(call => String(call.args[0]).includes('/api/ping-lite')).length;
+
+  const lastPingLiteFetch = (): jasmine.CallInfo<typeof fetch> | undefined =>
+    fetchSpy.calls.all().filter(call => String(call.args[0]).includes('/api/ping-lite')).pop();
 
   beforeEach(() => {
     fetchSpy = jasmine.createSpy('fetch').and.returnValue(
@@ -12,8 +20,18 @@ describe('OnlineStateService', () => {
     );
     spyOn(window, 'fetch').and.callFake(fetchSpy);
 
+    sseConnectivity = jasmine.createSpyObj('SseConnectivityService', [
+      'reportPingSuccess',
+      'reportPingFailed',
+      'isStreamActive',
+    ]);
+    sseConnectivity.isStreamActive.and.returnValue(false);
+
     TestBed.configureTestingModule({
-      providers: [OnlineStateService],
+      providers: [
+        OnlineStateService,
+        { provide: SseConnectivityService, useValue: sseConnectivity },
+      ],
     });
     service = TestBed.inject(OnlineStateService);
   });
@@ -46,14 +64,15 @@ describe('OnlineStateService', () => {
     service.triggerResumeCheck();
     service.triggerResumeCheck();
     tick(299);
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(pingLiteFetchCalls()).toBe(0);
 
     tick(1);
     await resumePromise;
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(fetchSpy.calls.mostRecent().args[0]).toContain('/api/ping-lite');
-    expect(fetchSpy.calls.mostRecent().args[1]?.method).toBe('HEAD');
+    expect(pingLiteFetchCalls()).toBe(1);
+    const lastPing = lastPingLiteFetch();
+    expect(lastPing?.args[0]).toContain('/api/ping-lite');
+    expect(lastPing?.args[1]?.method).toBe('HEAD');
   }));
 
   it('does not emit resumeConnectivityOk$ when ping fails', fakeAsync(() => {
@@ -87,26 +106,45 @@ describe('OnlineStateService', () => {
     expect(fetchSpy).toHaveBeenCalled();
   }));
 
-  it('runs supplemental ping-lite heartbeat every 10 seconds', fakeAsync(() => {
+  it('runs supplemental ping-lite heartbeat every 10 seconds when SSE inactive', fakeAsync(() => {
     fetchSpy.calls.reset();
     TestBed.resetTestingModule();
-    TestBed.configureTestingModule({ providers: [OnlineStateService] });
+    const sse = jasmine.createSpyObj('SseConnectivityService', [
+      'reportPingSuccess',
+      'reportPingFailed',
+      'isStreamActive',
+    ]);
+    sse.isStreamActive.and.returnValue(false);
+    TestBed.configureTestingModule({
+      providers: [
+        OnlineStateService,
+        { provide: SseConnectivityService, useValue: sse },
+      ],
+    });
     TestBed.inject(OnlineStateService);
 
     tick(10_000);
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(pingLiteFetchCalls()).toBe(1);
     tick(10_000);
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(pingLiteFetchCalls()).toBe(2);
+    discardPeriodicTasks();
+  }));
+
+  it('skips supplemental ping-lite when SSE stream is active', fakeAsync(() => {
+    fetchSpy.calls.reset();
+    sseConnectivity.isStreamActive.and.returnValue(true);
+    tick(10_000);
+    expect(pingLiteFetchCalls()).toBe(0);
     discardPeriodicTasks();
   }));
 
   it('triggerResumeCheck ignores duplicate resume within cooldown', fakeAsync(() => {
     service.triggerResumeCheck();
     tick(300);
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(pingLiteFetchCalls()).toBe(1);
 
     service.triggerResumeCheck();
     tick(300);
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(pingLiteFetchCalls()).toBe(1);
   }));
 });

@@ -54,22 +54,49 @@ describe('SseConnectivityService', () => {
     expect(onlineState.notifyConnectivityPulse).toHaveBeenCalled();
   });
 
-  it('reportPingFailed marks offline immediately', () => {
+  it('reportPingFailed is ignored when SSE stream is active', () => {
     service.reportStreamOpened();
+    service.reportPingFailed('ping-lite-error');
+    expect(onlineState.setOfflineFromConnectivitySource).not.toHaveBeenCalled();
+  });
+
+  it('reportPingFailed marks offline when stream is not open', () => {
     service.reportPingFailed('ping-lite-error');
     expect(onlineState.setOfflineFromConnectivitySource).toHaveBeenCalledWith('ping-lite-error');
   });
 
-  it('reportPingSuccess ignores ok when SSE activity is stale', fakeAsync(() => {
+  it('reportPingSuccess is ignored when SSE stream is active', () => {
     service.reportStreamOpened();
-    tick(23_000);
     onlineState.setOnlineFromConnectivitySource.calls.reset();
     service.reportPingSuccess();
     expect(onlineState.setOnlineFromConnectivitySource).not.toHaveBeenCalled();
-  }));
+  });
 
   it('reportPingSuccess marks online when stream is not open', () => {
     service.reportPingSuccess();
     expect(onlineState.setOnlineFromConnectivitySource).toHaveBeenCalled();
   });
+
+  it('stale-watch marks offline after pulse gap', fakeAsync(() => {
+    TestBed.resetTestingModule();
+    const pingOk$ = new Subject<void>();
+    const localOnlineState = jasmine.createSpyObj('OnlineStateService', [
+      'setOnlineFromConnectivitySource',
+      'setOfflineFromConnectivitySource',
+      'notifyConnectivityPulse',
+      'confirmConnectivity',
+    ]);
+    Object.defineProperty(localOnlineState, 'isOnline', { get: () => true, configurable: true });
+    Object.defineProperty(localOnlineState, 'pingOk$', { value: pingOk$.asObservable() });
+    TestBed.configureTestingModule({
+      providers: [
+        SseConnectivityService,
+        { provide: OnlineStateService, useValue: localOnlineState },
+      ],
+    });
+    const localService = TestBed.inject(SseConnectivityService);
+    localService.reportStreamOpened();
+    tick(8_001);
+    expect(localOnlineState.setOfflineFromConnectivitySource).toHaveBeenCalledWith('stale-watch');
+  }));
 });

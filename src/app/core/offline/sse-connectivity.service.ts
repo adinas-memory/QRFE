@@ -1,7 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { OnlineStateService } from './online-state-service';
 
-const STALE_THRESHOLD_MS = 22_000;
+/** Must stay aligned with SSEController KeepAliveLoop delay (seconds) + grace. */
+export const SSE_PULSE_INTERVAL_MS = 5_000;
+export const SSE_STALE_GRACE_MS = 2_000;
+export const STALE_THRESHOLD_MS = SSE_PULSE_INTERVAL_MS + SSE_STALE_GRACE_MS;
+const STALE_WATCH_INTERVAL_MS = 1_000;
 const OFFLINE_DEBOUNCE_MS = 2_000;
 const FAST_OFFLINE_DEBOUNCE_MS = 500;
 
@@ -17,6 +21,11 @@ export class SseConnectivityService {
 
   constructor() {
     this.startStaleWatch();
+  }
+
+  /** True when the restaurant SSE stream is open — ping-lite must not drive online/offline. */
+  isStreamActive(): boolean {
+    return this.streamOpen;
   }
 
   reportStreamOpened(): void {
@@ -35,7 +44,7 @@ export class SseConnectivityService {
     this.lastActivityAt = Date.now();
     if (_eventType === 'ConnectivityPulse') {
       // #region agent log
-      fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H2',location:'sse-connectivity.service.ts:reportStreamActivity',message:'ConnectivityPulse received',data:{streamOpen:this.streamOpen,isOnline:this.onlineState.isOnline,lastActivityAgeMs:0},timestamp:Date.now()})}).catch(()=>{});
+      fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H10-H11',location:'sse-connectivity.service.ts:reportStreamActivity',message:'ConnectivityPulse received',data:{streamOpen:this.streamOpen,isOnline:this.onlineState.isOnline,tabId:this.debugTabId()},timestamp:Date.now()})}).catch(()=>{});
       // #endregion
     }
     if (!this.onlineState.isOnline) {
@@ -81,6 +90,10 @@ export class SseConnectivityService {
   }
 
   reportNativeNetworkAvailable(): void {
+    if (this.streamOpen) {
+      this.requestReconnectCheck();
+      return;
+    }
     void this.onlineState.confirmConnectivity(true);
   }
 
@@ -88,25 +101,17 @@ export class SseConnectivityService {
     this.scheduleOffline('native-network-lost');
   }
 
-  /** Ping-lite failed — mark offline immediately and invalidate zombie SSE activity. */
+  /** Ping-lite failed — only when SSE is not active (bootstrap / pre-stream). */
   reportPingFailed(reason: string): void {
     if (this.streamOpen) {
-      this.lastActivityAt = 0;
+      return;
     }
     this.onlineState.setOfflineFromConnectivitySource(reason);
   }
 
-  /**
-   * Ping-lite succeeded. Only mark online when SSE is healthy or the stream is not open
-   * (bootstrap / reconnect path). Ignores ping when a zombie SSE socket is stale.
-   */
+  /** Ping-lite succeeded — only when SSE is not active. */
   reportPingSuccess(): void {
-    const sseStale = this.streamOpen && this.lastActivityAt > 0
-      && Date.now() - this.lastActivityAt > STALE_THRESHOLD_MS;
-    if (sseStale) {
-      // #region agent log
-      fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H8',location:'sse-connectivity.service.ts:reportPingSuccess',message:'ping ok ignored — stale SSE',data:{streamOpen:this.streamOpen,lastActivityAgeMs:Date.now()-this.lastActivityAt},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
+    if (this.streamOpen) {
       return;
     }
     this.onlineState.setOnlineFromConnectivitySource();
@@ -125,7 +130,7 @@ export class SseConnectivityService {
       const stale = !this.streamOpen || Date.now() - this.lastActivityAt > STALE_THRESHOLD_MS;
       if (stale || reason === 'http-network' || reason === 'native-network-lost' || reason === 'sse-error') {
         // #region agent log
-        fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H1-H3',location:'sse-connectivity.service.ts:scheduleOffline',message:'sse offline scheduled firing',data:{reason,stale,streamOpen:this.streamOpen,lastActivityAgeMs:Date.now()-this.lastActivityAt},timestamp:Date.now()})}).catch(()=>{});
+        fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H10-H11',location:'sse-connectivity.service.ts:scheduleOffline',message:'sse offline scheduled firing',data:{reason,stale,streamOpen:this.streamOpen,lastActivityAgeMs:Date.now()-this.lastActivityAt,tabId:this.debugTabId()},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         this.onlineState.setOfflineFromConnectivitySource(reason);
       }
@@ -133,7 +138,7 @@ export class SseConnectivityService {
   }
 
   private offlineDebounceMsFor(reason: string): number {
-    if (reason === 'http-network' || reason === 'native-network-lost') {
+    if (reason === 'http-network' || reason === 'native-network-lost' || reason === 'stale-watch') {
       return 0;
     }
     if (reason === 'sse-error' || reason === 'sse-closed') {
@@ -167,6 +172,19 @@ export class SseConnectivityService {
       if (Date.now() - this.lastActivityAt > STALE_THRESHOLD_MS) {
         this.scheduleOffline('stale-watch');
       }
-    }, 5_000);
+    }, STALE_WATCH_INTERVAL_MS);
+  }
+
+  private debugTabId(): string {
+    if (typeof sessionStorage === 'undefined') {
+      return 'unknown';
+    }
+    const key = 'debugTabId';
+    let id = sessionStorage.getItem(key);
+    if (!id) {
+      id = `tab-${Math.random().toString(36).slice(2, 8)}`;
+      sessionStorage.setItem(key, id);
+    }
+    return id;
   }
 }
