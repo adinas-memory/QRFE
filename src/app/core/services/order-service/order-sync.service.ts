@@ -17,6 +17,7 @@ import { OfflinePolicyService } from '../../offline/offline-policy.service';
 import { OfflineSyncLockService } from '../../offline/offline-sync-lock.service';
 import { SseConnectivityService } from '../../offline/sse-connectivity.service';
 import { Capacitor } from '@capacitor/core';
+import { NetworkMonitor } from '../../plugins/network-monitor.plugin';
 
 @Injectable({
   providedIn: 'root'
@@ -395,6 +396,18 @@ export class OrderSyncService {
         const status = (err as { status?: number })?.status;
         const msg = String((err as Error)?.message ?? '');
         const isAuth401 = status === 401 || msg.includes('HTTP 401') || msg.includes('invalid_token');
+        // #region agent log
+        if (Capacitor.isNativePlatform()) {
+          void NetworkMonitor.writeDebugLog({
+            hypothesisId: 'H_B2_3',
+            location: 'order-sync.service.ts:onerror',
+            message: 'fetchEventSource onerror',
+            dataJson: JSON.stringify({
+              status, msg, isAuth401, documentHidden: typeof document !== 'undefined' ? document.hidden : null,
+            }),
+          }).catch(() => {});
+        }
+        // #endregion
 
         // 401 (expired token) is NOT "offline". Let refresh flow handle it.
         if (!isAuth401) {

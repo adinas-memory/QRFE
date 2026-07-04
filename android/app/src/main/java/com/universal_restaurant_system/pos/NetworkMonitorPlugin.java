@@ -44,6 +44,18 @@ public class NetworkMonitorPlugin extends Plugin {
         call.resolve();
     }
 
+    // #region agent log
+    @PluginMethod
+    public void writeDebugLog(PluginCall call) {
+        String hypothesisId = call.getString("hypothesisId", "");
+        String location = call.getString("location", "");
+        String message = call.getString("message", "");
+        String dataJson = call.getString("dataJson", "{}");
+        DebugFileLogger.log(getContext().getApplicationContext(), hypothesisId, location, message, dataJson);
+        call.resolve();
+    }
+    // #endregion
+
     private void emitNetworkStatus(boolean online) {
         JSObject payload = new JSObject();
         payload.put("online", online);

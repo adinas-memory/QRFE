@@ -10,7 +10,9 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 
 import androidx.core.app.NotificationCompat;
 
@@ -18,6 +20,19 @@ public class NetworkMonitorService extends Service {
 
     public static final String CHANNEL_ID = "network_monitor_v1";
     private static final int NOTIFICATION_ID = 41001;
+
+    // #region agent log
+    private final Handler debugHeartbeatHandler = new Handler(Looper.getMainLooper());
+    private final Runnable debugHeartbeatRunnable = new Runnable() {
+        @Override
+        public void run() {
+            DebugFileLogger.log(
+                getApplicationContext(), "H_B2_2", "NetworkMonitorService.java", "native service heartbeat", "{}"
+            );
+            debugHeartbeatHandler.postDelayed(this, 3000);
+        }
+    };
+    // #endregion
 
     public interface NetworkListener {
         void onNetworkAvailable();
@@ -37,6 +52,9 @@ public class NetworkMonitorService extends Service {
         super.onCreate();
         ensureNotificationChannel();
         startForeground(NOTIFICATION_ID, buildNotification());
+        // #region agent log
+        debugHeartbeatHandler.postDelayed(debugHeartbeatRunnable, 3000);
+        // #endregion
 
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         if (cm == null) {
@@ -46,6 +64,12 @@ public class NetworkMonitorService extends Service {
         networkCallback = new ConnectivityManager.NetworkCallback() {
             @Override
             public void onAvailable(Network network) {
+                // #region agent log
+                DebugFileLogger.log(
+                    getApplicationContext(), "H_B2_1", "NetworkMonitorService.java",
+                    "ConnectivityManager onAvailable", "{}"
+                );
+                // #endregion
                 if (networkListener != null) {
                     networkListener.onNetworkAvailable();
                 }
@@ -53,6 +77,12 @@ public class NetworkMonitorService extends Service {
 
             @Override
             public void onLost(Network network) {
+                // #region agent log
+                DebugFileLogger.log(
+                    getApplicationContext(), "H_B2_1", "NetworkMonitorService.java",
+                    "ConnectivityManager onLost", "{}"
+                );
+                // #endregion
                 if (networkListener != null) {
                     networkListener.onNetworkLost();
                 }
@@ -72,6 +102,9 @@ public class NetworkMonitorService extends Service {
 
     @Override
     public void onDestroy() {
+        // #region agent log
+        debugHeartbeatHandler.removeCallbacks(debugHeartbeatRunnable);
+        // #endregion
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         if (cm != null && networkCallback != null) {
             try {
