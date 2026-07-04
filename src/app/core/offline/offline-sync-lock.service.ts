@@ -41,13 +41,15 @@ export class OfflineSyncLockService {
       return { locked: false };
     }
 
-    const status = await firstValueFrom(
-      this.http.get<OfflineSyncLockStatus>(`${this.apiUrl}/api/offline-sync/status`, {
+    const raw = await firstValueFrom(
+      this.http.get<OfflineSyncLockStatus & { Locked?: boolean }>(`${this.apiUrl}/api/offline-sync/status`, {
         params: { restaurantId },
         withCredentials: true,
       }),
     );
-    this.setRestaurantSyncLocked(status.locked === true);
+    const locked = raw.locked === true || raw.Locked === true;
+    const status: OfflineSyncLockStatus = { locked, holderClientInstanceId: raw.holderClientInstanceId };
+    this.setRestaurantSyncLocked(locked);
     return status;
   }
 

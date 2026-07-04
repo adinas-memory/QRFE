@@ -45,9 +45,10 @@ describe('OfflineSyncSchedulerService', () => {
     offlineDb = jasmine.createSpyObj('OfflineDbService', ['getPendingActionsForRestaurant']);
     offlineDb.getPendingActionsForRestaurant.and.returnValue(Promise.resolve([{ id: 'a1' } as never]));
 
-    const offlineSyncLock = jasmine.createSpyObj('OfflineSyncLockService', ['beginSync', 'completeSync']);
+    const offlineSyncLock = jasmine.createSpyObj('OfflineSyncLockService', ['beginSync', 'completeSync', 'refreshStatus']);
     offlineSyncLock.beginSync.and.returnValue(Promise.resolve(true));
     offlineSyncLock.completeSync.and.returnValue(Promise.resolve(true));
+    offlineSyncLock.refreshStatus.and.returnValue(Promise.resolve({ locked: false }));
     Object.defineProperty(offlineSyncLock, 'restaurantSyncLocked$', { value: new BehaviorSubject(false).asObservable() });
 
     auth = jasmine.createSpyObj('AuthService', ['getUserSnapshot']);
@@ -83,17 +84,20 @@ describe('OfflineSyncSchedulerService', () => {
   it('starts centralized countdown on reconnect when pending actions exist', fakeAsync(() => {
     const values: Array<number | null> = [];
     service.syncCountdownSeconds$.subscribe(v => values.push(v));
+    const lock = TestBed.inject(OfflineSyncLockService) as jasmine.SpyObj<OfflineSyncLockService>;
 
     online$.next(false);
     onlineState.isOnline = true;
     online$.next(true);
     tick();
 
+    expect(lock.beginSync).toHaveBeenCalled();
     expect(values.some(v => v !== null && v > 0)).toBeTrue();
     expect(queueProcessor.processQueue).not.toHaveBeenCalled();
 
     tick(54_000);
     expect(queueProcessor.processQueue).toHaveBeenCalledWith({ force: true, emitDrainedOnComplete: false });
+    expect(lock.completeSync).toHaveBeenCalled();
     expect(values[values.length - 1]).toBeNull();
   }));
 
@@ -153,6 +157,7 @@ describe('OfflineSyncSchedulerService', () => {
 
   it('does not reconcile on reconnect for non-primary devices without local pending queue', fakeAsync(() => {
     delayConfig.seconds = 0;
+    const lock = TestBed.inject(OfflineSyncLockService) as jasmine.SpyObj<OfflineSyncLockService>;
     userSubject.next({
       id: 'u1',
       role: 'staff',
@@ -169,6 +174,8 @@ describe('OfflineSyncSchedulerService', () => {
     online$.next(true);
     tick();
 
+    expect(lock.refreshStatus).toHaveBeenCalled();
+    expect(lock.beginSync).not.toHaveBeenCalled();
     expect(queueProcessor.processQueue).not.toHaveBeenCalled();
     expect(orderSync.reconcileAfterOfflineSync).not.toHaveBeenCalled();
   }));

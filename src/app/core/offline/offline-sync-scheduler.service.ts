@@ -36,6 +36,8 @@ export class OfflineSyncSchedulerService {
   private queueProcessor: OfflineQueueProcessor | null = null;
   private orderSync: OrderSyncService | null = null;
   private offlineSyncLock: OfflineSyncLockService | null = null;
+  /** True when this primary session acquired the restaurant lock for reconnect drain. */
+  private reconnectRestaurantLockHeld = false;
   private readonly resolveReconnectDelay = inject(OFFLINE_RECONNECT_DELAY_RESOLVER);
   private readonly syncBlockedSubject = new BehaviorSubject(false);
   /** Emits true while reconnect jitter is preparing or counting down. */
@@ -146,11 +148,27 @@ export class OfflineSyncSchedulerService {
       this.reconnectSyncPending = false;
 
       if (!this.offlinePolicy.shouldRunHeavyOfflineReconnectSync({ isReconnect, pendingQueueCount: pendingCount })) {
+        if (!this.offlinePolicy.isOfflinePrimaryDevice()) {
+          void this.refreshSecondaryLockStatus();
+        }
         return;
       }
 
       if (this.isCountdownActive() || this.drainScheduled) {
         return;
+      }
+
+      const shouldLock = pendingCount > 0 && this.offlinePolicy.isOfflinePrimaryDevice();
+      if (shouldLock) {
+        const acquired = await this.getOfflineSyncLock().beginSync();
+        // #region agent log
+        fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H5',location:'offline-sync-scheduler.service.ts:schedulePendingSyncWithJitter',message:'early restaurant lock begin',data:{pendingCount,acquired,shouldLock},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+        if (!acquired) {
+          console.warn('[OfflineSync] Could not acquire restaurant sync lock before countdown; skipping heavy sync.');
+          return;
+        }
+        this.reconnectRestaurantLockHeld = true;
       }
 
       const restaurantId = this.auth.getUserSnapshot()?.restaurantId ?? '';
@@ -195,24 +213,11 @@ export class OfflineSyncSchedulerService {
     try {
       const pendingCount = await this.getPendingCount();
       if (pendingCount > 0) {
-        const shouldLock = this.offlinePolicy.isOfflinePrimaryDevice();
-        if (shouldLock) {
-          const acquired = await this.getOfflineSyncLock().beginSync();
-          // #region agent log
-          fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H3',location:'offline-sync-scheduler.service.ts:finishReconnectSync',message:'restaurant lock begin result',data:{pendingCount,acquired,shouldLock},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
-          if (!acquired) {
-            console.warn('[OfflineSync] Could not acquire restaurant sync lock; skipping queue drain.');
-            return;
-          }
-        }
         try {
           await this.drainQueue(false);
           await this.getOrderSync().reconcileAfterOfflineSync();
         } finally {
-          if (shouldLock) {
-            await this.getOfflineSyncLock().completeSync();
-          }
+          await this.releaseReconnectRestaurantLock();
         }
         return;
       }
@@ -260,7 +265,27 @@ export class OfflineSyncSchedulerService {
     this.drainScheduled = false;
     this.schedulingInProgress = false;
     this.schedulePromise = null;
+    void this.releaseReconnectRestaurantLock();
     this.refreshSyncBlocked();
+  }
+
+  private async releaseReconnectRestaurantLock(): Promise<void> {
+    if (!this.reconnectRestaurantLockHeld) {
+      return;
+    }
+    this.reconnectRestaurantLockHeld = false;
+    await this.getOfflineSyncLock().completeSync();
+  }
+
+  private async refreshSecondaryLockStatus(): Promise<void> {
+    try {
+      const status = await this.getOfflineSyncLock().refreshStatus();
+      // #region agent log
+      fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H4',location:'offline-sync-scheduler.service.ts:refreshSecondaryLockStatus',message:'secondary polled lock status',data:{locked:status.locked},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+    } catch (err) {
+      console.warn('[OfflineSync] Failed to refresh restaurant sync lock status', err);
+    }
   }
 
   private clearCountdownTimer(): void {

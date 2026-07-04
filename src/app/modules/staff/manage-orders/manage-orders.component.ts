@@ -416,6 +416,14 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   get isOnline() { return this.onlineStateService.isOnline; }
 
+  /** Blocks staff POS writes during reconnect UI, offline freeze, or restaurant-wide sync lock. */
+  private isPosMutationBlocked(): boolean {
+    if (this.isReconnectSyncInProgress()) {
+      return true;
+    }
+    return this.offlinePolicy.shouldFreezePosActions();
+  }
+
   /** Online staff or designated primary device in full-offline mode. */
   get canBypassOfflineUiGates(): boolean {
     if (this.isReconnectSyncInProgress()) {
@@ -615,6 +623,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   async confirmOrder() {
     if (document.hidden) return;
+    if (this.isPosMutationBlocked()) {
+      return;
+    }
     if (!this.isOnline && !this.offlinePolicy.canUseFullOffline()) {
       return;
     }
@@ -657,6 +668,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   async addCartItem(item: MenuItem) {
+    if (this.isPosMutationBlocked()) {
+      return;
+    }
     const tableId = this.currentTableId;
     if (!(await this.ensureNotPaymentLockedAsync())) {
       return;
@@ -854,6 +868,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   async decrementItem(sel: CartItem) {
+    if (this.isPosMutationBlocked()) {
+      return;
+    }
     const tableId = this.currentTableId;
     if (!(await this.ensureNotPaymentLockedAsync())) {
       return;
@@ -896,6 +913,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   async removeItem(sel: CartItem) {
+    if (this.isPosMutationBlocked()) {
+      return;
+    }
     const tableId = this.currentTableId;
     if (!(await this.ensureNotPaymentLockedAsync())) {
       return;
@@ -1166,6 +1186,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   async confirmCloseOrder() {
     if (document.hidden) return;
     if (this.closeInFlight) return;
+    if (this.isPosMutationBlocked()) {
+      return;
+    }
     if (!this.isOnline && !this.offlinePolicy.canUseFullOffline()) {
       return;
     }

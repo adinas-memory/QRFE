@@ -323,6 +323,11 @@ export class OrderSyncService {
         this.ngZone.run(() => {
           this.reconnectAttempts = 0;
         });
+        if (!this.offlinePolicy.isOfflinePrimaryDevice()) {
+          void this.offlineSyncLock.refreshStatus().catch(err => {
+            console.warn('[SSE][internal] lock status refresh failed', err);
+          });
+        }
         if (await this.needsHeavyOfflineSync()) {
           void this.syncScheduler.runWhenAllowed();
         }
@@ -364,6 +369,9 @@ export class OrderSyncService {
 
           if (EventType === 'RestaurantSyncLocked') {
             this.offlineSyncLock.setRestaurantSyncLocked(true);
+            // #region agent log
+            fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H4',location:'order-sync.service.ts:SSE',message:'RestaurantSyncLocked SSE received',data:{restaurantId:RestaurantId},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
           } else if (EventType === 'RestaurantSyncUnlocked') {
             this.offlineSyncLock.setRestaurantSyncLocked(false);
           }

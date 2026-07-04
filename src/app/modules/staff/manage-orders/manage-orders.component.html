@@ -190,6 +190,7 @@
         <div class="row g-3 mt-3 px-3">
           <div class="col-6 col-md-4 col-lg-3" *ngFor="let item of filteredMenuItems">
             <div class="product-tile p-2 border rounded text-center shadow-sm" (click)="addCartItem(item)"
+              [class.pe-none]="!canBypassOfflineUiGates" [class.opacity-50]="!canBypassOfflineUiGates"
               style="cursor: pointer; user-select: none;">
               <img [src]="item.menuItemIconUrl + '?v=' + forceRefreshAfterUpdate" class="img-fluid mb-2 rounded"
                 style="max-height: 90px; object-fit: contain;" />
@@ -222,6 +223,7 @@
               <div class="row g-3 mt-3">
                 <div class="col-6 col-md-4 col-lg-3" *ngFor="let item of groupedMenuItems[cat]">
                   <div class="product-tile p-2 border rounded text-center shadow-sm" (click)="addCartItem(item)"
+              [class.pe-none]="!canBypassOfflineUiGates" [class.opacity-50]="!canBypassOfflineUiGates"
                     style="cursor: pointer; user-select: none;">
                     <img [src]="item.menuItemIconUrl + '?v=' + forceRefreshAfterUpdate" class="img-fluid mb-2 rounded"
                       style="max-height: 90px; object-fit: contain;" />
