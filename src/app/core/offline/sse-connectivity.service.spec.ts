@@ -50,8 +50,20 @@ describe('SseConnectivityService', () => {
 
   it('reportStreamActivity on ConnectivityPulse keeps online', () => {
     service.reportStreamOpened();
+    onlineState.setOnlineFromConnectivitySource.calls.reset();
     service.reportStreamActivity('ConnectivityPulse');
     expect(onlineState.notifyConnectivityPulse).toHaveBeenCalled();
+    expect(onlineState.setOnlineFromConnectivitySource).not.toHaveBeenCalled();
+  });
+
+  it('non-pulse SSE activity does not mark online when offline', () => {
+    Object.defineProperty(onlineState, 'isOnline', { get: () => false, configurable: true });
+    service.reportStreamOpened();
+    onlineState.setOnlineFromConnectivitySource.calls.reset();
+    onlineState.notifyConnectivityPulse.calls.reset();
+    service.reportStreamActivity('OrderCreated');
+    expect(onlineState.setOnlineFromConnectivitySource).not.toHaveBeenCalled();
+    expect(onlineState.notifyConnectivityPulse).not.toHaveBeenCalled();
   });
 
   it('reportPingFailed is ignored when SSE stream is active', () => {
@@ -91,7 +103,7 @@ describe('SseConnectivityService', () => {
     });
     const localService = TestBed.inject(SseConnectivityService);
     localService.reportStreamOpened();
-    tick(9_001);
+    tick(13_001);
     expect(localOnlineState.setOfflineFromConnectivitySource).toHaveBeenCalledWith('stale-watch');
   }));
 
