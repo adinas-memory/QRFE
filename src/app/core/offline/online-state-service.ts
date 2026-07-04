@@ -135,6 +135,9 @@ export class OnlineStateService {
         ...(hasAbortTimeout ? { signal: AbortSignal.timeout(8000) } : {}),
       });
       const ok = res.ok || res.status < 500;
+      // #region agent log
+      fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H1',location:'online-state-service.ts:executePing',message:'ping-lite result',data:{ok,status:res.status,wasOnline:this._isOnline},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       if (ok) {
         this.notifyConnectivityPulse();
         this.setOnlineFromConnectivitySource();
@@ -154,7 +157,10 @@ export class OnlineStateService {
     this.pingOkSubject.next();
   }
 
-  setOfflineFromConnectivitySource(_reason?: string): void {
+  setOfflineFromConnectivitySource(reason?: string): void {
+    // #region agent log
+    fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H1-H3',location:'online-state-service.ts:setOfflineFromConnectivitySource',message:'marking offline',data:{reason:reason??'unknown'},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     this.setOffline();
   }
 

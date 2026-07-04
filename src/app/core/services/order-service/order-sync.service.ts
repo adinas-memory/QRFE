@@ -170,7 +170,7 @@ export class OrderSyncService {
 
     this.reconcilingSubject.next(true);
     try {
-      await this.syncRestaurantState(restaurantId);
+      await this.syncRestaurantState(restaurantId, 'reconcileAfterOfflineSync');
       return true;
     } catch (e) {
       console.warn('[OrderSync] reconcileAfterOfflineSync failed', e);
@@ -203,7 +203,7 @@ export class OrderSyncService {
     this.snapshotRefreshInProgress = true;
     let succeeded = false;
     try {
-      await this.syncRestaurantState(restaurantId);
+      await this.syncRestaurantState(restaurantId, 'refreshRestaurantSnapshot');
       if (!this.controller) {
         this.openConnection(restaurantId);
       }
@@ -311,7 +311,7 @@ export class OrderSyncService {
           && Date.now() - this.lastSnapshotRefreshAt >= this.snapshotRefreshMinIntervalMs
         ) {
           try {
-            await this.syncRestaurantState(restaurantId);
+            await this.syncRestaurantState(restaurantId, 'sse-onopen');
           } catch (e) {
             console.warn('[SSE][internal] /api/sync failed (continuing live SSE only)', e);
           }
@@ -416,7 +416,10 @@ export class OrderSyncService {
     });
   }
 
-  private async syncRestaurantState(restaurantId: string): Promise<void> {
+  private async syncRestaurantState(restaurantId: string, caller = 'unknown'): Promise<void> {
+    // #region agent log
+    fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H4',location:'order-sync.service.ts:syncRestaurantState',message:'GET /api/sync invoked',data:{caller,restaurantId,reconnectWorkflow:this.syncScheduler.isReconnectWorkflowActive()},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     const url = `${this.apiUrl.replace(/\/$/, '')}/api/sync?restaurantId=${encodeURIComponent(restaurantId)}`;
     let lastError: unknown;
     let refreshedAfter401 = false;

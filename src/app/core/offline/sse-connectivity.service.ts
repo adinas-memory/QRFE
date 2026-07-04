@@ -34,6 +34,11 @@ export class SseConnectivityService {
 
   reportStreamActivity(_eventType?: string): void {
     this.lastActivityAt = Date.now();
+    if (_eventType === 'ConnectivityPulse') {
+      // #region agent log
+      fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H2',location:'sse-connectivity.service.ts:reportStreamActivity',message:'ConnectivityPulse received',data:{streamOpen:this.streamOpen,isOnline:this.onlineState.isOnline,lastActivityAgeMs:0},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+    }
     if (!this.onlineState.isOnline) {
       this.clearOfflineDebounce();
       this.onlineState.setOnlineFromConnectivitySource();
@@ -93,6 +98,9 @@ export class SseConnectivityService {
       this.offlineDebounceTimer = null;
       const stale = !this.streamOpen || Date.now() - this.lastActivityAt > STALE_THRESHOLD_MS;
       if (stale || reason === 'http-network' || reason === 'native-network-lost' || reason === 'sse-error') {
+        // #region agent log
+        fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H1-H3',location:'sse-connectivity.service.ts:scheduleOffline',message:'sse offline scheduled firing',data:{reason,stale,streamOpen:this.streamOpen,lastActivityAgeMs:Date.now()-this.lastActivityAt},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         this.onlineState.setOfflineFromConnectivitySource(reason);
       }
     }, debounceMs);
