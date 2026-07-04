@@ -51,11 +51,13 @@ describe('OfflineSyncSchedulerService', () => {
       'refreshStatus',
       'setSecondaryAwaitingPrimaryReconnect',
       'isSecondaryAwaitingPrimaryReconnect',
+      'isRestaurantSyncLocked',
     ]);
     offlineSyncLock.beginSync.and.returnValue(Promise.resolve(true));
     offlineSyncLock.completeSync.and.returnValue(Promise.resolve(true));
     offlineSyncLock.refreshStatus.and.returnValue(Promise.resolve({ locked: false }));
     offlineSyncLock.isSecondaryAwaitingPrimaryReconnect.and.returnValue(false);
+    offlineSyncLock.isRestaurantSyncLocked.and.returnValue(false);
     Object.defineProperty(offlineSyncLock, 'restaurantSyncLocked$', { value: new BehaviorSubject(false).asObservable() });
     Object.defineProperty(offlineSyncLock, 'secondaryAwaitingPrimaryReconnect$', {
       value: new BehaviorSubject(false).asObservable(),

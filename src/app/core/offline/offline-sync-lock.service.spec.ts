@@ -68,4 +68,13 @@ describe('OfflineSyncLockService', () => {
     await expectAsync(promise).toBeResolvedTo(true);
     expect(service.isRestaurantSyncLocked()).toBeFalse();
   });
+
+  it('refreshStatus does not clear secondary awaiting when unlocked', async () => {
+    service.setSecondaryAwaitingPrimaryReconnect(true);
+    const promise = service.refreshStatus();
+    const req = httpMock.expectOne(r => r.url === `${apiUrl}/api/offline-sync/status`);
+    req.flush({ locked: false });
+    await promise;
+    expect(service.isSecondaryAwaitingPrimaryReconnect()).toBeTrue();
+  });
 });

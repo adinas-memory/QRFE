@@ -44,6 +44,9 @@ export class OfflineSyncLockService {
   setSecondaryAwaitingPrimaryReconnect(awaiting: boolean): void {
     if (awaiting !== this.secondaryAwaitingSubject.value) {
       this.secondaryAwaitingSubject.next(awaiting);
+      // #region agent log
+      fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H14-H15',location:'offline-sync-lock.service.ts:setSecondaryAwaitingPrimaryReconnect',message:'secondary awaiting updated',data:{awaiting,restaurantLocked:this.lockedSubject.value},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
     }
   }
 
@@ -51,9 +54,9 @@ export class OfflineSyncLockService {
     if (locked !== this.lockedSubject.value) {
       this.lockedSubject.next(locked);
     }
-    if (!locked) {
-      this.setSecondaryAwaitingPrimaryReconnect(false);
-    }
+    // #region agent log
+    fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H14-H15',location:'offline-sync-lock.service.ts:setRestaurantSyncLocked',message:'restaurant sync lock updated',data:{locked,secondaryAwaiting:this.secondaryAwaitingSubject.value},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
   }
 
   async refreshStatus(): Promise<OfflineSyncLockStatus> {

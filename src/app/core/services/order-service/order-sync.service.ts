@@ -231,8 +231,12 @@ export class OrderSyncService {
     return this.events$ as Observable<SseEvent<T>>;
   }
 
-  close() {
-    this.sseConnectivity.reportStreamClosed();
+  close(markOffline = true) {
+    if (markOffline) {
+      this.sseConnectivity.reportStreamClosed();
+    } else {
+      this.sseConnectivity.reportStreamReconnecting();
+    }
     try {
       console.warn('[SSE][internal] close() called');
       this.controller?.abort();
@@ -275,7 +279,7 @@ export class OrderSyncService {
     }
     this.pendingOpenRestaurantId = null;
     // ensure single controller/connection (switching restaurants)
-    if (this.controller) this.close();
+    if (this.controller) this.close(false);
     this.controller = new AbortController();
     this.connectedRestaurantId = restaurantId;
 

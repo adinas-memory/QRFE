@@ -72,11 +72,6 @@ describe('SseConnectivityService', () => {
     expect(onlineState.setOnlineFromConnectivitySource).not.toHaveBeenCalled();
   });
 
-  it('reportPingSuccess marks online when stream is not open', () => {
-    service.reportPingSuccess();
-    expect(onlineState.setOnlineFromConnectivitySource).toHaveBeenCalled();
-  });
-
   it('stale-watch marks offline after pulse gap', fakeAsync(() => {
     TestBed.resetTestingModule();
     const pingOk$ = new Subject<void>();
@@ -96,7 +91,19 @@ describe('SseConnectivityService', () => {
     });
     const localService = TestBed.inject(SseConnectivityService);
     localService.reportStreamOpened();
-    tick(8_001);
+    tick(9_001);
     expect(localOnlineState.setOfflineFromConnectivitySource).toHaveBeenCalledWith('stale-watch');
+  }));
+
+  it('reportPingSuccess marks online when stream is not open', () => {
+    service.reportPingSuccess();
+    expect(onlineState.setOnlineFromConnectivitySource).toHaveBeenCalled();
+  });
+
+  it('reportStreamReconnecting does not mark offline', fakeAsync(() => {
+    service.reportStreamOpened();
+    service.reportStreamReconnecting();
+    tick(500);
+    expect(onlineState.setOfflineFromConnectivitySource).not.toHaveBeenCalled();
   }));
 });

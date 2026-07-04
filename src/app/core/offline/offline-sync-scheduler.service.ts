@@ -345,6 +345,9 @@ export class OfflineSyncSchedulerService {
 
     try {
       const status = await lock.refreshStatus();
+      // #region agent log
+      fetch('http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',hypothesisId:'H14-H15',location:'offline-sync-scheduler.service.ts:handleSecondaryReconnect',message:'after refreshStatus',data:{locked:status.locked,secondaryAwaiting:lock.isSecondaryAwaitingPrimaryReconnect(),restaurantLocked:lock.isRestaurantSyncLocked()},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       if (status.locked) {
         this.secondarySawServerLock = true;
       }
@@ -385,7 +388,7 @@ export class OfflineSyncSchedulerService {
 
   private async tickSecondaryPoll(restaurantId: string): Promise<void> {
     if (!this.onlineState.isOnline) {
-      this.stopSecondaryReconnectAwait();
+      this.stopSecondaryPoll();
       return;
     }
 
