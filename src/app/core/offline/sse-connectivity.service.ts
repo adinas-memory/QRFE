@@ -3,6 +3,7 @@ import { OnlineStateService } from './online-state-service';
 
 const STALE_THRESHOLD_MS = 22_000;
 const OFFLINE_DEBOUNCE_MS = 2_000;
+const FAST_OFFLINE_DEBOUNCE_MS = 500;
 
 @Injectable({ providedIn: 'root' })
 export class SseConnectivityService {
@@ -16,6 +17,10 @@ export class SseConnectivityService {
 
   constructor() {
     this.startStaleWatch();
+    this.onlineState.pingOk$?.subscribe(() => {
+      this.lastActivityAt = Date.now();
+      this.clearOfflineDebounce();
+    });
   }
 
   reportStreamOpened(): void {
@@ -80,16 +85,27 @@ export class SseConnectivityService {
   }
 
   private scheduleOffline(reason: string): void {
+    const debounceMs = this.offlineDebounceMsFor(reason);
     if (this.offlineDebounceTimer !== null) {
       return;
     }
     this.offlineDebounceTimer = setTimeout(() => {
       this.offlineDebounceTimer = null;
       const stale = !this.streamOpen || Date.now() - this.lastActivityAt > STALE_THRESHOLD_MS;
-      if (stale) {
+      if (stale || reason === 'http-network' || reason === 'native-network-lost' || reason === 'sse-error') {
         this.onlineState.setOfflineFromConnectivitySource(reason);
       }
-    }, OFFLINE_DEBOUNCE_MS);
+    }, debounceMs);
+  }
+
+  private offlineDebounceMsFor(reason: string): number {
+    if (reason === 'http-network' || reason === 'native-network-lost') {
+      return 0;
+    }
+    if (reason === 'sse-error' || reason === 'sse-closed') {
+      return FAST_OFFLINE_DEBOUNCE_MS;
+    }
+    return OFFLINE_DEBOUNCE_MS;
   }
 
   private clearOfflineDebounce(): void {

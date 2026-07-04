@@ -29,6 +29,10 @@ export class OfflineSyncLockService {
 
   private localLockHeld = false;
 
+  hasLocalLockHeld(): boolean {
+    return this.localLockHeld;
+  }
+
   isRestaurantSyncLocked(): boolean {
     return this.lockedSubject.value;
   }
@@ -71,6 +75,18 @@ export class OfflineSyncLockService {
   }
 
   async beginSync(): Promise<boolean> {
+    if (this.beginInFlight) {
+      return this.beginInFlight;
+    }
+    this.beginInFlight = this.doBeginSync().finally(() => {
+      this.beginInFlight = null;
+    });
+    return this.beginInFlight;
+  }
+
+  private beginInFlight: Promise<boolean> | null = null;
+
+  private async doBeginSync(): Promise<boolean> {
     const restaurantId = this.resolveRestaurantId();
     if (!restaurantId) {
       return false;

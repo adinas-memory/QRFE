@@ -49,9 +49,11 @@ describe('OrderSyncService', () => {
     syncSchedulerSpy = jasmine.createSpyObj('OfflineSyncSchedulerService', [
       'runWhenAllowed',
       'isReconnectPending',
+      'isReconnectWorkflowActive',
     ]);
     syncSchedulerSpy.runWhenAllowed.and.returnValue(Promise.resolve());
     syncSchedulerSpy.isReconnectPending.and.returnValue(false);
+    syncSchedulerSpy.isReconnectWorkflowActive.and.returnValue(false);
     const offlineSyncLockSpy = jasmine.createSpyObj('OfflineSyncLockService', [
       'setRestaurantSyncLocked',
       'beginSync',

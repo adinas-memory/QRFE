@@ -1,4 +1,4 @@
-import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick, discardPeriodicTasks } from '@angular/core/testing';
 import { OnlineStateService } from './online-state-service';
 import { firstValueFrom } from 'rxjs';
 
@@ -85,6 +85,19 @@ describe('OnlineStateService', () => {
     tick();
     await pingPromise;
     expect(fetchSpy).toHaveBeenCalled();
+  }));
+
+  it('runs supplemental ping-lite heartbeat every 10 seconds', fakeAsync(() => {
+    fetchSpy.calls.reset();
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [OnlineStateService] });
+    TestBed.inject(OnlineStateService);
+
+    tick(10_000);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    tick(10_000);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    discardPeriodicTasks();
   }));
 
   it('triggerResumeCheck ignores duplicate resume within cooldown', fakeAsync(() => {

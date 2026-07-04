@@ -36,6 +36,9 @@ export class OnlineStateService {
   private lastForcedPingAt = 0;
   private readonly forcedPingMinIntervalMs = 2000;
   private resumeCheckInProgress = false;
+  private supplementalHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  /** Fast offline/online detection alongside SSE pulse (max ~10s when API stops). */
+  private readonly supplementalHeartbeatMs = 10_000;
 
   constructor() {
     window.addEventListener('online', () => {
@@ -53,6 +56,17 @@ export class OnlineStateService {
         }
       });
     }
+
+    this.startSupplementalHeartbeat();
+  }
+
+  private startSupplementalHeartbeat(): void {
+    if (this.supplementalHeartbeatTimer !== null) {
+      return;
+    }
+    this.supplementalHeartbeatTimer = setInterval(() => {
+      void this.confirmConnectivity(false);
+    }, this.supplementalHeartbeatMs);
   }
 
   /** Debounced resume entry (PWA Alt+Tab, Capacitor appStateChange). */

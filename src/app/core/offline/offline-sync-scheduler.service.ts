@@ -75,10 +75,18 @@ export class OfflineSyncSchedulerService {
       this.stopSecondaryReconnectAwait();
       this.cancelCountdown();
     });
+  }
 
-    this.onlineState.pingOk$.subscribe(() => {
-      this.releaseStuckReconnectUi();
-    });
+  /** True while primary reconnect jitter, lock, drain, or reconcile is in progress. */
+  isReconnectWorkflowActive(): boolean {
+    return (
+      this.reconnectSyncPending
+      || this.schedulingInProgress
+      || this.isCountdownActive()
+      || this.drainScheduled
+      || this.batchSyncDrainingSubject.value
+      || this.reconnectRestaurantLockHeld
+    );
   }
 
   isCountdownActive(): boolean {
@@ -168,10 +176,16 @@ export class OfflineSyncSchedulerService {
       if (shouldLock) {
         const acquired = await this.getOfflineSyncLock().beginSync();
         if (!acquired) {
-          console.warn('[OfflineSync] Could not acquire restaurant sync lock before countdown; skipping heavy sync.');
-          return;
+          const lock = this.getOfflineSyncLock();
+          if (lock.hasLocalLockHeld()) {
+            this.reconnectRestaurantLockHeld = true;
+          } else {
+            console.warn('[OfflineSync] Could not acquire restaurant sync lock before countdown; skipping heavy sync.');
+            return;
+          }
+        } else {
+          this.reconnectRestaurantLockHeld = true;
         }
-        this.reconnectRestaurantLockHeld = true;
       }
 
       const restaurantId = this.auth.getUserSnapshot()?.restaurantId ?? '';
@@ -234,6 +248,9 @@ export class OfflineSyncSchedulerService {
    */
   private releaseStuckReconnectUi(): void {
     if (this.isCountdownActive() || this.batchSyncDrainingSubject.value) {
+      return;
+    }
+    if (this.isReconnectWorkflowActive()) {
       return;
     }
 

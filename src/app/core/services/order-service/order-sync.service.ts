@@ -94,7 +94,9 @@ export class OrderSyncService {
 
     this.onlineStateService.resumeConnectivityOk$
       .subscribe(() => {
-        void this.refreshRestaurantSnapshot({ fromResume: true });
+        if (!this.syncScheduler.isReconnectWorkflowActive()) {
+          void this.refreshRestaurantSnapshot({ fromResume: true });
+        }
         this.flushPendingSseConnection();
       });
 
@@ -120,7 +122,7 @@ export class OrderSyncService {
         if (!this.controller) {
           this.reconnectAttempts = 0;
           this.openConnection(rid);
-        } else {
+        } else if (!this.syncScheduler.isReconnectWorkflowActive()) {
           void this.refreshRestaurantSnapshot();
         }
       });
@@ -139,18 +141,6 @@ export class OrderSyncService {
     }
     const fromAuth = this.auth.getUserRestaurantId();
     return typeof fromAuth === 'string' && isAssignedRestaurantId(fromAuth) ? fromAuth : null;
-  }
-
-  private async needsHeavyOfflineSync(): Promise<boolean> {
-    const restaurantId = this.resolveRestaurantId();
-    if (!restaurantId) {
-      return false;
-    }
-    const pending = await this.offlineDB.getPendingActionsForRestaurant(restaurantId);
-    return this.offlinePolicy.shouldRunHeavyOfflineReconnectSync({
-      isReconnect: this.syncScheduler.isReconnectPending(),
-      pendingQueueCount: pending.length,
-    });
   }
 
   async trySyncNow() {
@@ -213,9 +203,6 @@ export class OrderSyncService {
     this.snapshotRefreshInProgress = true;
     let succeeded = false;
     try {
-      if (await this.needsHeavyOfflineSync()) {
-        await this.trySyncNow();
-      }
       await this.syncRestaurantState(restaurantId);
       if (!this.controller) {
         this.openConnection(restaurantId);
@@ -318,7 +305,11 @@ export class OrderSyncService {
         }
         this.sseConnectivity.reportStreamOpened();
 
-        if (Date.now() - this.lastSnapshotRefreshAt >= this.snapshotRefreshMinIntervalMs) {
+        const reconnectBusy = this.syncScheduler.isReconnectWorkflowActive();
+        if (
+          !reconnectBusy
+          && Date.now() - this.lastSnapshotRefreshAt >= this.snapshotRefreshMinIntervalMs
+        ) {
           try {
             await this.syncRestaurantState(restaurantId);
           } catch (e) {
@@ -333,9 +324,6 @@ export class OrderSyncService {
           void this.offlineSyncLock.refreshStatus().catch(err => {
             console.warn('[SSE][internal] lock status refresh failed', err);
           });
-        }
-        if (await this.needsHeavyOfflineSync()) {
-          void this.syncScheduler.runWhenAllowed();
         }
       },
       onmessage: (msg) => {
