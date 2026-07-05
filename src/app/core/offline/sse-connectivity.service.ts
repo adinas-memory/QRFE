@@ -1,19 +1,10 @@
 import { Injectable, inject } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
-import { NetworkMonitor } from '../plugins/network-monitor.plugin';
+import { Subject } from 'rxjs';
 import { OnlineStateService } from './online-state-service';
 
 // #region agent log
-// Production devices use mobile data (no LAN/tunnel reachable from dev machine) —
-// write to a local file on-device via the native plugin instead of network fetch.
-function debugLog(hypothesisId: string, location: string, message: string, data: unknown): void {
-  void NetworkMonitor.writeDebugLog({
-    hypothesisId,
-    location,
-    message,
-    dataJson: JSON.stringify(data ?? {}),
-  }).catch(() => {});
-}
+import { debugLog } from './debug-log.util';
 // #endregion
 
 /** Must stay aligned with SSEController KeepAliveLoop delay (seconds) + grace. */
@@ -39,6 +30,16 @@ export class SseConnectivityService {
   // #region agent log
   private debugHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
   // #endregion
+
+  /**
+   * fetch()-based SSE (fetch-event-source) can go "zombie" on some mobile network transitions:
+   * the underlying stream stops yielding data but never fires onerror/close, so streamOpen stays
+   * true forever while no pulses arrive. The stale-watch below is the only thing that can detect
+   * this (via pulse age) — when it does, force the consumer to abort + recreate the connection
+   * instead of just flipping isOnline and passively waiting for the dead stream to notice itself.
+   */
+  private readonly forceReconnectSubject = new Subject<void>();
+  readonly forceReconnect$ = this.forceReconnectSubject.asObservable();
 
   constructor() {
     this.startStaleWatch();
@@ -196,6 +197,16 @@ export class SseConnectivityService {
       const stale = !this.streamOpen || pulseStale;
       if (stale || reason === 'http-network' || reason === 'native-network-lost' || reason === 'sse-error') {
         this.onlineState.setOfflineFromConnectivitySource(reason);
+        if (pulseStale && this.streamOpen) {
+          // #region agent log
+          debugLog('H_ZOMBIE_1', 'sse-connectivity.service.ts:scheduleOffline', 'forcing reconnect: zombie stream detected', {
+            reason,
+            lastPulseAgeMs: this.lastPulseAt ? Date.now() - this.lastPulseAt : null,
+          });
+          // #endregion
+          this.streamOpen = false;
+          this.forceReconnectSubject.next();
+        }
       }
     }, debounceMs);
   }

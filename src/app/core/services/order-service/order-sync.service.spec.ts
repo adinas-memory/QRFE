@@ -113,13 +113,16 @@ describe('OrderSyncService', () => {
         { provide: OnlineStateService, useValue: onlineState },
         {
           provide: SseConnectivityService,
-          useValue: jasmine.createSpyObj('SseConnectivityService', [
-            'reportStreamOpened',
-            'reportStreamActivity',
-            'reportStreamError',
-            'reportStreamClosed',
-            'scheduleBootstrapConnectivityCheck',
-          ]),
+          useValue: {
+            ...jasmine.createSpyObj('SseConnectivityService', [
+              'reportStreamOpened',
+              'reportStreamActivity',
+              'reportStreamError',
+              'reportStreamClosed',
+              'scheduleBootstrapConnectivityCheck',
+            ]),
+            forceReconnect$: new Subject<void>().asObservable(),
+          },
         },
       ],
     });
