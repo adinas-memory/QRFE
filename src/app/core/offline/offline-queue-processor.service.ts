@@ -8,6 +8,7 @@ import { AuthService } from "../auth/auth.service";
 import { AppToastService } from "../services/toast-service/toast-service.service";
 import { buildSyncOrderItemsFromPending, sortOfflineQueueActions } from "./offline-queue.util";
 import { OfflineSyncSchedulerService } from "./offline-sync-scheduler.service";
+import { MenuItemServiceService } from "../services/menu-item-service/menu-item-service.service";
 // #region agent log
 import { debugLog } from "./debug-log.util";
 // #endregion
@@ -36,6 +37,7 @@ export class OfflineQueueProcessor {
         private authService: AuthService,
         private toast: AppToastService,
         private syncScheduler: OfflineSyncSchedulerService,
+        private menuItemService: MenuItemServiceService,
     ) {
         this.trigger$
             .pipe(
@@ -484,6 +486,22 @@ export class OfflineQueueProcessor {
                 this.toast.info(msg, 'Order locked for payment');
                 // keep action pending; we'll retry after payment completes
                 return false;
+            }
+
+            if (/currency mismatch/i.test(String(errorMessage))) {
+                const restaurantId = action.restaurantId;
+                try {
+                    await this.menuItemService.forceRefreshFromServer(restaurantId);
+                } catch {
+                    // ignore refresh failure
+                }
+                this.toast.error(
+                    'Menu item currency does not match the restaurant order currency. '
+                    + 'In Manager Settings, set the operating currency again (or align menu prices), then retry.',
+                    'Currency mismatch',
+                );
+                const dropped = await this.offlineDB.markActionError(action.id!);
+                return dropped ? true : false;
             }
 
             const exceptionName = String(err?.error?.exception ?? '');
