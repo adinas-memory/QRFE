@@ -18,6 +18,9 @@ import { OfflineSyncLockService } from '../../offline/offline-sync-lock.service'
 import { SseConnectivityService } from '../../offline/sse-connectivity.service';
 import { Capacitor } from '@capacitor/core';
 import { NetworkMonitor } from '../../plugins/network-monitor.plugin';
+// #region agent log
+import { debugLog } from '../../offline/debug-log.util';
+// #endregion
 
 @Injectable({
   providedIn: 'root'
@@ -125,6 +128,20 @@ export class OrderSyncService {
           this.openConnection(rid);
         }
       });
+
+    // #region agent log
+    // Stale-watch detected a zombie stream (streamOpen was true but no pulses for 2x interval+grace).
+    // Abort the dead controller now so the next online$ transition can open a fresh connection instead
+    // of waiting indefinitely for fetch-event-source to notice on its own (H_ZOMBIE_1).
+    this.sseConnectivity.forceReconnect$.subscribe(() => {
+      debugLog('H_ZOMBIE_1', 'order-sync.service.ts:forceReconnect$', 'aborting zombie SSE controller', {
+        hadController: !!this.controller,
+        connectedRestaurantId: this.connectedRestaurantId,
+      });
+      this.close(false);
+      this.reconnectAttempts = 0;
+    });
+    // #endregion
 
     this.queueProcessor.queueDrained$
       .subscribe(() => {
@@ -457,6 +474,12 @@ export class OrderSyncService {
         }
 
         const tables = (json?.Tables ?? json?.tables ?? []) as any[];
+        // #region agent log
+        const openOrderTables = tables.filter((t: any) => (t?.Order ?? t?.order) != null).map((t: any) => t?.TableId ?? t?.tableId);
+        debugLog('H_RECONCILE_1', 'order-sync.service.ts:syncRestaurantState', 'GET /api/sync snapshot received', {
+          caller, tableCount: tables.length, openOrderTables,
+        });
+        // #endregion
         const activeGuestWaiterCalls = this.parseActiveGuestWaiterCalls(json);
         await this.offlineDB.applySyncSnapshot(tables as any);
         await this.applyOfflinePrintConfigFromSync(json, restaurantId);

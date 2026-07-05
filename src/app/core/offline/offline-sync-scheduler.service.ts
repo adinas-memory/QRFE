@@ -11,6 +11,9 @@ import {
   computeCentralizedReconnectDelaySeconds,
   OFFLINE_SYNC_JITTER_MAX_SECONDS,
 } from './offline-sync.util';
+// #region agent log
+import { debugLog } from './debug-log.util';
+// #endregion
 
 export { OFFLINE_SYNC_JITTER_MAX_SECONDS };
 
@@ -178,7 +181,14 @@ export class OfflineSyncSchedulerService {
       const isReconnect = this.reconnectSyncPending;
       this.reconnectSyncPending = false;
 
-      if (!this.offlinePolicy.shouldRunHeavyOfflineReconnectSync({ isReconnect, pendingQueueCount: pendingCount })) {
+      const willRunHeavySync = this.offlinePolicy.shouldRunHeavyOfflineReconnectSync({ isReconnect, pendingQueueCount: pendingCount });
+      // #region agent log
+      debugLog('H_HEAVYSYNC_1', 'offline-sync-scheduler.service.ts:schedulePendingSyncWithJitter', 'heavy sync decision', {
+        isReconnect, pendingCount, isOfflinePrimaryDevice: this.offlinePolicy.isOfflinePrimaryDevice(), willRunHeavySync,
+      });
+      // #endregion
+
+      if (!willRunHeavySync) {
         if (!this.offlinePolicy.isOfflinePrimaryDevice() && isReconnect) {
           await this.handleSecondaryReconnect();
         } else if (!this.offlinePolicy.isOfflinePrimaryDevice()) {
@@ -334,6 +344,11 @@ export class OfflineSyncSchedulerService {
     this.secondaryReconnectStartedAt = Date.now();
     this.secondarySawServerLock = false;
 
+    // #region agent log
+    debugLog('H_FREEZE_1', 'offline-sync-scheduler.service.ts:handleSecondaryReconnect',
+      'secondary freeze started', { restaurantId });
+    // #endregion
+
     try {
       const status = await lock.refreshStatus();
       if (status.locked) {
@@ -363,6 +378,10 @@ export class OfflineSyncSchedulerService {
   }
 
   private stopSecondaryReconnectAwait(): void {
+    // #region agent log
+    debugLog('H_FREEZE_1', 'offline-sync-scheduler.service.ts:stopSecondaryReconnectAwait',
+      'secondary freeze cleared', { sawServerLock: this.secondarySawServerLock });
+    // #endregion
     this.stopSecondaryPoll();
     try {
       this.offlineSyncLock ??= this.injector.get(OfflineSyncLockService);
@@ -388,6 +407,13 @@ export class OfflineSyncSchedulerService {
 
     try {
       const status = await lock.refreshStatus();
+      // #region agent log
+      debugLog('H_FREEZE_1', 'offline-sync-scheduler.service.ts:tickSecondaryPoll', 'poll tick', {
+        locked: status.locked,
+        sawServerLockSoFar: this.secondarySawServerLock,
+        msSinceStart: Date.now() - this.secondaryReconnectStartedAt,
+      });
+      // #endregion
       if (status.locked) {
         this.secondarySawServerLock = true;
         return;
@@ -402,10 +428,13 @@ export class OfflineSyncSchedulerService {
         return;
       }
 
-      // Unfreeze only after primary held the restaurant lock and released it.
-      if (this.secondarySawServerLock && !status.locked) {
-        this.stopSecondaryReconnectAwait();
-      }
+      // Unfreeze once the jitter grace window has passed and the lock isn't (or is no longer) held.
+      // BUG FIX (e48331): previously required secondarySawServerLock to have been true first, but
+      // the primary skips locking entirely when it has nothing to sync (0 pending items), so
+      // status.locked never flips true and this device stayed frozen forever (shouldFreezePosActions
+      // stuck true) — confirmed by static trace, matches "order item update never reaches the server"
+      // reports on non-primary devices.
+      this.stopSecondaryReconnectAwait();
     } catch (err) {
       console.warn('[OfflineSync] Secondary lock poll failed', err);
     }

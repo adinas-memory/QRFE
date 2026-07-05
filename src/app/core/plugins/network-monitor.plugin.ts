@@ -15,6 +15,8 @@ export interface NetworkMonitorPlugin {
     message: string;
     dataJson: string;
   }): Promise<void>;
+  /** Debug session e48331 only — opens Android share sheet with the on-device log file. */
+  shareDebugLog(): Promise<void>;
   // #endregion
 }
 

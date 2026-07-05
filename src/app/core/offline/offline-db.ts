@@ -204,20 +204,22 @@ export class OfflineDbService {
         await this.db.queue.delete(id);
     }
 
-    async markActionError(id: number) {
+    /** Returns true when the action was permanently dropped (exhausted retries) so callers can surface it to the user. */
+    async markActionError(id: number): Promise<boolean> {
         const action = await this.db.queue.get(id);
         const retries = (action?.retryCount ?? 0) + 1;
 
         if (retries >= 3) {
             console.warn('[DB] Action failed 3 times → deleting:', action?.type);
             await this.db.queue.delete(id);
+            return true;
         } else {
             await this.db.queue.update(id, {
                 status: 'pending',  // ← retry, nu error permanent
                 retryCount: retries
             });
+            return false;
         }
-        // await this.db.queue.update(id, { status: 'error' });
     }
 
     async deleteActionsForOrder(orderId: string): Promise<void> {

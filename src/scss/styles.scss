@@ -29,21 +29,34 @@
   transition: border-color 0.3s ease;
 }
 
-.offline-banner {
+// Fixed stack so the offline + restaurant-sync banners never overlap when both are shown at once.
+.offline-banners-stack {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+}
+
+.offline-banner {
+  position: static;
+  width: 100%;
+  min-height: 20px;
   background: #ff0000;
   color: white;
   font-weight: bold;
   text-align: center;
-  z-index: 10000;
   border-bottom: 2px solid #b30000;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
+  // Long/translated messages must wrap instead of being clipped by a fixed-height bar.
+  padding: 4px 10px;
+  font-size: 12px;
+  line-height: 1.3;
 }
 
 .blink {

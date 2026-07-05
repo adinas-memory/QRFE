@@ -52,6 +52,9 @@ import { OfflinePrintContextService } from '../../../core/offline/offline-print-
 import { OfflinePrintService } from '../../../core/offline/offline-print.service';
 import { OfflinePrimaryService } from '../../../core/services/offline-primary/offline-primary.service';
 import { OfflineSyncSchedulerService } from '../../../core/offline/offline-sync-scheduler.service';
+// #region agent log
+import { debugLog } from '../../../core/offline/debug-log.util';
+// #endregion
 import { toSignal } from '@angular/core/rxjs-interop';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { KitchenService } from '../../../core/services/kitchen-service/kitchen.service';
@@ -669,6 +672,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   async addCartItem(item: MenuItem) {
     const blocked = this.isPosMutationBlocked();
+    // #region agent log
+    if (blocked) {
+      debugLog('H_FREEZE_1', 'manage-orders.component.ts:addCartItem', 'mutation blocked', {
+        isReconnectSyncInProgress: this.isReconnectSyncInProgress(),
+        shouldFreezePosActions: this.offlinePolicy.shouldFreezePosActions(),
+        shouldFreezeForRestaurantSync: this.offlinePolicy.shouldFreezeForRestaurantSync(),
+      });
+    }
+    // #endregion
     if (blocked) {
       return;
     }
@@ -1633,6 +1645,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.tableComputed[tableId] = this.ordersService.mapPayloadToComputed(
           payload, this.tables, this.waiterState, InitiatedBy
         );
+        // #region agent log
+        debugLog('H_ATTR_1', 'manage-orders.component.ts:OrderUpdated', 'initiatedBy from SSE', {
+          tableId, InitiatedBy, previousPersisted: this.persistedInitiatedBy[tableId] ?? null,
+        });
+        // #endregion
         this.rememberInitiatedBy(tableId, InitiatedBy);
         this.tableCarts[tableId] = cart;
         this.ordersService.saveComputed(this.tableComputed);
