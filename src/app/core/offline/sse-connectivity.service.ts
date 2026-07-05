@@ -95,7 +95,7 @@ export class SseConnectivityService {
   }
 
   reportStreamError(isAuth401: boolean): void {
-    if (isAuth401) {
+    if (isAuth401 || this.sseReconnecting) {
       return;
     }
     this.scheduleOffline('sse-error');
@@ -194,19 +194,23 @@ export class SseConnectivityService {
     this.offlineDebounceTimer = setTimeout(() => {
       this.offlineDebounceTimer = null;
       const pulseStale = this.lastPulseAt > 0 && Date.now() - this.lastPulseAt > STALE_THRESHOLD_MS;
+      const zombieStream = pulseStale && this.streamOpen;
       const stale = !this.streamOpen || pulseStale;
+      if (zombieStream) {
+        // fetch-event-source can stall with streamOpen=true and no pulses while HTTP still works.
+        // Reconnect SSE directly — do NOT flip offline (avoids heavy-sync + false offline banner).
+        // #region agent log
+        debugLog('H_ZOMBIE_1', 'sse-connectivity.service.ts:scheduleOffline', 'forcing reconnect: zombie stream detected', {
+          reason,
+          lastPulseAgeMs: this.lastPulseAt ? Date.now() - this.lastPulseAt : null,
+        });
+        // #endregion
+        this.streamOpen = false;
+        this.forceReconnectSubject.next();
+        return;
+      }
       if (stale || reason === 'http-network' || reason === 'native-network-lost' || reason === 'sse-error') {
         this.onlineState.setOfflineFromConnectivitySource(reason);
-        if (pulseStale && this.streamOpen) {
-          // #region agent log
-          debugLog('H_ZOMBIE_1', 'sse-connectivity.service.ts:scheduleOffline', 'forcing reconnect: zombie stream detected', {
-            reason,
-            lastPulseAgeMs: this.lastPulseAt ? Date.now() - this.lastPulseAt : null,
-          });
-          // #endregion
-          this.streamOpen = false;
-          this.forceReconnectSubject.next();
-        }
       }
     }, debounceMs);
   }

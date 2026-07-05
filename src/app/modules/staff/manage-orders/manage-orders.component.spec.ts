@@ -516,6 +516,30 @@ describe('ManageOrdersComponent', () => {
       expect(component.tableCarts[TABLE_B]?.length).toBe(1);
     });
 
+    it('OrderUpdated on current open canvas marks order as confirmed', async () => {
+      component.currentTableId = TABLE_A;
+      component.canvasVisible = true;
+      component.orderIsConfirmed = false;
+      component.currentOrderId = null;
+      mocks.offlineDb.loadCartRecord.and.resolveTo(null);
+
+      await invokeSse(component, 'OrderUpdated', {
+        TableId: TABLE_A,
+        OrderId: 'order-confirmed',
+        Items: [{
+          MenuItemId: 'menu-item-1',
+          OrderItemId: 'line-1',
+          Quantity: 1,
+          OrderItemPriceAmount: 25,
+          OrderItemPriceCurrency: 'RON',
+        }],
+        ItemCount: 1,
+      });
+
+      expect(component.orderIsConfirmed).toBeTrue();
+      expect((component as ManageOrdersComponent).currentOrderId).toEqual('order-confirmed');
+    });
+
     it('OrderUpdated with zero items frees the table instead of marking it occupied', async () => {
       component.tables = createDefaultTables().map(t =>
         t.tableId === TABLE_A ? { ...t, isTableOpen: false, order: { orderId: 'order-a', isOrderOpen: true } as never } : t,

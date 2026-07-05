@@ -842,14 +842,21 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     }
 
     if (this.currentTableId && this.canvasVisible) {
+      const table = this.tables.find(t => t.tableId === this.currentTableId);
       const record = await this.offlineDB.loadCartRecord(this.currentTableId);
-      if (record) {
-        this.currentOrderId = record.orderId ?? null;
-        this.orderIsConfirmed = !!this.currentOrderId && !this.currentOrderId.startsWith('local-');
+      if (!record && !tableHasActiveOrder(table?.order)) {
+        this.resetCanvasState();
+      } else if (record) {
+        this.currentOrderId = record.orderId ?? table?.order?.orderId ?? null;
+        this.orderIsConfirmed = !!this.currentOrderId || tableHasActiveOrder(table?.order);
         this.tableCarts[this.currentTableId] = record.items;
         if (this.orderIsConfirmed) {
           this.claimPickupTargetForTable(this.currentTableId);
         }
+      } else if (tableHasActiveOrder(table?.order)) {
+        this.currentOrderId = table?.order?.orderId ?? null;
+        this.orderIsConfirmed = true;
+        this.claimPickupTargetForTable(this.currentTableId);
       }
     }
   }
@@ -1009,9 +1016,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
     const record = await this.offlineDB.loadCartRecord(tableId);
     if (record) {
-      this.currentOrderId = record.orderId ?? null;
-      // Confirmed offline orders keep local-* id until sync; draft carts have no orderId yet.
-      this.orderIsConfirmed = !!this.currentOrderId;
+      this.currentOrderId = record.orderId ?? table.order?.orderId ?? null;
+      // local-* ids mean offline-confirmed; server order on table covers cross-device SSE lag.
+      this.orderIsConfirmed = !!this.currentOrderId || tableHasActiveOrder(table.order);
       this.tableCarts[tableId] = record.items;
       if (this.orderIsConfirmed) {
         this.claimPickupTargetForTable(tableId);
@@ -1594,6 +1601,38 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         break;
       }
 
+      case 'NewOrderPublicEvent': {
+        const tableId = this.sseField<string>(Data, 'TableId', 'tableId') ?? Data?.TableId ?? Data?.tableId;
+        const orderId = this.sseField<string>(Data, 'OrderId', 'orderId') ?? Data?.OrderId ?? Data?.orderId;
+        if (!tableId || !orderId) break;
+
+        this.tables = this.tables.map(t =>
+          t.tableId === tableId
+            ? {
+                ...t,
+                isTableOpen: false,
+                order: {
+                  ...(t.order ?? {}),
+                  orderId,
+                  isOrderOpen: true,
+                } as OrderDTO,
+              }
+            : t,
+        );
+        this.refreshTableLists();
+        this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+        void this.offlineDB.saveTables(this.tables);
+        void this.offlineDB.saveTablesStatus(this.tablesAvailable);
+        this.markTableAsClosed(tableId);
+
+        if (this.currentTableId === tableId && this.canvasVisible) {
+          this.currentOrderId = orderId;
+          this.orderIsConfirmed = true;
+          this.claimPickupTargetForTable(tableId);
+        }
+        break;
+      }
+
       case 'OrderUpdated': {
         const payload = Data as OrderUpdatedSSEPayload;
         const tableId = (this.sseField<string>(payload as any, 'TableId', 'tableId') ?? payload.TableId) as string;
@@ -1667,6 +1706,12 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
           void this.offlineDB.saveTables(this.tables);
           void this.offlineDB.saveTablesStatus(this.tablesAvailable);
+
+          if (this.currentTableId === tableId && this.canvasVisible) {
+            this.currentOrderId = payload.OrderId;
+            this.orderIsConfirmed = true;
+            this.claimPickupTargetForTable(tableId);
+          }
         }
         break;
       }
