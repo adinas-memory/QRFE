@@ -340,6 +340,14 @@ export class OfflineSyncSchedulerService {
     }
 
     const lock = this.getOfflineSyncLock();
+    if (lock.isSecondaryAwaitingPrimaryReconnect()) {
+      // #region agent log
+      debugLog('H_FREEZE_1', 'offline-sync-scheduler.service.ts:handleSecondaryReconnect',
+        'secondary freeze already active — skip', { restaurantId });
+      // #endregion
+      return;
+    }
+
     lock.setSecondaryAwaitingPrimaryReconnect(true);
     this.secondaryReconnectStartedAt = Date.now();
     this.secondarySawServerLock = false;
@@ -366,7 +374,7 @@ export class OfflineSyncSchedulerService {
     this.stopSecondaryPoll();
     this.secondaryPollIntervalId = setInterval(() => {
       void this.tickSecondaryPoll(restaurantId);
-    }, 2000);
+    }, 5000);
     void this.tickSecondaryPoll(restaurantId);
   }
 

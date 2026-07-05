@@ -10,6 +10,9 @@ const REFRESH_TIMEOUT_MS = 15_000;
 /** Set on a retried request so a second 401 does not trigger another refresh loop. */
 export const AUTH_RETRIED = new HttpContextToken<boolean>(() => false);
 
+/** Background lock/status polls must not flip global offline on transient status=0. */
+export const SKIP_CONNECTIVITY_OFFLINE = new HttpContextToken<boolean>(() => false);
+
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const router = inject(Router);
@@ -28,7 +31,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       if (error.status === 0) {
-        sseConnectivity.reportHttpNetworkFailure();
+        if (!req.context.get(SKIP_CONNECTIVITY_OFFLINE)) {
+          sseConnectivity.reportHttpNetworkFailure();
+        }
         return throwError(() => error);
       }
 

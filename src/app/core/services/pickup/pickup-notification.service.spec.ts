@@ -19,7 +19,7 @@ describe('PickupNotificationService', () => {
     pushRegistration.deliverPickupAlert.and.returnValue(Promise.resolve());
     pushRegistration.deliverGuestWaiterAlert.and.returnValue(Promise.resolve());
     deviceFeedback = jasmine.createSpyObj('DeviceFeedbackService', [
-      'notifyPickupReady',
+      'notifyPickupFromPush',
       'notifyGuestWaiterCall',
     ]);
 
@@ -56,10 +56,7 @@ describe('PickupNotificationService', () => {
       ClientInstanceId: 'device-x',
     });
     expect(result.tableId).toBe('table-a');
-    expect(deviceFeedback.notifyPickupReady).toHaveBeenCalledWith('kitchen', {
-      tableId: 'table-a',
-      clientInstanceId: 'device-x',
-    });
+    expect(deviceFeedback.notifyPickupFromPush).toHaveBeenCalledWith('kitchen', 'table-a');
     expect(pushRegistration.deliverPickupAlert).toHaveBeenCalledWith(
       jasmine.objectContaining({
         eventType: 'KitchenWaiterCall',
@@ -106,7 +103,8 @@ describe('PickupNotificationService', () => {
     };
     sseEvents$.next(payload);
     sseEvents$.next(payload);
-    expect(deviceFeedback.notifyPickupReady).toHaveBeenCalledTimes(1);
+    expect(deviceFeedback.notifyPickupFromPush).toHaveBeenCalledTimes(1);
+    expect(deviceFeedback.notifyPickupFromPush).toHaveBeenCalledWith('kitchen', 't2');
     expect(pushRegistration.deliverPickupAlert).toHaveBeenCalledTimes(1);
   });
 });

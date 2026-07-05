@@ -1525,10 +1525,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         if (tableId) {
           this.kitchenPickupRequested[tableId] = true;
           this.appToast.info(this.pickupToastMessage('kitchen', tableId, parsed.tableName));
-          this.deviceFeedback.notifyPickupReady('kitchen', {
-            tableId,
-            clientInstanceId: parsed.clientInstanceId,
-          });
+          this.deviceFeedback.notifyPickupFromPush('kitchen', tableId);
           if (this.kitchenPickupTimers[tableId]) clearTimeout(this.kitchenPickupTimers[tableId]);
           this.kitchenPickupTimers[tableId] = setTimeout(() => {
             delete this.kitchenPickupRequested[tableId];
@@ -1555,10 +1552,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         if (tableId) {
           this.barPickupRequested[tableId] = true;
           this.appToast.info(this.pickupToastMessage('bar', tableId, parsed.tableName));
-          this.deviceFeedback.notifyPickupReady('bar', {
-            tableId,
-            clientInstanceId: parsed.clientInstanceId,
-          });
+          this.deviceFeedback.notifyPickupFromPush('bar', tableId);
           if (this.barPickupTimers[tableId]) clearTimeout(this.barPickupTimers[tableId]);
           this.barPickupTimers[tableId] = setTimeout(() => {
             delete this.barPickupRequested[tableId];

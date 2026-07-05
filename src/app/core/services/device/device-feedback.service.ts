@@ -92,7 +92,12 @@ export class DeviceFeedbackService {
     }
 
     this.lastVibrateAtByTable.set(`${kind}:${normalizedTableId}`, now);
-    await this.vibrate(PICKUP_VIBRATE_MS);
+    const usedBackend = await this.vibrate(PICKUP_VIBRATE_MS);
+    // #region agent log
+    debugLog('H_VIBRATE_1', 'device-feedback.service.ts:deliverPickupFromPush', 'vibrate outcome', {
+      kind, tableId: normalizedTableId, usedBackend,
+    });
+    // #endregion
   }
 
   private async deliverGuestWaiterCall(tableId: string): Promise<void> {
