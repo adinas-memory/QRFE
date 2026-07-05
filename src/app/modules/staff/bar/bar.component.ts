@@ -216,8 +216,20 @@ export class BarComponent implements OnInit, OnDestroy {
     this.pickupInFlightByTable.add(inFlightKey);
     try {
       await firstValueFrom(this.barApi.callWaiterForPickup(this.restaurantId, tableId));
+      // #region agent log
+      const { debugLog } = await import('../../../core/offline/debug-log.util');
+      debugLog('H_SSE_RECV_1', 'bar.component.ts:callWaiterForPickup', 'bar waiter API ok', {
+        tableId, restaurantId: this.restaurantId,
+      });
+      // #endregion
       this.toast.success(this.transloco.translate('bar.toastWaiterOk'));
     } catch (err) {
+      // #region agent log
+      const { debugLog } = await import('../../../core/offline/debug-log.util');
+      debugLog('H_SSE_RECV_1', 'bar.component.ts:callWaiterForPickup', 'bar waiter API failed', {
+        tableId, restaurantId: this.restaurantId, error: String((err as Error)?.message ?? err),
+      });
+      // #endregion
       console.error('[Bar] callWaiterForPickup failed', err);
       this.toast.error(this.transloco.translate('bar.toastWaiterFail'));
     } finally {

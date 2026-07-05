@@ -430,6 +430,7 @@ export class OfflineSyncSchedulerService {
         const elapsedMs = Date.now() - this.secondaryReconnectStartedAt;
         if (this.secondarySawServerLock || elapsedMs >= 20_000) {
           this.stopSecondaryReconnectAwait();
+          await this.getOrderSync().refreshRestaurantSnapshot({ force: true });
         }
         return;
       }
