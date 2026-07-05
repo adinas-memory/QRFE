@@ -25,8 +25,8 @@ export class OfflineSyncLockService {
   private readonly onlineState = inject(OnlineStateService);
   private readonly apiUrl = environment.apiUrl.replace(/\/$/, '');
 
-  private static readonly LOCK_WATCH_IDLE_MS = 8_000;
-  private static readonly LOCK_WATCH_ACTIVE_MS = 3_000;
+  private static readonly LOCK_WATCH_IDLE_MS = 15_000;
+  private static readonly LOCK_WATCH_ACTIVE_MS = 5_000;
 
   private lockWatchIntervalId: ReturnType<typeof setInterval> | null = null;
   private lockWatchActive = false;
@@ -72,6 +72,7 @@ export class OfflineSyncLockService {
       return;
     }
     this.scheduleLockWatchTick(OfflineSyncLockService.LOCK_WATCH_IDLE_MS);
+    void this.tickRestaurantLockWatch();
   }
 
   stopRestaurantLockWatch(): void {
@@ -90,12 +91,15 @@ export class OfflineSyncLockService {
     this.lockWatchIntervalId = setInterval(() => {
       void this.tickRestaurantLockWatch();
     }, intervalMs);
-    void this.tickRestaurantLockWatch();
   }
 
   private async tickRestaurantLockWatch(): Promise<void> {
     const user = this.auth.getUserSnapshot();
     if (!user?.restaurantId || user.isOfflinePrimaryDevice || !this.onlineState.isOnline) {
+      return;
+    }
+    // Secondary reconnect poll owns /offline-sync/status while awaiting primary sync.
+    if (this.isSecondaryAwaitingPrimaryReconnect()) {
       return;
     }
 
@@ -110,7 +114,7 @@ export class OfflineSyncLockService {
         // #endregion
       }
 
-      const shouldPollFast = status.locked || this.isSecondaryAwaitingPrimaryReconnect();
+      const shouldPollFast = status.locked;
       if (shouldPollFast !== this.lockWatchActive) {
         this.lockWatchActive = shouldPollFast;
         this.scheduleLockWatchTick(

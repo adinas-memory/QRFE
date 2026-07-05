@@ -343,9 +343,10 @@ export class OfflineSyncSchedulerService {
     if (lock.isSecondaryAwaitingPrimaryReconnect()) {
       // #region agent log
       debugLog('H_FREEZE_1', 'offline-sync-scheduler.service.ts:handleSecondaryReconnect',
-        'secondary freeze already active — ensure poll running', { restaurantId });
+        'secondary freeze already active — ensure poll + snapshot', { restaurantId });
       // #endregion
       this.startSecondaryPoll(restaurantId);
+      void this.getOrderSync().refreshRestaurantSnapshot({ force: true });
       return;
     }
 
@@ -426,8 +427,10 @@ export class OfflineSyncSchedulerService {
       // #endregion
 
       if (!status.locked) {
-        // Server unlocked — drop banner immediately (do not wait for reconnect jitter).
-        this.stopSecondaryReconnectAwait();
+        const elapsedMs = Date.now() - this.secondaryReconnectStartedAt;
+        if (this.secondarySawServerLock || elapsedMs >= 20_000) {
+          this.stopSecondaryReconnectAwait();
+        }
         return;
       }
 

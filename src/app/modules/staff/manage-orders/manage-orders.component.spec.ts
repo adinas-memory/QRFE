@@ -415,10 +415,7 @@ describe('ManageOrdersComponent', () => {
       });
       expect(component.kitchenPickupRequested[TABLE_A]).toBeTrue();
       expect(mocks.appToast.info).toHaveBeenCalled();
-      expect(mocks.deviceFeedback.notifyPickupReady).toHaveBeenCalledWith('kitchen', {
-        tableId: TABLE_A,
-        clientInstanceId: 'device-1',
-      });
+      expect(mocks.deviceFeedback.notifyPickupFromPush).toHaveBeenCalledWith('kitchen', TABLE_A);
     });
 
     it('BarWaiterCall sets bar pickup flag and triggers haptics', async () => {
@@ -428,10 +425,7 @@ describe('ManageOrdersComponent', () => {
         ClientInstanceId: 'device-2',
       });
       expect(component.barPickupRequested[TABLE_B]).toBeTrue();
-      expect(mocks.deviceFeedback.notifyPickupReady).toHaveBeenCalledWith('bar', {
-        tableId: TABLE_B,
-        clientInstanceId: 'device-2',
-      });
+      expect(mocks.deviceFeedback.notifyPickupFromPush).toHaveBeenCalledWith('bar', TABLE_B);
     });
 
     it('NewOrderPrivateEvent replaces local order id with server id', async () => {

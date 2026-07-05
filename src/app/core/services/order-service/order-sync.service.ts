@@ -339,11 +339,7 @@ export class OrderSyncService {
         this.ngZone.run(() => {
           this.reconnectAttempts = 0;
         });
-        if (!this.offlinePolicy.isOfflinePrimaryDevice()) {
-          void this.offlineSyncLock.refreshStatus().catch(err => {
-            console.warn('[SSE][internal] lock status refresh failed', err);
-          });
-        }
+        // Lock status comes from RestaurantSyncLocked/Unlocked SSE; avoid status poll on every reconnect.
       },
       onmessage: (msg) => {
         this.ngZone.run(() => {
@@ -393,7 +389,7 @@ export class OrderSyncService {
             this.offlineSyncLock.setSecondaryAwaitingPrimaryReconnect(false);
           }
 
-          if (Sequence && Sequence <= this.watermarkSequence) {
+          if (Sequence && Sequence < this.watermarkSequence) {
             // already included in last /api/sync snapshot or previously applied
             return;
           }

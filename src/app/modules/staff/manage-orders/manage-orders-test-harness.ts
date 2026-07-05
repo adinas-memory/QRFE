@@ -227,7 +227,7 @@ export interface ManageOrdersMocks {
     createBillPrintJob: jasmine.Spy;
   };
   deviceFeedback: {
-    notifyPickupReady: jasmine.Spy;
+    notifyPickupFromPush: jasmine.Spy;
   };
   reservationService: {
     list: jasmine.Spy;
@@ -388,7 +388,7 @@ export function createManageOrdersMocks(options: SetupManageOrdersOptions = {}):
       createBillPrintJob: jasmine.createSpy('createBillPrintJob').and.returnValue(of({})),
     },
     deviceFeedback: {
-      notifyPickupReady: jasmine.createSpy('notifyPickupReady'),
+      notifyPickupFromPush: jasmine.createSpy('notifyPickupFromPush'),
     },
     reservationService: {
       list: jasmine.createSpy('list').and.returnValue(of(options.reservations ?? [])),
