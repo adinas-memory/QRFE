@@ -5,6 +5,7 @@ import { AuthService } from '../auth/auth.service';
 import { environment } from '../../../environments/environment';
 import { ClientInstanceService } from '../services/device/client-instance.service';
 import { CLIENT_INSTANCE_HEADER } from '../interceptors/client-instance.interceptor';
+import { OnlineStateService } from './online-state-service';
 
 describe('OfflineSyncLockService', () => {
   let service: OfflineSyncLockService;
@@ -26,6 +27,10 @@ describe('OfflineSyncLockService', () => {
         {
           provide: ClientInstanceService,
           useValue: { whenReady: () => Promise.resolve('test-device-id') },
+        },
+        {
+          provide: OnlineStateService,
+          useValue: { isOnline: true },
         },
       ],
     });
