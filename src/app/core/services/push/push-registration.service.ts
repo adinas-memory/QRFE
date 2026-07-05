@@ -277,6 +277,17 @@ export class PushRegistrationService {
       return;
     }
 
+    // Native foreground: show in-app toast (manage-orders is not the only staff route).
+    if (appActive === true) {
+      const title = this.#copy.titleFor(options.eventType);
+      const body = this.#copy.bodyFor(options.eventType, options.tableName ?? undefined);
+      this.#toast.info(body, title);
+      if (!this.isDebounced(debounceKey)) {
+        this.markHandled(debounceKey);
+      }
+      return;
+    }
+
     // Native background: SSE may still run — pulse if WebView is alive and app not in foreground.
     if (this.isNativeInBackground(appActive)) {
       const kind = options.eventType === 'BarWaiterCall' ? 'bar' : 'kitchen';

@@ -810,10 +810,32 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   /** Apply authoritative table list from GET /api/sync or get-tables-status. */
   private applyAuthoritativeTables(tables: TableDTO[]): void {
     this.tables = tables;
+    this.reconcileTableOccupancyFlags();
     this.refreshTableLists();
-    this.tablesAvailable = this.tablesService.buildAvailabilityMap(tables);
-    void this.offlineDB.saveTables(tables);
+    this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+    void this.offlineDB.saveTables(this.tables);
     void this.offlineDB.saveTablesStatus(this.tablesAvailable);
+  }
+
+  /** Green = isTableOpen; red = occupied. Snapshot/SSE can lag — align from active order. */
+  private reconcileTableOccupancyFlags(): void {
+    let changed = false;
+    const next = this.tables.map(t => {
+      if (tableHasActiveOrder(t.order) && t.isTableOpen) {
+        changed = true;
+        return { ...t, isTableOpen: false };
+      }
+      return t;
+    });
+    if (!changed) {
+      return;
+    }
+    this.tables = next;
+    // #region agent log
+    debugLog('H_TABLE_1', 'manage-orders.component.ts:reconcileTableOccupancyFlags', 'marked tables occupied from order', {
+      tableIds: next.filter(t => !t.isTableOpen && tableHasActiveOrder(t.order)).map(t => t.tableId),
+    });
+    // #endregion
   }
 
   /** Reload in-memory state from Dexie after /api/sync (e.g. app resume from background). */
@@ -823,6 +845,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.reconcileGuestWaiterCalls(activeGuestWaiterCalls);
 
     this.tables = await this.offlineDB.loadLocalTables();
+    this.reconcileTableOccupancyFlags();
     this.refreshTableLists();
     this.tableCarts = await this.offlineDB.loadAllCarts();
     this.tablesAvailable = await this.offlineDB.loadTablesStatusMap();
@@ -1624,6 +1647,14 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         void this.offlineDB.saveTables(this.tables);
         void this.offlineDB.saveTablesStatus(this.tablesAvailable);
         this.markTableAsClosed(tableId);
+        this.reconcileTableOccupancyFlags();
+        this.hydrateComputedFromTables();
+
+        // #region agent log
+        debugLog('H_TABLE_1', 'manage-orders.component.ts:NewOrderPublicEvent', 'table marked occupied', {
+          tableId, orderId,
+        });
+        // #endregion
 
         if (this.currentTableId === tableId && this.canvasVisible) {
           this.currentOrderId = orderId;
@@ -1712,6 +1743,13 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
             this.orderIsConfirmed = true;
             this.claimPickupTargetForTable(tableId);
           }
+          this.reconcileTableOccupancyFlags();
+          this.hydrateComputedFromTables();
+          // #region agent log
+          debugLog('H_TABLE_1', 'manage-orders.component.ts:OrderUpdated', 'table occupancy synced', {
+            tableId, orderId: payload.OrderId,
+          });
+          // #endregion
         }
         break;
       }

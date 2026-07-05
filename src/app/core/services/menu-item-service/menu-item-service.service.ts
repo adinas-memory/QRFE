@@ -111,6 +111,13 @@ async getAllWithFallback(
   return { ...loaded, todaySetMenu };
 }
 
+  /** Force network fetch and Dexie refresh (e.g. after currency mismatch). */
+  async forceRefreshFromServer(restaurantId: string): Promise<void> {
+    const response = await firstValueFrom(this.getAll(restaurantId));
+    const menuItems = (response.menu.menuItems ?? []).map(menuItemWithNormalizedCategory);
+    await this.offlineDB.cacheMenu(menuItems);
+  }
+
   getWeeklySetMenu(restaurantId: string): Observable<WeeklySetMenuResponse> {
     return this.http.get<WeeklySetMenuResponse>(
       `${this.apiUrl}/api/restaurants/${restaurantId}/admin/set-menu/weekly`,

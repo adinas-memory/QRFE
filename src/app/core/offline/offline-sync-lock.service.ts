@@ -1,11 +1,15 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../auth/auth.service';
 import { isAssignedRestaurantId } from '../auth/restaurant-id.util';
 import { ClientInstanceService } from '../services/device/client-instance.service';
 import { CLIENT_INSTANCE_HEADER } from '../interceptors/client-instance.interceptor';
+import { OnlineStateService } from './online-state-service';
+// #region agent log
+import { debugLog } from './debug-log.util';
+// #endregion
 
 export interface OfflineSyncLockStatus {
   locked: boolean;
@@ -17,7 +21,11 @@ export class OfflineSyncLockService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   private readonly clientInstance = inject(ClientInstanceService);
+  private readonly onlineState = inject(OnlineStateService);
   private readonly apiUrl = environment.apiUrl.replace(/\/$/, '');
+
+  private lockWatchIntervalId: ReturnType<typeof setInterval> | null = null;
+  private lastPolledLocked: boolean | null = null;
 
   private readonly lockedSubject = new BehaviorSubject(false);
   /** True while the restaurant is locked for offline replay (SSE or local begin). */
@@ -50,6 +58,39 @@ export class OfflineSyncLockService {
   setRestaurantSyncLocked(locked: boolean): void {
     if (locked !== this.lockedSubject.value) {
       this.lockedSubject.next(locked);
+    }
+  }
+
+  /**
+   * Non-primary devices poll Redis lock so they freeze when primary runs heavy reconnect sync,
+   * even if this device stayed online (no offline→online transition).
+   */
+  startRestaurantLockWatch(): void {
+    if (this.lockWatchIntervalId !== null) {
+      return;
+    }
+    this.lockWatchIntervalId = setInterval(() => {
+      const user = this.auth.getUserSnapshot();
+      if (!user?.restaurantId || user.isOfflinePrimaryDevice || !this.onlineState.isOnline) {
+        return;
+      }
+      void this.refreshStatus().then(status => {
+        if (this.lastPolledLocked !== status.locked) {
+          this.lastPolledLocked = status.locked;
+          // #region agent log
+          debugLog('H_FREEZE_1', 'offline-sync-lock.service.ts:lockWatch', 'polled lock status changed', {
+            locked: status.locked,
+          });
+          // #endregion
+        }
+      }).catch(() => {});
+    }, 2000);
+  }
+
+  stopRestaurantLockWatch(): void {
+    if (this.lockWatchIntervalId !== null) {
+      clearInterval(this.lockWatchIntervalId);
+      this.lockWatchIntervalId = null;
     }
   }
 

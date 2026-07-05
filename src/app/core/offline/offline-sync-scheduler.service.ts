@@ -428,13 +428,16 @@ export class OfflineSyncSchedulerService {
         return;
       }
 
-      // Unfreeze once the jitter grace window has passed and the lock isn't (or is no longer) held.
-      // BUG FIX (e48331): previously required secondarySawServerLock to have been true first, but
-      // the primary skips locking entirely when it has nothing to sync (0 pending items), so
-      // status.locked never flips true and this device stayed frozen forever (shouldFreezePosActions
-      // stuck true) — confirmed by static trace, matches "order item update never reaches the server"
-      // reports on non-primary devices.
-      this.stopSecondaryReconnectAwait();
+      // Unfreeze when lock was held and released, or after a long grace window with no lock (primary had nothing to sync).
+      if (this.secondarySawServerLock) {
+        this.stopSecondaryReconnectAwait();
+        return;
+      }
+
+      const maxWaitWithoutLockMs = 90_000;
+      if (Date.now() - this.secondaryReconnectStartedAt >= maxWaitWithoutLockMs) {
+        this.stopSecondaryReconnectAwait();
+      }
     } catch (err) {
       console.warn('[OfflineSync] Secondary lock poll failed', err);
     }
