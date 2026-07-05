@@ -7,6 +7,10 @@ import { isAssignedRestaurantId } from '../auth/restaurant-id.util';
 import { ClientInstanceService } from '../services/device/client-instance.service';
 import { CLIENT_INSTANCE_HEADER } from '../interceptors/client-instance.interceptor';
 import { SKIP_CONNECTIVITY_OFFLINE } from '../interceptors/auth.interceptor';
+import { OnlineStateService } from './online-state-service';
+// #region agent log
+import { debugLog } from './debug-log.util';
+// #endregion
 
 export interface OfflineSyncLockStatus {
   locked: boolean;
@@ -18,7 +22,15 @@ export class OfflineSyncLockService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   private readonly clientInstance = inject(ClientInstanceService);
+  private readonly onlineState = inject(OnlineStateService);
   private readonly apiUrl = environment.apiUrl.replace(/\/$/, '');
+
+  private static readonly LOCK_WATCH_IDLE_MS = 8_000;
+  private static readonly LOCK_WATCH_ACTIVE_MS = 3_000;
+
+  private lockWatchIntervalId: ReturnType<typeof setInterval> | null = null;
+  private lockWatchActive = false;
+  private lastPolledLocked: boolean | null = null;
 
   private readonly lockedSubject = new BehaviorSubject(false);
   /** True while the restaurant is locked for offline replay (SSE or local begin). */
@@ -51,6 +63,62 @@ export class OfflineSyncLockService {
   setRestaurantSyncLocked(locked: boolean): void {
     if (locked !== this.lockedSubject.value) {
       this.lockedSubject.next(locked);
+    }
+  }
+
+  /** Secondary devices poll lock status (slow when idle, faster while locked). */
+  startRestaurantLockWatch(): void {
+    if (this.lockWatchIntervalId !== null) {
+      return;
+    }
+    this.scheduleLockWatchTick(OfflineSyncLockService.LOCK_WATCH_IDLE_MS);
+  }
+
+  stopRestaurantLockWatch(): void {
+    if (this.lockWatchIntervalId !== null) {
+      clearInterval(this.lockWatchIntervalId);
+      this.lockWatchIntervalId = null;
+    }
+    this.lockWatchActive = false;
+    this.lastPolledLocked = null;
+  }
+
+  private scheduleLockWatchTick(intervalMs: number): void {
+    if (this.lockWatchIntervalId !== null) {
+      clearInterval(this.lockWatchIntervalId);
+    }
+    this.lockWatchIntervalId = setInterval(() => {
+      void this.tickRestaurantLockWatch();
+    }, intervalMs);
+    void this.tickRestaurantLockWatch();
+  }
+
+  private async tickRestaurantLockWatch(): Promise<void> {
+    const user = this.auth.getUserSnapshot();
+    if (!user?.restaurantId || user.isOfflinePrimaryDevice || !this.onlineState.isOnline) {
+      return;
+    }
+
+    try {
+      const status = await this.refreshStatus();
+      if (this.lastPolledLocked !== status.locked) {
+        this.lastPolledLocked = status.locked;
+        // #region agent log
+        debugLog('H_FREEZE_1', 'offline-sync-lock.service.ts:lockWatch', 'polled lock status changed', {
+          locked: status.locked,
+        });
+        // #endregion
+      }
+
+      const shouldPollFast = status.locked || this.isSecondaryAwaitingPrimaryReconnect();
+      if (shouldPollFast !== this.lockWatchActive) {
+        this.lockWatchActive = shouldPollFast;
+        this.scheduleLockWatchTick(
+          shouldPollFast ? OfflineSyncLockService.LOCK_WATCH_ACTIVE_MS : OfflineSyncLockService.LOCK_WATCH_IDLE_MS,
+        );
+      }
+    } catch {
+      // Transient poll failure — skip; SKIP_CONNECTIVITY_OFFLINE avoids offline flip.
     }
   }
 
