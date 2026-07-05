@@ -387,11 +387,20 @@ export class OrderSyncService {
           } else if (EventType === 'RestaurantSyncUnlocked') {
             this.offlineSyncLock.setRestaurantSyncLocked(false);
             this.offlineSyncLock.setSecondaryAwaitingPrimaryReconnect(false);
+            void this.refreshRestaurantSnapshot({ force: true });
           }
 
           if (Sequence && Sequence < this.watermarkSequence) {
             // already included in last /api/sync snapshot or previously applied
             return;
+          }
+
+          if (EventType === 'NewOrderPublicEvent' || EventType === 'OrderUpdated') {
+            // #region agent log
+            debugLog('H_TABLE_1', 'order-sync.service.ts:onmessage', 'internal SSE table event', {
+              EventType, Sequence, watermark: this.watermarkSequence,
+            });
+            // #endregion
           }
 
           if (this.isRefreshing && this.bufferWhileReconnecting) {
