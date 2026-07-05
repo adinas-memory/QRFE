@@ -126,6 +126,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   private kitchenPickupTimers: Record<string, ReturnType<typeof setTimeout>> = {};
   barPickupRequested: Record<string, boolean> = {};
   private barPickupTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+  private snapshotRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   modalVisible = false;
   categories: string[] = [];
   menuItems: MenuItem[] = [];
@@ -344,10 +345,26 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   private applyInitiatedByFromSyncedOrders(): void {
     for (const t of this.tables) {
       const by = readOrderLastInitiatedBy(t.order);
-      if (by && t.tableId) {
-        this.rememberInitiatedBy(t.tableId, by);
+      if (!by || !t.tableId) {
+        continue;
       }
+      const serverActionAt = this.readOrderLastActionAt(t.order);
+      const computedActionAt = this.tableComputed[t.tableId]?.lastActionAt ?? '';
+      // Keep a fresher name from SSE if the sync snapshot is behind (e.g. secondary just mutated).
+      if (computedActionAt && serverActionAt && serverActionAt < computedActionAt) {
+        continue;
+      }
+      this.rememberInitiatedBy(t.tableId, by);
     }
+  }
+
+  private readOrderLastActionAt(order: OrderDTO | null | undefined): string {
+    if (!order) {
+      return '';
+    }
+    const rec = order as unknown as Record<string, unknown>;
+    const v = rec['lastActionAt'] ?? rec['LastActionAt'] ?? rec['updatedAt'] ?? rec['UpdatedAt'];
+    return typeof v === 'string' ? v.trim() : '';
   }
 
   private rememberInitiatedBy(tableId: string, initiatedBy: string): void {
@@ -882,6 +899,17 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.claimPickupTargetForTable(this.currentTableId);
       }
     }
+  }
+
+  /** Pull authoritative carts after NewOrderPublicEvent (event alone has no line items). */
+  private scheduleSnapshotRefreshAfterPublicOrder(): void {
+    if (this.snapshotRefreshTimer !== null) {
+      clearTimeout(this.snapshotRefreshTimer);
+    }
+    this.snapshotRefreshTimer = setTimeout(() => {
+      this.snapshotRefreshTimer = null;
+      void this.sseService.refreshRestaurantSnapshot({ force: true });
+    }, 500);
   }
 
   /** Bind pickup haptics/FCM to this device while the waiter actively serves the table. */
@@ -1655,6 +1683,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           this.orderIsConfirmed = true;
           this.claimPickupTargetForTable(tableId);
         }
+        this.scheduleSnapshotRefreshAfterPublicOrder();
         break;
       }
 

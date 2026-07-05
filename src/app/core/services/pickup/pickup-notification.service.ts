@@ -109,6 +109,13 @@ export class PickupNotificationService {
         this.handlePickupSse('kitchen', ev.Data);
         break;
       case 'BarWaiterCall':
+        // #region agent log
+        debugLog('H_SSE_RECV_1', 'pickup-notification.service.ts:onSseEvent', 'BarWaiterCall received', {
+          sequence: ev.Sequence,
+          tableId: this.field<string>(ev.Data, 'TableId', 'tableId'),
+          clientInstanceId: this.field<string>(ev.Data, 'ClientInstanceId', 'clientInstanceId'),
+        });
+        // #endregion
         this.handlePickupSse('bar', ev.Data);
         break;
       case 'WaiterCall':
