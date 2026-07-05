@@ -48,6 +48,14 @@ describe('SseConnectivityService', () => {
     expect(onlineState.setOfflineFromConnectivitySource).not.toHaveBeenCalled();
   }));
 
+  it('reportStreamError ignores intentional reconnect', fakeAsync(() => {
+    service.reportStreamOpened();
+    service.reportStreamReconnecting();
+    service.reportStreamError(false);
+    tick(2000);
+    expect(onlineState.setOfflineFromConnectivitySource).not.toHaveBeenCalled();
+  }));
+
   it('reportStreamActivity on ConnectivityPulse keeps online', () => {
     service.reportStreamOpened();
     onlineState.setOnlineFromConnectivitySource.calls.reset();
@@ -84,7 +92,7 @@ describe('SseConnectivityService', () => {
     expect(onlineState.setOnlineFromConnectivitySource).not.toHaveBeenCalled();
   });
 
-  it('stale-watch marks offline after pulse gap', fakeAsync(() => {
+  it('stale-watch on zombie stream reconnects without marking offline', fakeAsync(() => {
     TestBed.resetTestingModule();
     const pingOk$ = new Subject<void>();
     const localOnlineState = jasmine.createSpyObj('OnlineStateService', [
@@ -102,9 +110,12 @@ describe('SseConnectivityService', () => {
       ],
     });
     const localService = TestBed.inject(SseConnectivityService);
+    let forceReconnectCount = 0;
+    localService.forceReconnect$.subscribe(() => forceReconnectCount++);
     localService.reportStreamOpened();
     tick(14_001);
-    expect(localOnlineState.setOfflineFromConnectivitySource).toHaveBeenCalledWith('stale-watch');
+    expect(localOnlineState.setOfflineFromConnectivitySource).not.toHaveBeenCalled();
+    expect(forceReconnectCount).toBe(1);
   }));
 
   it('reportPingSuccess marks online when stream is not open', () => {

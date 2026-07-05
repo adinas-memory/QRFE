@@ -138,8 +138,12 @@ export class OrderSyncService {
         hadController: !!this.controller,
         connectedRestaurantId: this.connectedRestaurantId,
       });
+      const rid = this.connectedRestaurantId ?? this.resolveRestaurantId();
       this.close(false);
       this.reconnectAttempts = 0;
+      if (rid && this.onlineStateService.isOnline) {
+        this.openConnection(rid);
+      }
     });
     // #endregion
 
