@@ -118,15 +118,7 @@ export class DeviceFeedbackService {
   }
 
   private async vibrate(durationMs: number): Promise<string> {
-    try {
-      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-        navigator.vibrate(durationMs);
-        return 'navigator';
-      }
-    } catch {
-      // ignore
-    }
-
+    // Android WebView exposes navigator.vibrate but it is ineffective — use native alert first.
     if (Capacitor.isNativePlatform()) {
       try {
         const { PickupVibrate } = await import('../../plugins/pickup-vibrate.plugin');
@@ -139,23 +131,33 @@ export class DeviceFeedbackService {
         });
         // #endregion
       }
-    }
 
-    if (this.platform.capabilities.hapticsBackend === 'capacitor-haptics') {
-      try {
-        const { Haptics } = await import('@capacitor/haptics');
-        await Haptics.vibrate({ duration: durationMs });
-        return 'capacitor-haptics';
-      } catch {
+      if (this.platform.capabilities.hapticsBackend === 'capacitor-haptics') {
         try {
-          const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
-          await Haptics.impact({ style: ImpactStyle.Heavy });
-          return 'capacitor-impact';
+          const { Haptics } = await import('@capacitor/haptics');
+          await Haptics.vibrate({ duration: durationMs });
+          return 'capacitor-haptics';
         } catch {
-          // fall through
+          try {
+            const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+            await Haptics.impact({ style: ImpactStyle.Heavy });
+            return 'capacitor-impact';
+          } catch {
+            // fall through
+          }
         }
       }
     }
+
+    try {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate(durationMs);
+        return 'navigator';
+      }
+    } catch {
+      // ignore
+    }
+
     return 'none';
   }
 }
