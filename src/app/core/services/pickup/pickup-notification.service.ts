@@ -61,10 +61,8 @@ export class PickupNotificationService {
     const eventType: WaiterPushEventType =
       kind === 'kitchen' ? 'KitchenWaiterCall' : 'BarWaiterCall';
 
-    this.#deviceFeedback.notifyPickupReady(kind, {
-      tableId: parsed.tableId,
-      clientInstanceId: parsed.clientInstanceId,
-    });
+    // SSE reached this device — always alert locally (ClientInstanceId gates FCM only).
+    this.#deviceFeedback.notifyPickupFromPush(kind, parsed.tableId);
 
     void this.#pushRegistration.deliverPickupAlert({
       eventType,

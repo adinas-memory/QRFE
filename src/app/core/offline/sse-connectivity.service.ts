@@ -117,6 +117,13 @@ export class SseConnectivityService {
   }
 
   reportHttpNetworkFailure(): void {
+    // Android background: unrelated API calls (lock poll, sync) fail while SSE is still healthy.
+    if (this.streamOpen && Capacitor.isNativePlatform()) {
+      const pulseAge = this.lastPulseAt > 0 ? Date.now() - this.lastPulseAt : Number.POSITIVE_INFINITY;
+      if (pulseAge < STALE_THRESHOLD_MS) {
+        return;
+      }
+    }
     this.scheduleOffline('http-network');
   }
 

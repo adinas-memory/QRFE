@@ -23,7 +23,6 @@ import { Location } from '@angular/common';
 import { SubscriptionService } from './core/services/subscription-service/subscription.service';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { OfflinePolicyService } from './core/offline/offline-policy.service';
-import { OfflineSyncLockService } from './core/offline/offline-sync-lock.service';
 import { NetworkMonitorService } from './core/platform/network-monitor.service';
 import { navigateToRoleHome } from './core/auth/auth-redirect.util';
 import { isAssignedRestaurantId } from './core/auth/restaurant-id.util';
@@ -93,7 +92,6 @@ export class AppComponent implements OnInit, AfterViewInit {
   readonly #httpNavCancel = inject(HttpNavigationCancelService);
   readonly #pushRegistration = inject(PushRegistrationService);
   readonly #pickupNotification = inject(PickupNotificationService);
-  readonly #offlineSyncLock = inject(OfflineSyncLockService);
   readonly #location = inject(Location);
   readonly #subscriptionService = inject(SubscriptionService);
 
@@ -185,7 +183,6 @@ export class AppComponent implements OnInit, AfterViewInit {
           this.sseStarted = true;
           this.#orderSyncService.listenToRestaurantEvents(user!.restaurantId!);
         }
-        this.#offlineSyncLock.startRestaurantLockWatch();
         void this.#networkMonitor.syncWithAuthState();
       });
 
