@@ -91,7 +91,7 @@ export class OfflineSyncSchedulerService {
       .subscribe(() => {
         this.wentOfflineAt = Date.now();
         this.reconnectSyncPending = false;
-        this.stopSecondaryPoll();
+        this.stopSecondaryReconnectAwait();
         this.cancelCountdown();
       });
   }
@@ -343,8 +343,9 @@ export class OfflineSyncSchedulerService {
     if (lock.isSecondaryAwaitingPrimaryReconnect()) {
       // #region agent log
       debugLog('H_FREEZE_1', 'offline-sync-scheduler.service.ts:handleSecondaryReconnect',
-        'secondary freeze already active — skip', { restaurantId });
+        'secondary freeze already active — ensure poll running', { restaurantId });
       // #endregion
+      this.startSecondaryPoll(restaurantId);
       return;
     }
 
@@ -394,6 +395,7 @@ export class OfflineSyncSchedulerService {
     try {
       this.offlineSyncLock ??= this.injector.get(OfflineSyncLockService);
       this.offlineSyncLock.setSecondaryAwaitingPrimaryReconnect(false);
+      void this.offlineSyncLock.refreshStatus().catch(() => {});
     } catch {
       // ignore when lock service is unavailable during teardown
     }
@@ -403,7 +405,7 @@ export class OfflineSyncSchedulerService {
 
   private async tickSecondaryPoll(restaurantId: string): Promise<void> {
     if (!this.onlineState.isOnline) {
-      this.stopSecondaryPoll();
+      this.stopSecondaryReconnectAwait();
       return;
     }
 
@@ -422,30 +424,14 @@ export class OfflineSyncSchedulerService {
         msSinceStart: Date.now() - this.secondaryReconnectStartedAt,
       });
       // #endregion
-      if (status.locked) {
-        this.secondarySawServerLock = true;
-        return;
-      }
 
-      const jitterSeconds = this.resolveReconnectDelay(restaurantId, this.secondaryReconnectStartedAt);
-      if (this.secondaryReconnectStartedAt <= 0) {
-        return;
-      }
-      const jitterElapsed = Date.now() - this.secondaryReconnectStartedAt >= jitterSeconds * 1000;
-      if (!jitterElapsed) {
-        return;
-      }
-
-      // Unfreeze when lock was held and released, or after a long grace window with no lock (primary had nothing to sync).
-      if (this.secondarySawServerLock) {
+      if (!status.locked) {
+        // Server unlocked — drop banner immediately (do not wait for reconnect jitter).
         this.stopSecondaryReconnectAwait();
         return;
       }
 
-      const maxWaitWithoutLockMs = 90_000;
-      if (Date.now() - this.secondaryReconnectStartedAt >= maxWaitWithoutLockMs) {
-        this.stopSecondaryReconnectAwait();
-      }
+      this.secondarySawServerLock = true;
     } catch (err) {
       console.warn('[OfflineSync] Secondary lock poll failed', err);
     }

@@ -390,6 +390,7 @@ export class OrderSyncService {
             this.offlineSyncLock.setRestaurantSyncLocked(true);
           } else if (EventType === 'RestaurantSyncUnlocked') {
             this.offlineSyncLock.setRestaurantSyncLocked(false);
+            this.offlineSyncLock.setSecondaryAwaitingPrimaryReconnect(false);
           }
 
           if (Sequence && Sequence <= this.watermarkSequence) {
