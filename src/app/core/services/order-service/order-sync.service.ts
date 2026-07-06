@@ -432,7 +432,7 @@ export class OrderSyncService {
         if (res.status === 401) {
           if (!refreshedAfter401 && this.onlineStateService.isOnline) {
             refreshedAfter401 = true;
-            const refreshed = await this.ensureFreshSession();
+            const refreshed = await this.ensureFreshSession(`syncRestaurantState:${caller}`);
             if (refreshed) {
               continue;
             }
@@ -500,10 +500,13 @@ export class OrderSyncService {
   }
 
   /** Renew access cookie via refresh-token; shared by /api/sync and SSE reconnect. */
-  private async ensureFreshSession(): Promise<boolean> {
+  private async ensureFreshSession(caller = 'unknown'): Promise<boolean> {
     if (!this.onlineStateService.isOnline) {
       return false;
     }
+    // #region agent log
+    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'order-sync.service.ts:ensureFreshSession',message:'ensureFreshSession',data:{caller,hasUserCtx:!!localStorage.getItem('UserCtx')},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+    // #endregion
     const user = await firstValueFrom(
       this.auth.refreshUserContext({ redirectOnFailure: false }).pipe(
         catchError(err => {
@@ -544,7 +547,7 @@ export class OrderSyncService {
     // Try to refresh session once, serialized (only when online)
     this.isRefreshing = true;
 
-    void this.ensureFreshSession().then(refreshed => {
+    void this.ensureFreshSession('handleSseError').then(refreshed => {
       this.isRefreshing = false;
 
       if (refreshed) {
