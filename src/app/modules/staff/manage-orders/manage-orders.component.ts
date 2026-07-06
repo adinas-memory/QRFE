@@ -48,7 +48,6 @@ import { OfflineQueueProcessor } from '../../../core/offline/offline-queue-proce
 import { SseEvent } from '../../../core/models/sseModel';
 import { OnlineStateService } from '../../../core/offline/online-state-service';
 import { OfflinePolicyService } from '../../../core/offline/offline-policy.service';
-import { debugLog } from '../../../core/offline/debug-log.util';
 import { OfflinePrintContextService } from '../../../core/offline/offline-print-context.service';
 import { OfflinePrintService } from '../../../core/offline/offline-print.service';
 import { OfflinePrimaryService } from '../../../core/services/offline-primary/offline-primary.service';
@@ -851,26 +850,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   /** Reload in-memory state from Dexie after /api/sync (e.g. app resume from background). */
   private async reloadFromSyncSnapshot(activeGuestWaiterCalls: string[] = []): Promise<void> {
-    if (!this.initialTablesLoaded || !this.restaurantId) {
-      debugLog('sse-sync', 'manage-orders.component.ts:reloadFromSyncSnapshot', 'skipped', {
-        initialTablesLoaded: this.initialTablesLoaded,
-        hasRestaurantId: !!this.restaurantId,
-      });
-      return;
-    }
-
-    const occupiedBefore = this.tables.filter(t => tableHasActiveOrder(t.order)).length;
-    const cartQtyBefore = Object.values(this.tableCarts).reduce(
-      (sum, lines) => sum + (lines ?? []).reduce((s, l) => s + l.quantity, 0),
-      0,
-    );
-    debugLog('sse-sync', 'manage-orders.component.ts:reloadFromSyncSnapshot', 'start', {
-      occupiedBefore,
-      cartQtyBefore,
-      canvasVisible: this.canvasVisible,
-      currentTableId: this.currentTableId ?? null,
-      guestCalls: activeGuestWaiterCalls.length,
-    });
+    if (!this.initialTablesLoaded || !this.restaurantId) return;
 
     this.reconcileGuestWaiterCalls(activeGuestWaiterCalls);
 
@@ -912,21 +892,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.claimPickupTargetForTable(this.currentTableId);
       }
     }
-
-    const occupiedAfter = this.tables.filter(t => tableHasActiveOrder(t.order)).length;
-    const cartQtyAfter = Object.values(this.tableCarts).reduce(
-      (sum, lines) => sum + (lines ?? []).reduce((s, l) => s + l.quantity, 0),
-      0,
-    );
-    debugLog('sse-sync', 'manage-orders.component.ts:reloadFromSyncSnapshot', 'done', {
-      occupiedAfter,
-      cartQtyAfter,
-      canvasVisible: this.canvasVisible,
-      currentTableId: this.currentTableId ?? null,
-      currentCanvasQty: this.currentTableId
-        ? (this.tableCarts[this.currentTableId] ?? []).reduce((s, l) => s + l.quantity, 0)
-        : null,
-    });
   }
 
   /** Pull authoritative carts after remote order open (event alone has no line items). */
@@ -942,12 +907,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   /** Secondary devices receive NewOrderPrivateEvent on internal SSE; mark table occupied. */
   private applyRemoteOrderOpenedOnTable(tableId: string, orderId: string, source: 'NewOrderPublicEvent' | 'NewOrderPrivateEvent'): void {
-    debugLog('sse-sync', 'manage-orders.component.ts:applyRemoteOrderOpenedOnTable', 'remote order opened', {
-      source,
-      tableId,
-      orderId,
-    });
-
     this.tables = this.tables.map(t =>
       t.tableId === tableId
         ? {
@@ -1855,19 +1814,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.rememberInitiatedBy(tableId, InitiatedBy);
         this.tableCarts[tableId] = cart;
         this.ordersService.saveComputed(this.tableComputed);
-
-        debugLog('sse-sync', 'manage-orders.component.ts:OrderUpdated', 'cart hydrated', {
-          tableId,
-          shouldFullHydrate,
-          sseItemCount,
-          localQty,
-          isRemoteMutation,
-          compositionMismatch,
-          hasPendingForTable,
-          lastAddedItem: payload.LastAddedItem ?? null,
-          cartLines: cart.length,
-          tableItemCount: this.tableComputed[tableId]?.itemCount ?? null,
-        });
 
         if (payload.OrderId) {
           const initiatedByName = InitiatedBy?.trim()

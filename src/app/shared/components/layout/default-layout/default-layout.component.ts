@@ -125,6 +125,11 @@ export class DefaultLayoutComponent implements OnInit {
             iconComponent: { name: 'cil-list' }
           },
           {
+            name: this.transloco.translate('nav.tableOrders'),
+            url: '/staff/table-orders',
+            iconComponent: { name: 'cil-history' }
+          },
+          {
             name: this.transloco.translate('nav.kitchen'),
             url: '/staff/kitchen',
             iconComponent: { name: 'cil-dinner' }
@@ -151,6 +156,11 @@ export class DefaultLayoutComponent implements OnInit {
             name: this.transloco.translate('nav.orders'),
             url: '/manager/manage-orders',
             iconComponent: { name: 'cil-list' }
+          },
+          {
+            name: this.transloco.translate('nav.tableOrders'),
+            url: '/manager/table-orders',
+            iconComponent: { name: 'cil-history' }
           },
           {
             name: this.transloco.translate('nav.kitchen'),

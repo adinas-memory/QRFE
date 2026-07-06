@@ -153,8 +153,18 @@ export class OrdersService {
     return this.http.get<OrderDTO[]>(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/get-tables-status`, { withCredentials: true });
   }
 
-  listOrdersTimeFrame(restaurantId: string, tableId: string, from: string, to: string) {
-    return this.http.get(`${this.apiUrl}/api/restaurants/${restaurantId}/staff/${tableId}/orders/filter-by-date`, { withCredentials: true });
+  listOrdersForTableByDate(
+    restaurantId: string,
+    tableId: string,
+    startDate: string,
+    endDate: string,
+    apiScope: 'staff' | 'admin' = 'staff',
+  ): Observable<OrderDTO[]> {
+    return this.http.post<OrderDTO[]>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/${apiScope}/tables/${tableId}/orders/filter-by-date`,
+      { startDate, endDate },
+      { withCredentials: true },
+    );
   }
 
   // new methods

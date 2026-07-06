@@ -26,6 +26,12 @@ export const routes: Routes = [
         data: { title: 'Orders' }
       },
       {
+        path: 'table-orders',
+        loadComponent: () =>
+          import('../staff/table-orders-by-date/table-orders-by-date.component').then(m => m.TableOrdersByDateComponent),
+        data: { title: 'Table orders' }
+      },
+      {
         path: 'reservations',
         redirectTo: '/staff/bookings',
         pathMatch: 'full'
