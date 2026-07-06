@@ -843,7 +843,26 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   /** Reload in-memory state from Dexie after /api/sync (e.g. app resume from background). */
   private async reloadFromSyncSnapshot(activeGuestWaiterCalls: string[] = []): Promise<void> {
-    if (!this.initialTablesLoaded || !this.restaurantId) return;
+    if (!this.initialTablesLoaded || !this.restaurantId) {
+      debugLog('sse-sync', 'manage-orders.component.ts:reloadFromSyncSnapshot', 'skipped', {
+        initialTablesLoaded: this.initialTablesLoaded,
+        hasRestaurantId: !!this.restaurantId,
+      });
+      return;
+    }
+
+    const occupiedBefore = this.tables.filter(t => tableHasActiveOrder(t.order)).length;
+    const cartQtyBefore = Object.values(this.tableCarts).reduce(
+      (sum, lines) => sum + (lines ?? []).reduce((s, l) => s + l.quantity, 0),
+      0,
+    );
+    debugLog('sse-sync', 'manage-orders.component.ts:reloadFromSyncSnapshot', 'start', {
+      occupiedBefore,
+      cartQtyBefore,
+      canvasVisible: this.canvasVisible,
+      currentTableId: this.currentTableId ?? null,
+      guestCalls: activeGuestWaiterCalls.length,
+    });
 
     this.reconcileGuestWaiterCalls(activeGuestWaiterCalls);
 
@@ -885,6 +904,21 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.claimPickupTargetForTable(this.currentTableId);
       }
     }
+
+    const occupiedAfter = this.tables.filter(t => tableHasActiveOrder(t.order)).length;
+    const cartQtyAfter = Object.values(this.tableCarts).reduce(
+      (sum, lines) => sum + (lines ?? []).reduce((s, l) => s + l.quantity, 0),
+      0,
+    );
+    debugLog('sse-sync', 'manage-orders.component.ts:reloadFromSyncSnapshot', 'done', {
+      occupiedAfter,
+      cartQtyAfter,
+      canvasVisible: this.canvasVisible,
+      currentTableId: this.currentTableId ?? null,
+      currentCanvasQty: this.currentTableId
+        ? (this.tableCarts[this.currentTableId] ?? []).reduce((s, l) => s + l.quantity, 0)
+        : null,
+    });
   }
 
   /** Pull authoritative carts after remote order open (event alone has no line items). */
@@ -1764,12 +1798,27 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         const hasPendingForTable = await this.offlineDB.hasPendingQueueActionsForTable(tableId);
         const qtyMismatch = sseItemCount !== localQty;
         const lineCountMismatch = sseLineCount !== localItems.length;
-        // Full hydrate when server is ahead, or when server reflects fewer/different lines
-        // (qty −, delete line) and we have no pending optimistic mutations on this table.
+        const initiatedBy = InitiatedBy?.trim().toLowerCase() ?? '';
+        const currentStaff = this.currentStaffDisplayName().trim().toLowerCase();
+        const isRemoteMutation = !!initiatedBy && !!currentStaff && initiatedBy !== currentStaff;
+        const sseMenuQty = new Map<string, number>();
+        for (const sseItem of payload.Items ?? []) {
+          const rec = sseItem as unknown as Record<string, unknown>;
+          const menuItemId = String(rec['MenuItemId'] ?? rec['menuItemId'] ?? '');
+          if (!menuItemId) continue;
+          const qty = Number(rec['Quantity'] ?? rec['quantity'] ?? 0);
+          sseMenuQty.set(menuItemId, (sseMenuQty.get(menuItemId) ?? 0) + qty);
+        }
+        const localMenuQty = new Map(localItems.map(line => [line.item.menuItemId, line.quantity]));
+        const compositionMismatch =
+          sseMenuQty.size !== localMenuQty.size
+          || [...sseMenuQty.entries()].some(([id, qty]) => localMenuQty.get(id) !== qty);
+        // Full hydrate when server is ahead, remote peer mutation, or cart composition differs.
         const shouldFullHydrate =
           localItems.length === 0
           || sseItemCount > localQty
-          || (!hasPendingForTable && (qtyMismatch || lineCountMismatch));
+          || isRemoteMutation
+          || (!hasPendingForTable && (qtyMismatch || lineCountMismatch || compositionMismatch));
 
         let cart: CartItem[];
         if (shouldFullHydrate) {
@@ -1804,6 +1853,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           shouldFullHydrate,
           sseItemCount,
           localQty,
+          isRemoteMutation,
+          compositionMismatch,
+          hasPendingForTable,
           lastAddedItem: payload.LastAddedItem ?? null,
           cartLines: cart.length,
         });
