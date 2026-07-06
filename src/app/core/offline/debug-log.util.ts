@@ -42,6 +42,24 @@ function appendWebLine(line: string): void {
   persistWebLines(merged);
 }
 
+function collectWebLogLines(): string[] {
+  const stored = readStoredWebLines();
+  if (webBuffer.length === 0) {
+    return stored;
+  }
+  if (stored.length === 0) {
+    return [...webBuffer];
+  }
+  const tail = webBuffer.slice(Math.max(0, webBuffer.length - 50));
+  const merged = [...stored];
+  for (const line of tail) {
+    if (!merged.includes(line)) {
+      merged.push(line);
+    }
+  }
+  return merged.slice(-MAX_WEB_STORAGE_LINES);
+}
+
 /** On-device NDJSON log (native) or persisted ring buffer (web/PWA). No network dependency. */
 export function debugLog(category: string, location: string, message: string, data?: unknown): void {
   const line = JSON.stringify({
@@ -69,21 +87,61 @@ export function debugLog(category: string, location: string, message: string, da
   }
 }
 
-export function downloadWebDebugLog(): number {
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // fall through
+  }
+  return false;
+}
+
+/** Download or share debug log on web/PWA. Returns line count exported (0 = nothing to export). */
+export async function downloadWebDebugLog(): Promise<number> {
   if (typeof document === 'undefined') {
     return 0;
   }
-  const stored = readStoredWebLines();
-  const lines = stored.length > 0 ? stored : [...webBuffer];
+  const lines = collectWebLogLines();
   if (lines.length === 0) {
     return 0;
   }
-  const blob = new Blob([lines.join('\n') + '\n'], { type: 'application/x-ndjson' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = 'qrfe-debug.log';
-  anchor.click();
-  URL.revokeObjectURL(url);
-  return lines.length;
+  const content = lines.join('\n') + '\n';
+  const filename = 'qrfe-debug.log';
+
+  if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+    try {
+      const file = new File([content], filename, { type: 'application/x-ndjson' });
+      if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'QRFE debug log' });
+        return lines.length;
+      }
+    } catch (err) {
+      const aborted = (err as { name?: string })?.name === 'AbortError';
+      if (aborted) {
+        return lines.length;
+      }
+      // try download fallback
+    }
+  }
+
+  try {
+    const blob = new Blob([content], { type: 'application/x-ndjson' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.rel = 'noopener';
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+    return lines.length;
+  } catch {
+    const copied = await copyTextToClipboard(content);
+    return copied ? lines.length : 0;
+  }
 }
