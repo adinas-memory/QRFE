@@ -91,6 +91,11 @@ export class SseConnectivityService {
     if (isAuth401 || this.sseReconnecting) {
       return;
     }
+    const pulseFresh =
+      this.lastPulseAt > 0 && Date.now() - this.lastPulseAt < STALE_THRESHOLD_MS;
+    if (this.streamOpen && pulseFresh) {
+      return;
+    }
     this.scheduleOffline('sse-error');
   }
 
@@ -203,7 +208,11 @@ export class SseConnectivityService {
         this.forceReconnectSubject.next();
         return;
       }
-      if (stale || reason === 'http-network' || reason === 'native-network-lost' || reason === 'sse-error') {
+      if (reason === 'http-network' || reason === 'native-network-lost') {
+        this.onlineState.setOfflineFromConnectivitySource(reason);
+        return;
+      }
+      if (stale) {
         this.onlineState.setOfflineFromConnectivitySource(reason);
       }
     }, debounceMs);

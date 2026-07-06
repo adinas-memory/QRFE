@@ -96,6 +96,7 @@ export function createCartLine(
 
 export interface StationTestMocks {
   sseEvents$: Subject<SseEvent<unknown>>;
+  snapshotRefreshed$: Subject<{ restaurantId: string; activeGuestWaiterCalls: string[] }>;
   offlineDb: jasmine.SpyObj<OfflineDbService>;
   tablesService: jasmine.SpyObj<TablesService>;
   menuItemService: jasmine.SpyObj<MenuItemServiceService>;
@@ -104,6 +105,7 @@ export interface StationTestMocks {
 
 export function createStationMocks(menuItems: MenuItem[]): StationTestMocks {
   const sseEvents$ = new Subject<SseEvent<unknown>>();
+  const snapshotRefreshed$ = new Subject<{ restaurantId: string; activeGuestWaiterCalls: string[] }>();
   const tables = createSyncTables();
   const cartStore: Record<string, { tableId: string; orderId?: string; items: CartItem[] }> = {};
 
@@ -133,6 +135,7 @@ export function createStationMocks(menuItems: MenuItem[]): StationTestMocks {
 
   return {
     sseEvents$,
+    snapshotRefreshed$,
     offlineDb,
     tablesService: {
       getAllWithFallback: jasmine.createSpy('getAllWithFallback').and.resolveTo(tables),
@@ -165,7 +168,7 @@ async function setupBarComponentInternal() {
           getUserContext: () => of({ id: '1', role: 'staff', restaurantId: SYNC_TEST_RESTAURANT_ID }),
         },
       },
-      { provide: OrderSyncService, useValue: { events$: mocks.sseEvents$, listenToRestaurantEvents: () => of({}) } },
+      { provide: OrderSyncService, useValue: { events$: mocks.sseEvents$, snapshotRefreshed$: mocks.snapshotRefreshed$.asObservable(), listenToRestaurantEvents: () => of({}) } },
       { provide: TablesService, useValue: mocks.tablesService },
       { provide: MenuItemServiceService, useValue: mocks.menuItemService },
       { provide: OfflineDbService, useValue: mocks.offlineDb },
@@ -196,7 +199,7 @@ async function setupKitchenComponentInternal() {
           getUserContext: () => of({ id: '1', role: 'staff', restaurantId: SYNC_TEST_RESTAURANT_ID }),
         },
       },
-      { provide: OrderSyncService, useValue: { events$: mocks.sseEvents$, listenToRestaurantEvents: () => of({}) } },
+      { provide: OrderSyncService, useValue: { events$: mocks.sseEvents$, snapshotRefreshed$: mocks.snapshotRefreshed$.asObservable(), listenToRestaurantEvents: () => of({}) } },
       { provide: TablesService, useValue: mocks.tablesService },
       { provide: MenuItemServiceService, useValue: mocks.menuItemService },
       { provide: OfflineDbService, useValue: mocks.offlineDb },

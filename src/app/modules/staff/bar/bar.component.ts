@@ -149,6 +149,13 @@ export class BarComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(ev => this.handleSseEvent(ev));
 
+    this.sse.snapshotRefreshed$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        if (this.hydrating) return;
+        void this.rebuildFromDexie();
+      });
+
     this.offlineDB.cartsChanged$
       .pipe(takeUntil(this.destroy$))
       .subscribe(async ({ tableId }) => {
@@ -246,11 +253,11 @@ export class BarComponent implements OnInit, OnDestroy {
         break;
       }
       case 'OrderItemQuantityUpdated': {
-        // Intentionally ignored: we compute qty++/qty-- from OrderUpdated diffs.
+        void this.applyOrderItemQtyUpdated(Data as UpdateOrderItemQuantityResponse);
         break;
       }
       case 'OrderItemDeleted': {
-        // Intentionally ignored: we compute delete from OrderUpdated diffs.
+        void this.applyOrderItemDeleted(Data as DeleteOrderItemSSEPayload);
         break;
       }
       case 'OrderClosedWithPayment': {
