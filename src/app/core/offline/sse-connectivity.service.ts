@@ -38,16 +38,15 @@ export class SseConnectivityService {
 
   constructor() {
     this.startStaleWatch();
-    if (Capacitor.isNativePlatform()) {
-      this.debugHeartbeatTimer = setInterval(() => {
-        debugLog('sse', 'sse-connectivity.service.ts:heartbeat', 'js heartbeat', {
-          streamOpen: this.streamOpen,
-          pulseGapMs: this.lastPulseAt ? Date.now() - this.lastPulseAt : null,
-          documentHidden: typeof document !== 'undefined' ? document.hidden : null,
-          isOnline: this.onlineState.isOnline,
-        });
-      }, 3000);
-    }
+    this.debugHeartbeatTimer = setInterval(() => {
+      debugLog('sse', 'sse-connectivity.service.ts:heartbeat', 'js heartbeat', {
+        streamOpen: this.streamOpen,
+        pulseGapMs: this.lastPulseAt ? Date.now() - this.lastPulseAt : null,
+        documentHidden: typeof document !== 'undefined' ? document.hidden : null,
+        isOnline: this.onlineState.isOnline,
+        native: Capacitor.isNativePlatform(),
+      });
+    }, 3000);
   }
 
   /** True when the restaurant SSE stream is open — ping-lite must not drive online/offline. */

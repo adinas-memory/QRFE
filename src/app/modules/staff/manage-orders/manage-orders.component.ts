@@ -48,6 +48,7 @@ import { OfflineQueueProcessor } from '../../../core/offline/offline-queue-proce
 import { SseEvent } from '../../../core/models/sseModel';
 import { OnlineStateService } from '../../../core/offline/online-state-service';
 import { OfflinePolicyService } from '../../../core/offline/offline-policy.service';
+import { debugLog } from '../../../core/offline/debug-log.util';
 import { OfflinePrintContextService } from '../../../core/offline/offline-print-context.service';
 import { OfflinePrintService } from '../../../core/offline/offline-print.service';
 import { OfflinePrimaryService } from '../../../core/services/offline-primary/offline-primary.service';
@@ -886,7 +887,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Pull authoritative carts after NewOrderPublicEvent (event alone has no line items). */
+  /** Pull authoritative carts after remote order open (event alone has no line items). */
   private scheduleSnapshotRefreshAfterPublicOrder(): void {
     if (this.snapshotRefreshTimer !== null) {
       clearTimeout(this.snapshotRefreshTimer);
@@ -895,6 +896,43 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.snapshotRefreshTimer = null;
       void this.sseService.refreshRestaurantSnapshot({ force: true });
     }, 500);
+  }
+
+  /** Secondary devices receive NewOrderPrivateEvent on internal SSE; mark table occupied. */
+  private applyRemoteOrderOpenedOnTable(tableId: string, orderId: string, source: 'NewOrderPublicEvent' | 'NewOrderPrivateEvent'): void {
+    debugLog('sse-sync', 'manage-orders.component.ts:applyRemoteOrderOpenedOnTable', 'remote order opened', {
+      source,
+      tableId,
+      orderId,
+    });
+
+    this.tables = this.tables.map(t =>
+      t.tableId === tableId
+        ? {
+            ...t,
+            isTableOpen: false,
+            order: {
+              ...(t.order ?? {}),
+              orderId,
+              isOrderOpen: true,
+            } as OrderDTO,
+          }
+        : t,
+    );
+    this.refreshTableLists();
+    this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+    void this.offlineDB.saveTables(this.tables);
+    void this.offlineDB.saveTablesStatus(this.tablesAvailable);
+    this.markTableAsClosed(tableId);
+    this.reconcileTableOccupancyFlags();
+    this.hydrateComputedFromTables();
+
+    if (this.currentTableId === tableId && this.canvasVisible) {
+      this.currentOrderId = orderId;
+      this.orderIsConfirmed = true;
+      this.claimPickupTargetForTable(tableId);
+    }
+    this.scheduleSnapshotRefreshAfterPublicOrder();
   }
 
   /** Bind pickup haptics/FCM to this device while the waiter actively serves the table. */
@@ -1675,15 +1713,22 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       }
 
       case 'NewOrderPrivateEvent': {
-        const realId = Data.OrderId;
-        const tableId = Data.TableId;
+        const tableId = this.sseField<string>(Data, 'TableId', 'tableId') ?? Data?.TableId ?? Data?.tableId;
+        const orderId = this.sseField<string>(Data, 'OrderId', 'orderId') ?? Data?.OrderId ?? Data?.orderId;
+        if (!tableId || !orderId) break;
+
+        this.applyRemoteOrderOpenedOnTable(tableId, orderId, 'NewOrderPrivateEvent');
+
         if (this.currentTableId === tableId) {
-          this.currentOrderId = realId;
+          this.currentOrderId = orderId;
           this.orderIsConfirmed = true;
           this.claimPickupTargetForTable(tableId);
         }
+
         const record = await this.offlineDB.loadCartRecord(tableId);
-        if (record) await this.offlineDB.saveCart(tableId, record.items, realId);
+        if (record) {
+          await this.offlineDB.saveCart(tableId, record.items, orderId);
+        }
         break;
       }
 
@@ -1692,33 +1737,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         const orderId = this.sseField<string>(Data, 'OrderId', 'orderId') ?? Data?.OrderId ?? Data?.orderId;
         if (!tableId || !orderId) break;
 
-        this.tables = this.tables.map(t =>
-          t.tableId === tableId
-            ? {
-                ...t,
-                isTableOpen: false,
-                order: {
-                  ...(t.order ?? {}),
-                  orderId,
-                  isOrderOpen: true,
-                } as OrderDTO,
-              }
-            : t,
-        );
-        this.refreshTableLists();
-        this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
-        void this.offlineDB.saveTables(this.tables);
-        void this.offlineDB.saveTablesStatus(this.tablesAvailable);
-        this.markTableAsClosed(tableId);
-        this.reconcileTableOccupancyFlags();
-        this.hydrateComputedFromTables();
-
-        if (this.currentTableId === tableId && this.canvasVisible) {
-          this.currentOrderId = orderId;
-          this.orderIsConfirmed = true;
-          this.claimPickupTargetForTable(tableId);
-        }
-        this.scheduleSnapshotRefreshAfterPublicOrder();
+        this.applyRemoteOrderOpenedOnTable(tableId, orderId, 'NewOrderPublicEvent');
         break;
       }
 
