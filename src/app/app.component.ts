@@ -78,7 +78,10 @@ export class AppComponent implements OnInit {
       void NetworkMonitor.shareDebugLog().catch(err => console.warn('[debug] shareDebugLog failed', err));
       return;
     }
-    downloadWebDebugLog();
+    const lineCount = downloadWebDebugLog();
+    if (lineCount === 0) {
+      window.alert('No debug log lines yet. Use the app for a minute (SSE/connectivity), then export again.');
+    }
   }
 
   readonly #destroyRef: DestroyRef = inject(DestroyRef);

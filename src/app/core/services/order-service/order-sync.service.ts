@@ -327,7 +327,7 @@ export class OrderSyncService {
 
         const reconnectBusy = this.syncScheduler.isReconnectWorkflowActive();
         if (!reconnectBusy) {
-          void this.refreshRestaurantSnapshot({ force: true });
+          void this.refreshRestaurantSnapshot();
         }
 
         this.ngZone.run(() => {

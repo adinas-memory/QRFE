@@ -23,6 +23,7 @@ import {
   LINE_SALAD_1,
   MENU_PIZZA,
   MENU_SALAD,
+  ORDER_A,
   ORDER_B,
   SYNC_TABLE_B,
 } from '../../../testing/sse-fixtures/order-mutation.fixtures';
@@ -101,6 +102,19 @@ describe('ManageOrdersComponent SSE inbound (sync regression)', () => {
 
       const table = component.tables.find(t => t.tableId === TABLE_A);
       expect(table?.isTableOpen).toBeFalse();
+      expect(mocks.offlineDb.saveTables).toHaveBeenCalled();
+    });
+
+    it('NewOrderPrivateEvent marks table occupied on internal SSE path', async () => {
+      await invokeSse(component, 'NewOrderPrivateEvent', {
+        TableId: TABLE_A,
+        OrderId: ORDER_A,
+        IsOrderOpen: true,
+      }, 'staff1', 42);
+
+      const table = component.tables.find(t => t.tableId === TABLE_A);
+      expect(table?.isTableOpen).toBeFalse();
+      expect(table?.order?.orderId).toBe(ORDER_A);
       expect(mocks.offlineDb.saveTables).toHaveBeenCalled();
     });
 
