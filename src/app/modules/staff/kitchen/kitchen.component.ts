@@ -7,7 +7,6 @@ import { TablesService } from '../../../core/services/tables-service/tables.serv
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
 import { OrderSyncService } from '../../../core/services/order-service/order-sync.service';
 import { SseEvent } from '../../../core/models/sseModel';
-import { debugLog } from '../../../core/offline/debug-log.util';
 import {
   AddOrderItemResponse,
   CartItem,
@@ -393,12 +392,6 @@ export class KitchenComponent implements OnInit, OnDestroy {
     });
 
     const nextFood = this.filterFood(nextCart);
-    debugLog('sse-sync', 'kitchen.component.ts:applyOrderUpdated', 'kitchen order updated', {
-      tableId,
-      orderId,
-      foodLines: nextFood.length,
-      sequence: envelopeSequence ?? null,
-    });
     const isServerOrderId = !!orderId && !orderId.startsWith('local-');
     const isNewOrder = isServerOrderId && !this.seenServerOrderIds.has(orderId) && nextFood.length > 0;
     if (isNewOrder && !this.hydrating && !document.hidden && !this.soundMuted) {

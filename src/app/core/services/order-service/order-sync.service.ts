@@ -405,12 +405,6 @@ export class OrderSyncService {
             && this.lastDispatchedSequence > 0
             && Sequence > this.lastDispatchedSequence + 1
           ) {
-            debugLog('sse-sync', 'order-sync.service.ts:onmessage', 'sequence gap', {
-              eventType: EventType,
-              sequence: Sequence,
-              lastDispatched: this.lastDispatchedSequence,
-              watermark: this.watermarkSequence,
-            });
             this.scheduleRefreshAfterWatermarkDrop();
           }
 
@@ -504,11 +498,6 @@ export class OrderSyncService {
         await this.applyOfflinePrintConfigFromSync(json, restaurantId);
         this.lastSnapshotRefreshAt = Date.now();
         this.ngZone.run(() => {
-          debugLog('sse-sync', 'order-sync.service.ts:snapshotRefreshed', 'emitting snapshotRefreshed$', {
-            caller,
-            watermark: seq,
-            tableCount: tables.length,
-          });
           this.snapshotRefreshedSubject.next({ restaurantId, activeGuestWaiterCalls });
         });
         return;

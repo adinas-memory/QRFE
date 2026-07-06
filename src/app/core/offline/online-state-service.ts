@@ -194,23 +194,15 @@ export class OnlineStateService {
     this.setOnline(reason);
   }
 
-  setOffline(reason?: string): void {
+  setOffline(_reason?: string): void {
     if (!this._isOnline) return;
     this._isOnline = false;
     this.onlineSubject.next(false);
-    debugLog('connectivity', 'online-state-service.ts:setOffline', 'isOnline false', {
-      reason: reason ?? 'unknown',
-      native: isCapacitorNative(),
-    });
   }
 
-  setOnline(reason?: string): void {
+  setOnline(_reason?: string): void {
     if (this._isOnline) return;
     this._isOnline = true;
     this.onlineSubject.next(true);
-    debugLog('connectivity', 'online-state-service.ts:setOnline', 'isOnline true', {
-      reason: reason ?? 'unknown',
-      native: isCapacitorNative(),
-    });
   }
 }

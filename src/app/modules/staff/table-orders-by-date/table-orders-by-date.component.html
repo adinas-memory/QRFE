@@ -1,0 +1,185 @@
+<c-container class="px-4 py-3">
+  <c-row class="mb-3">
+    <c-col>
+      <h2 class="mb-1">{{ 'orderHistory.title' | transloco }}</h2>
+      <p class="text-body-secondary mb-0">{{ 'orderHistory.subtitle' | transloco }}</p>
+    </c-col>
+  </c-row>
+
+  <c-card class="mb-4">
+    <c-card-header>
+      <strong>{{ 'orderHistory.filters' | transloco }}</strong>
+    </c-card-header>
+    <c-card-body>
+      <c-row class="g-3 align-items-end">
+        <c-col xs="12" md="4">
+          <label cLabel for="ohStart">{{ 'orderHistory.startDate' | transloco }}</label>
+          <input
+            cFormControl
+            id="ohStart"
+            type="date"
+            [(ngModel)]="startDate"
+            name="ohStart"
+            [disabled]="loading || !restaurantId"
+          />
+        </c-col>
+        <c-col xs="12" md="4">
+          <label cLabel for="ohEnd">{{ 'orderHistory.endDate' | transloco }}</label>
+          <input
+            cFormControl
+            id="ohEnd"
+            type="date"
+            [(ngModel)]="endDate"
+            name="ohEnd"
+            [disabled]="loading || !restaurantId"
+          />
+        </c-col>
+        <c-col xs="12" md="4">
+          <button
+            cButton
+            color="primary"
+            type="button"
+            (click)="loadReport()"
+            [disabled]="loading || !restaurantId"
+          >
+            @if (loading) {
+              {{ 'orderHistory.loading' | transloco }}
+            } @else {
+              {{ 'orderHistory.load' | transloco }}
+            }
+          </button>
+        </c-col>
+      </c-row>
+      @if (!restaurantId) {
+        <p class="text-warning mt-3 mb-0 small">{{ 'orderHistory.noRestaurant' | transloco }}</p>
+      }
+    </c-card-body>
+  </c-card>
+
+  @if (reportLoaded || loading) {
+    <c-card class="mb-4">
+      <c-card-header>
+        <strong>{{ 'orderHistory.periodTotalTitle' | transloco }}</strong>
+      </c-card-header>
+      <c-card-body>
+        @if (loading) {
+          <p class="text-body-secondary mb-0">{{ 'orderHistory.loading' | transloco }}</p>
+        } @else if (!periodTotals.length) {
+          <p class="text-body-secondary mb-0">{{ 'orderHistory.emptyTotal' | transloco }}</p>
+        } @else {
+          <div class="table-responsive">
+            <table cTable hover responsive class="mb-0">
+              <thead>
+                <tr>
+                  <th scope="col">{{ 'orderHistory.colCurrency' | transloco }}</th>
+                  <th scope="col">{{ 'orderHistory.colOrders' | transloco }}</th>
+                  <th scope="col">{{ 'orderHistory.colTotal' | transloco }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of periodTotals; track row.currency) {
+                  <tr>
+                    <td>{{ currencyLabel(row.currency) }}</td>
+                    <td>{{ row.orderCount }}</td>
+                    <td>{{ row.totalAmount | number: '1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </c-card-body>
+    </c-card>
+  }
+
+  <c-card>
+    <c-card-header>
+      <strong>{{ 'orderHistory.resultsTitle' | transloco }}</strong>
+    </c-card-header>
+    <c-card-body>
+      @if (loading) {
+        <p class="text-body-secondary mb-0">{{ 'orderHistory.loading' | transloco }}</p>
+      } @else if (!reportLoaded) {
+        <p class="text-body-secondary mb-0">{{ 'orderHistory.notLoaded' | transloco }}</p>
+      } @else if (!orderRows.length) {
+        <p class="text-body-secondary mb-0">{{ 'orderHistory.empty' | transloco }}</p>
+      } @else {
+        <div class="table-responsive">
+          <table cTable hover responsive class="mb-0 align-middle">
+            <thead>
+              <tr>
+                <th scope="col">{{ 'orderHistory.colTable' | transloco }}</th>
+                <th scope="col">{{ 'orderHistory.colCreated' | transloco }}</th>
+                <th scope="col">{{ 'orderHistory.colStatus' | transloco }}</th>
+                <th scope="col">{{ 'orderHistory.colItems' | transloco }}</th>
+                <th scope="col">{{ 'orderHistory.colOrderTotal' | transloco }}</th>
+                <th scope="col">{{ 'orderHistory.colStaff' | transloco }}</th>
+                <th scope="col"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of orderRows; track rowKey(row)) {
+                <tr>
+                  <td>{{ row.tableName }}</td>
+                  <td>{{ row.order.createdOn | date: 'short' }}</td>
+                  <td>
+                    @if (row.order.isOrderOpen) {
+                      <c-badge color="warning">{{ 'orderHistory.statusOpen' | transloco }}</c-badge>
+                    } @else {
+                      <c-badge color="success">{{ 'orderHistory.statusClosed' | transloco }}</c-badge>
+                    }
+                  </td>
+                  <td>{{ itemCount(row.order) }}</td>
+                  <td>
+                    {{ orderTotal(row.order) | number: '1.2-2' }}
+                    {{ orderCurrency(row.order) }}
+                  </td>
+                  <td>{{ row.order.lastInitiatedBy || '—' }}</td>
+                  <td class="text-end">
+                    <button
+                      cButton
+                      color="secondary"
+                      variant="ghost"
+                      size="sm"
+                      type="button"
+                      (click)="toggleOrderDetails(row)"
+                    >
+                      @if (expandedRowKey === rowKey(row)) {
+                        {{ 'orderHistory.hideItems' | transloco }}
+                      } @else {
+                        {{ 'orderHistory.showItems' | transloco }}
+                      }
+                    </button>
+                  </td>
+                </tr>
+                @if (expandedRowKey === rowKey(row)) {
+                  <tr>
+                    <td colspan="7" class="bg-body-tertiary">
+                      @if (!(row.order.orderItems?.length)) {
+                        <p class="mb-0 small text-body-secondary">{{ 'orderHistory.noItems' | transloco }}</p>
+                      } @else {
+                        <ul class="mb-0 ps-3">
+                          @for (item of row.order.orderItems; track item?.orderItemId ?? $index) {
+                            @if (item) {
+                              <li>
+                                {{ item.quantity }}× {{ item.orderItemName }}
+                                @if (item.orderItemPriceAmount != null) {
+                                  — {{ item.orderItemPriceAmount | number: '1.2-2' }}
+                                  {{ item.orderItemPriceCurrency }}
+                                }
+                              </li>
+                            }
+                          }
+                        </ul>
+                      }
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </c-card-body>
+  </c-card>
+</c-container>
