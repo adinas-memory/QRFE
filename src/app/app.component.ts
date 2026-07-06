@@ -27,8 +27,7 @@ import { NetworkMonitorService } from './core/platform/network-monitor.service';
 import { navigateToRoleHome } from './core/auth/auth-redirect.util';
 import { isAssignedRestaurantId } from './core/auth/restaurant-id.util';
 import { environment } from '../environments/environment';
-import { NetworkMonitor } from './core/plugins/network-monitor.plugin';
-import { debugLog, downloadWebDebugLog } from './core/offline/debug-log.util';
+import { debugLog } from './core/offline/debug-log.util';
 
 
 @Component({
@@ -54,13 +53,6 @@ import { debugLog, downloadWebDebugLog } from './core/offline/debug-log.util';
   <app-toasts></app-toasts>
   <router-outlet></router-outlet>
 
-  @if (showDebugExportButton) {
-    <button type="button" data-debug-export-btn (click)="exportDebugLog()"
-      style="position:fixed;bottom:16px;right:16px;z-index:2147483647;opacity:1;padding:10px 14px;font-size:14px;font-weight:bold;background:#ffeb3b;color:#000;border:3px solid #000;border-radius:6px;">
-      EXPORT LOG
-    </button>
-  }
-
 </div>`,
   imports: [RouterOutlet, SpinnerComponent, AppToastsComponent, TranslocoPipe],
 })
@@ -71,21 +63,6 @@ export class AppComponent implements OnInit {
   restaurantSyncFrozen = false;
   offlineBannerKey = 'offline.bannerLimited';
   private navHistory: string[] = [];
-  readonly showDebugExportButton = true;
-
-  exportDebugLog(): void {
-    if (Capacitor.isNativePlatform()) {
-      void NetworkMonitor.shareDebugLog().catch(err => console.warn('[debug] shareDebugLog failed', err));
-      return;
-    }
-    void downloadWebDebugLog().then(lineCount => {
-      if (lineCount === 0) {
-        window.alert('No debug log lines yet. Use the app for a minute (SSE/connectivity), then export again.');
-        return;
-      }
-      window.alert(`Exported ${lineCount} log lines (download, share sheet, or clipboard).`);
-    });
-  }
 
   readonly #destroyRef: DestroyRef = inject(DestroyRef);
   readonly #activatedRoute: ActivatedRoute = inject(ActivatedRoute);
