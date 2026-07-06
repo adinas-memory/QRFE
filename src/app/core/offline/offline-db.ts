@@ -4,7 +4,6 @@ import { Subject } from 'rxjs';
 import { cartItemFromOrderLine, OrderDTO, OrderItemDTO, TableCart, tableHasActiveOrder } from '../../core/models/orderingModel';
 import { MenuItem } from '../models/menu/menuItem';
 import { Currency, TableDTO } from '../models/restaurantTablesModel';
-import { debugLog } from './debug-log.util';
 export interface MenuItemEntity extends MenuItem { }
 
 export interface CartRecord {
@@ -305,19 +304,9 @@ export class OfflineDbService {
                 const hasPendingForTable = await this.hasPendingActionsForTable(t.tableId);
 
                 if (hasLocalUnconfirmed || hasPendingForTable) {
-                    // #region agent log
-                    debugLog('H_CLOSE_1', 'offline-db.ts:applySyncSnapshot', 'keeping local cart (pending/unconfirmed)', {
-                        tableId: t.tableId, localOrderId, hasLocalUnconfirmed, hasPendingForTable,
-                    });
-                    // #endregion
                     continue;
                 }
 
-                // #region agent log
-                debugLog('H_CLOSE_1', 'offline-db.ts:applySyncSnapshot', 'deleting stale local cart (server has no order)', {
-                    tableId: t.tableId, localOrderId,
-                });
-                // #endregion
                 await this.deleteCart(t.tableId);
             }
         }
@@ -338,12 +327,6 @@ export class OfflineDbService {
             if (!hasPendingForTable && !hasLocalUnconfirmed) {
                 continue;
             }
-
-            // #region agent log
-            debugLog('H_CLOSE_1', 'offline-db.ts:mergeSnapshotWithPendingLocalOrders', 'merging local order into snapshot', {
-                tableId: t.tableId, localOrderId, hasPendingForTable, hasLocalUnconfirmed,
-            });
-            // #endregion
 
             const localOrder = await this.loadOrder(t.tableId);
             if (!localOrder) {

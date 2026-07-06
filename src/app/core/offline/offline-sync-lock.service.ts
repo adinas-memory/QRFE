@@ -8,9 +8,6 @@ import { ClientInstanceService } from '../services/device/client-instance.servic
 import { CLIENT_INSTANCE_HEADER } from '../interceptors/client-instance.interceptor';
 import { SKIP_CONNECTIVITY_OFFLINE } from '../interceptors/auth.interceptor';
 import { OnlineStateService } from './online-state-service';
-// #region agent log
-import { debugLog } from './debug-log.util';
-// #endregion
 
 export interface OfflineSyncLockStatus {
   locked: boolean;
@@ -107,11 +104,6 @@ export class OfflineSyncLockService {
       const status = await this.refreshStatus();
       if (this.lastPolledLocked !== status.locked) {
         this.lastPolledLocked = status.locked;
-        // #region agent log
-        debugLog('H_FREEZE_1', 'offline-sync-lock.service.ts:lockWatch', 'polled lock status changed', {
-          locked: status.locked,
-        });
-        // #endregion
       }
 
       const shouldPollFast = status.locked;

@@ -861,6 +861,48 @@ describe('ManageOrdersComponent', () => {
 
       expect(component.setMenuModalVisible).toBeFalse();
     });
+
+    it('confirmSetMenuOrder on free table adds set menu and confirms order', async () => {
+      const { component, mocks } = await setupManageOrdersComponent({
+        isOnline: true,
+        skipNgOnInit: true,
+      });
+      seedComponentTables(component, createDefaultTables());
+      setRestaurantId(component);
+      component.todaySetMenu = {
+        title: 'Meniul zilei',
+        linkedMenuItemId: 'set-menu-shadow-1',
+        priceAmount: 35,
+        priceCurrency: 'RON',
+        isAvailable: true,
+        weekday: 1,
+        lines: [{ sortOrder: 0, text: 'Ciorba' }],
+      };
+      mocks.offlineDb.loadCartRecord.and.resolveTo(null);
+
+      component.openSetMenuModal(createTable({ tableId: TABLE_A, isTableOpen: true }));
+      await component.confirmSetMenuOrder();
+
+      expect(component.canvasVisible).toBeTrue();
+      expect(component.currentTableId).toBe(TABLE_A);
+      expect(component.orderIsConfirmed).toBeTrue();
+      expect(component.tableCarts[TABLE_A]?.length).toBe(1);
+      expect(mocks.offlineDb.addOfflineAction).toHaveBeenCalledWith(
+        jasmine.objectContaining({ type: 'NEW_ORDER', tableId: TABLE_A }),
+      );
+      expect(mocks.offlineDb.addOfflineAction).toHaveBeenCalledWith(
+        jasmine.objectContaining({
+          type: 'INIT_ORDER_ITEMS_FINAL',
+          tableId: TABLE_A,
+          payload: jasmine.objectContaining({
+            items: jasmine.arrayContaining([
+              jasmine.objectContaining({ menuItemId: 'set-menu-shadow-1', quantity: 1 }),
+            ]),
+          }),
+        }),
+      );
+      expect(mocks.queueProcessor.triggerProcessing).toHaveBeenCalled();
+    });
   });
 
   describe('keyboard and misc', () => {

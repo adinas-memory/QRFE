@@ -9,9 +9,6 @@ import { AppToastService } from "../services/toast-service/toast-service.service
 import { buildSyncOrderItemsFromPending, sortOfflineQueueActions } from "./offline-queue.util";
 import { OfflineSyncSchedulerService } from "./offline-sync-scheduler.service";
 import { MenuItemServiceService } from "../services/menu-item-service/menu-item-service.service";
-// #region agent log
-import { debugLog } from "./debug-log.util";
-// #endregion
 
 const QUEUE_HTTP_OPTS = { suppressErrorToast: true as const };
 
@@ -216,18 +213,6 @@ export class OfflineQueueProcessor {
     }
 
     async processAction(action: OfflineAction): Promise<ProcessActionResult> {
-        const isItemAction = action.type === 'ADD_ITEM' || action.type === 'UPDATE_QUANTITY' || action.type === 'DELETE_ITEM' || action.type === 'INIT_ORDER_ITEMS_FINAL' || action.type === 'CLOSE_ORDER' || action.type === 'NEW_ORDER';
-        // #region agent log
-        if (isItemAction) {
-            debugLog('H_ITEMS_1', 'offline-queue-processor.service.ts:processAction', 'item action entry', {
-                type: action.type,
-                orderId: action.orderId,
-                isLocalOrderId: !!action.orderId?.startsWith('local-'),
-                isOnline: this.onlineStateService.isOnline,
-            });
-        }
-        // #endregion
-
         // 1. Dacă acțiunea NU este NEW_ORDER și orderId este local → așteptăm NEW_ORDER
         if (action.type !== 'NEW_ORDER' && action.orderId?.startsWith('local-')) {
             return 'skip';
@@ -460,11 +445,6 @@ export class OfflineQueueProcessor {
                     );
                     await this.offlineDB.deleteCart(action.tableId);
                     await this.offlineDB.markTableFreedLocally(action.tableId);
-                    // #region agent log
-                    debugLog('H_CLOSE_1', 'offline-queue-processor.service.ts:processAction', 'CLOSE_ORDER ok', {
-                        tableId: action.tableId, orderId: action.orderId,
-                    });
-                    // #endregion
                     return true;
             }
 
@@ -477,13 +457,6 @@ export class OfflineQueueProcessor {
                 ?? err?.error?.message
                 ?? err?.message
                 ?? '';
-            // #region agent log
-            if (isItemAction) {
-                debugLog('H_ITEMS_1', 'offline-queue-processor.service.ts:processAction', 'item action failed', {
-                    type: action.type, orderId: action.orderId, status, errorMessage,
-                });
-            }
-            // #endregion
             if (status === 409) {
                 const msg =
                     errorMessage
@@ -518,11 +491,6 @@ export class OfflineQueueProcessor {
                     || /KeyNotFoundException/i.test(exceptionName)
                 );
             if (isOrderNotFound) {
-                // #region agent log
-                debugLog('H_CLOSE_1', 'offline-queue-processor.service.ts:processAction', 'CLOSE_ORDER already closed on server', {
-                    tableId: action.tableId, orderId: action.orderId, status,
-                });
-                // #endregion
                 await this.offlineDB.markActionDone(action.id!);
                 await this.offlineDB.deleteCart(action.tableId);
                 await this.offlineDB.markTableFreedLocally(action.tableId);
@@ -545,11 +513,6 @@ export class OfflineQueueProcessor {
             console.error('[QUEUE] Error processing action:', err);
             const droppedPermanently = await this.offlineDB.markActionError(action.id!);
             if (droppedPermanently) {
-                // #region agent log
-                debugLog('H_ITEMS_1', 'offline-queue-processor.service.ts:processAction', 'action dropped after max retries', {
-                    type: action.type, orderId: action.orderId, tableId: action.tableId, status, errorMessage,
-                });
-                // #endregion
                 this.toast.error(
                     errorMessage || `Nu am putut sincroniza modificarea (${action.type}) pentru masa.`,
                     'Sincronizare eșuată',

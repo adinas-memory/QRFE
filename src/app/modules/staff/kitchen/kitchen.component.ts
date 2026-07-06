@@ -37,9 +37,6 @@ import { KitchenService } from '../../../core/services/kitchen-service/kitchen.s
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { OfflineDbService } from '../../../core/offline/offline-db';
 import { NotificationSoundService, type NotificationSoundKind } from '../../../core/services/sound/notification-sound.service';
-// #region agent log
-import { debugLog } from '../../../core/offline/debug-log.util';
-// #endregion
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 type MarkKind = 'added' | 'updated' | 'deleted';
@@ -405,11 +402,6 @@ export class KitchenComponent implements OnInit, OnDestroy {
     }
     if (isServerOrderId) this.seenServerOrderIds.add(orderId);
     this.diffAndMark(tableId, prevFood, nextFood, isNewOrder);
-    // #region agent log
-    debugLog('H_KITCHEN_1', 'kitchen.component.ts:applyOrderUpdated', 'order diff applied', {
-      tableId, orderId, prevQty: prevFood.map(i => i.quantity), nextQty: nextFood.map(i => i.quantity),
-    });
-    // #endregion
 
     // Update in-memory snapshot for next diffs/toasts (avoid Dexie race across tabs).
     this.lastCartSnapshotByTableId[tableId] = nextCart;

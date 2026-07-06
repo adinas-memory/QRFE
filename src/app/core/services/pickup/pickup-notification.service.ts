@@ -5,9 +5,6 @@ import { DeviceFeedbackService } from '../device/device-feedback.service';
 import { PushRegistrationService } from '../push/push-registration.service';
 import { SseEvent } from '../../models/sseModel';
 import { WaiterPushEventType } from '../push/push-notification-copy.service';
-// #region agent log
-import { debugLog } from '../../offline/debug-log.util';
-// #endregion
 export interface PickupSsePayload {
   tableId: string | null;
   tableName?: string | null;
@@ -99,23 +96,9 @@ export class PickupNotificationService {
 
     switch (ev.EventType) {
       case 'KitchenWaiterCall':
-        // #region agent log
-        debugLog('H_SSE_RECV_1', 'pickup-notification.service.ts:onSseEvent', 'KitchenWaiterCall received', {
-          sequence: ev.Sequence,
-          tableId: this.field<string>(ev.Data, 'TableId', 'tableId'),
-          clientInstanceId: this.field<string>(ev.Data, 'ClientInstanceId', 'clientInstanceId'),
-        });
-        // #endregion
         this.handlePickupSse('kitchen', ev.Data);
         break;
       case 'BarWaiterCall':
-        // #region agent log
-        debugLog('H_SSE_RECV_1', 'pickup-notification.service.ts:onSseEvent', 'BarWaiterCall received', {
-          sequence: ev.Sequence,
-          tableId: this.field<string>(ev.Data, 'TableId', 'tableId'),
-          clientInstanceId: this.field<string>(ev.Data, 'ClientInstanceId', 'clientInstanceId'),
-        });
-        // #endregion
         this.handlePickupSse('bar', ev.Data);
         break;
       case 'WaiterCall':
