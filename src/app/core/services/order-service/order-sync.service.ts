@@ -46,6 +46,8 @@ export class OrderSyncService {
   private lastSnapshotRefreshAt = 0;
   private readonly snapshotRefreshMinIntervalMs = 3000;
   private watermarkSequence = 0;
+  private watermarkDropRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly watermarkDropRefreshDebounceMs = 250;
 
   // event stream
   private eventsSubject = new Subject<SseEvent<any>>();
@@ -388,12 +390,22 @@ export class OrderSyncService {
               sequence: Sequence,
               watermark: this.watermarkSequence,
             });
+            if (this.isOrderSyncEventType(EventType)) {
+              this.scheduleRefreshAfterWatermarkDrop();
+            }
             return;
           }
 
           if (this.isRefreshing && this.bufferWhileReconnecting) {
             this.bufferEvent(sse);
           } else {
+            if (this.isOrderSyncEventType(EventType)) {
+              debugLog('sse-sync', 'order-sync.service.ts:emit', 'sse event dispatched', {
+                eventType: EventType,
+                sequence: Sequence,
+                initiatedBy: InitiatedBy,
+              });
+            }
             this.eventsSubject.next(sse);
           }
 
@@ -527,6 +539,25 @@ export class OrderSyncService {
       ),
     );
     return user != null || this.auth.isAuthenticated();
+  }
+
+  private scheduleRefreshAfterWatermarkDrop(): void {
+    if (this.watermarkDropRefreshTimer !== null) {
+      return;
+    }
+    this.watermarkDropRefreshTimer = setTimeout(() => {
+      this.watermarkDropRefreshTimer = null;
+      void this.refreshRestaurantSnapshot({ force: true });
+    }, this.watermarkDropRefreshDebounceMs);
+  }
+
+  private isOrderSyncEventType(eventType: string): boolean {
+    return eventType === 'OrderUpdated'
+      || eventType === 'OrderItemAdded'
+      || eventType === 'OrderItemQuantityUpdated'
+      || eventType === 'OrderItemDeleted'
+      || eventType === 'NewOrderPublicEvent'
+      || eventType === 'NewOrderPrivateEvent';
   }
 
   private bufferEvent(ev: SseEvent<any>) {

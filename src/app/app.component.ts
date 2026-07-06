@@ -71,7 +71,7 @@ export class AppComponent implements OnInit {
   restaurantSyncFrozen = false;
   offlineBannerKey = 'offline.bannerLimited';
   private navHistory: string[] = [];
-  readonly showDebugExportButton = Capacitor.isNativePlatform();
+  readonly showDebugExportButton = true;
 
   exportDebugLog(): void {
     if (Capacitor.isNativePlatform()) {
