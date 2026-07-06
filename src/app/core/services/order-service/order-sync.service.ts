@@ -16,6 +16,7 @@ import { OfflinePrintConfigDto } from '../../offline/offline-print-config.model'
 import { OfflinePolicyService } from '../../offline/offline-policy.service';
 import { OfflineSyncLockService } from '../../offline/offline-sync-lock.service';
 import { SseConnectivityService } from '../../offline/sse-connectivity.service';
+import { debugLog } from '../../offline/debug-log.util';
 import { Capacitor } from '@capacitor/core';
 
 @Injectable({
@@ -128,6 +129,9 @@ export class OrderSyncService {
     // Stale-watch detected a zombie stream — abort and reopen SSE.
     this.sseConnectivity.forceReconnect$.subscribe(() => {
       const rid = this.connectedRestaurantId ?? this.resolveRestaurantId();
+      debugLog('sse-sync', 'order-sync.service.ts:forceReconnect', 'zombie reconnect', {
+        restaurantId: rid,
+      });
       this.close(false);
       this.reconnectAttempts = 0;
       if (rid && this.onlineStateService.isOnline) {
@@ -321,7 +325,7 @@ export class OrderSyncService {
 
         const reconnectBusy = this.syncScheduler.isReconnectWorkflowActive();
         if (!reconnectBusy) {
-          void this.refreshRestaurantSnapshot();
+          void this.refreshRestaurantSnapshot({ force: true });
         }
 
         this.ngZone.run(() => {
@@ -379,7 +383,11 @@ export class OrderSyncService {
           }
 
           if (Sequence && Sequence < this.watermarkSequence) {
-            // already included in last /api/sync snapshot or previously applied
+            debugLog('sse-sync', 'order-sync.service.ts:onmessage', 'watermark drop', {
+              eventType: EventType,
+              sequence: Sequence,
+              watermark: this.watermarkSequence,
+            });
             return;
           }
 
@@ -452,6 +460,11 @@ export class OrderSyncService {
         }
 
         const tables = (json?.Tables ?? json?.tables ?? []) as any[];
+        debugLog('sse-sync', 'order-sync.service.ts:syncRestaurantState', 'snapshot applied', {
+          caller,
+          watermark: seq,
+          tableCount: tables.length,
+        });
         const activeGuestWaiterCalls = this.parseActiveGuestWaiterCalls(json);
         await this.offlineDB.applySyncSnapshot(tables as any);
         await this.applyOfflinePrintConfigFromSync(json, restaurantId);

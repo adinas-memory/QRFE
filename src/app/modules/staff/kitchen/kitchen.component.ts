@@ -178,6 +178,13 @@ export class KitchenComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(ev => this.handleSseEvent(ev));
 
+    this.sse.snapshotRefreshed$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        if (this.hydrating) return;
+        void this.rebuildFromDexie();
+      });
+
     // UI should reflect Dexie: rebuild when carts mutate.
     this.offlineDB.cartsChanged$
       .pipe(takeUntil(this.destroy$))
