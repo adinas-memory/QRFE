@@ -516,7 +516,7 @@ export class OrderSyncService {
         map(u => u ?? null),
       ),
     );
-    return user != null;
+    return user != null || this.auth.isAuthenticated();
   }
 
   private bufferEvent(ev: SseEvent<any>) {
