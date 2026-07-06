@@ -1700,17 +1700,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         break;
       }
 
-      case 'OrderItemDeleted': {
-        const tableId = Data.TableId ?? this.currentTableId;
-        if (this.tableCarts[tableId]) {
-          this.tableCarts[tableId] = this.tableCarts[tableId].filter(
-            i => i.orderItemId !== Data.OrderItemId
-          );
-          delete this.tableComputed[tableId];
-          await this.offlineDB.saveCart(tableId, this.tableCarts[tableId], this.currentOrderId ?? undefined);
-        }
+      case 'OrderItemDeleted':
+      case 'OrderItemAdded':
+      case 'OrderItemQuantityUpdated':
+        // Authoritative cart + lastAddedItem come from OrderUpdated (avoids racing partial deletes).
         break;
-      }
 
       case 'NewOrderPrivateEvent': {
         const tableId = this.sseField<string>(Data, 'TableId', 'tableId') ?? Data?.TableId ?? Data?.tableId;
@@ -1805,6 +1799,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.tableCarts[tableId] = cart;
         this.ordersService.saveComputed(this.tableComputed);
 
+        debugLog('sse-sync', 'manage-orders.component.ts:OrderUpdated', 'cart hydrated', {
+          tableId,
+          shouldFullHydrate,
+          sseItemCount,
+          localQty,
+          lastAddedItem: payload.LastAddedItem ?? null,
+          cartLines: cart.length,
+        });
+
         if (payload.OrderId) {
           const initiatedByName = InitiatedBy?.trim()
             || readOrderLastInitiatedBy(this.tables.find(t => t.tableId === tableId)?.order);
@@ -1825,7 +1828,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
             this.claimPickupTargetForTable(tableId);
           }
           this.reconcileTableOccupancyFlags();
-          this.hydrateComputedFromTables();
         }
         break;
       }
@@ -2005,11 +2007,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.ordersService.saveComputed(this.tableComputed);
         break;
       }
-
-      case 'OrderItemAdded':
-      case 'OrderItemQuantityUpdated':
-        // Gestionate via OrderUpdated
-        break;
 
       default:
         console.warn('Unknown SSE event:', EventType);

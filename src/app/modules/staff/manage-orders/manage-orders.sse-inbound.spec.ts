@@ -137,6 +137,15 @@ describe('ManageOrdersComponent SSE inbound (sync regression)', () => {
       );
     });
 
+    it('OrderUpdated preserves LastAddedItem from SSE payload', async () => {
+      mocks.offlineDb.loadCartRecord.and.resolveTo(null);
+      mocks.offlineDb.hasPendingQueueActionsForTable.and.resolveTo(false);
+
+      await invokeSse(component, 'OrderUpdated', fixtureOrderUpdatedAddNewFood(), 'staff1', 210);
+
+      expect(component.tableComputed[TABLE_A]?.lastAddedItem).toBe('Pizza');
+    });
+
     it('OrderUpdated qty decrease (−) hydrates cart when secondary lowers quantity', async () => {
       mocks.offlineDb.hasPendingQueueActionsForTable.and.resolveTo(false);
       mocks.offlineDb.loadCartRecord.and.resolveTo({
