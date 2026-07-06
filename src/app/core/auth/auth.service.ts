@@ -1,7 +1,7 @@
 import { Router } from '@angular/router';
 import { Injectable, Injector } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
-import { BehaviorSubject, Observable, Subject, catchError, finalize, firstValueFrom, map, of, shareReplay, switchMap, tap } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, catchError, finalize, firstValueFrom, from, map, of, shareReplay, switchMap, tap } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { UserContextModel } from '../models/userContextModel';
 import { RegisterUserRequestModel } from '../models/registerUserRequestModel';
@@ -91,8 +91,8 @@ export class AuthService {
   readonly loggedIn$ = new Subject<void>();
   // use environment variable
   private apiUrl = environment.apiUrl;
-  /** Shared in-flight refresh — prevents parallel refresh-token calls that invalidate each other. */
-  private refreshInFlight: Observable<UserContextModel | null> | null = null;
+  /** Shared in-flight refresh stream — assigned synchronously before HTTP subscribe. */
+  private refreshShared$: Observable<UserContextModel | null> | null = null;
 
   constructor(
     private http: HttpClient,
@@ -309,34 +309,39 @@ export class AuthService {
 
   refreshUserContext(options?: { redirectOnFailure?: boolean }): Observable<UserContextModel | null> {
     const redirectOnFailure = options?.redirectOnFailure ?? true;
-    if (this.refreshInFlight) {
-      return this.refreshInFlight;
+    if (this.refreshShared$) {
+      return this.refreshShared$;
     }
 
-    this.refreshInFlight = this.http
-      .post<unknown>(`${this.apiUrl}/api/user/refresh-token`, {}, { withCredentials: true })
-      .pipe(
-        map(raw => this.resolveUserAfterRefresh(raw)),
-        tap(user => {
-          if (user) this.setUser(user);
-        }),
-        catchError(err => {
-          console.error('Refresh failed', err);
-          if (isHttpAuthFailure(err)) {
-            this.clearUser();
-            if (redirectOnFailure) {
-              void this.router.navigate(['/login']);
+    const refreshPromise = firstValueFrom(
+      this.http
+        .post<unknown>(`${this.apiUrl}/api/user/refresh-token`, {}, { withCredentials: true })
+        .pipe(
+          map(raw => this.resolveUserAfterRefresh(raw)),
+          tap(user => {
+            if (user) this.setUser(user);
+          }),
+          catchError(err => {
+            console.error('Refresh failed', err);
+            if (isHttpAuthFailure(err)) {
+              this.clearUser();
+              if (redirectOnFailure) {
+                void this.router.navigate(['/login']);
+              }
             }
-          }
-          return of(null);
-        }),
-        finalize(() => {
-          this.refreshInFlight = null;
-        }),
-        shareReplay(1),
-      );
+            return of(null);
+          }),
+        ),
+    );
 
-    return this.refreshInFlight;
+    this.refreshShared$ = from(refreshPromise).pipe(
+      finalize(() => {
+        this.refreshShared$ = null;
+      }),
+      shareReplay(1),
+    );
+
+    return this.refreshShared$;
   }
 
   /** After refresh, cookies hold the new JWT; keep local ctx if body omits user fields. */

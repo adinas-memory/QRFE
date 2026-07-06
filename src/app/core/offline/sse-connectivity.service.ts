@@ -2,10 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 import { Subject } from 'rxjs';
 import { OnlineStateService } from './online-state-service';
-
-// #region agent log
 import { debugLog } from './debug-log.util';
-// #endregion
 
 /** Must stay aligned with SSEController KeepAliveLoop delay (seconds) + grace. */
 export const SSE_PULSE_INTERVAL_MS = 5_000;
@@ -27,9 +24,7 @@ export class SseConnectivityService {
   private offlineDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private staleWatchTimer: ReturnType<typeof setInterval> | null = null;
   private bootstrapFallbackTimer: ReturnType<typeof setTimeout> | null = null;
-  // #region agent log
   private debugHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
-  // #endregion
 
   /**
    * fetch()-based SSE (fetch-event-source) can go "zombie" on some mobile network transitions:
@@ -43,10 +38,9 @@ export class SseConnectivityService {
 
   constructor() {
     this.startStaleWatch();
-    // #region agent log
     if (Capacitor.isNativePlatform()) {
       this.debugHeartbeatTimer = setInterval(() => {
-        debugLog('H_B2_2', 'sse-connectivity.service.ts:heartbeat', 'js heartbeat', {
+        debugLog('sse', 'sse-connectivity.service.ts:heartbeat', 'js heartbeat', {
           streamOpen: this.streamOpen,
           pulseGapMs: this.lastPulseAt ? Date.now() - this.lastPulseAt : null,
           documentHidden: typeof document !== 'undefined' ? document.hidden : null,
@@ -54,7 +48,6 @@ export class SseConnectivityService {
         });
       }, 3000);
     }
-    // #endregion
   }
 
   /** True when the restaurant SSE stream is open — ping-lite must not drive online/offline. */
@@ -155,12 +148,10 @@ export class SseConnectivityService {
   }
 
   reportNativeNetworkLost(): void {
-    // #region agent log
-    debugLog('H_B2_1', 'sse-connectivity.service.ts:reportNativeNetworkLost', 'native network lost event received in JS', {
+    debugLog('sse', 'sse-connectivity.service.ts:reportNativeNetworkLost', 'native network lost', {
       streamOpen: this.streamOpen,
       lastPulseAgeMs: this.lastPulseAt ? Date.now() - this.lastPulseAt : null,
     });
-    // #endregion
     this.scheduleOffline('native-network-lost');
   }
 
@@ -181,16 +172,14 @@ export class SseConnectivityService {
   }
 
   private scheduleOffline(reason: string): void {
-    // #region agent log
     if (Capacitor.isNativePlatform()) {
-      debugLog('H_B2_1', 'sse-connectivity.service.ts:scheduleOffline', 'scheduleOffline invoked', {
+      debugLog('sse', 'sse-connectivity.service.ts:scheduleOffline', 'scheduleOffline invoked', {
         reason,
         streamOpen: this.streamOpen,
         lastPulseAgeMs: this.lastPulseAt ? Date.now() - this.lastPulseAt : null,
         documentHidden: typeof document !== 'undefined' ? document.hidden : null,
       });
     }
-    // #endregion
     if (this.onlineState.isOnline === false && reason === 'stale-watch') {
       return;
     }
@@ -204,14 +193,12 @@ export class SseConnectivityService {
       const zombieStream = pulseStale && this.streamOpen;
       const stale = !this.streamOpen || pulseStale;
       if (zombieStream) {
-        // fetch-event-source can stall with streamOpen=true and no pulses while HTTP still works.
-        // Reconnect SSE directly — do NOT flip offline (avoids heavy-sync + false offline banner).
-        // #region agent log
-        debugLog('H_ZOMBIE_1', 'sse-connectivity.service.ts:scheduleOffline', 'forcing reconnect: zombie stream detected', {
+        debugLog('sse', 'sse-connectivity.service.ts:scheduleOffline', 'forcing reconnect: zombie stream', {
           reason,
           lastPulseAgeMs: this.lastPulseAt ? Date.now() - this.lastPulseAt : null,
         });
-        // #endregion
+        // fetch-event-source can stall with streamOpen=true and no pulses while HTTP still works.
+        // Reconnect SSE directly — do NOT flip offline (avoids heavy-sync + false offline banner).
         this.streamOpen = false;
         this.forceReconnectSubject.next();
         return;

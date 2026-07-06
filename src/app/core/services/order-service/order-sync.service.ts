@@ -17,10 +17,6 @@ import { OfflinePolicyService } from '../../offline/offline-policy.service';
 import { OfflineSyncLockService } from '../../offline/offline-sync-lock.service';
 import { SseConnectivityService } from '../../offline/sse-connectivity.service';
 import { Capacitor } from '@capacitor/core';
-import { NetworkMonitor } from '../../plugins/network-monitor.plugin';
-// #region agent log
-import { debugLog } from '../../offline/debug-log.util';
-// #endregion
 
 @Injectable({
   providedIn: 'root'
@@ -129,15 +125,8 @@ export class OrderSyncService {
         }
       });
 
-    // #region agent log
-    // Stale-watch detected a zombie stream (streamOpen was true but no pulses for 2x interval+grace).
-    // Abort the dead controller now so the next online$ transition can open a fresh connection instead
-    // of waiting indefinitely for fetch-event-source to notice on its own (H_ZOMBIE_1).
+    // Stale-watch detected a zombie stream — abort and reopen SSE.
     this.sseConnectivity.forceReconnect$.subscribe(() => {
-      debugLog('H_ZOMBIE_1', 'order-sync.service.ts:forceReconnect$', 'aborting zombie SSE controller', {
-        hadController: !!this.controller,
-        connectedRestaurantId: this.connectedRestaurantId,
-      });
       const rid = this.connectedRestaurantId ?? this.resolveRestaurantId();
       this.close(false);
       this.reconnectAttempts = 0;
@@ -145,7 +134,6 @@ export class OrderSyncService {
         this.openConnection(rid);
       }
     });
-    // #endregion
 
     this.queueProcessor.queueDrained$
       .subscribe(() => {
@@ -395,14 +383,6 @@ export class OrderSyncService {
             return;
           }
 
-          if (EventType === 'NewOrderPublicEvent' || EventType === 'OrderUpdated') {
-            // #region agent log
-            debugLog('H_TABLE_1', 'order-sync.service.ts:onmessage', 'internal SSE table event', {
-              EventType, Sequence, watermark: this.watermarkSequence,
-            });
-            // #endregion
-          }
-
           if (this.isRefreshing && this.bufferWhileReconnecting) {
             this.bufferEvent(sse);
           } else {
@@ -423,18 +403,6 @@ export class OrderSyncService {
         const status = (err as { status?: number })?.status;
         const msg = String((err as Error)?.message ?? '');
         const isAuth401 = status === 401 || msg.includes('HTTP 401') || msg.includes('invalid_token');
-        // #region agent log
-        if (Capacitor.isNativePlatform()) {
-          void NetworkMonitor.writeDebugLog({
-            hypothesisId: 'H_B2_3',
-            location: 'order-sync.service.ts:onerror',
-            message: 'fetchEventSource onerror',
-            dataJson: JSON.stringify({
-              status, msg, isAuth401, documentHidden: typeof document !== 'undefined' ? document.hidden : null,
-            }),
-          }).catch(() => {});
-        }
-        // #endregion
 
         // 401 (expired token) is NOT "offline". Let refresh flow handle it.
         if (!isAuth401) {
@@ -484,12 +452,6 @@ export class OrderSyncService {
         }
 
         const tables = (json?.Tables ?? json?.tables ?? []) as any[];
-        // #region agent log
-        const openOrderTables = tables.filter((t: any) => (t?.Order ?? t?.order) != null).map((t: any) => t?.TableId ?? t?.tableId);
-        debugLog('H_RECONCILE_1', 'order-sync.service.ts:syncRestaurantState', 'GET /api/sync snapshot received', {
-          caller, tableCount: tables.length, openOrderTables,
-        });
-        // #endregion
         const activeGuestWaiterCalls = this.parseActiveGuestWaiterCalls(json);
         await this.offlineDB.applySyncSnapshot(tables as any);
         await this.applyOfflinePrintConfigFromSync(json, restaurantId);
@@ -551,7 +513,7 @@ export class OrderSyncService {
         map(u => u ?? null),
       ),
     );
-    return user != null;
+    return user != null || this.auth.isAuthenticated();
   }
 
   private bufferEvent(ev: SseEvent<any>) {

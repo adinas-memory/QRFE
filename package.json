@@ -25,12 +25,14 @@
     "android:prod": "npm run build:capacitor && npm run cap:sync",
     "android:release": "npm run android:prod && cd android && gradlew assembleRelease",
     "android:lan": "npm run build:capacitor-lan && node scripts/cap-sync-lan.mjs && npm run cap:android",
+    "android:lan-apk": "npm run build:capacitor-lan && node scripts/cap-sync-lan-apk.mjs",
     "serve:pwa": "npx http-server -p 8080 -c-1 ./dist-pwa/browser",
     "serve:devhost": "node scripts/static-with-proxy.mjs",
     "serve:devhost:static": "npx http-server -p 8080 -c-1 ./dist/browser",
     "serve:localhost": "npm run build:pwa && npm run serve:pwa",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "test:sync-regression": "ng test --include=**/*.sse-inbound.spec.ts --include=**/*.sse-order-updated.spec.ts --include=**/order-sync.watermark.spec.ts --include=**/offline-db.snapshot-merge.spec.ts --watch=false --browsers=ChromeHeadless"
   },
   "private": true,
   "dependencies": {

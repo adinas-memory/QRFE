@@ -301,16 +301,9 @@ export class OfflineDbService {
                 const local = await this.loadCartRecord(t.tableId);
                 const localOrderId = local?.orderId;
                 const hasLocalUnconfirmed = !!localOrderId && localOrderId.startsWith('local-');
-                const hasLocalConfirmedServerOrder =
-                    !!localOrderId && !localOrderId.startsWith('local-');
                 const hasPendingForTable = await this.hasPendingActionsForTable(t.tableId);
 
                 if (hasLocalUnconfirmed || hasPendingForTable) {
-                    continue;
-                }
-
-                // /api/sync can briefly lag behind SSE (e.g. right after primary replay).
-                if (hasLocalConfirmedServerOrder) {
                     continue;
                 }
 
@@ -319,7 +312,7 @@ export class OfflineDbService {
         }
     }
 
-    /** Keep occupied tables visible when local state leads /api/sync (pending queue or SSE). */
+    /** Keep occupied tables visible when a local queue action has not reached the server yet. */
     private async mergeSnapshotWithPendingLocalOrders(tables: TableDTO[]): Promise<TableDTO[]> {
         const byId = new Map((tables ?? []).filter(t => t?.tableId).map(t => [t.tableId, { ...t }]));
 
@@ -330,16 +323,8 @@ export class OfflineDbService {
             const local = await this.loadCartRecord(t.tableId);
             const localOrderId = local?.orderId;
             const hasLocalUnconfirmed = !!localOrderId && localOrderId.startsWith('local-');
-            const hasLocalConfirmedServerOrder =
-                !!localOrderId && !localOrderId.startsWith('local-');
-            const serverHasOrder = tableHasActiveOrder((t as any).order as OrderDTO | undefined);
 
-            const shouldMergeLocal =
-                hasPendingForTable
-                || hasLocalUnconfirmed
-                || (hasLocalConfirmedServerOrder && !serverHasOrder);
-
-            if (!shouldMergeLocal) {
+            if (!hasPendingForTable && !hasLocalUnconfirmed) {
                 continue;
             }
 
@@ -370,6 +355,11 @@ export class OfflineDbService {
             .count();
 
         return count > 0;
+    }
+
+    /** Whether Dexie still has pending offline actions for this table (e.g. CLOSE_ORDER replay). */
+    async hasPendingQueueActionsForTable(tableId: string): Promise<boolean> {
+        return this.hasPendingActionsForTable(tableId);
     }
 
     private buildAvailabilityMapFromTables(tables: TableDTO[] | null | undefined): Record<string, boolean> {

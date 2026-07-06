@@ -5,9 +5,6 @@ import { DeviceFeedbackService } from '../device/device-feedback.service';
 import { PushRegistrationService } from '../push/push-registration.service';
 import { SseEvent } from '../../models/sseModel';
 import { WaiterPushEventType } from '../push/push-notification-copy.service';
-// #region agent log
-import { debugLog } from '../../offline/debug-log.util';
-// #endregion
 export interface PickupSsePayload {
   tableId: string | null;
   tableName?: string | null;
@@ -52,7 +49,7 @@ export class PickupNotificationService {
     return { tableId, tableName, clientInstanceId };
   }
 
-  handlePickupSse(kind: PickupReadyKind, data: unknown): PickupSsePayload {
+  async handlePickupSse(kind: PickupReadyKind, data: unknown): Promise<PickupSsePayload> {
     const parsed = this.parsePickupPayload(data);
     if (!parsed.tableId) {
       return parsed;
@@ -61,10 +58,17 @@ export class PickupNotificationService {
     const eventType: WaiterPushEventType =
       kind === 'kitchen' ? 'KitchenWaiterCall' : 'BarWaiterCall';
 
-    // SSE reached this device — always alert locally (ClientInstanceId gates FCM only).
-    this.#deviceFeedback.notifyPickupFromPush(kind, parsed.tableId);
+    // Haptic before toast — SSE reached this device (ClientInstanceId gates FCM only).
+    const vibrated = await this.#deviceFeedback.pulsePickup(kind, parsed.tableId, 'sse');
+    if (!vibrated) {
+      console.warn('[PickupNotification] pickup haptic failed', {
+        kind,
+        tableId: parsed.tableId,
+        source: 'sse',
+      });
+    }
 
-    void this.#pushRegistration.deliverPickupAlert({
+    await this.#pushRegistration.deliverPickupAlert({
       eventType,
       tableId: parsed.tableId,
       tableName: parsed.tableName,
@@ -99,24 +103,10 @@ export class PickupNotificationService {
 
     switch (ev.EventType) {
       case 'KitchenWaiterCall':
-        // #region agent log
-        debugLog('H_SSE_RECV_1', 'pickup-notification.service.ts:onSseEvent', 'KitchenWaiterCall received', {
-          sequence: ev.Sequence,
-          tableId: this.field<string>(ev.Data, 'TableId', 'tableId'),
-          clientInstanceId: this.field<string>(ev.Data, 'ClientInstanceId', 'clientInstanceId'),
-        });
-        // #endregion
-        this.handlePickupSse('kitchen', ev.Data);
+        void this.handlePickupSse('kitchen', ev.Data);
         break;
       case 'BarWaiterCall':
-        // #region agent log
-        debugLog('H_SSE_RECV_1', 'pickup-notification.service.ts:onSseEvent', 'BarWaiterCall received', {
-          sequence: ev.Sequence,
-          tableId: this.field<string>(ev.Data, 'TableId', 'tableId'),
-          clientInstanceId: this.field<string>(ev.Data, 'ClientInstanceId', 'clientInstanceId'),
-        });
-        // #endregion
-        this.handlePickupSse('bar', ev.Data);
+        void this.handlePickupSse('bar', ev.Data);
         break;
       case 'WaiterCall':
         this.handleGuestWaiterSse(ev.Data);

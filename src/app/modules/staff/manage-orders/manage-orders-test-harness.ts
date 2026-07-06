@@ -116,6 +116,7 @@ export interface OfflineDbMock {
   deleteActionsForOrder: jasmine.Spy;
   purgeCartsNotInTableIds: jasmine.Spy;
   purgeOfflineDataExceptRestaurant: jasmine.Spy;
+  hasPendingQueueActionsForTable: jasmine.Spy;
 }
 
 export function createOfflineDbMock(): OfflineDbMock {
@@ -165,6 +166,7 @@ export function createOfflineDbMock(): OfflineDbMock {
       removedCarts: 0,
       removedActions: 0,
     }),
+    hasPendingQueueActionsForTable: jasmine.createSpy('hasPendingQueueActionsForTable').and.resolveTo(false),
   };
 }
 

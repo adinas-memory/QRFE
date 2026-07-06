@@ -407,7 +407,7 @@ describe('ManageOrdersComponent', () => {
       expect(component.waiterState[TABLE_A]).toBeUndefined();
     });
 
-    it('KitchenWaiterCall sets kitchen pickup flag and triggers haptics', async () => {
+    it('KitchenWaiterCall sets kitchen pickup flag and shows toast', async () => {
       await invokeSse(component, 'KitchenWaiterCall', {
         TableId: TABLE_A,
         TableName: 'T1',
@@ -415,17 +415,17 @@ describe('ManageOrdersComponent', () => {
       });
       expect(component.kitchenPickupRequested[TABLE_A]).toBeTrue();
       expect(mocks.appToast.info).toHaveBeenCalled();
-      expect(mocks.deviceFeedback.notifyPickupFromPush).toHaveBeenCalledWith('kitchen', TABLE_A);
+      expect(mocks.deviceFeedback.notifyPickupFromPush).not.toHaveBeenCalled();
     });
 
-    it('BarWaiterCall sets bar pickup flag and triggers haptics', async () => {
+    it('BarWaiterCall sets bar pickup flag and shows toast', async () => {
       await invokeSse(component, 'BarWaiterCall', {
         TableId: TABLE_B,
         TableName: 'T2',
         ClientInstanceId: 'device-2',
       });
       expect(component.barPickupRequested[TABLE_B]).toBeTrue();
-      expect(mocks.deviceFeedback.notifyPickupFromPush).toHaveBeenCalledWith('bar', TABLE_B);
+      expect(mocks.deviceFeedback.notifyPickupFromPush).not.toHaveBeenCalled();
     });
 
     it('NewOrderPrivateEvent replaces local order id with server id', async () => {
@@ -860,6 +860,48 @@ describe('ManageOrdersComponent', () => {
       component.openSetMenuModal(createTable({ tableId: TABLE_A }));
 
       expect(component.setMenuModalVisible).toBeFalse();
+    });
+
+    it('confirmSetMenuOrder on free table adds set menu and confirms order', async () => {
+      const { component, mocks } = await setupManageOrdersComponent({
+        isOnline: true,
+        skipNgOnInit: true,
+      });
+      seedComponentTables(component, createDefaultTables());
+      setRestaurantId(component);
+      component.todaySetMenu = {
+        title: 'Meniul zilei',
+        linkedMenuItemId: 'set-menu-shadow-1',
+        priceAmount: 35,
+        priceCurrency: 'RON',
+        isAvailable: true,
+        weekday: 1,
+        lines: [{ sortOrder: 0, text: 'Ciorba' }],
+      };
+      mocks.offlineDb.loadCartRecord.and.resolveTo(null);
+
+      component.openSetMenuModal(createTable({ tableId: TABLE_A, isTableOpen: true }));
+      await component.confirmSetMenuOrder();
+
+      expect(component.canvasVisible).toBeTrue();
+      expect(component.currentTableId).toBe(TABLE_A);
+      expect(component.orderIsConfirmed).toBeTrue();
+      expect(component.tableCarts[TABLE_A]?.length).toBe(1);
+      expect(mocks.offlineDb.addOfflineAction).toHaveBeenCalledWith(
+        jasmine.objectContaining({ type: 'NEW_ORDER', tableId: TABLE_A }),
+      );
+      expect(mocks.offlineDb.addOfflineAction).toHaveBeenCalledWith(
+        jasmine.objectContaining({
+          type: 'INIT_ORDER_ITEMS_FINAL',
+          tableId: TABLE_A,
+          payload: jasmine.objectContaining({
+            items: jasmine.arrayContaining([
+              jasmine.objectContaining({ menuItemId: 'set-menu-shadow-1', quantity: 1 }),
+            ]),
+          }),
+        }),
+      );
+      expect(mocks.queueProcessor.triggerProcessing).toHaveBeenCalled();
     });
   });
 

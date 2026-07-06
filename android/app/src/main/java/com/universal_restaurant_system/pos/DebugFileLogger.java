@@ -1,9 +1,3 @@
-// #region agent log
-// Temporary NDJSON file logger for debug session e48331 (no network dependency —
-// production devices use mobile data and cannot reach dev-machine tunnels/LAN).
-// Writes to Android/data/<pkg>/files/Documents/debug-e48331.log so it is reachable
-// via plain USB file transfer (MTP), no adb required. Remove this file after the
-// debug session concludes.
 package com.universal_restaurant_system.pos;
 
 import android.content.Context;
@@ -13,15 +7,16 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
+/** NDJSON file logger for on-device export (no network dependency). */
 public final class DebugFileLogger {
 
-    private static final String FILE_NAME = "debug-e48331.log";
+    static final String FILE_NAME = "qrfe-debug.log";
 
     private DebugFileLogger() {
     }
 
     public static synchronized void log(
-        Context context, String hypothesisId, String location, String message, String dataJson
+        Context context, String category, String location, String message, String dataJson
     ) {
         try {
             File dir = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS);
@@ -32,10 +27,10 @@ public final class DebugFileLogger {
                 dir.mkdirs();
             }
             File logFile = new File(dir, FILE_NAME);
-            String line = "{\"sessionId\":\"e48331\",\"location\":\"" + escape(location)
+            String line = "{\"category\":\"" + escape(category)
+                + "\",\"location\":\"" + escape(location)
                 + "\",\"message\":\"" + escape(message) + "\",\"data\":" + dataJson
-                + ",\"hypothesisId\":\"" + escape(hypothesisId)
-                + "\",\"timestamp\":" + System.currentTimeMillis() + "}\n";
+                + ",\"timestamp\":" + System.currentTimeMillis() + "}\n";
             try (FileWriter writer = new FileWriter(logFile, true)) {
                 writer.write(line);
             }
@@ -48,4 +43,3 @@ public final class DebugFileLogger {
         return s == null ? "" : s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }
-// #endregion

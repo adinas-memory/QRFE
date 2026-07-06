@@ -13,14 +13,14 @@ export class BarService {
   constructor(private http: HttpClient) {}
 
   callWaiterForPickup(restaurantId: string, tableId: string): Observable<void> {
-    if (!tryBeginStaffPickupCall(restaurantId, tableId)) {
+    if (!tryBeginStaffPickupCall('bar', restaurantId, tableId)) {
       return EMPTY;
     }
     return this.http.post<void>(
       `${this.apiUrl}/api/restaurants/${restaurantId}/staff/bar/tables/${tableId}/pickup`,
       {},
       { withCredentials: true },
-    ).pipe(finalize(() => endStaffPickupCall(restaurantId, tableId)));
+    ).pipe(finalize(() => endStaffPickupCall('bar', restaurantId, tableId)));
   }
 
   snoozePickupCall(restaurantId: string, tableId: string): Observable<void> {

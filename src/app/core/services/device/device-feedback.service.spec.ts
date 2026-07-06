@@ -72,4 +72,29 @@ describe('DeviceFeedbackService', () => {
     flushMicrotasks();
     expect(vibrateSpy).toHaveBeenCalledTimes(1);
   }));
+
+  it('notifyPickupFromPush vibrates for kitchen without client instance gate', fakeAsync(() => {
+    service.notifyPickupFromPush('kitchen', 'table-k');
+    flushMicrotasks();
+    expect(vibrateSpy).toHaveBeenCalledWith(500);
+  }));
+
+  it('notifyPickupFromPush vibrates for bar without client instance gate', fakeAsync(() => {
+    service.notifyPickupFromPush('bar', 'table-b');
+    flushMicrotasks();
+    expect(vibrateSpy).toHaveBeenCalledWith(500);
+  }));
+
+  it('pulsePickup returns true when navigator vibrate succeeds', async () => {
+    const ok = await service.pulsePickup('bar', 'table-x', 'test');
+    expect(ok).toBeTrue();
+    expect(vibrateSpy).toHaveBeenCalledWith(500);
+  });
+
+  it('pulsePickup debounces kitchen and bar on same table independently', fakeAsync(() => {
+    service.pulsePickup('kitchen', 'table-1', 'test');
+    service.pulsePickup('bar', 'table-1', 'test');
+    flushMicrotasks();
+    expect(vibrateSpy).toHaveBeenCalledTimes(2);
+  }));
 });

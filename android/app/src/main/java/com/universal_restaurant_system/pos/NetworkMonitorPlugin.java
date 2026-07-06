@@ -50,18 +50,16 @@ public class NetworkMonitorPlugin extends Plugin {
         call.resolve();
     }
 
-    // #region agent log
     @PluginMethod
     public void writeDebugLog(PluginCall call) {
-        String hypothesisId = call.getString("hypothesisId", "");
+        String category = call.getString("category", "");
         String location = call.getString("location", "");
         String message = call.getString("message", "");
         String dataJson = call.getString("dataJson", "{}");
-        DebugFileLogger.log(getContext().getApplicationContext(), hypothesisId, location, message, dataJson);
+        DebugFileLogger.log(getContext().getApplicationContext(), category, location, message, dataJson);
         call.resolve();
     }
 
-    /** MTP/Files app can't reach Android/data on modern Android — share the log via ACTION_SEND instead. */
     @PluginMethod
     public void shareDebugLog(PluginCall call) {
         try {
@@ -69,7 +67,7 @@ public class NetworkMonitorPlugin extends Plugin {
             if (dir == null) {
                 dir = getContext().getFilesDir();
             }
-            File logFile = new File(dir, "debug-e48331.log");
+            File logFile = new File(dir, DebugFileLogger.FILE_NAME);
             if (!logFile.exists()) {
                 call.reject("log-file-not-found");
                 return;
@@ -81,7 +79,7 @@ public class NetworkMonitorPlugin extends Plugin {
             shareIntent.setType("text/plain");
             shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
             shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            Intent chooser = Intent.createChooser(shareIntent, "Export debug-e48331.log");
+            Intent chooser = Intent.createChooser(shareIntent, "Export " + DebugFileLogger.FILE_NAME);
             chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             getContext().startActivity(chooser);
             call.resolve();
@@ -89,7 +87,6 @@ public class NetworkMonitorPlugin extends Plugin {
             call.reject("share-failed: " + e.getMessage());
         }
     }
-    // #endregion
 
     private void emitNetworkStatus(boolean online) {
         JSObject payload = new JSObject();

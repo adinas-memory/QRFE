@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, DestroyRef, effect, HostListener, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, effect, HostListener, inject, OnInit } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, ActivatedRouteSnapshot, NavigationEnd, NavigationStart, Router, RouterOutlet } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -18,7 +18,6 @@ import { PushRegistrationService } from './core/services/push/push-registration.
 import { PickupNotificationService } from './core/services/pickup/pickup-notification.service';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
-import { NetworkMonitor } from './core/plugins/network-monitor.plugin';
 import { Location } from '@angular/common';
 import { SubscriptionService } from './core/services/subscription-service/subscription.service';
 import { TranslocoPipe } from '@jsverse/transloco';
@@ -27,6 +26,9 @@ import { OfflineSyncLockService } from './core/offline/offline-sync-lock.service
 import { NetworkMonitorService } from './core/platform/network-monitor.service';
 import { navigateToRoleHome } from './core/auth/auth-redirect.util';
 import { isAssignedRestaurantId } from './core/auth/restaurant-id.util';
+import { environment } from '../environments/environment';
+import { NetworkMonitor } from './core/plugins/network-monitor.plugin';
+import { debugLog, downloadWebDebugLog } from './core/offline/debug-log.util';
 
 
 @Component({
@@ -52,31 +54,32 @@ import { isAssignedRestaurantId } from './core/auth/restaurant-id.util';
   <app-toasts></app-toasts>
   <router-outlet></router-outlet>
 
-  <!-- #region agent log: debug session e48331 — remove after debugging -->
   @if (showDebugExportButton) {
-    <button type="button" #debugExportBtn data-debug-export-btn (click)="exportDebugLog()"
-      style="position:fixed;top:32px;left:8px;z-index:2147483647;opacity:1;padding:10px 14px;font-size:14px;font-weight:bold;background:#ffeb3b;color:#000;border:3px solid #000;border-radius:6px;">
+    <button type="button" data-debug-export-btn (click)="exportDebugLog()"
+      style="position:fixed;bottom:16px;right:16px;z-index:2147483647;opacity:1;padding:10px 14px;font-size:14px;font-weight:bold;background:#ffeb3b;color:#000;border:3px solid #000;border-radius:6px;">
       EXPORT LOG
     </button>
   }
-  <!-- #endregion -->
 
 </div>`,
   imports: [RouterOutlet, SpinnerComponent, AppToastsComponent, TranslocoPipe],
 })
-export class AppComponent implements OnInit, AfterViewInit {
+export class AppComponent implements OnInit {
   title = 'U.R.S.';
   private sseStarted = false;
   isOffline = false;
   restaurantSyncFrozen = false;
   offlineBannerKey = 'offline.bannerLimited';
   private navHistory: string[] = [];
-  // #region agent log
   readonly showDebugExportButton = Capacitor.isNativePlatform();
+
   exportDebugLog(): void {
-    void NetworkMonitor.shareDebugLog().catch(err => console.warn('[debug] shareDebugLog failed', err));
+    if (Capacitor.isNativePlatform()) {
+      void NetworkMonitor.shareDebugLog().catch(err => console.warn('[debug] shareDebugLog failed', err));
+      return;
+    }
+    downloadWebDebugLog();
   }
-  // #endregion
 
   readonly #destroyRef: DestroyRef = inject(DestroyRef);
   readonly #activatedRoute: ActivatedRoute = inject(ActivatedRoute);
@@ -110,30 +113,6 @@ export class AppComponent implements OnInit, AfterViewInit {
     });
   }
 
-  // #region agent log
-  ngAfterViewInit(): void {
-    setTimeout(() => {
-      const el = document.querySelector('[data-debug-export-btn]') as HTMLElement | null;
-      const rect = el?.getBoundingClientRect();
-      const style = el ? getComputedStyle(el) : null;
-      void NetworkMonitor.writeDebugLog({
-        hypothesisId: 'H_B2_5',
-        location: 'app.component.ts:ngAfterViewInit',
-        message: 'debug export button DOM check',
-        dataJson: JSON.stringify({
-          found: !!el,
-          rect: rect ? { top: rect.top, left: rect.left, width: rect.width, height: rect.height } : null,
-          display: style?.display ?? null,
-          visibility: style?.visibility ?? null,
-          zIndex: style?.zIndex ?? null,
-          windowInnerWidth: window.innerWidth,
-          windowInnerHeight: window.innerHeight,
-        }),
-      }).catch(() => {});
-    }, 500);
-  }
-  // #endregion
-
   // prevent refresh in offline mode
   @HostListener('window:beforeunload', ['$event'])
   preventRefreshOffline(event: BeforeUnloadEvent) {
@@ -153,18 +132,17 @@ export class AppComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
-    // #region agent log
-    void NetworkMonitor.writeDebugLog({
-      hypothesisId: 'H_B2_4',
-      location: 'app.component.ts:ngOnInit',
-      message: 'platform check at bootstrap',
-      dataJson: JSON.stringify({
-        isNativePlatform: Capacitor.isNativePlatform(),
-        platform: Capacitor.getPlatform(),
-        showDebugExportButton: this.showDebugExportButton,
-      }),
-    }).catch(() => {});
-    // #endregion
+    debugLog('startup', 'app.component.ts:ngOnInit', 'app startup', {
+      apiUrl: environment.apiUrl,
+      poweredBy: environment.poweredBy,
+      native: Capacitor.isNativePlatform(),
+      platform: Capacitor.getPlatform(),
+      href: typeof window !== 'undefined' ? window.location.href : null,
+      pageProtocol: typeof window !== 'undefined' ? window.location.protocol : null,
+    });
+    if (Capacitor.isNativePlatform()) {
+      void this.#onlineStateService.confirmConnectivity(true);
+    }
     this.#pushRegistration.init();
     this.#pickupNotification.initGlobalAlerts();
     this.initNativeBackButton();

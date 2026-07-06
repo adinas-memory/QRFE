@@ -9,7 +9,8 @@ Același codebase Angular servește **browser**, **PWA instalată** și **APK Ca
 | Producție web/PWA | `npm run build` (production) | `https://universalrestaurant.systems` | da (same host) | — |
 | LAN dev (nginx) | `npm run build:devhost` | IP LAN, aliniat la origin :80 | nu | — |
 | **APK release (prod)** | `npm run android:prod` | prod HTTPS | **nu** | **nu** (bundle local) |
-| APK LAN tabletă | `npm run android:lan` | IP LAN | **nu** | da (live reload LAN) |
+| APK LAN tabletă (live reload) | `npm run android:lan` | IP LAN | **nu** | da (live reload LAN) |
+| **APK LAN standalone** | `npm run android:lan-apk` | IP LAN | **nu** | **nu** (`androidScheme: http`) |
 | Test PWA local | `npm run build:pwa` + `serve:localhost` | `localhost:7051` | dezactivat pe :8080 | — |
 
 **Nu folosi `capacitor-lan` / `android:lan` pentru APK release.** Release-ul folosește assets bundled + HTTPS prod.
@@ -40,11 +41,22 @@ npm run android:release
 
 ## Debug LAN pe tabletă
 
+### Live reload (UI de pe nginx)
+
 ```bash
 npm run android:lan
 ```
 
-Folosește `environment.capacitor.lan.ts` + `capacitor.config.lan.ts` (copiat temporar la sync via `scripts/cap-sync-lan.mjs`). Editează IP-ul în ambele fișiere dacă LAN-ul tău diferă de `192.168.43.142`.
+### APK standalone (assets în APK, fără nginx pentru UI)
+
+```bash
+npm run android:lan-apk
+# apoi Build APK în Android Studio
+```
+
+Folosește `environment.capacitor.lan.ts` + `capacitor.config.lan-apk.ts` (copiat la sync). Setează `androidScheme: http` ca `fetch()` către `http://IP` să nu fie blocat de mixed-content (WebView default e `https://localhost`).
+
+**Nu folosi** doar `npx cap sync` după `build:capacitor-lan` — lipsește `androidScheme: http`.
 
 Pentru LAN cu cleartext HTTP, poți seta temporar `android:usesCleartextTraffic="true"` și adăuga IP-ul în `network_security_config.xml` — **nu** include asta în build-ul de producție.
 

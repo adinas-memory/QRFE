@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { Router } from '@angular/router';
@@ -135,7 +135,7 @@ describe('AuthService offline session handling', () => {
     expect(service.isAuthenticated()).toBe(false);
   });
 
-  it('refreshUserContext deduplicates concurrent calls', () => {
+  it('refreshUserContext deduplicates concurrent calls', fakeAsync(() => {
     service.setUser({ id: '1', role: 'manager', restaurantId: 'r1', restaurantName: 'R', restaurantType: 'Small' });
 
     let first: UserContextModel | null | undefined;
@@ -145,10 +145,30 @@ describe('AuthService offline session handling', () => {
 
     const req = httpMock.expectOne(`${environment.apiUrl}/api/user/refresh-token`);
     req.flush({ IsSuccess: true, Id: '1', Role: 'manager', RestaurantId: 'r1' });
+    tick();
 
     expect(first?.id).toBe('1');
     expect(second?.id).toBe('1');
-  });
+  }));
+
+  it('refreshUserContext deduplicates synchronous calls before subscribe side effects', fakeAsync(() => {
+    service.setUser({ id: '1', role: 'manager', restaurantId: 'r1', restaurantName: 'R', restaurantType: 'Small' });
+
+    const first$ = service.refreshUserContext();
+    const second$ = service.refreshUserContext();
+
+    let first: UserContextModel | null | undefined;
+    let second: UserContextModel | null | undefined;
+    first$.subscribe(v => (first = v));
+    second$.subscribe(v => (second = v));
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/user/refresh-token`);
+    req.flush({ IsSuccess: true, Id: '1', Role: 'manager', RestaurantId: 'r1' });
+    tick();
+
+    expect(first?.id).toBe('1');
+    expect(second?.id).toBe('1');
+  }));
 
   it('hydrateSessionFromStorageIfNeeded restores user from UserCtx when subject is empty', () => {
     const user: UserContextModel = {

@@ -92,7 +92,11 @@ public class WaiterMessagingService extends MessagingService {
     }
 
     private void showPickupNotification(Map<String, String> data) {
-        showAlertNotification(data, MainActivity.WAITER_CALL_CHANNEL_ID, "Kitchen", "Order ready for pickup");
+        String eventType = data.get("eventType");
+        boolean isBar = "BarWaiterCall".equals(eventType);
+        String defaultTitle = isBar ? "Bar" : "Kitchen";
+        String defaultBody = isBar ? "Bar order ready for pickup" : "Order ready for pickup";
+        showAlertNotification(data, MainActivity.WAITER_CALL_CHANNEL_ID, defaultTitle, defaultBody);
     }
 
     private void showAlertNotification(

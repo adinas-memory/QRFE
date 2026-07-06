@@ -10,6 +10,7 @@ import {
   Token,
 } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { App } from '@capacitor/app';
 
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../auth/auth.service';
@@ -261,7 +262,6 @@ export class PushRegistrationService {
     let appActive: boolean | null = null;
     if (this.#platform.isNative) {
       try {
-        const { App } = await import('@capacitor/app');
         appActive = (await App.getState()).isActive;
       } catch {
         // ignore

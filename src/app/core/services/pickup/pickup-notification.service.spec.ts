@@ -10,18 +10,26 @@ describe('PickupNotificationService', () => {
   let pushRegistration: jasmine.SpyObj<PushRegistrationService>;
   let deviceFeedback: jasmine.SpyObj<DeviceFeedbackService>;
   const sseEvents$ = new Subject<unknown>();
+  let pulseOrder: string[];
 
   beforeEach(() => {
+    pulseOrder = [];
     pushRegistration = jasmine.createSpyObj('PushRegistrationService', [
       'deliverPickupAlert',
       'deliverGuestWaiterAlert',
     ]);
-    pushRegistration.deliverPickupAlert.and.returnValue(Promise.resolve());
+    pushRegistration.deliverPickupAlert.and.callFake(async () => {
+      pulseOrder.push('deliverPickupAlert');
+    });
     pushRegistration.deliverGuestWaiterAlert.and.returnValue(Promise.resolve());
     deviceFeedback = jasmine.createSpyObj('DeviceFeedbackService', [
-      'notifyPickupFromPush',
+      'pulsePickup',
       'notifyGuestWaiterCall',
     ]);
+    deviceFeedback.pulsePickup.and.callFake(async () => {
+      pulseOrder.push('pulsePickup');
+      return true;
+    });
 
     TestBed.configureTestingModule({
       providers: [
@@ -49,19 +57,37 @@ describe('PickupNotificationService', () => {
     expect(pascal.clientInstanceId).toBe('dev-1');
   });
 
-  it('handlePickupSse triggers haptics and PWA alert delivery', async () => {
-    const result = service.handlePickupSse('kitchen', {
+  it('handlePickupSse vibrates before PWA alert delivery for kitchen', async () => {
+    const result = await service.handlePickupSse('kitchen', {
       TableId: 'table-a',
       TableName: 'Masa 1',
       ClientInstanceId: 'device-x',
     });
     expect(result.tableId).toBe('table-a');
-    expect(deviceFeedback.notifyPickupFromPush).toHaveBeenCalledWith('kitchen', 'table-a');
+    expect(deviceFeedback.pulsePickup).toHaveBeenCalledWith('kitchen', 'table-a', 'sse');
     expect(pushRegistration.deliverPickupAlert).toHaveBeenCalledWith(
       jasmine.objectContaining({
         eventType: 'KitchenWaiterCall',
         tableId: 'table-a',
         tableName: 'Masa 1',
+        source: 'sse',
+      }),
+    );
+    expect(pulseOrder).toEqual(['pulsePickup', 'deliverPickupAlert']);
+  });
+
+  it('handlePickupSse is symmetric for bar', async () => {
+    await service.handlePickupSse('bar', {
+      TableId: 'table-b',
+      TableName: 'Bar 5',
+      ClientInstanceId: 'device-y',
+    });
+    expect(deviceFeedback.pulsePickup).toHaveBeenCalledWith('bar', 'table-b', 'sse');
+    expect(pushRegistration.deliverPickupAlert).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        eventType: 'BarWaiterCall',
+        tableId: 'table-b',
+        tableName: 'Bar 5',
         source: 'sse',
       }),
     );
@@ -103,8 +129,23 @@ describe('PickupNotificationService', () => {
     };
     sseEvents$.next(payload);
     sseEvents$.next(payload);
-    expect(deviceFeedback.notifyPickupFromPush).toHaveBeenCalledTimes(1);
-    expect(deviceFeedback.notifyPickupFromPush).toHaveBeenCalledWith('kitchen', 't2');
+    await Promise.resolve();
+    expect(deviceFeedback.pulsePickup).toHaveBeenCalledTimes(1);
+    expect(deviceFeedback.pulsePickup).toHaveBeenCalledWith('kitchen', 't2', 'sse');
     expect(pushRegistration.deliverPickupAlert).toHaveBeenCalledTimes(1);
+  });
+
+  it('initGlobalAlerts handles BarWaiterCall SSE events once per sequence', async () => {
+    service.initGlobalAlerts();
+    const payload = {
+      EventType: 'BarWaiterCall',
+      Data: { TableId: 't3', TableName: 'Masa 3' },
+      Sequence: 43,
+    };
+    sseEvents$.next(payload);
+    sseEvents$.next(payload);
+    await Promise.resolve();
+    expect(deviceFeedback.pulsePickup).toHaveBeenCalledTimes(1);
+    expect(deviceFeedback.pulsePickup).toHaveBeenCalledWith('bar', 't3', 'sse');
   });
 });

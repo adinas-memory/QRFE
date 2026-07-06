@@ -1,19 +1,22 @@
-// #region agent log
-// Debug session e48331 — shared logger. Native (Android) writes to a local NDJSON file
-// (exportable via the in-app "EXPORT LOG" button, no network dependency — production
-// phones use mobile data and cannot reach the dev machine). Web (desktop browser on the
-// same dev machine, used for multi-account manager/staff testing) posts to the local
-// ingest server instead, since 127.0.0.1 IS reachable in that case.
 import { Capacitor } from '@capacitor/core';
 import { NetworkMonitor } from '../plugins/network-monitor.plugin';
 
-const DEBUG_INGEST_URL = 'http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16';
-const SESSION_ID = 'e48331';
+const MAX_WEB_BUFFER = 500;
+const webBuffer: string[] = [];
 
-export function debugLog(hypothesisId: string, location: string, message: string, data: unknown): void {
+/** On-device NDJSON log (native) or in-memory ring buffer (web). No network dependency. */
+export function debugLog(category: string, location: string, message: string, data?: unknown): void {
+  const line = JSON.stringify({
+    category,
+    location,
+    message,
+    data: data ?? {},
+    timestamp: Date.now(),
+  });
+
   if (Capacitor.isNativePlatform()) {
     void NetworkMonitor.writeDebugLog({
-      hypothesisId,
+      category,
       location,
       message,
       dataJson: JSON.stringify(data ?? {}),
@@ -21,17 +24,25 @@ export function debugLog(hypothesisId: string, location: string, message: string
     return;
   }
 
-  void fetch(DEBUG_INGEST_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': SESSION_ID },
-    body: JSON.stringify({
-      sessionId: SESSION_ID,
-      hypothesisId,
-      location,
-      message,
-      data: data ?? {},
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
+  try {
+    webBuffer.push(line);
+    while (webBuffer.length > MAX_WEB_BUFFER) {
+      webBuffer.shift();
+    }
+  } catch {
+    // best-effort
+  }
 }
-// #endregion
+
+export function downloadWebDebugLog(): void {
+  if (typeof document === 'undefined' || webBuffer.length === 0) {
+    return;
+  }
+  const blob = new Blob([webBuffer.join('\n') + '\n'], { type: 'application/x-ndjson' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = 'qrfe-debug.log';
+  anchor.click();
+  URL.revokeObjectURL(url);
+}

@@ -1,4 +1,5 @@
 import { environment } from '../../../environments/environment';
+import { debugLog } from '../offline/debug-log.util';
 
 /**
  * On LAN dev, nginx on :80 proxies /api and /sse. Kestrel is 127.0.0.1:7051 only.
@@ -20,6 +21,11 @@ export function alignApiUrlWithPageHost(
       ?.isNativePlatform?.() === true;
 
   if (isNative) {
+    debugLog('api-url', 'resolve-api-url.ts:native', 'apiUrl on native', {
+      configured,
+      returned: configured,
+      pageOrigin: window.location.origin,
+    });
     return configured;
   }
 

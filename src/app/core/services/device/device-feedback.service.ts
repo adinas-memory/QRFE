@@ -2,9 +2,6 @@ import { Injectable } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 import { RuntimePlatformService } from '../../platform/runtime-platform.service';
 import { ClientInstanceService, clientInstanceIdsMatch } from './client-instance.service';
-// #region agent log
-import { debugLog } from '../../offline/debug-log.util';
-// #endregion
 
 const PICKUP_VIBRATE_MS = 500;
 const DEBOUNCE_MS = 2000;
@@ -35,7 +32,32 @@ export class DeviceFeedbackService {
 
   /** FCM/SSE on this device — token or connection already implies delivery; skip ClientInstanceId gate. */
   notifyPickupFromPush(kind: PickupReadyKind, tableId: string): void {
-    void this.deliverPickupFromPush(kind, tableId);
+    void this.pulsePickup(kind, tableId, 'push');
+  }
+
+  /**
+   * Debounced pickup haptic — native PickupVibrate first, then Capacitor Haptics / navigator.
+   * Returns true when a vibrate backend succeeded.
+   */
+  async pulsePickup(
+    kind: PickupReadyKind,
+    tableId: string,
+    _source?: string,
+  ): Promise<boolean> {
+    const normalizedTableId = tableId?.trim();
+    if (!normalizedTableId) {
+      return false;
+    }
+
+    const now = Date.now();
+    const debounceKey = `${kind}:${normalizedTableId}`;
+    const last = this.lastVibrateAtByTable.get(debounceKey) ?? 0;
+    if (now - last < DEBOUNCE_MS) {
+      return false;
+    }
+
+    this.lastVibrateAtByTable.set(debounceKey, now);
+    return this.vibrate(PICKUP_VIBRATE_MS);
   }
 
   /** Guest waiter call — broadcast to all staff devices (no ClientInstanceId gate). */
@@ -51,11 +73,6 @@ export class DeviceFeedbackService {
     const tableId = options.tableId?.trim();
     const localId = await this.clientInstance.whenReady();
     const matches = !!localId && clientInstanceIdsMatch(targetId, localId);
-    // #region agent log
-    debugLog('H_VIBRATE_1', 'device-feedback.service.ts:deliverPickupReady', 'pickup target check', {
-      kind, tableId, targetId, localId, matches,
-    });
-    // #endregion
 
     if (!targetId || !tableId) {
       return;
@@ -64,40 +81,7 @@ export class DeviceFeedbackService {
       return;
     }
 
-    const now = Date.now();
-    const last = this.lastVibrateAtByTable.get(`${kind}:${tableId}`) ?? 0;
-    if (now - last < DEBOUNCE_MS) {
-      return;
-    }
-
-    this.lastVibrateAtByTable.set(`${kind}:${tableId}`, now);
-    const usedBackend = await this.vibrate(PICKUP_VIBRATE_MS);
-    // #region agent log
-    debugLog('H_VIBRATE_1', 'device-feedback.service.ts:deliverPickupReady', 'vibrate outcome', {
-      kind, tableId, usedBackend,
-    });
-    // #endregion
-  }
-
-  private async deliverPickupFromPush(kind: PickupReadyKind, tableId: string): Promise<void> {
-    const normalizedTableId = tableId?.trim();
-    if (!normalizedTableId) {
-      return;
-    }
-
-    const now = Date.now();
-    const last = this.lastVibrateAtByTable.get(`${kind}:${normalizedTableId}`) ?? 0;
-    if (now - last < DEBOUNCE_MS) {
-      return;
-    }
-
-    this.lastVibrateAtByTable.set(`${kind}:${normalizedTableId}`, now);
-    const usedBackend = await this.vibrate(PICKUP_VIBRATE_MS);
-    // #region agent log
-    debugLog('H_VIBRATE_1', 'device-feedback.service.ts:deliverPickupFromPush', 'vibrate outcome', {
-      kind, tableId: normalizedTableId, usedBackend,
-    });
-    // #endregion
+    await this.pulsePickup(kind, tableId, 'ready');
   }
 
   private async deliverGuestWaiterCall(tableId: string): Promise<void> {
@@ -117,31 +101,27 @@ export class DeviceFeedbackService {
     await this.vibrate(PICKUP_VIBRATE_MS);
   }
 
-  private async vibrate(durationMs: number): Promise<string> {
+  private async vibrate(durationMs: number): Promise<boolean> {
     // Android WebView exposes navigator.vibrate but it is ineffective — use native alert first.
     if (Capacitor.isNativePlatform()) {
       try {
         const { PickupVibrate } = await import('../../plugins/pickup-vibrate.plugin');
         await PickupVibrate.pulse();
-        return 'native-plugin';
-      } catch (err) {
-        // #region agent log
-        debugLog('H_VIBRATE_1', 'device-feedback.service.ts:vibrate', 'native-plugin failed', {
-          error: String((err as Error)?.message ?? err),
-        });
-        // #endregion
+        return true;
+      } catch {
+        // fall through
       }
 
       if (this.platform.capabilities.hapticsBackend === 'capacitor-haptics') {
         try {
           const { Haptics } = await import('@capacitor/haptics');
           await Haptics.vibrate({ duration: durationMs });
-          return 'capacitor-haptics';
+          return true;
         } catch {
           try {
             const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
             await Haptics.impact({ style: ImpactStyle.Heavy });
-            return 'capacitor-impact';
+            return true;
           } catch {
             // fall through
           }
@@ -152,12 +132,12 @@ export class DeviceFeedbackService {
     try {
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         navigator.vibrate(durationMs);
-        return 'navigator';
+        return true;
       }
     } catch {
       // ignore
     }
 
-    return 'none';
+    return false;
   }
 }

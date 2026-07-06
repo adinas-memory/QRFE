@@ -52,9 +52,6 @@ import { OfflinePrintContextService } from '../../../core/offline/offline-print-
 import { OfflinePrintService } from '../../../core/offline/offline-print.service';
 import { OfflinePrimaryService } from '../../../core/services/offline-primary/offline-primary.service';
 import { OfflineSyncSchedulerService } from '../../../core/offline/offline-sync-scheduler.service';
-// #region agent log
-import { debugLog } from '../../../core/offline/debug-log.util';
-// #endregion
 import { toSignal } from '@angular/core/rxjs-interop';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { KitchenService } from '../../../core/services/kitchen-service/kitchen.service';
@@ -655,8 +652,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.currentOrderId = localOrderId;
     this.orderIsConfirmed = true;
 
-    const cart = await this.offlineDB.loadCart(this.currentTableId);
+    const inMemoryCart = this.tableCarts[this.currentTableId] ?? [];
+    const persistedCart = await this.offlineDB.loadCart(this.currentTableId);
+    const cart = inMemoryCart.length > 0 ? inMemoryCart : persistedCart;
     await this.offlineDB.saveCart(this.currentTableId, cart, localOrderId);
+    this.tableCarts[this.currentTableId] = [...cart];
 
     await this.offlineDB.addOfflineAction({
       type: 'NEW_ORDER',
@@ -688,17 +688,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   async addCartItem(item: MenuItem) {
-    const blocked = this.isPosMutationBlocked();
-    // #region agent log
-    if (blocked) {
-      debugLog('H_FREEZE_1', 'manage-orders.component.ts:addCartItem', 'mutation blocked', {
-        isReconnectSyncInProgress: this.isReconnectSyncInProgress(),
-        shouldFreezePosActions: this.offlinePolicy.shouldFreezePosActions(),
-        shouldFreezeForRestaurantSync: this.offlinePolicy.shouldFreezeForRestaurantSync(),
-      });
-    }
-    // #endregion
-    if (blocked) {
+    if (this.isPosMutationBlocked()) {
       return;
     }
     const tableId = this.currentTableId;
@@ -848,11 +838,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       return;
     }
     this.tables = next;
-    // #region agent log
-    debugLog('H_TABLE_1', 'manage-orders.component.ts:reconcileTableOccupancyFlags', 'marked tables occupied from order', {
-      tableIds: next.filter(t => !t.isTableOpen && tableHasActiveOrder(t.order)).map(t => t.tableId),
-    });
-    // #endregion
   }
 
   /** Reload in-memory state from Dexie after /api/sync (e.g. app resume from background). */
@@ -920,8 +905,37 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.ordersService.claimPickupTarget(this.restaurantId, tableId)
       .pipe(take(1))
       .subscribe({
-        error: (err: unknown) => console.warn('[ManageOrders] claim pickup target failed', err),
+        error: (err: unknown) => {
+          const status = (err as { status?: number })?.status ?? null;
+          if (status === 404) {
+            void this.reconcileStaleTableWithoutServerOrder(tableId);
+          } else {
+            console.warn('[ManageOrders] claim pickup target failed', err);
+          }
+        },
       });
+  }
+
+  /** Server has no open order (claim 404) but local UI still shows occupied — align with backend. */
+  private async reconcileStaleTableWithoutServerOrder(tableId: string): Promise<void> {
+    const record = await this.offlineDB.loadCartRecord(tableId);
+    const pending = await this.offlineDB.hasPendingQueueActionsForTable(tableId);
+    if (record?.orderId?.startsWith('local-') || pending) {
+      return;
+    }
+
+    await this.offlineDB.deleteCart(tableId);
+    await this.offlineDB.markTableFreedLocally(tableId);
+    this.tableCarts[tableId] = [];
+    delete this.tableComputed[tableId];
+    this.ordersService.saveComputed(this.tableComputed);
+    this.markTableAsOpen(tableId);
+    this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+    void this.offlineDB.saveTables(this.tables);
+    void this.offlineDB.saveTablesStatus(this.tablesAvailable);
+    if (this.currentTableId === tableId) {
+      this.resetCanvasState();
+    }
   }
 
   isSetMenuCartLine(sel: CartItem): boolean {
@@ -1041,7 +1055,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.setMenuModalVisible = false;
     this.setMenuTargetTable = null;
 
-    if (table.order) {
+    if (tableHasActiveOrder(table.order)) {
       await this.seeOrder(table);
     } else {
       await this.openTable(table);
@@ -1050,6 +1064,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     const item = setMenuToMenuItem(this.todaySetMenu, this.transloco.getActiveLang());
     for (let i = 0; i < this.setMenuQty; i++) {
       await this.addCartItem(item as MenuItem);
+    }
+
+    const cart = this.tableCarts[this.currentTableId] ?? [];
+    if (!cart.length) {
+      return;
+    }
+
+    if (!this.orderIsConfirmed) {
+      await this.confirmOrder();
     }
   }
 
@@ -1329,7 +1352,27 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.resetCanvasState();
         this.closeInFlight = false;
       },
-      error: err => {
+      error: async (err: { status?: number; message?: string }) => {
+        const status = err?.status ?? null;
+        if (status === 404) {
+          await this.offlineDB.deleteCart(tableId);
+          delete this.tableComputed[tableId];
+          this.ordersService.saveComputed(this.tableComputed);
+          this.tableCarts[tableId] = [];
+          this.markTableAsOpen(tableId);
+          await this.offlineDB.markTableFreedLocally(tableId);
+          this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+          this.resetCanvasState();
+        } else {
+          await this.offlineDB.addOfflineAction({
+            type: 'CLOSE_ORDER',
+            restaurantId: this.restaurantId,
+            tableId,
+            orderId,
+            payload: {},
+          });
+          this.queueProcessor.triggerProcessing();
+        }
         console.error('Error closing order:', err);
         this.closeInFlight = false;
       }
@@ -1553,7 +1596,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         if (tableId) {
           this.kitchenPickupRequested[tableId] = true;
           this.appToast.info(this.pickupToastMessage('kitchen', tableId, parsed.tableName));
-          this.deviceFeedback.notifyPickupFromPush('kitchen', tableId);
           if (this.kitchenPickupTimers[tableId]) clearTimeout(this.kitchenPickupTimers[tableId]);
           this.kitchenPickupTimers[tableId] = setTimeout(() => {
             delete this.kitchenPickupRequested[tableId];
@@ -1580,7 +1622,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         if (tableId) {
           this.barPickupRequested[tableId] = true;
           this.appToast.info(this.pickupToastMessage('bar', tableId, parsed.tableName));
-          this.deviceFeedback.notifyPickupFromPush('bar', tableId);
           if (this.barPickupTimers[tableId]) clearTimeout(this.barPickupTimers[tableId]);
           this.barPickupTimers[tableId] = setTimeout(() => {
             delete this.barPickupRequested[tableId];
@@ -1672,12 +1713,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.reconcileTableOccupancyFlags();
         this.hydrateComputedFromTables();
 
-        // #region agent log
-        debugLog('H_TABLE_1', 'manage-orders.component.ts:NewOrderPublicEvent', 'table marked occupied', {
-          tableId, orderId,
-        });
-        // #endregion
-
         if (this.currentTableId === tableId && this.canvasVisible) {
           this.currentOrderId = orderId;
           this.orderIsConfirmed = true;
@@ -1712,7 +1747,16 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         const localRecord = await this.offlineDB.loadCartRecord(tableId);
         const localItems = localRecord?.items ?? [];
         const localQty = localItems.reduce((sum, line) => sum + line.quantity, 0);
-        const shouldFullHydrate = localItems.length === 0 || sseItemCount > localQty;
+        const sseLineCount = (payload.Items ?? []).length;
+        const hasPendingForTable = await this.offlineDB.hasPendingQueueActionsForTable(tableId);
+        const qtyMismatch = sseItemCount !== localQty;
+        const lineCountMismatch = sseLineCount !== localItems.length;
+        // Full hydrate when server is ahead, or when server reflects fewer/different lines
+        // (qty −, delete line) and we have no pending optimistic mutations on this table.
+        const shouldFullHydrate =
+          localItems.length === 0
+          || sseItemCount > localQty
+          || (!hasPendingForTable && (qtyMismatch || lineCountMismatch));
 
         let cart: CartItem[];
         if (shouldFullHydrate) {
@@ -1738,11 +1782,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.tableComputed[tableId] = this.ordersService.mapPayloadToComputed(
           payload, this.tables, this.waiterState, InitiatedBy
         );
-        // #region agent log
-        debugLog('H_ATTR_1', 'manage-orders.component.ts:OrderUpdated', 'initiatedBy from SSE', {
-          tableId, InitiatedBy, previousPersisted: this.persistedInitiatedBy[tableId] ?? null,
-        });
-        // #endregion
         this.rememberInitiatedBy(tableId, InitiatedBy);
         this.tableCarts[tableId] = cart;
         this.ordersService.saveComputed(this.tableComputed);
@@ -1768,11 +1807,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           }
           this.reconcileTableOccupancyFlags();
           this.hydrateComputedFromTables();
-          // #region agent log
-          debugLog('H_TABLE_1', 'manage-orders.component.ts:OrderUpdated', 'table occupancy synced', {
-            tableId, orderId: payload.OrderId,
-          });
-          // #endregion
         }
         break;
       }
@@ -1840,7 +1874,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         // Backend may emit TablesStatusesUpdate snapshots where orderId/subTotal are not yet consistent
         // with a just-confirmed order (race / eventual consistency). Don't let that overwrite local truth.
         const updatedTables: TableDTO[] = [];
-        const debugTableChanges: Array<{ tableId: string; before: { open: boolean; hasOrder: boolean }; after: { open: boolean; hasOrder: boolean }; orderId: string | null; skipped?: boolean }> = [];
         for (const t of this.tables) {
           if (!t?.tableId) continue;
           const c = computedList.find(x => x.tableId === t.tableId);
@@ -1858,13 +1891,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           // Stale DB snapshots: isTableOpen=false but no order evidence — do not flip UI.
           if (!snapshotHasActiveOrder && !c.isTableOpen && !localHasOrder) {
             updatedTables.push(t);
-            debugTableChanges.push({
-              tableId: t.tableId,
-              before: { open: !!t.isTableOpen, hasOrder: !!t.order },
-              after: { open: !!t.isTableOpen, hasOrder: !!t.order },
-              orderId: snapshotOrderId,
-              skipped: true,
-            });
             continue;
           }
 
@@ -1874,12 +1900,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
           if (allowFreeOverride) {
             updatedTables.push({ ...t, isTableOpen: true, order: undefined });
-            debugTableChanges.push({
-              tableId: t.tableId,
-              before: { open: !!t.isTableOpen, hasOrder: !!t.order },
-              after: { open: true, hasOrder: false },
-              orderId: null,
-            });
             continue;
           }
 
@@ -1892,12 +1912,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
               } as OrderDTO
             : t.order;
           updatedTables.push({ ...t, isTableOpen: nextIsTableOpen, order: nextOrder });
-          debugTableChanges.push({
-            tableId: t.tableId,
-            before: { open: !!t.isTableOpen, hasOrder: !!t.order },
-            after: { open: nextIsTableOpen, hasOrder: !!nextOrder },
-            orderId: snapshotOrderId,
-          });
         }
         this.tables = updatedTables;
         this.refreshTableLists();
