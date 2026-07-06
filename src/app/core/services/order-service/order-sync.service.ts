@@ -482,6 +482,11 @@ export class OrderSyncService {
         await this.applyOfflinePrintConfigFromSync(json, restaurantId);
         this.lastSnapshotRefreshAt = Date.now();
         this.ngZone.run(() => {
+          debugLog('sse-sync', 'order-sync.service.ts:snapshotRefreshed', 'emitting snapshotRefreshed$', {
+            caller,
+            watermark: seq,
+            tableCount: tables.length,
+          });
           this.snapshotRefreshedSubject.next({ restaurantId, activeGuestWaiterCalls });
         });
         return;
