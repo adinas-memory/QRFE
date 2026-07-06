@@ -26,6 +26,7 @@ import { OfflineSyncLockService } from './core/offline/offline-sync-lock.service
 import { NetworkMonitorService } from './core/platform/network-monitor.service';
 import { navigateToRoleHome } from './core/auth/auth-redirect.util';
 import { isAssignedRestaurantId } from './core/auth/restaurant-id.util';
+import { environment } from '../environments/environment';
 
 
 @Component({
@@ -113,6 +114,10 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // #region agent log
+    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'app.component.ts:ngOnInit',message:'app startup',data:{apiUrl:environment.apiUrl,poweredBy:environment.poweredBy,native:Capacitor.isNativePlatform(),platform:Capacitor.getPlatform(),href:typeof window!=='undefined'?window.location.href:null},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+    fetch('http://192.168.43.142:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'app.component.ts:ngOnInit',message:'app startup',data:{apiUrl:environment.apiUrl,poweredBy:environment.poweredBy,native:Capacitor.isNativePlatform(),platform:Capacitor.getPlatform(),href:typeof window!=='undefined'?window.location.href:null},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     this.#pushRegistration.init();
     this.#pickupNotification.initGlobalAlerts();
     this.initNativeBackButton();

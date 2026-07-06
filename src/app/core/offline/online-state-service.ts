@@ -129,17 +129,26 @@ export class OnlineStateService {
   }
 
   private async executePing(): Promise<boolean> {
+    const pingUrl = `${this.apiUrl}/api/ping-lite`;
+    // #region agent log
+    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'online-state-service.ts:executePing:start',message:'ping-lite start',data:{pingUrl,apiUrl:this.apiUrl,isOnlineBefore:this._isOnline},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
+    fetch('http://192.168.43.142:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'online-state-service.ts:executePing:start',message:'ping-lite start',data:{pingUrl,apiUrl:this.apiUrl,isOnlineBefore:this._isOnline},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     try {
       const hasAbortTimeout =
         typeof AbortSignal !== 'undefined' &&
         typeof (AbortSignal as unknown as { timeout?: (ms: number) => AbortSignal }).timeout === 'function';
 
-      const res = await fetch(`${this.apiUrl}/api/ping-lite`, {
+      const res = await fetch(pingUrl, {
         method: 'HEAD',
         cache: 'no-store',
         ...(hasAbortTimeout ? { signal: AbortSignal.timeout(8000) } : {}),
       });
       const ok = res.ok || res.status < 500;
+      // #region agent log
+      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'online-state-service.ts:executePing:result',message:'ping-lite response',data:{pingUrl,status:res.status,ok},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
+      fetch('http://192.168.43.142:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'online-state-service.ts:executePing:result',message:'ping-lite response',data:{pingUrl,status:res.status,ok},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       const sseConnectivity = this.injector.get(SseConnectivityService);
       if (sseConnectivity.isStreamActive()) {
         return ok;
@@ -151,7 +160,11 @@ export class OnlineStateService {
         sseConnectivity.reportPingFailed('ping-lite-fail');
       }
       return ok;
-    } catch {
+    } catch (err) {
+      // #region agent log
+      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'online-state-service.ts:executePing:error',message:'ping-lite failed',data:{pingUrl,error:String(err)},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
+      fetch('http://192.168.43.142:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'online-state-service.ts:executePing:error',message:'ping-lite failed',data:{pingUrl,error:String(err)},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       const sseConnectivity = this.injector.get(SseConnectivityService);
       if (!sseConnectivity.isStreamActive()) {
         sseConnectivity.reportPingFailed('ping-lite-error');
