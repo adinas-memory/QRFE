@@ -1,4 +1,5 @@
 import { environment } from '../../../environments/environment';
+import { debugLog } from '../offline/debug-log.util';
 
 /**
  * On LAN dev, nginx on :80 proxies /api and /sse. Kestrel is 127.0.0.1:7051 only.
@@ -20,10 +21,11 @@ export function alignApiUrlWithPageHost(
       ?.isNativePlatform?.() === true;
 
   if (isNative) {
-    // #region agent log
-    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'resolve-api-url.ts:native',message:'apiUrl on native',data:{configured,returned:configured,isNative:true,pageOrigin:typeof window!=='undefined'?window.location.origin:null},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
-    fetch('http://192.168.43.142:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'resolve-api-url.ts:native',message:'apiUrl on native',data:{configured,returned:configured,isNative:true,pageOrigin:typeof window!=='undefined'?window.location.origin:null},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
+    debugLog('api-url', 'resolve-api-url.ts:native', 'apiUrl on native', {
+      configured,
+      returned: configured,
+      pageOrigin: window.location.origin,
+    });
     return configured;
   }
 

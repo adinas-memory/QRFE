@@ -27,6 +27,8 @@ import { NetworkMonitorService } from './core/platform/network-monitor.service';
 import { navigateToRoleHome } from './core/auth/auth-redirect.util';
 import { isAssignedRestaurantId } from './core/auth/restaurant-id.util';
 import { environment } from '../environments/environment';
+import { NetworkMonitor } from './core/plugins/network-monitor.plugin';
+import { debugLog, downloadWebDebugLog } from './core/offline/debug-log.util';
 
 
 @Component({
@@ -52,6 +54,13 @@ import { environment } from '../environments/environment';
   <app-toasts></app-toasts>
   <router-outlet></router-outlet>
 
+  @if (showDebugExportButton) {
+    <button type="button" data-debug-export-btn (click)="exportDebugLog()"
+      style="position:fixed;bottom:16px;right:16px;z-index:2147483647;opacity:1;padding:10px 14px;font-size:14px;font-weight:bold;background:#ffeb3b;color:#000;border:3px solid #000;border-radius:6px;">
+      EXPORT LOG
+    </button>
+  }
+
 </div>`,
   imports: [RouterOutlet, SpinnerComponent, AppToastsComponent, TranslocoPipe],
 })
@@ -62,6 +71,15 @@ export class AppComponent implements OnInit {
   restaurantSyncFrozen = false;
   offlineBannerKey = 'offline.bannerLimited';
   private navHistory: string[] = [];
+  readonly showDebugExportButton = Capacitor.isNativePlatform();
+
+  exportDebugLog(): void {
+    if (Capacitor.isNativePlatform()) {
+      void NetworkMonitor.shareDebugLog().catch(err => console.warn('[debug] shareDebugLog failed', err));
+      return;
+    }
+    downloadWebDebugLog();
+  }
 
   readonly #destroyRef: DestroyRef = inject(DestroyRef);
   readonly #activatedRoute: ActivatedRoute = inject(ActivatedRoute);
@@ -114,10 +132,17 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // #region agent log
-    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'app.component.ts:ngOnInit',message:'app startup',data:{apiUrl:environment.apiUrl,poweredBy:environment.poweredBy,native:Capacitor.isNativePlatform(),platform:Capacitor.getPlatform(),href:typeof window!=='undefined'?window.location.href:null,pageProtocol:typeof window!=='undefined'?window.location.protocol:null},timestamp:Date.now(),hypothesisId:'I'})}).catch(()=>{});
-    fetch('http://192.168.43.142:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'app.component.ts:ngOnInit',message:'app startup',data:{apiUrl:environment.apiUrl,poweredBy:environment.poweredBy,native:Capacitor.isNativePlatform(),platform:Capacitor.getPlatform(),href:typeof window!=='undefined'?window.location.href:null,pageProtocol:typeof window!=='undefined'?window.location.protocol:null},timestamp:Date.now(),hypothesisId:'I'})}).catch(()=>{});
-    // #endregion
+    debugLog('startup', 'app.component.ts:ngOnInit', 'app startup', {
+      apiUrl: environment.apiUrl,
+      poweredBy: environment.poweredBy,
+      native: Capacitor.isNativePlatform(),
+      platform: Capacitor.getPlatform(),
+      href: typeof window !== 'undefined' ? window.location.href : null,
+      pageProtocol: typeof window !== 'undefined' ? window.location.protocol : null,
+    });
+    if (Capacitor.isNativePlatform()) {
+      void this.#onlineStateService.confirmConnectivity(true);
+    }
     this.#pushRegistration.init();
     this.#pickupNotification.initGlobalAlerts();
     this.initNativeBackButton();
