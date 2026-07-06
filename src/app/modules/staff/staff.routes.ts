@@ -35,7 +35,7 @@ export const routes: Routes = [
         path: 'table-orders',
         loadComponent: () =>
           import('./table-orders-by-date/table-orders-by-date.component').then(m => m.TableOrdersByDateComponent),
-        data: { title: 'Table orders' }
+        data: { title: 'Order history' }
       },
       {
         path: 'kitchen',

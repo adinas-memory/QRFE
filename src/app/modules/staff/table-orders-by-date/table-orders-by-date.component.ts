@@ -11,12 +11,12 @@ import {
   ContainerComponent,
   FormControlDirective,
   FormLabelDirective,
-  FormSelectDirective,
   RowComponent,
   TableDirective
 } from '@coreui/angular';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { forkJoin, map, of, switchMap } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import { OrderDTO } from '../../../core/models/orderingModel';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
@@ -24,6 +24,18 @@ import { OrdersService } from '../../../core/services/order-service/orders.servi
 import { TablesService } from '../../../core/services/tables-service/tables.service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
+
+export interface OrderHistoryRow {
+  order: OrderDTO;
+  tableId: string;
+  tableName: string;
+}
+
+export interface OrderHistoryPeriodTotal {
+  currency: string;
+  orderCount: number;
+  totalAmount: number;
+}
 
 @Component({
   selector: 'app-table-orders-by-date',
@@ -40,7 +52,6 @@ import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.
     CardBodyComponent,
     FormLabelDirective,
     FormControlDirective,
-    FormSelectDirective,
     ButtonDirective,
     TableDirective,
     BadgeComponent,
@@ -55,13 +66,13 @@ export class TableOrdersByDateComponent implements OnInit {
   restaurantId = '';
   apiScope: 'staff' | 'admin' = 'staff';
   tables: TableDTO[] = [];
-  selectedTableId = '';
   startDate = '';
   endDate = '';
-  loadingTables = false;
-  loadingOrders = false;
-  orders: OrderDTO[] = [];
-  expandedOrderId: string | null = null;
+  loading = false;
+  reportLoaded = false;
+  orderRows: OrderHistoryRow[] = [];
+  periodTotals: OrderHistoryPeriodTotal[] = [];
+  expandedRowKey: string | null = null;
 
   constructor(
     private readonly auth: AuthService,
@@ -85,7 +96,7 @@ export class TableOrdersByDateComponent implements OnInit {
     this.endDate = today;
 
     if (this.restaurantId) {
-      this.loadTables();
+      this.loadReport();
     }
   }
 
@@ -96,95 +107,106 @@ export class TableOrdersByDateComponent implements OnInit {
     return `${y}-${m}-${day}`;
   }
 
-  loadTables(): void {
+  loadReport(): void {
     if (!this.restaurantId) {
-      return;
-    }
-    this.loadingTables = true;
-    this.tablesService
-      .getAll(this.restaurantId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: tables => {
-          this.tables = (tables ?? []).slice().sort((a, b) =>
-            (a.tableName ?? '').localeCompare(b.tableName ?? '', undefined, { numeric: true })
-          );
-          if (!this.selectedTableId && this.tables.length) {
-            this.selectedTableId = this.tables[0].tableId;
-            this.loadOrders();
-          }
-          this.loadingTables = false;
-        },
-        error: err => {
-          this.loadingTables = false;
-          this.toast.error(
-            this.misc.getFirstErrorMessage(err) ?? this.transloco.translate('tableOrdersByDate.error'),
-            'Error'
-          );
-        }
-      });
-  }
-
-  onTableChange(): void {
-    this.expandedOrderId = null;
-    this.loadOrders();
-  }
-
-  loadOrders(): void {
-    if (!this.restaurantId) {
-      this.toast.error(this.transloco.translate('tableOrdersByDate.noRestaurant'), 'Error');
-      return;
-    }
-    if (!this.selectedTableId) {
-      this.orders = [];
+      this.toast.error(this.transloco.translate('orderHistory.noRestaurant'), 'Error');
       return;
     }
     if (!this.startDate || !this.endDate) {
       return;
     }
     if (this.startDate > this.endDate) {
-      this.toast.error(this.transloco.translate('tableOrdersByDate.invalidRange'), 'Error');
+      this.toast.error(this.transloco.translate('orderHistory.invalidRange'), 'Error');
       return;
     }
 
-    this.loadingOrders = true;
-    this.ordersService
-      .listOrdersForTableByDate(
-        this.restaurantId,
-        this.selectedTableId,
-        this.startDate,
-        this.endDate,
-        this.apiScope
-      )
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: orders => {
-          this.orders = (orders ?? []).slice().sort((a, b) =>
-            (b.createdOn ?? '').localeCompare(a.createdOn ?? '')
+    this.loading = true;
+    this.expandedRowKey = null;
+
+    const tables$ = this.tables.length
+      ? of(this.tables)
+      : this.tablesService.getAll(this.restaurantId).pipe(
+          map(tables =>
+            (tables ?? []).slice().sort((a, b) =>
+              (a.tableName ?? '').localeCompare(b.tableName ?? '', undefined, { numeric: true })
+            )
+          )
+        );
+
+    tables$
+      .pipe(
+        switchMap(tables => {
+          this.tables = tables;
+          if (!tables.length) {
+            return of([] as { table: TableDTO; orders: OrderDTO[] }[]);
+          }
+          return forkJoin(
+            tables.map(table =>
+              this.ordersService
+                .listOrdersForTableByDate(
+                  this.restaurantId,
+                  table.tableId,
+                  this.startDate,
+                  this.endDate,
+                  this.apiScope
+                )
+                .pipe(map(orders => ({ table, orders: orders ?? [] })))
+            )
           );
-          this.loadingOrders = false;
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: results => {
+          this.orderRows = results
+            .flatMap(({ table, orders }) =>
+              orders.map(order => ({
+                order,
+                tableId: table.tableId,
+                tableName: this.tableLabel(table)
+              }))
+            )
+            .sort((a, b) => (b.order.createdOn ?? '').localeCompare(a.order.createdOn ?? ''));
+          this.periodTotals = this.buildPeriodTotals(this.orderRows);
+          this.reportLoaded = true;
+          this.loading = false;
         },
         error: err => {
-          this.loadingOrders = false;
+          this.loading = false;
           this.toast.error(
-            this.misc.getFirstErrorMessage(err) ?? this.transloco.translate('tableOrdersByDate.error'),
+            this.misc.getFirstErrorMessage(err) ?? this.transloco.translate('orderHistory.error'),
             'Error'
           );
         }
       });
   }
 
+  private buildPeriodTotals(rows: OrderHistoryRow[]): OrderHistoryPeriodTotal[] {
+    const byCurrency = new Map<string, OrderHistoryPeriodTotal>();
+    for (const row of rows) {
+      const currency = this.orderCurrency(row.order);
+      if (!currency) {
+        continue;
+      }
+      const existing = byCurrency.get(currency) ?? { currency, orderCount: 0, totalAmount: 0 };
+      existing.orderCount += 1;
+      existing.totalAmount += this.orderTotal(row.order);
+      byCurrency.set(currency, existing);
+    }
+    return [...byCurrency.values()].sort((a, b) => a.currency.localeCompare(b.currency));
+  }
+
   tableLabel(table: TableDTO): string {
     return table.tableName?.trim() || table.tableId;
   }
 
-  selectedTableLabel(): string {
-    const table = this.tables.find(t => t.tableId === this.selectedTableId);
-    return table ? this.tableLabel(table) : '—';
+  rowKey(row: OrderHistoryRow): string {
+    return `${row.tableId}:${row.order.orderId}`;
   }
 
-  toggleOrderDetails(orderId: string): void {
-    this.expandedOrderId = this.expandedOrderId === orderId ? null : orderId;
+  toggleOrderDetails(row: OrderHistoryRow): void {
+    const key = this.rowKey(row);
+    this.expandedRowKey = this.expandedRowKey === key ? null : key;
   }
 
   orderTotal(order: OrderDTO): number {
@@ -197,5 +219,9 @@ export class TableOrdersByDateComponent implements OnInit {
 
   itemCount(order: OrderDTO): number {
     return (order.orderItems ?? []).reduce((sum, item) => sum + (item?.quantity ?? 0), 0);
+  }
+
+  currencyLabel(code: string): string {
+    return code ? code.toUpperCase() : '—';
   }
 }
