@@ -20,14 +20,14 @@ export class KitchenService {
    * so all devices in the restaurant can react (ex: manage-orders highlights the table).
    */
   callWaiterForPickup(restaurantId: string, tableId: string): Observable<void> {
-    if (!tryBeginStaffPickupCall(restaurantId, tableId)) {
+    if (!tryBeginStaffPickupCall('kitchen', restaurantId, tableId)) {
       return EMPTY;
     }
     return this.http.post<void>(
       `${this.apiUrl}/api/restaurants/${restaurantId}/staff/kitchen/tables/${tableId}/pickup`,
       {},
       { withCredentials: true },
-    ).pipe(finalize(() => endStaffPickupCall(restaurantId, tableId)));
+    ).pipe(finalize(() => endStaffPickupCall('kitchen', restaurantId, tableId)));
   }
 
   /**

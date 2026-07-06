@@ -49,7 +49,7 @@ export class PickupNotificationService {
     return { tableId, tableName, clientInstanceId };
   }
 
-  handlePickupSse(kind: PickupReadyKind, data: unknown): PickupSsePayload {
+  async handlePickupSse(kind: PickupReadyKind, data: unknown): Promise<PickupSsePayload> {
     const parsed = this.parsePickupPayload(data);
     if (!parsed.tableId) {
       return parsed;
@@ -58,10 +58,17 @@ export class PickupNotificationService {
     const eventType: WaiterPushEventType =
       kind === 'kitchen' ? 'KitchenWaiterCall' : 'BarWaiterCall';
 
-    // SSE reached this device — always alert locally (ClientInstanceId gates FCM only).
-    this.#deviceFeedback.notifyPickupFromPush(kind, parsed.tableId);
+    // Haptic before toast — SSE reached this device (ClientInstanceId gates FCM only).
+    const vibrated = await this.#deviceFeedback.pulsePickup(kind, parsed.tableId, 'sse');
+    if (!vibrated) {
+      console.warn('[PickupNotification] pickup haptic failed', {
+        kind,
+        tableId: parsed.tableId,
+        source: 'sse',
+      });
+    }
 
-    void this.#pushRegistration.deliverPickupAlert({
+    await this.#pushRegistration.deliverPickupAlert({
       eventType,
       tableId: parsed.tableId,
       tableName: parsed.tableName,
@@ -96,10 +103,10 @@ export class PickupNotificationService {
 
     switch (ev.EventType) {
       case 'KitchenWaiterCall':
-        this.handlePickupSse('kitchen', ev.Data);
+        void this.handlePickupSse('kitchen', ev.Data);
         break;
       case 'BarWaiterCall':
-        this.handlePickupSse('bar', ev.Data);
+        void this.handlePickupSse('bar', ev.Data);
         break;
       case 'WaiterCall':
         this.handleGuestWaiterSse(ev.Data);

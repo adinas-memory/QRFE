@@ -310,35 +310,18 @@ export class AuthService {
   refreshUserContext(options?: { redirectOnFailure?: boolean }): Observable<UserContextModel | null> {
     const redirectOnFailure = options?.redirectOnFailure ?? true;
     if (this.refreshShared$) {
-      // #region agent log
-      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'auth.service.ts:refreshUserContext',message:'refresh deduped (in-flight)',data:{redirectOnFailure,hasUserCtx:!!localStorage.getItem('UserCtx')},timestamp:Date.now(),hypothesisId:'H4',runId:'post-fix'})}).catch(()=>{});
-      // #endregion
       return this.refreshShared$;
     }
 
-    // #region agent log
-    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'auth.service.ts:refreshUserContext',message:'refresh started',data:{redirectOnFailure,hasUserCtx:!!localStorage.getItem('UserCtx'),apiUrl:this.apiUrl,caller:(new Error().stack??'').split('\n').slice(1,4).join('|')},timestamp:Date.now(),hypothesisId:'H1,H4,H5',runId:'post-fix'})}).catch(()=>{});
-    // #endregion
-
-    // firstValueFrom subscribes synchronously — starts exactly one HTTP refresh before returning.
     const refreshPromise = firstValueFrom(
       this.http
         .post<unknown>(`${this.apiUrl}/api/user/refresh-token`, {}, { withCredentials: true })
         .pipe(
           map(raw => this.resolveUserAfterRefresh(raw)),
           tap(user => {
-            // #region agent log
-            fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'auth.service.ts:refreshUserContext',message:'refresh success',data:{resolvedUser:!!user,userId:user?.id??null},timestamp:Date.now(),hypothesisId:'H1',runId:'post-fix'})}).catch(()=>{});
-            // #endregion
             if (user) this.setUser(user);
           }),
           catchError(err => {
-            const status = (err as HttpErrorResponse)?.status ?? null;
-            const body = (err as HttpErrorResponse)?.error;
-            const errMsg = typeof body === 'object' && body && 'error' in body ? String((body as {error:unknown}).error) : typeof body === 'string' ? body : null;
-            // #region agent log
-            fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'auth.service.ts:refreshUserContext',message:'refresh failed',data:{status,errMsg,redirectOnFailure,willLogout:isHttpAuthFailure(err)},timestamp:Date.now(),hypothesisId:'H1,H2,H3,H5',runId:'post-fix'})}).catch(()=>{});
-            // #endregion
             console.error('Refresh failed', err);
             if (isHttpAuthFailure(err)) {
               this.clearUser();

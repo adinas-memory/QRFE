@@ -407,7 +407,7 @@ describe('ManageOrdersComponent', () => {
       expect(component.waiterState[TABLE_A]).toBeUndefined();
     });
 
-    it('KitchenWaiterCall sets kitchen pickup flag and triggers haptics', async () => {
+    it('KitchenWaiterCall sets kitchen pickup flag and shows toast', async () => {
       await invokeSse(component, 'KitchenWaiterCall', {
         TableId: TABLE_A,
         TableName: 'T1',
@@ -415,17 +415,17 @@ describe('ManageOrdersComponent', () => {
       });
       expect(component.kitchenPickupRequested[TABLE_A]).toBeTrue();
       expect(mocks.appToast.info).toHaveBeenCalled();
-      expect(mocks.deviceFeedback.notifyPickupFromPush).toHaveBeenCalledWith('kitchen', TABLE_A);
+      expect(mocks.deviceFeedback.notifyPickupFromPush).not.toHaveBeenCalled();
     });
 
-    it('BarWaiterCall sets bar pickup flag and triggers haptics', async () => {
+    it('BarWaiterCall sets bar pickup flag and shows toast', async () => {
       await invokeSse(component, 'BarWaiterCall', {
         TableId: TABLE_B,
         TableName: 'T2',
         ClientInstanceId: 'device-2',
       });
       expect(component.barPickupRequested[TABLE_B]).toBeTrue();
-      expect(mocks.deviceFeedback.notifyPickupFromPush).toHaveBeenCalledWith('bar', TABLE_B);
+      expect(mocks.deviceFeedback.notifyPickupFromPush).not.toHaveBeenCalled();
     });
 
     it('NewOrderPrivateEvent replaces local order id with server id', async () => {

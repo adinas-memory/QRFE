@@ -1,13 +1,19 @@
+export type StaffPickupKind = 'kitchen' | 'bar';
+
 const TTL_MS = 15_000;
 const inFlightKeys = new Set<string>();
 
-function storageKey(restaurantId: string, tableId: string): string {
-  return `qrfe-pickup:${restaurantId}:${tableId}`;
+function storageKey(kind: StaffPickupKind, restaurantId: string, tableId: string): string {
+  return `qrfe-pickup:${kind}:${restaurantId}:${tableId}`;
 }
 
 /** Cross-tab + in-memory guard for kitchen/bar POST …/pickup. */
-export function tryBeginStaffPickupCall(restaurantId: string, tableId: string): boolean {
-  const key = storageKey(restaurantId, tableId);
+export function tryBeginStaffPickupCall(
+  kind: StaffPickupKind,
+  restaurantId: string,
+  tableId: string,
+): boolean {
+  const key = storageKey(kind, restaurantId, tableId);
   const now = Date.now();
 
   if (inFlightKeys.has(key)) {
@@ -33,8 +39,12 @@ export function tryBeginStaffPickupCall(restaurantId: string, tableId: string): 
   return true;
 }
 
-export function endStaffPickupCall(restaurantId: string, tableId: string): void {
-  const key = storageKey(restaurantId, tableId);
+export function endStaffPickupCall(
+  kind: StaffPickupKind,
+  restaurantId: string,
+  tableId: string,
+): void {
+  const key = storageKey(kind, restaurantId, tableId);
   inFlightKeys.delete(key);
   // Keep sessionStorage entry until TTL expires — blocks rapid double-tap after slow responses.
 }
