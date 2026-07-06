@@ -128,11 +128,14 @@ export class OnlineStateService {
     return this.heartbeatInProgress;
   }
 
-  private async executePing(): Promise<boolean> {
+    private async executePing(): Promise<boolean> {
     const pingUrl = `${this.apiUrl}/api/ping-lite`;
+    const pageProtocol = typeof window !== 'undefined' ? window.location.protocol : 'n/a';
     // #region agent log
-    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'online-state-service.ts:executePing:start',message:'ping-lite start',data:{pingUrl,apiUrl:this.apiUrl,isOnlineBefore:this._isOnline},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
-    fetch('http://192.168.43.142:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'online-state-service.ts:executePing:start',message:'ping-lite start',data:{pingUrl,apiUrl:this.apiUrl,isOnlineBefore:this._isOnline},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
+    const debugPayload = { sessionId: 'e48331', location: 'online-state-service.ts:executePing:start', message: 'ping-lite start', data: { pingUrl, apiUrl: this.apiUrl, pageProtocol, isOnlineBefore: this._isOnline }, timestamp: Date.now(), hypothesisId: 'I' };
+    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'e48331' }, body: JSON.stringify(debugPayload) }).catch(() => {});
+    fetch('http://192.168.43.142:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'e48331' }, body: JSON.stringify(debugPayload) }).catch(() => {});
+    try { localStorage.setItem('qrfe-debug-last-ping', JSON.stringify(debugPayload)); } catch { /* ignore */ }
     // #endregion
     try {
       const hasAbortTimeout =
@@ -146,8 +149,10 @@ export class OnlineStateService {
       });
       const ok = res.ok || res.status < 500;
       // #region agent log
-      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'online-state-service.ts:executePing:result',message:'ping-lite response',data:{pingUrl,status:res.status,ok},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
-      fetch('http://192.168.43.142:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'online-state-service.ts:executePing:result',message:'ping-lite response',data:{pingUrl,status:res.status,ok},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
+      const resultPayload = { sessionId: 'e48331', location: 'online-state-service.ts:executePing:result', message: 'ping-lite response', data: { pingUrl, status: res.status, ok, pageProtocol }, timestamp: Date.now(), hypothesisId: 'I' };
+      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'e48331' }, body: JSON.stringify(resultPayload) }).catch(() => {});
+      fetch('http://192.168.43.142:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'e48331' }, body: JSON.stringify(resultPayload) }).catch(() => {});
+      try { localStorage.setItem('qrfe-debug-last-ping', JSON.stringify(resultPayload)); } catch { /* ignore */ }
       // #endregion
       const sseConnectivity = this.injector.get(SseConnectivityService);
       if (sseConnectivity.isStreamActive()) {
@@ -162,8 +167,10 @@ export class OnlineStateService {
       return ok;
     } catch (err) {
       // #region agent log
-      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'online-state-service.ts:executePing:error',message:'ping-lite failed',data:{pingUrl,error:String(err)},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
-      fetch('http://192.168.43.142:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e48331'},body:JSON.stringify({sessionId:'e48331',location:'online-state-service.ts:executePing:error',message:'ping-lite failed',data:{pingUrl,error:String(err)},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
+      const errPayload = { sessionId: 'e48331', location: 'online-state-service.ts:executePing:error', message: 'ping-lite failed', data: { pingUrl, pageProtocol, error: String(err) }, timestamp: Date.now(), hypothesisId: 'I' };
+      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'e48331' }, body: JSON.stringify(errPayload) }).catch(() => {});
+      fetch('http://192.168.43.142:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'e48331' }, body: JSON.stringify(errPayload) }).catch(() => {});
+      try { localStorage.setItem('qrfe-debug-last-ping', JSON.stringify(errPayload)); } catch { /* ignore */ }
       // #endregion
       const sseConnectivity = this.injector.get(SseConnectivityService);
       if (!sseConnectivity.isStreamActive()) {
