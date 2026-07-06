@@ -17,7 +17,11 @@ import {
   fixtureOrderUpdatedSecondaryToPrimary,
   fixtureOrderUpdatedAddNewFood,
   fixtureOrderUpdatedQtyIncreaseFood,
+  fixtureOrderUpdatedQtyDecreaseFood,
+  fixtureOrderUpdatedDeleteFood,
+  LINE_PIZZA_1,
   LINE_SALAD_1,
+  MENU_PIZZA,
   MENU_SALAD,
   ORDER_B,
   SYNC_TABLE_B,
@@ -104,10 +108,10 @@ describe('ManageOrdersComponent SSE inbound (sync regression)', () => {
       mocks.offlineDb.loadCartRecord.and.resolveTo({
         tableId: TABLE_A,
         orderId: 'order-a',
-        items: [createCartItem({ quantity: 1, orderItemId: 'line-pizza-001' })],
+        items: [createCartItem({ quantity: 1, orderItemId: LINE_PIZZA_1 })],
       });
       mocks.offlineDb.loadCart.and.resolveTo([
-        createCartItem({ quantity: 1, orderItemId: 'line-pizza-001' }),
+        createCartItem({ quantity: 1, orderItemId: LINE_PIZZA_1 }),
       ]);
 
       await invokeSse(component, 'OrderUpdated', fixtureOrderUpdatedQtyIncreaseFood(), 'staff1', 205);
@@ -117,6 +121,74 @@ describe('ManageOrdersComponent SSE inbound (sync regression)', () => {
         jasmine.arrayContaining([jasmine.objectContaining({ quantity: 2 })]),
         jasmine.any(String),
       );
+    });
+
+    it('OrderUpdated qty decrease (−) hydrates cart when secondary lowers quantity', async () => {
+      mocks.offlineDb.hasPendingQueueActionsForTable.and.resolveTo(false);
+      mocks.offlineDb.loadCartRecord.and.resolveTo({
+        tableId: TABLE_A,
+        orderId: 'order-a',
+        items: [createCartItem({ quantity: 2, orderItemId: LINE_PIZZA_1, item: createMenuItem({ menuItemId: MENU_PIZZA }) })],
+      });
+      mocks.offlineDb.loadCart.and.resolveTo([
+        createCartItem({ quantity: 2, orderItemId: LINE_PIZZA_1 }),
+      ]);
+
+      await invokeSse(component, 'OrderUpdated', fixtureOrderUpdatedQtyDecreaseFood(), 'staff2', 206);
+
+      expect(mocks.offlineDb.saveCart).toHaveBeenCalledWith(
+        TABLE_A,
+        jasmine.arrayContaining([jasmine.objectContaining({ quantity: 1 })]),
+        jasmine.any(String),
+      );
+      expect(component.tableCarts[TABLE_A]?.[0]?.quantity).toBe(1);
+    });
+
+    it('OrderUpdated partial delete (x) hydrates cart when one line removed cross-device', async () => {
+      mocks.offlineDb.hasPendingQueueActionsForTable.and.resolveTo(false);
+      const beer = createMenuItem({ menuItemId: 'menu-beer-001', menuItemName: 'Beer', category: 'beer' });
+      mocks.offlineDb.loadMenu.and.resolveTo({
+        menuItems: [createMenuItem({ menuItemId: MENU_PIZZA }), beer],
+        categories: ['Main', 'beer'],
+      });
+      mocks.offlineDb.loadCartRecord.and.resolveTo({
+        tableId: TABLE_A,
+        orderId: 'order-a',
+        items: [
+          createCartItem({ quantity: 1, orderItemId: LINE_PIZZA_1, item: createMenuItem({ menuItemId: MENU_PIZZA }) }),
+          createCartItem({ quantity: 1, orderItemId: 'line-beer-001', item: beer }),
+        ],
+      });
+
+      const afterDelete: ReturnType<typeof fixtureOrderUpdatedQtyDecreaseFood> = {
+        ...fixtureOrderUpdatedQtyDecreaseFood(),
+        SubTotal: { Amount: 10, Currency: 'RON' },
+        ItemCount: 1,
+        Items: fixtureOrderUpdatedQtyDecreaseFood().Items,
+      };
+
+      await invokeSse(component, 'OrderUpdated', afterDelete, 'staff2', 207);
+
+      expect(mocks.offlineDb.saveCart).toHaveBeenCalledWith(
+        TABLE_A,
+        jasmine.arrayContaining([jasmine.objectContaining({ quantity: 1 })]),
+        jasmine.any(String),
+      );
+      expect(component.tableCarts[TABLE_A]?.length).toBe(1);
+    });
+
+    it('OrderUpdated empty cart frees table when last item deleted cross-device', async () => {
+      mocks.offlineDb.hasPendingQueueActionsForTable.and.resolveTo(false);
+      mocks.offlineDb.loadCartRecord.and.resolveTo({
+        tableId: TABLE_A,
+        orderId: 'order-a',
+        items: [createCartItem({ quantity: 1, orderItemId: LINE_PIZZA_1 })],
+      });
+
+      await invokeSse(component, 'OrderUpdated', fixtureOrderUpdatedDeleteFood(), 'staff2', 208);
+
+      expect(mocks.offlineDb.deleteCart).toHaveBeenCalledWith(TABLE_A);
+      expect(component.tableCarts[TABLE_A]).toEqual([]);
     });
   });
 });

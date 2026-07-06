@@ -4,6 +4,7 @@ import { Subject } from 'rxjs';
 import { cartItemFromOrderLine, OrderDTO, OrderItemDTO, TableCart, tableHasActiveOrder } from '../../core/models/orderingModel';
 import { MenuItem } from '../models/menu/menuItem';
 import { Currency, TableDTO } from '../models/restaurantTablesModel';
+import { debugLog } from './debug-log.util';
 export interface MenuItemEntity extends MenuItem { }
 
 export interface CartRecord {
@@ -301,25 +302,28 @@ export class OfflineDbService {
                 const local = await this.loadCartRecord(t.tableId);
                 const localOrderId = local?.orderId;
                 const hasLocalUnconfirmed = !!localOrderId && localOrderId.startsWith('local-');
-                const hasLocalConfirmedServerOrder =
-                    !!localOrderId && !localOrderId.startsWith('local-');
                 const hasPendingForTable = await this.hasPendingActionsForTable(t.tableId);
 
                 if (hasLocalUnconfirmed || hasPendingForTable) {
+                    // #region agent log
+                    debugLog('H_CLOSE_1', 'offline-db.ts:applySyncSnapshot', 'keeping local cart (pending/unconfirmed)', {
+                        tableId: t.tableId, localOrderId, hasLocalUnconfirmed, hasPendingForTable,
+                    });
+                    // #endregion
                     continue;
                 }
 
-                // /api/sync can briefly lag behind SSE (e.g. right after primary replay).
-                if (hasLocalConfirmedServerOrder) {
-                    continue;
-                }
-
+                // #region agent log
+                debugLog('H_CLOSE_1', 'offline-db.ts:applySyncSnapshot', 'deleting stale local cart (server has no order)', {
+                    tableId: t.tableId, localOrderId,
+                });
+                // #endregion
                 await this.deleteCart(t.tableId);
             }
         }
     }
 
-    /** Keep occupied tables visible when local state leads /api/sync (pending queue or SSE). */
+    /** Keep occupied tables visible when a local queue action has not reached the server yet. */
     private async mergeSnapshotWithPendingLocalOrders(tables: TableDTO[]): Promise<TableDTO[]> {
         const byId = new Map((tables ?? []).filter(t => t?.tableId).map(t => [t.tableId, { ...t }]));
 
@@ -330,18 +334,16 @@ export class OfflineDbService {
             const local = await this.loadCartRecord(t.tableId);
             const localOrderId = local?.orderId;
             const hasLocalUnconfirmed = !!localOrderId && localOrderId.startsWith('local-');
-            const hasLocalConfirmedServerOrder =
-                !!localOrderId && !localOrderId.startsWith('local-');
-            const serverHasOrder = tableHasActiveOrder((t as any).order as OrderDTO | undefined);
 
-            const shouldMergeLocal =
-                hasPendingForTable
-                || hasLocalUnconfirmed
-                || (hasLocalConfirmedServerOrder && !serverHasOrder);
-
-            if (!shouldMergeLocal) {
+            if (!hasPendingForTable && !hasLocalUnconfirmed) {
                 continue;
             }
+
+            // #region agent log
+            debugLog('H_CLOSE_1', 'offline-db.ts:mergeSnapshotWithPendingLocalOrders', 'merging local order into snapshot', {
+                tableId: t.tableId, localOrderId, hasPendingForTable, hasLocalUnconfirmed,
+            });
+            // #endregion
 
             const localOrder = await this.loadOrder(t.tableId);
             if (!localOrder) {
@@ -370,6 +372,11 @@ export class OfflineDbService {
             .count();
 
         return count > 0;
+    }
+
+    /** Whether Dexie still has pending offline actions for this table (e.g. CLOSE_ORDER replay). */
+    async hasPendingQueueActionsForTable(tableId: string): Promise<boolean> {
+        return this.hasPendingActionsForTable(tableId);
     }
 
     private buildAvailabilityMapFromTables(tables: TableDTO[] | null | undefined): Record<string, boolean> {

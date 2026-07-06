@@ -7,7 +7,7 @@
 import { Capacitor } from '@capacitor/core';
 import { NetworkMonitor } from '../plugins/network-monitor.plugin';
 
-const DEBUG_INGEST_URL = 'http://127.0.0.1:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16';
+const DEBUG_INGEST_URL = 'http://192.168.43.142:7761/ingest/1418246a-67e2-4be2-9f84-77b49dcc9c16';
 const SESSION_ID = 'e48331';
 
 export function debugLog(hypothesisId: string, location: string, message: string, data: unknown): void {

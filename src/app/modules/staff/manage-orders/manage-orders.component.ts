@@ -920,8 +920,56 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.ordersService.claimPickupTarget(this.restaurantId, tableId)
       .pipe(take(1))
       .subscribe({
-        error: (err: unknown) => console.warn('[ManageOrders] claim pickup target failed', err),
+        next: () => {
+          // #region agent log
+          debugLog('H_CLOSE_1', 'manage-orders.component.ts:claimPickupTargetForTable', 'claim ok', { tableId });
+          // #endregion
+        },
+        error: (err: unknown) => {
+          const status = (err as { status?: number })?.status ?? null;
+          const localOrderId = this.tableCarts[tableId]?.length
+            ? this.currentOrderId
+            : this.tables.find(t => t.tableId === tableId)?.order?.orderId;
+          // #region agent log
+          debugLog('H_CLOSE_1', 'manage-orders.component.ts:claimPickupTargetForTable', 'claim failed', {
+            tableId, status, localOrderId,
+          });
+          // #endregion
+          if (status === 404) {
+            void this.reconcileStaleTableWithoutServerOrder(tableId);
+          } else {
+            console.warn('[ManageOrders] claim pickup target failed', err);
+          }
+        },
       });
+  }
+
+  /** Server has no open order (claim 404) but local UI still shows occupied — align with backend. */
+  private async reconcileStaleTableWithoutServerOrder(tableId: string): Promise<void> {
+    const record = await this.offlineDB.loadCartRecord(tableId);
+    const pending = await this.offlineDB.hasPendingQueueActionsForTable(tableId);
+    if (record?.orderId?.startsWith('local-') || pending) {
+      return;
+    }
+
+    // #region agent log
+    debugLog('H_CLOSE_1', 'manage-orders.component.ts:reconcileStaleTableWithoutServerOrder', 'clearing stale local order', {
+      tableId, localOrderId: record?.orderId ?? null,
+    });
+    // #endregion
+
+    await this.offlineDB.deleteCart(tableId);
+    await this.offlineDB.markTableFreedLocally(tableId);
+    this.tableCarts[tableId] = [];
+    delete this.tableComputed[tableId];
+    this.ordersService.saveComputed(this.tableComputed);
+    this.markTableAsOpen(tableId);
+    this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+    void this.offlineDB.saveTables(this.tables);
+    void this.offlineDB.saveTablesStatus(this.tablesAvailable);
+    if (this.currentTableId === tableId) {
+      this.resetCanvasState();
+    }
   }
 
   isSetMenuCartLine(sel: CartItem): boolean {
@@ -1329,7 +1377,32 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.resetCanvasState();
         this.closeInFlight = false;
       },
-      error: err => {
+      error: async (err: { status?: number; message?: string }) => {
+        const status = err?.status ?? null;
+        // #region agent log
+        debugLog('H_CLOSE_1', 'manage-orders.component.ts:confirmCloseOrder', 'online close failed', {
+          tableId, orderId, status,
+        });
+        // #endregion
+        if (status === 404) {
+          await this.offlineDB.deleteCart(tableId);
+          delete this.tableComputed[tableId];
+          this.ordersService.saveComputed(this.tableComputed);
+          this.tableCarts[tableId] = [];
+          this.markTableAsOpen(tableId);
+          await this.offlineDB.markTableFreedLocally(tableId);
+          this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+          this.resetCanvasState();
+        } else {
+          await this.offlineDB.addOfflineAction({
+            type: 'CLOSE_ORDER',
+            restaurantId: this.restaurantId,
+            tableId,
+            orderId,
+            payload: {},
+          });
+          this.queueProcessor.triggerProcessing();
+        }
         console.error('Error closing order:', err);
         this.closeInFlight = false;
       }
@@ -1712,7 +1785,29 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         const localRecord = await this.offlineDB.loadCartRecord(tableId);
         const localItems = localRecord?.items ?? [];
         const localQty = localItems.reduce((sum, line) => sum + line.quantity, 0);
-        const shouldFullHydrate = localItems.length === 0 || sseItemCount > localQty;
+        const sseLineCount = (payload.Items ?? []).length;
+        const hasPendingForTable = await this.offlineDB.hasPendingQueueActionsForTable(tableId);
+        const qtyMismatch = sseItemCount !== localQty;
+        const lineCountMismatch = sseLineCount !== localItems.length;
+        // Full hydrate when server is ahead, or when server reflects fewer/different lines
+        // (qty −, delete line) and we have no pending optimistic mutations on this table.
+        const shouldFullHydrate =
+          localItems.length === 0
+          || sseItemCount > localQty
+          || (!hasPendingForTable && (qtyMismatch || lineCountMismatch));
+
+        // #region agent log
+        debugLog('H_CART_1', 'manage-orders.component.ts:OrderUpdated', 'cart hydrate decision', {
+          tableId,
+          sseItemCount,
+          localQty,
+          sseLineCount,
+          localLineCount: localItems.length,
+          hasPendingForTable,
+          shouldFullHydrate,
+          isCurrentCanvas: this.currentTableId === tableId && this.canvasVisible,
+        });
+        // #endregion
 
         let cart: CartItem[];
         if (shouldFullHydrate) {

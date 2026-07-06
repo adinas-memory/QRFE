@@ -37,27 +37,21 @@ describe('OfflineDbService applySyncSnapshot (sync regression)', () => {
     expect(service.deleteCart).toHaveBeenCalledWith(SYNC_TABLE_A);
   });
 
-  it('preserves confirmed server cart when snapshot is stale (no open order on server)', async () => {
+  it('deletes confirmed server cart when snapshot has no order and queue is empty', async () => {
     (service.loadCartRecord as jasmine.Spy).and.returnValue(Promise.resolve({
       tableId: SYNC_TABLE_A,
       orderId: '019f-server-order',
       items: [{ item: { menuItemId: 'm1', menuItemName: 'X', category: 'Main' }, quantity: 1 }],
     }));
-    (service.loadOrder as jasmine.Spy).and.returnValue(Promise.resolve({
-      orderId: '019f-server-order',
-      isOrderOpen: true,
-      orderItems: [],
-      subTotal: { amount: 10, currency: Currency.RON },
-      createdOn: new Date().toISOString(),
-      currency: Currency.RON,
-    } as OrderDTO));
 
     await service.applySyncSnapshot(openTableSnapshot());
 
-    expect(service.deleteCart).not.toHaveBeenCalled();
+    expect(service.deleteCart).toHaveBeenCalledWith(SYNC_TABLE_A);
   });
 
-  it('merges occupied table from local confirmed order into saved tables', async () => {
+  it('merges occupied table from local order only when queue is pending', async () => {
+    (service as unknown as { hasPendingActionsForTable: jasmine.Spy<(id: string) => Promise<boolean>> }).hasPendingActionsForTable
+      .and.returnValue(Promise.resolve(true));
     (service.loadCartRecord as jasmine.Spy).and.returnValue(Promise.resolve({
       tableId: SYNC_TABLE_A,
       orderId: '019f-server-order',

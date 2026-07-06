@@ -460,6 +460,11 @@ export class OfflineQueueProcessor {
                     );
                     await this.offlineDB.deleteCart(action.tableId);
                     await this.offlineDB.markTableFreedLocally(action.tableId);
+                    // #region agent log
+                    debugLog('H_CLOSE_1', 'offline-queue-processor.service.ts:processAction', 'CLOSE_ORDER ok', {
+                        tableId: action.tableId, orderId: action.orderId,
+                    });
+                    // #endregion
                     return true;
             }
 
@@ -513,6 +518,11 @@ export class OfflineQueueProcessor {
                     || /KeyNotFoundException/i.test(exceptionName)
                 );
             if (isOrderNotFound) {
+                // #region agent log
+                debugLog('H_CLOSE_1', 'offline-queue-processor.service.ts:processAction', 'CLOSE_ORDER already closed on server', {
+                    tableId: action.tableId, orderId: action.orderId, status,
+                });
+                // #endregion
                 await this.offlineDB.markActionDone(action.id!);
                 await this.offlineDB.deleteCart(action.tableId);
                 await this.offlineDB.markTableFreedLocally(action.tableId);
