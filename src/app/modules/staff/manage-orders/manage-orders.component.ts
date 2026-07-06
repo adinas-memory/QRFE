@@ -775,7 +775,13 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
       const activeOrder = order!;
       const items = (activeOrder.orderItems ?? []).filter((x): x is NonNullable<typeof x> => !!x);
-      const itemCount = items.reduce((s, i) => s + (i.quantity ?? 0), 0);
+      const existing = this.tableComputed[t.tableId];
+      const itemCountFromOrder = items.reduce((s, i) => s + (i.quantity ?? 0), 0);
+      // NewOrderPrivateEvent may mark table occupied before orderItems arrive; keep prior totals.
+      const itemCount =
+        itemCountFromOrder > 0
+          ? itemCountFromOrder
+          : (existing?.itemCount ?? 0);
 
       const subtotalAmount =
         activeOrder.subTotal?.amount ??
@@ -785,8 +791,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       const currency =
         (activeOrder.subTotal?.currency ?? activeOrder.finalTotalPrice?.currency)?.toString?.() ?? '';
 
+      const lastAddedItemFromOrder =
+        items.length ? items[items.length - 1].orderItemName : null;
       const lastAddedItem =
-        (items.length ? items[items.length - 1].orderItemName : null) ?? '—';
+        lastAddedItemFromOrder ?? existing?.lastAddedItem ?? '—';
 
       this.tableComputed[t.tableId] = {
         lastActionAt: this.tableComputed[t.tableId]?.lastActionAt ?? '',
@@ -1858,6 +1866,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           hasPendingForTable,
           lastAddedItem: payload.LastAddedItem ?? null,
           cartLines: cart.length,
+          tableItemCount: this.tableComputed[tableId]?.itemCount ?? null,
         });
 
         if (payload.OrderId) {

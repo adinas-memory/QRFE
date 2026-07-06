@@ -46,6 +46,8 @@ export class OrderSyncService {
   private lastSnapshotRefreshAt = 0;
   private readonly snapshotRefreshMinIntervalMs = 3000;
   private watermarkSequence = 0;
+  /** Last order-sync SSE sequence dispatched to the app (gap detection vs watermark). */
+  private lastDispatchedSequence = 0;
   private watermarkDropRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly watermarkDropRefreshDebounceMs = 250;
 
@@ -91,6 +93,7 @@ export class OrderSyncService {
       if (!sse) return;
       if (msg?.sourceTabId && msg.sourceTabId === this.tabId) return; // ignore own echoes
       this.ngZone.run(() => {
+        this.noteDispatchedSequence(sse.Sequence);
         this.eventsSubject.next(sse);
       });
     });
@@ -396,6 +399,21 @@ export class OrderSyncService {
             return;
           }
 
+          if (
+            Sequence
+            && this.isOrderSyncEventType(EventType)
+            && this.lastDispatchedSequence > 0
+            && Sequence > this.lastDispatchedSequence + 1
+          ) {
+            debugLog('sse-sync', 'order-sync.service.ts:onmessage', 'sequence gap', {
+              eventType: EventType,
+              sequence: Sequence,
+              lastDispatched: this.lastDispatchedSequence,
+              watermark: this.watermarkSequence,
+            });
+            this.scheduleRefreshAfterWatermarkDrop();
+          }
+
           if (this.isRefreshing && this.bufferWhileReconnecting) {
             this.bufferEvent(sse);
           } else {
@@ -405,6 +423,7 @@ export class OrderSyncService {
                 sequence: Sequence,
                 initiatedBy: InitiatedBy,
               });
+              this.noteDispatchedSequence(Sequence);
             }
             this.eventsSubject.next(sse);
           }
@@ -469,6 +488,9 @@ export class OrderSyncService {
         const seq = watermark?.Sequence ?? watermark?.sequence ?? 0;
         if (typeof seq === 'number' && seq > this.watermarkSequence) {
           this.watermarkSequence = seq;
+          if (seq > this.lastDispatchedSequence) {
+            this.lastDispatchedSequence = seq;
+          }
         }
 
         const tables = (json?.Tables ?? json?.tables ?? []) as any[];
@@ -546,6 +568,15 @@ export class OrderSyncService {
     return user != null || this.auth.isAuthenticated();
   }
 
+  private noteDispatchedSequence(sequence: number | undefined): void {
+    if (typeof sequence !== 'number' || sequence <= 0) {
+      return;
+    }
+    if (sequence > this.lastDispatchedSequence) {
+      this.lastDispatchedSequence = sequence;
+    }
+  }
+
   private scheduleRefreshAfterWatermarkDrop(): void {
     if (this.watermarkDropRefreshTimer !== null) {
       return;
@@ -574,6 +605,7 @@ export class OrderSyncService {
     if (!this.bufferWhileReconnecting) return;
     while (this.eventBuffer.length) {
       const ev = this.eventBuffer.shift()!;
+      this.noteDispatchedSequence(ev.Sequence);
       this.eventsSubject.next(ev);
     }
   }
