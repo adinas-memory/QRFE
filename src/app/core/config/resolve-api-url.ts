@@ -21,10 +21,16 @@ export function alignApiUrlWithPageHost(
       ?.isNativePlatform?.() === true;
 
   if (isNative) {
+    const pageProtocol = window.location.protocol;
+    const apiIsHttp = configured.startsWith('http://');
+    const mixedContentRisk = pageProtocol === 'https:' && apiIsHttp;
     debugLog('api-url', 'resolve-api-url.ts:native', 'apiUrl on native', {
       configured,
       returned: configured,
       pageOrigin: window.location.origin,
+      pageProtocol,
+      mixedContentRisk,
+      hypothesisId: mixedContentRisk ? 'H1-mixed-content' : undefined,
     });
     return configured;
   }

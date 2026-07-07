@@ -154,6 +154,8 @@ export class OnlineStateService {
         status: res.status,
         ok,
         pageProtocol,
+        hypothesisId: 'H1-mixed-content',
+        runId: 'post-fix',
       });
       const sseConnectivity = this.injector.get(SseConnectivityService);
       if (sseConnectivity.isStreamActive()) {
@@ -171,6 +173,8 @@ export class OnlineStateService {
         pingUrl,
         pageProtocol,
         error: String(err),
+        hypothesisId: 'H1-mixed-content',
+        runId: 'post-fix',
       });
       const sseConnectivity = this.injector.get(SseConnectivityService);
       if (!sseConnectivity.isStreamActive()) {
