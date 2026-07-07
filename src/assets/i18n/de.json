@@ -439,6 +439,24 @@
     "hideItems": "Ausblenden",
     "noItems": "Keine Positionen in dieser Bestellung."
   },
+  "manageStaff": {
+    "title": "Mitarbeiterkonto hinzufügen",
+    "subtitle": "Erstellen Sie Anmeldedaten für einen Mitarbeiter. Er kann die App sofort nutzen; Mitarbeiterkonten benötigen keine E-Mail-Verifizierung.",
+    "name": "Vorname",
+    "surname": "Nachname",
+    "email": "E-Mail",
+    "phone": "Telefon (optional)",
+    "password": "Passwort",
+    "confirmPassword": "Passwort bestätigen",
+    "submit": "Mitarbeiter erstellen",
+    "required": "Dieses Feld ist erforderlich.",
+    "emailInvalid": "Bitte eine gültige E-Mail-Adresse eingeben.",
+    "passwordRules": "Mindestens 8 Zeichen mit Groß- und Kleinbuchstaben, einer Ziffer und einem der folgenden Zeichen: @$!%*?&",
+    "passwordMismatch": "Die Passwörter stimmen nicht überein.",
+    "successTitle": "Mitarbeiter erstellt",
+    "successBody": "Der neue Mitarbeiter kann sich mit der von Ihnen festgelegten E-Mail und dem Passwort anmelden.",
+    "errorGeneric": "Mitarbeiter konnte nicht erstellt werden. Prüfen Sie die Angaben oder versuchen Sie es erneut."
+  },
   "reservations": {
     "title": "Reservierungen",
     "listTitle": "Reservierungsliste",

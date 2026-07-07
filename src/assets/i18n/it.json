@@ -439,6 +439,24 @@
     "hideItems": "Nascondi",
     "noItems": "Nessuna riga in questo ordine."
   },
+  "manageStaff": {
+    "title": "Aggiungi account staff",
+    "subtitle": "Crea le credenziali di accesso per un dipendente. Può usare l’app subito; gli account staff non richiedono la verifica dell’e-mail.",
+    "name": "Nome",
+    "surname": "Cognome",
+    "email": "Email",
+    "phone": "Telefono (opzionale)",
+    "password": "Password",
+    "confirmPassword": "Conferma password",
+    "submit": "Crea utente staff",
+    "required": "Questo campo è obbligatorio.",
+    "emailInvalid": "Inserisci un indirizzo email valido.",
+    "passwordRules": "Usa almeno 8 caratteri con maiuscole e minuscole, una cifra e uno tra: @$!%*?&",
+    "passwordMismatch": "Le password non corrispondono.",
+    "successTitle": "Staff creato",
+    "successBody": "Il nuovo membro dello staff può accedere con l’email e la password che hai impostato.",
+    "errorGeneric": "Impossibile creare l’utente staff. Controlla i dati o riprova."
+  },
   "reservations": {
     "title": "Prenotazioni",
     "listTitle": "Elenco prenotazioni",
