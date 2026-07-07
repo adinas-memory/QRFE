@@ -439,6 +439,24 @@
     "hideItems": "Ocultar",
     "noItems": "Sin líneas en este pedido."
   },
+  "manageStaff": {
+    "title": "Añadir cuenta de personal",
+    "subtitle": "Crea credenciales de acceso para un empleado. Puede usar la app inmediatamente; las cuentas de personal no requieren verificación de email.",
+    "name": "Nombre",
+    "surname": "Apellidos",
+    "email": "Email",
+    "phone": "Teléfono (opcional)",
+    "password": "Contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "submit": "Crear usuario de personal",
+    "required": "Este campo es obligatorio.",
+    "emailInvalid": "Introduce una dirección de email válida.",
+    "passwordRules": "Usa al menos 8 caracteres con mayúsculas y minúsculas, un número y uno de: @$!%*?&",
+    "passwordMismatch": "Las contraseñas no coinciden.",
+    "successTitle": "Personal creado",
+    "successBody": "El nuevo empleado puede iniciar sesión con el email y la contraseña que configuraste.",
+    "errorGeneric": "No se pudo crear el usuario de personal. Revisa los datos o inténtalo de nuevo."
+  },
   "reservations": {
     "title": "Reservas",
     "listTitle": "Lista de reservas",

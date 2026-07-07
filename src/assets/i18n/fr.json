@@ -439,6 +439,24 @@
     "hideItems": "Masquer",
     "noItems": "Aucune ligne sur cette commande."
   },
+  "manageStaff": {
+    "title": "Ajouter un compte employé",
+    "subtitle": "Créez des identifiants de connexion pour un employé. Il peut utiliser l’application immédiatement ; les comptes employés ne nécessitent pas de vérification par e-mail.",
+    "name": "Prénom",
+    "surname": "Nom",
+    "email": "E-mail",
+    "phone": "Téléphone (facultatif)",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "submit": "Créer l’utilisateur employé",
+    "required": "Ce champ est obligatoire.",
+    "emailInvalid": "Saisissez une adresse e-mail valide.",
+    "passwordRules": "Utilisez au moins 8 caractères avec majuscules et minuscules, un chiffre, et un de : @$!%*?&",
+    "passwordMismatch": "Les mots de passe ne correspondent pas.",
+    "successTitle": "Employé créé",
+    "successBody": "Le nouvel employé peut se connecter avec l’e-mail et le mot de passe que vous avez définis.",
+    "errorGeneric": "Impossible de créer l’utilisateur employé. Vérifiez les informations ou réessayez."
+  },
   "reservations": {
     "title": "Réservations",
     "listTitle": "Liste des réservations",

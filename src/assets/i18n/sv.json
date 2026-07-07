@@ -439,6 +439,24 @@
     "hideItems": "Dölj",
     "noItems": "Inga rader i denna beställning."
   },
+  "manageStaff": {
+    "title": "Lägg till personalkonto",
+    "subtitle": "Skapa inloggningsuppgifter för en anställd. De kan använda appen direkt; personalkonton kräver ingen e-postverifiering.",
+    "name": "Förnamn",
+    "surname": "Efternamn",
+    "email": "E-post",
+    "phone": "Telefon (valfritt)",
+    "password": "Lösenord",
+    "confirmPassword": "Bekräfta lösenord",
+    "submit": "Skapa personalanvändare",
+    "required": "Det här fältet är obligatoriskt.",
+    "emailInvalid": "Ange en giltig e-postadress.",
+    "passwordRules": "Använd minst 8 tecken med stora och små bokstäver, en siffra och ett av: @$!%*?&",
+    "passwordMismatch": "Lösenorden matchar inte.",
+    "successTitle": "Personal skapad",
+    "successBody": "Den nya medarbetaren kan logga in med e-posten och lösenordet som du angav.",
+    "errorGeneric": "Kunde inte skapa personalanvändaren. Kontrollera uppgifterna eller försök igen."
+  },
   "reservations": {
     "title": "Bokningar",
     "listTitle": "Bokningslista",
