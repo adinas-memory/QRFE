@@ -6,7 +6,7 @@ import { debugLog } from './debug-log.util';
 
 /** Must stay aligned with SSEController KeepAliveLoop delay (seconds) + grace. */
 export const SSE_PULSE_INTERVAL_MS = 5_000;
-export const SSE_STALE_GRACE_MS = 3_000;
+export const SSE_STALE_GRACE_MS = 1_000;
 /** Allow one missed pulse before offline (2× interval + grace). */
 export const STALE_THRESHOLD_MS = SSE_PULSE_INTERVAL_MS * 2 + SSE_STALE_GRACE_MS;
 const STALE_WATCH_INTERVAL_MS = 1_000;
