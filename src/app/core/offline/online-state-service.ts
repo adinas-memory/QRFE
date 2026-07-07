@@ -41,7 +41,7 @@ export class OnlineStateService {
   private resumeCheckInProgress = false;
   private supplementalHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
   /** Fast offline/online detection alongside SSE pulse (max ~10s when API stops). */
-  private readonly supplementalHeartbeatMs = 10_000;
+  private readonly supplementalHeartbeatMs = 5_000;
 
   constructor() {
     window.addEventListener('online', () => {
@@ -146,7 +146,7 @@ export class OnlineStateService {
       const res = await fetch(pingUrl, {
         method: 'HEAD',
         cache: 'no-store',
-        ...(hasAbortTimeout ? { signal: AbortSignal.timeout(8000) } : {}),
+        ...(hasAbortTimeout ? { signal: AbortSignal.timeout(3000) } : {}),
       });
       const ok = res.ok || res.status < 500;
       debugLog('connectivity', 'online-state-service.ts:executePing:result', 'ping-lite response', {

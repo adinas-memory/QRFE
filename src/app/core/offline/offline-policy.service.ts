@@ -67,15 +67,19 @@ export class OfflinePolicyService {
 
   /**
    * Heavy offline reconnect (countdown, queue drain, reconcile) runs only on the bound primary device
-   * when there is a pending queue or a real offline→online transition.
+   * when there is a pending offline queue or active open orders locally.
+   *
+   * Note: reconnect alone is not sufficient; otherwise the primary can lock the restaurant
+   * and block other devices even when there's nothing to replay/reconcile.
    */
   shouldRunHeavyOfflineReconnectSync(ctx: {
     isReconnect: boolean;
     pendingQueueCount: number;
+    hasAnyOpenOrdersLocal: boolean;
   }): boolean {
     if (!this.isOfflinePrimaryDevice()) {
       return false;
     }
-    return ctx.pendingQueueCount > 0 || ctx.isReconnect;
+    return ctx.pendingQueueCount > 0 || ctx.hasAnyOpenOrdersLocal;
   }
 }

@@ -142,17 +142,17 @@ describe('OfflinePolicyService', () => {
         role: 'staff',
         isOfflinePrimaryDevice: false,
       });
-      expect(service.shouldRunHeavyOfflineReconnectSync({ isReconnect: true, pendingQueueCount: 5 })).toBeFalse();
-      expect(service.shouldRunHeavyOfflineReconnectSync({ isReconnect: false, pendingQueueCount: 5 })).toBeFalse();
+      expect(service.shouldRunHeavyOfflineReconnectSync({ isReconnect: true, pendingQueueCount: 5, hasAnyOpenOrdersLocal: true })).toBeFalse();
+      expect(service.shouldRunHeavyOfflineReconnectSync({ isReconnect: false, pendingQueueCount: 5, hasAnyOpenOrdersLocal: true })).toBeFalse();
     });
 
-    it('returns true for primary on reconnect even without pending queue', () => {
+    it('returns false for primary on reconnect when no pending queue and no open orders', () => {
       userSubject.next({
         id: 'u1',
         role: 'staff',
         isOfflinePrimaryDevice: true,
       });
-      expect(service.shouldRunHeavyOfflineReconnectSync({ isReconnect: true, pendingQueueCount: 0 })).toBeTrue();
+      expect(service.shouldRunHeavyOfflineReconnectSync({ isReconnect: true, pendingQueueCount: 0, hasAnyOpenOrdersLocal: false })).toBeFalse();
     });
 
     it('returns true for primary with pending queue even without reconnect', () => {
@@ -161,7 +161,7 @@ describe('OfflinePolicyService', () => {
         role: 'staff',
         isOfflinePrimaryDevice: true,
       });
-      expect(service.shouldRunHeavyOfflineReconnectSync({ isReconnect: false, pendingQueueCount: 2 })).toBeTrue();
+      expect(service.shouldRunHeavyOfflineReconnectSync({ isReconnect: false, pendingQueueCount: 2, hasAnyOpenOrdersLocal: false })).toBeTrue();
     });
 
     it('returns false for primary with no reconnect and empty queue', () => {
@@ -170,7 +170,17 @@ describe('OfflinePolicyService', () => {
         role: 'staff',
         isOfflinePrimaryDevice: true,
       });
-      expect(service.shouldRunHeavyOfflineReconnectSync({ isReconnect: false, pendingQueueCount: 0 })).toBeFalse();
+      expect(service.shouldRunHeavyOfflineReconnectSync({ isReconnect: false, pendingQueueCount: 0, hasAnyOpenOrdersLocal: false })).toBeFalse();
+    });
+
+    it('returns true for primary when open orders exist locally even with empty queue', () => {
+      userSubject.next({
+        id: 'u1',
+        role: 'staff',
+        isOfflinePrimaryDevice: true,
+      });
+      expect(service.shouldRunHeavyOfflineReconnectSync({ isReconnect: true, pendingQueueCount: 0, hasAnyOpenOrdersLocal: true })).toBeTrue();
+      expect(service.shouldRunHeavyOfflineReconnectSync({ isReconnect: false, pendingQueueCount: 0, hasAnyOpenOrdersLocal: true })).toBeTrue();
     });
   });
 

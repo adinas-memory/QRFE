@@ -459,4 +459,50 @@ export class OfflineDbService {
         return rows as TableDTO[];
     }
 
+    /**
+     * True when Dexie indicates any table has an active open order (from /api/sync snapshot
+     * or from locally-merged pending/offline state).
+     *
+     * This is intentionally conservative: when in doubt, returns true (so we do not skip sync).
+     */
+    async hasAnyActiveOpenOrdersLocal(restaurantId: string): Promise<boolean> {
+        if (!restaurantId) return true;
+
+        // 1) Tables snapshot with active orders.
+        try {
+            const tables = await this.db.tablesStore.toArray();
+            for (const t of tables ?? []) {
+                if (!t?.tableId) continue;
+                const rid = (t as any).restaurantId as string | undefined;
+                if (rid && rid !== restaurantId) continue;
+                const order = (t as any).order as OrderDTO | undefined;
+                if (tableHasActiveOrder(order)) {
+                    return true;
+                }
+            }
+        } catch {
+            // If Dexie is unavailable/corrupt, err on the side of syncing.
+            return true;
+        }
+
+        // 2) Carts: any non-empty cart or stored orderId means "open work".
+        // Older records may not have restaurantId populated; treat those as relevant (conservative).
+        try {
+            const carts = await this.db.carts.toArray();
+            for (const c of carts ?? []) {
+                const rid = c?.restaurantId;
+                if (rid && rid !== restaurantId) continue;
+                const hasItems = (c?.items?.length ?? 0) > 0;
+                const hasOrderId = !!(c?.orderId?.trim?.() ?? '');
+                if (hasItems || hasOrderId) {
+                    return true;
+                }
+            }
+        } catch {
+            return true;
+        }
+
+        return false;
+    }
+
 }
