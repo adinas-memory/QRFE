@@ -486,6 +486,14 @@ export class OrderSyncService {
           headers: this.nativeAuthTokens.authHeaders(),
         });
         if (res.status === 401) {
+          debugLog('sse-sync', 'order-sync.service.ts:syncRestaurantState', 'sync http 401', {
+            caller,
+            attempt,
+            refreshedAfter401,
+            willRefresh: !refreshedAfter401 && this.onlineStateService.isOnline,
+            hasBearer: Object.keys(this.nativeAuthTokens.authHeaders()).length > 0,
+            hypothesisId: 'H13-staff-cookie-guard',
+          });
           if (!refreshedAfter401 && this.onlineStateService.isOnline) {
             refreshedAfter401 = true;
             const refreshed = await this.ensureFreshSession();
