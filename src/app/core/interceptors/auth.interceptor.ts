@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { AuthService, isHttpAuthFailure } from '../auth/auth.service';
 import { Router } from '@angular/router';
 import { SseConnectivityService } from '../offline/sse-connectivity.service';
+import { debugLog } from '../offline/debug-log.util';
 import { catchError, switchMap, throwError, timeout } from 'rxjs';
 
 const REFRESH_TIMEOUT_MS = 15_000;
@@ -39,6 +40,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
       if (error.status === 401 && !isPublic) {
         if (req.context.get(AUTH_RETRIED)) {
+          debugLog('auth', 'auth.interceptor.ts', 'kick to login after retry 401', {
+            url: req.url,
+            hypothesisId: 'H8-cookie-kickout',
+          });
           auth.clearUser();
           router.navigate(['/login']);
           return throwError(() => error);
@@ -58,6 +63,11 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
           }),
           catchError(err => {
             if (isHttpAuthFailure(err)) {
+              debugLog('auth', 'auth.interceptor.ts', 'kick to login after refresh failed', {
+                url: req.url,
+                refreshStatus: (err as HttpErrorResponse)?.status ?? null,
+                hypothesisId: 'H8-cookie-kickout',
+              });
               auth.clearUser();
               router.navigate(['/login']);
             }

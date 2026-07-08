@@ -54,7 +54,7 @@ npm run android:lan-apk
 # apoi Build APK în Android Studio
 ```
 
-Folosește `environment.capacitor.lan.ts` + `capacitor.config.lan-apk.ts` (copiat la sync). Setează `androidScheme: http` ca `fetch()` către `http://IP` să nu fie blocat de mixed-content (WebView default e `https://localhost`).
+Folosește `environment.capacitor.lan.ts` + `cap-sync-lan-apk.mjs`. Setează `androidScheme: http` și `hostname: IP LAN` ca origin-ul WebView (`http://IP`) să coincidă cu `apiUrl` — altfel cookie-urile de login nu se trimit (kickout la ~1s după login).
 
 **Nu folosi** doar `npx cap sync` după `build:capacitor-lan` — lipsește `androidScheme: http`.
 

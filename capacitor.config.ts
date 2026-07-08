@@ -10,8 +10,10 @@ const config: CapacitorConfig = {
   webDir: 'dist/browser',
   ...(lanApk
     ? {
+        // Match API host so auth cookies are first-party (not http://localhost → http://IP).
         server: {
           androidScheme: 'http',
+          hostname: lanIp,
           cleartext: true,
         },
       }
