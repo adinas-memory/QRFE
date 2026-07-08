@@ -36,7 +36,7 @@ export class NativeAuthTokenService {
   }
 
   getRefreshToken(): string | null {
-    return this.refreshToken?.trim() || null;
+    return this.normalizeRefreshToken(this.refreshToken);
   }
 
   authHeaders(): Record<string, string> {
@@ -66,13 +66,15 @@ export class NativeAuthTokenService {
     if (access?.trim()) {
       this.accessToken = access.trim();
     }
-    if (refresh?.trim()) {
-      this.refreshToken = refresh.trim();
+    const normalizedRefresh = this.normalizeRefreshToken(refresh);
+    if (normalizedRefresh) {
+      this.refreshToken = normalizedRefresh;
     }
-    if (access?.trim() || refresh?.trim()) {
+    if (access?.trim() || normalizedRefresh) {
       debugLog('auth', 'native-auth-token.service.ts', 'native tokens captured', {
         hasAccess: !!access?.trim(),
-        hasRefresh: !!refresh?.trim(),
+        hasRefresh: !!normalizedRefresh,
+        refreshHadPercent: !!refresh?.includes('%'),
         hypothesisId: 'H9-native-bearer',
       });
       void this.persist();
@@ -95,7 +97,23 @@ export class NativeAuthTokenService {
       this.storage.getString(REFRESH_TOKEN_KEY),
     ]);
     this.accessToken = access?.trim() || null;
-    this.refreshToken = refresh?.trim() || null;
+    this.refreshToken = this.normalizeRefreshToken(refresh);
+  }
+
+  /** Cookie / persisted values may be URL-encoded (%24 → $); DB stores decoded bcrypt hash. */
+  private normalizeRefreshToken(token: string | null | undefined): string | null {
+    const trimmed = token?.trim();
+    if (!trimmed) {
+      return null;
+    }
+    if (!trimmed.includes('%')) {
+      return trimmed;
+    }
+    try {
+      return decodeURIComponent(trimmed);
+    } catch {
+      return trimmed;
+    }
   }
 
   private async persist(): Promise<void> {
