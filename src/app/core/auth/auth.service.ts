@@ -7,6 +7,7 @@ import { UserContextModel } from '../models/userContextModel';
 import { RegisterUserRequestModel } from '../models/registerUserRequestModel';
 import { environment } from '../../../environments/environment';
 import { LoginUserRequestModel } from '../models/loginUserRequestModel';
+import { debugLog } from '../offline/debug-log.util';
 import { PushRegistrationService } from '../services/push/push-registration.service';
 import { normalizeRestaurantId } from './restaurant-id.util';
 
@@ -156,7 +157,13 @@ export class AuthService {
   }
 
   loginUser(payload: LoginUserRequestModel): Observable<any> {
-    return this.http.post(`${this.apiUrl}/api/user/login`, payload, {
+    const url = `${this.apiUrl}/api/user/login`;
+    debugLog('auth', 'auth.service.ts:loginUser', 'login attempt', {
+      url,
+      pageProtocol: typeof window !== 'undefined' ? window.location.protocol : null,
+      hypothesisId: 'H4-login-fails',
+    });
+    return this.http.post(url, payload, {
       headers: { 'Content-Type': 'application/json' }, withCredentials: true
     });
   }

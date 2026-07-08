@@ -303,6 +303,12 @@ export class OrderSyncService {
     this.connectedRestaurantId = restaurantId;
 
     const url = `${this.apiUrl.replace(/\/$/, '')}/sse/internal/restaurant/${restaurantId}`;
+    debugLog('sse', 'order-sync.service.ts:openConnection', 'sse open attempt', {
+      url,
+      restaurantId,
+      pageProtocol: typeof window !== 'undefined' ? window.location.protocol : null,
+      hypothesisId: 'H3-sse-open-fails',
+    });
 
     // reset reconnect attempts on manual open
     // (we'll increment on failures)
@@ -318,6 +324,11 @@ export class OrderSyncService {
        */
       openWhenHidden: true,
       onopen: async (response) => {
+        debugLog('sse', 'order-sync.service.ts:onopen', 'sse onopen', {
+          status: response.status,
+          ok: response.ok,
+          hypothesisId: 'H3-sse-open-fails',
+        });
         if (!response.ok) {
           const www = response.headers.get('www-authenticate');
           throw this.toSseHttpError(response.status, www);
@@ -433,6 +444,11 @@ export class OrderSyncService {
       onerror: (err) => {
         // fetchEventSource calls onerror on network/auth issues
         console.error('[SSE][internal] error', err);
+        debugLog('sse', 'order-sync.service.ts:onerror', 'sse onerror', {
+          status: (err as { status?: number })?.status ?? null,
+          message: String((err as Error)?.message ?? err),
+          hypothesisId: 'H3-sse-open-fails',
+        });
         const status = (err as { status?: number })?.status;
         const msg = String((err as Error)?.message ?? '');
         const isAuth401 = status === 401 || msg.includes('HTTP 401') || msg.includes('invalid_token');
