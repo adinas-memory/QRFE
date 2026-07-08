@@ -8,6 +8,7 @@ import { ColorModeService } from '@coreui/angular';
 import { IconSetService, } from '@coreui/icons-angular';
 import { iconSubset } from './icons/icon-subset';
 import { AuthService } from './core/auth/auth.service';
+import { NativeAuthTokenService } from './core/auth/native-auth-token.service';
 import { SpinnerComponent } from "./shared/components/spinner/spinner.component";
 import { OrderSyncService } from './core/services/order-service/order-sync.service';
 import { OnlineStateService } from './core/offline/online-state-service';
@@ -93,6 +94,7 @@ export class AppComponent implements OnInit {
   readonly #router = inject(Router);
   readonly #titleService = inject(Title);
   readonly #authService = inject(AuthService);
+  readonly #nativeAuthTokens = inject(NativeAuthTokenService);
   readonly #colorModeService = inject(ColorModeService);
   readonly #iconSetService = inject(IconSetService);
   readonly #orderSyncService = inject(OrderSyncService);
@@ -148,6 +150,7 @@ export class AppComponent implements OnInit {
       pageProtocol: typeof window !== 'undefined' ? window.location.protocol : null,
     });
     if (Capacitor.isNativePlatform()) {
+      void this.#nativeAuthTokens.initialize();
       void this.#onlineStateService.confirmConnectivity(true);
     }
     this.#pushRegistration.init();

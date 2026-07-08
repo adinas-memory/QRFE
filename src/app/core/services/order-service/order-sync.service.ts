@@ -6,6 +6,7 @@ import { fetchEventSource, EventStreamContentType } from '@microsoft/fetch-event
 import { environment } from '../../../../environments/environment';
 import { SseEvent } from '../../models/sseModel';
 import { AuthService } from '../../auth/auth.service';
+import { NativeAuthTokenService } from '../../auth/native-auth-token.service';
 import { isAssignedRestaurantId } from '../../auth/restaurant-id.util';
 import { OfflineSyncSchedulerService } from '../../offline/offline-sync-scheduler.service';
 import { OfflineQueueProcessor } from '../../offline/offline-queue-processor.service';
@@ -76,6 +77,7 @@ export class OrderSyncService {
   }
 
   constructor(private auth: AuthService,
+    private nativeAuthTokens: NativeAuthTokenService,
     private ngZone: NgZone,
     private syncScheduler: OfflineSyncSchedulerService,
     private queueProcessor: OfflineQueueProcessor,
@@ -316,6 +318,7 @@ export class OrderSyncService {
     fetchEventSource(url, {
       method: 'GET',
       credentials: 'include',
+      headers: this.nativeAuthTokens.authHeaders(),
       signal: this.controller.signal,
       /**
        * Default library behaviour aborts SSE while the document is hidden, which drops events
@@ -477,7 +480,11 @@ export class OrderSyncService {
 
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const res = await fetch(url, { method: 'GET', credentials: 'include' });
+        const res = await fetch(url, {
+          method: 'GET',
+          credentials: 'include',
+          headers: this.nativeAuthTokens.authHeaders(),
+        });
         if (res.status === 401) {
           if (!refreshedAfter401 && this.onlineStateService.isOnline) {
             refreshedAfter401 = true;

@@ -1,6 +1,7 @@
 import { HttpInterceptorFn, HttpErrorResponse, HttpContextToken } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { AuthService, isHttpAuthFailure } from '../auth/auth.service';
+import { NativeAuthTokenService } from '../auth/native-auth-token.service';
 import { Router } from '@angular/router';
 import { SseConnectivityService } from '../offline/sse-connectivity.service';
 import { debugLog } from '../offline/debug-log.util';
@@ -18,12 +19,16 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const router = inject(Router);
   const sseConnectivity = inject(SseConnectivityService);
+  const nativeAuthTokens = inject(NativeAuthTokenService);
 
   const isPublic = req.url.includes('/public/');
   const isRefresh = req.url.includes('/refresh-token');
   const isLogin = req.url.includes('/login');
 
-  const request = req.clone({ withCredentials: true });
+  const request = req.clone({
+    withCredentials: true,
+    setHeaders: nativeAuthTokens.authHeaders(),
+  });
 
   return next(request).pipe(
     catchError((error: HttpErrorResponse) => {
