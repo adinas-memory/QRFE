@@ -339,6 +339,14 @@ export class AuthService {
     const refreshHeaders: Record<string, string> = {};
     if (this.nativeAuthTokens.isEnabled()) {
       refreshHeaders[NATIVE_AUTH_HEADER] = '1';
+      const rt = refreshBody.refreshToken;
+      debugLog('auth', 'auth.service.ts', 'native refresh request', {
+        hasRefreshToken: !!rt,
+        refreshLen: rt?.length ?? 0,
+        refreshHasPercent: rt?.includes('%') ?? false,
+        refreshStartsDollar2a: rt?.startsWith('$2') ?? false,
+        hypothesisId: 'H10-refresh-decode',
+      });
     }
 
     const refreshPromise = firstValueFrom(
