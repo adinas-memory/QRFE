@@ -66,6 +66,23 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     const formValue = this.loginForm.value;
 
+    // #region agent log
+    try {
+      const emailRaw = String(formValue.email ?? '');
+      const passwordRaw = String(formValue.password ?? '');
+      debugLog('auth', 'login.component.ts:onSubmit', 'login submit snapshot (no PII)', {
+        hypothesisId: 'H5-invalid-credentials-client-side',
+        emailLength: emailRaw.length,
+        emailTrimChanged: emailRaw.trim() !== emailRaw,
+        emailHasUppercase: /[A-Z]/.test(emailRaw),
+        passwordLength: passwordRaw.length,
+        passwordTrimChanged: passwordRaw.trim() !== passwordRaw,
+      });
+    } catch {
+      // best-effort
+    }
+    // #endregion agent log
+
 
       this.authService.loginUser(formValue).subscribe({
         next: (response: unknown) => {
