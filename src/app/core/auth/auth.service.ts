@@ -10,6 +10,7 @@ import { LoginUserRequestModel } from '../models/loginUserRequestModel';
 import { debugLog } from '../offline/debug-log.util';
 import { PushRegistrationService } from '../services/push/push-registration.service';
 import { normalizeRestaurantId } from './restaurant-id.util';
+import { NATIVE_AUTH_HEADER, NativeAuthTokenService } from './native-auth-token.service';
 
 export function isHttpAuthFailure(err: unknown): boolean {
   const status = (err as HttpErrorResponse)?.status;
@@ -99,6 +100,7 @@ export class AuthService {
     private http: HttpClient,
     private router: Router,
     private injector: Injector,
+    private nativeAuthTokens: NativeAuthTokenService,
   ) { }
 
   // --- Public API ---
@@ -156,16 +158,26 @@ export class AuthService {
     return normalizeRestaurantId(id);
   }
 
-  loginUser(payload: LoginUserRequestModel): Observable<any> {
+  loginUser(payload: LoginUserRequestModel): Observable<unknown> {
     const url = `${this.apiUrl}/api/user/login`;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (this.nativeAuthTokens.isEnabled()) {
+      headers[NATIVE_AUTH_HEADER] = '1';
+    }
     debugLog('auth', 'auth.service.ts:loginUser', 'login attempt', {
       url,
       pageProtocol: typeof window !== 'undefined' ? window.location.protocol : null,
+      nativeAuth: this.nativeAuthTokens.isEnabled(),
       hypothesisId: 'H4-login-fails',
     });
     return this.http.post(url, payload, {
-      headers: { 'Content-Type': 'application/json' }, withCredentials: true
-    });
+      headers,
+      withCredentials: true,
+    }).pipe(
+      tap((response) => {
+        this.nativeAuthTokens.captureFromAuthPayload(response);
+      }),
+    );
   }
 
   registerUser(payload: RegisterUserRequestModel): Observable<any> {
@@ -249,6 +261,7 @@ export class AuthService {
   clearUser(): void {
     this.userSubject.next(null);
     localStorage.removeItem('UserCtx');
+    void this.nativeAuthTokens.clear();
   }
 
   /**
@@ -320,10 +333,24 @@ export class AuthService {
       return this.refreshShared$;
     }
 
+    const refreshBody = this.nativeAuthTokens.isEnabled()
+      ? { refreshToken: this.nativeAuthTokens.getRefreshToken() }
+      : {};
+    const refreshHeaders: Record<string, string> = {};
+    if (this.nativeAuthTokens.isEnabled()) {
+      refreshHeaders[NATIVE_AUTH_HEADER] = '1';
+    }
+
     const refreshPromise = firstValueFrom(
       this.http
-        .post<unknown>(`${this.apiUrl}/api/user/refresh-token`, {}, { withCredentials: true })
+        .post<unknown>(`${this.apiUrl}/api/user/refresh-token`, refreshBody, {
+          withCredentials: true,
+          headers: refreshHeaders,
+        })
         .pipe(
+          tap((raw) => {
+            this.nativeAuthTokens.captureFromAuthPayload(raw);
+          }),
           map(raw => this.resolveUserAfterRefresh(raw)),
           tap(user => {
             if (user) this.setUser(user);

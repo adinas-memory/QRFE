@@ -54,7 +54,7 @@ npm run android:lan-apk
 # apoi Build APK în Android Studio
 ```
 
-Folosește `environment.capacitor.lan.ts` + `cap-sync-lan-apk.mjs`. Setează `androidScheme: http` și `hostname: IP LAN` ca origin-ul WebView (`http://IP`) să coincidă cu `apiUrl` — altfel cookie-urile de login nu se trimit (kickout la ~1s după login).
+Folosește `environment.capacitor.lan.ts` + `cap-sync-lan-apk.mjs`. Setează `androidScheme: http` (origin `http://localhost`). **Nu** seta `hostname` la IP-ul API — Capacitor interceptează request-urile și returnează HTML. Auth pe native folosește Bearer tokens (`X-URS-Native-Auth`).
 
 **Nu folosi** doar `npx cap sync` după `build:capacitor-lan` — lipsește `androidScheme: http`.
 
