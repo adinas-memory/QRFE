@@ -26,6 +26,7 @@ import { SubscriptionService } from '../../../core/services/subscription-service
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
 import { UserContextModel } from '../../../core/models/userContextModel';
+import { debugLog } from '../../../core/offline/debug-log.util';
 
 @Component({
   selector: 'app-login',
@@ -88,6 +89,11 @@ export class LoginComponent implements OnInit, OnDestroy {
         },
         error: (error: unknown) => {
           console.error('Login failed:', error);
+          debugLog('auth', 'login.component.ts:onSubmit', 'login failed', {
+            status: (error as { status?: number })?.status ?? null,
+            message: String((error as { message?: string })?.message ?? error),
+            hypothesisId: 'H4-login-fails',
+          });
           this.toast.error(this.misc.getFirstErrorMessage(error), this.transloco.translate('common.loginFailed'));
         }
       });

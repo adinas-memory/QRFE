@@ -181,7 +181,7 @@ export class OfflineSyncSchedulerService {
       const restaurantId = this.auth.getUserSnapshot()?.restaurantId ?? '';
       const hasAnyOpenOrdersLocal = restaurantId
         ? await this.offlineDb.hasAnyActiveOpenOrdersLocal(restaurantId)
-        : true;
+        : false;
 
       const willRunHeavySync = this.offlinePolicy.shouldRunHeavyOfflineReconnectSync({
         isReconnect,

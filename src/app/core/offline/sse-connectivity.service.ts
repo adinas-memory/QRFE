@@ -95,6 +95,13 @@ export class SseConnectivityService {
     if (this.streamOpen && pulseFresh) {
       return;
     }
+    if (this.lastPulseAt === 0) {
+      debugLog('sse', 'sse-connectivity.service.ts:reportStreamError', 'ignored pre-stream error', {
+        hypothesisId: 'H2-sse-closed-before-open',
+        isAuth401,
+      });
+      return;
+    }
     this.scheduleOffline('sse-error');
   }
 
@@ -106,8 +113,17 @@ export class SseConnectivityService {
   }
 
   reportStreamClosed(): void {
+    const hadSuccessfulStream = this.lastPulseAt > 0;
     this.streamOpen = false;
     if (this.sseReconnecting) {
+      return;
+    }
+    // Failed open / pre-login close — ping-lite remains connectivity source of truth.
+    if (!hadSuccessfulStream) {
+      debugLog('sse', 'sse-connectivity.service.ts:reportStreamClosed', 'ignored pre-stream close', {
+        hypothesisId: 'H2-sse-closed-before-open',
+        lastPulseAt: this.lastPulseAt,
+      });
       return;
     }
     this.scheduleOffline('sse-closed');
@@ -172,6 +188,7 @@ export class SseConnectivityService {
     if (this.streamOpen) {
       return;
     }
+    this.clearOfflineDebounce();
     this.onlineState.setOnlineFromConnectivitySource();
   }
 
