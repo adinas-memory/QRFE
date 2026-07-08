@@ -297,7 +297,11 @@ export class AuthService {
   // --- Refresh from backend ---
 
   pingSession(isPublic: boolean = false): Observable<UserContextModel | null> {
-    return this.http.get<unknown>(`${this.apiUrl}/api/user/ping`, { withCredentials: true }).pipe(
+    const pingOptions = {
+      withCredentials: true,
+      headers: this.nativeAuthTokens.authHeaders(),
+    };
+    return this.http.get<unknown>(`${this.apiUrl}/api/user/ping`, pingOptions).pipe(
       map(raw => normalizeUserContext(raw)),
       tap(user => {
         if (user) this.setUser(user);
@@ -311,7 +315,7 @@ export class AuthService {
                 console.warn('Refresh credentials failed. Redirect @Login.');
                 return of(null);
               }
-              return this.http.get<unknown>(`${this.apiUrl}/api/user/ping`, { withCredentials: true }).pipe(
+              return this.http.get<unknown>(`${this.apiUrl}/api/user/ping`, pingOptions).pipe(
                 map(raw => normalizeUserContext(raw)),
                 tap(u => {
                   if (u) this.setUser(u);
