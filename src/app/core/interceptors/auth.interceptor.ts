@@ -25,10 +25,14 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const isRefresh = req.url.includes('/refresh-token');
   const isLogin = req.url.includes('/login');
 
-  const request = req.clone({
-    withCredentials: true,
-    setHeaders: nativeAuthTokens.authHeaders(),
-  });
+  const withAuthHeaders = (base: typeof req, retried: boolean) =>
+    base.clone({
+      context: base.context.set(AUTH_RETRIED, retried),
+      withCredentials: true,
+      setHeaders: nativeAuthTokens.authHeaders(),
+    });
+
+  const request = withAuthHeaders(req, false);
 
   return next(request).pipe(
     catchError((error: HttpErrorResponse) => {
@@ -56,6 +60,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         // 401 means the API responded — session may be expired while network is fine.
         sseConnectivity.reportStreamActivity('http-401');
         auth.hydrateSessionFromStorageIfNeeded();
+        let attemptedRetry = false;
         return auth.refreshUserContext({ redirectOnFailure: false }).pipe(
           timeout({ first: REFRESH_TIMEOUT_MS }),
           switchMap((user) => {
@@ -64,14 +69,16 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
             if (!sessionOk) {
               return throwError(() => error);
             }
-            return next(req.clone({ context: req.context.set(AUTH_RETRIED, true) }));
+            attemptedRetry = true;
+            return next(withAuthHeaders(req, true));
           }),
           catchError(err => {
             if (isHttpAuthFailure(err)) {
-              debugLog('auth', 'auth.interceptor.ts', 'kick to login after refresh failed', {
+              debugLog('auth', 'auth.interceptor.ts', attemptedRetry ? 'kick to login after retry 401' : 'kick to login after refresh failed', {
                 url: req.url,
                 refreshStatus: (err as HttpErrorResponse)?.status ?? null,
-                hypothesisId: 'H8-cookie-kickout',
+                hadBearerOnRetry: attemptedRetry && Object.keys(nativeAuthTokens.authHeaders()).length > 0,
+                hypothesisId: 'H11-ping-cookie-only',
               });
               auth.clearUser();
               router.navigate(['/login']);
