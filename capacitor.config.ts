@@ -10,6 +10,7 @@ const config: CapacitorConfig = {
   webDir: 'dist/browser',
   ...(lanApk
     ? {
+        // Do NOT set hostname to the API IP — Capacitor intercepts same-host requests and serves index.html.
         server: {
           androidScheme: 'http',
           cleartext: true,

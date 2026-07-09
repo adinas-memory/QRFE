@@ -34,11 +34,24 @@ describe('SseConnectivityService', () => {
     expect(onlineState.notifyConnectivityPulse).toHaveBeenCalled();
   });
 
-  it('reportStreamError schedules offline for non-auth errors when stream is closed', fakeAsync(() => {
+  it('reportStreamClosed before first open does not mark offline', fakeAsync(() => {
+    service.reportStreamClosed();
+    tick(500);
+    expect(onlineState.setOfflineFromConnectivitySource).not.toHaveBeenCalled();
+  }));
+
+  it('reportStreamError schedules offline for non-auth errors after stream was open', fakeAsync(() => {
+    service.reportStreamOpened();
     service.reportStreamClosed();
     service.reportStreamError(false);
     tick(500);
     expect(onlineState.setOfflineFromConnectivitySource).toHaveBeenCalled();
+  }));
+
+  it('reportStreamError before first open does not mark offline', fakeAsync(() => {
+    service.reportStreamError(false);
+    tick(500);
+    expect(onlineState.setOfflineFromConnectivitySource).not.toHaveBeenCalled();
   }));
 
   it('reportStreamError is ignored when SSE pulses are still fresh', fakeAsync(() => {

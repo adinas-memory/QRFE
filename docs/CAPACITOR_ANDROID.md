@@ -54,7 +54,7 @@ npm run android:lan-apk
 # apoi Build APK în Android Studio
 ```
 
-Folosește `environment.capacitor.lan.ts` + `capacitor.config.lan-apk.ts` (copiat la sync). Setează `androidScheme: http` ca `fetch()` către `http://IP` să nu fie blocat de mixed-content (WebView default e `https://localhost`).
+Folosește `environment.capacitor.lan.ts` + `cap-sync-lan-apk.mjs`. Setează `androidScheme: http` (origin `http://localhost`). **Nu** seta `hostname` la IP-ul API — Capacitor interceptează request-urile și returnează HTML. Auth pe native folosește Bearer tokens (`X-URS-Native-Auth`).
 
 **Nu folosi** doar `npx cap sync` după `build:capacitor-lan` — lipsește `androidScheme: http`.
 

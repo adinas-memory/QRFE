@@ -81,7 +81,8 @@ export class DefaultLayoutComponent implements OnInit {
   constructor(private auth: AuthService, public iconSet: IconSetService) {}
 
   ngOnInit(): void {
-    this.userRole = this.auth.getUserSnapshot()?.role ?? 'default';
+    this.auth.hydrateSessionFromStorageIfNeeded();
+    this.userRole = this.auth.getUserRole() ?? 'default';
     this.restaurantName = this.auth.getRestaurantCtx()?.name ?? null;
 
     this.auth.user$
@@ -89,13 +90,18 @@ export class DefaultLayoutComponent implements OnInit {
       .subscribe(user => {
         const next = user?.restaurantName ?? this.auth.getRestaurantCtx()?.name ?? null;
         this.restaurantName = next;
+        const role = user?.role ?? this.auth.getUserRole() ?? 'default';
+        if (role !== this.userRole) {
+          this.userRole = role;
+          this.refreshNavItems('user$');
+        }
       });
 
     // Wait for translation files before translate(); avoids raw keys (e.g. sidebar.manage) on slow/async loads (Edge).
     const afterLangReady$ = this.transloco.load(this.transloco.getActiveLang()).pipe(catchError(() => of(undefined)));
 
     afterLangReady$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      this.navItems = this.getNavItemsForRole(this.userRole);
+      this.refreshNavItems('lang-ready');
     });
 
     this.transloco.langChanges$
@@ -106,8 +112,12 @@ export class DefaultLayoutComponent implements OnInit {
         )
       )
       .subscribe(() => {
-        this.navItems = this.getNavItemsForRole(this.userRole);
+        this.refreshNavItems('lang-change');
       });
+  }
+
+  private refreshNavItems(_source: string): void {
+    this.navItems = this.getNavItemsForRole(this.userRole);
   }
 
   getNavItemsForRole(role: string): INavData[] {

@@ -6,6 +6,7 @@ import { fetchEventSource, EventStreamContentType } from '@microsoft/fetch-event
 import { environment } from '../../../../environments/environment';
 import { SseEvent } from '../../models/sseModel';
 import { AuthService } from '../../auth/auth.service';
+import { NativeAuthTokenService } from '../../auth/native-auth-token.service';
 import { isAssignedRestaurantId } from '../../auth/restaurant-id.util';
 import { OfflineSyncSchedulerService } from '../../offline/offline-sync-scheduler.service';
 import { OfflineQueueProcessor } from '../../offline/offline-queue-processor.service';
@@ -16,7 +17,6 @@ import { OfflinePrintConfigDto } from '../../offline/offline-print-config.model'
 import { OfflinePolicyService } from '../../offline/offline-policy.service';
 import { OfflineSyncLockService } from '../../offline/offline-sync-lock.service';
 import { SseConnectivityService } from '../../offline/sse-connectivity.service';
-import { debugLog } from '../../offline/debug-log.util';
 import { Capacitor } from '@capacitor/core';
 
 @Injectable({
@@ -76,6 +76,7 @@ export class OrderSyncService {
   }
 
   constructor(private auth: AuthService,
+    private nativeAuthTokens: NativeAuthTokenService,
     private ngZone: NgZone,
     private syncScheduler: OfflineSyncSchedulerService,
     private queueProcessor: OfflineQueueProcessor,
@@ -134,9 +135,6 @@ export class OrderSyncService {
     // Stale-watch detected a zombie stream — abort and reopen SSE.
     this.sseConnectivity.forceReconnect$.subscribe(() => {
       const rid = this.connectedRestaurantId ?? this.resolveRestaurantId();
-      debugLog('sse-sync', 'order-sync.service.ts:forceReconnect', 'zombie reconnect', {
-        restaurantId: rid,
-      });
       this.close(false);
       this.reconnectAttempts = 0;
       if (rid && this.onlineStateService.isOnline) {
@@ -310,6 +308,7 @@ export class OrderSyncService {
     fetchEventSource(url, {
       method: 'GET',
       credentials: 'include',
+      headers: this.nativeAuthTokens.authHeaders(),
       signal: this.controller.signal,
       /**
        * Default library behaviour aborts SSE while the document is hidden, which drops events
@@ -388,11 +387,6 @@ export class OrderSyncService {
           }
 
           if (Sequence && Sequence < this.watermarkSequence) {
-            debugLog('sse-sync', 'order-sync.service.ts:onmessage', 'watermark drop', {
-              eventType: EventType,
-              sequence: Sequence,
-              watermark: this.watermarkSequence,
-            });
             if (this.isOrderSyncEventType(EventType)) {
               this.scheduleRefreshAfterWatermarkDrop();
             }
@@ -412,11 +406,6 @@ export class OrderSyncService {
             this.bufferEvent(sse);
           } else {
             if (this.isOrderSyncEventType(EventType)) {
-              debugLog('sse-sync', 'order-sync.service.ts:emit', 'sse event dispatched', {
-                eventType: EventType,
-                sequence: Sequence,
-                initiatedBy: InitiatedBy,
-              });
               this.noteDispatchedSequence(Sequence);
             }
             this.eventsSubject.next(sse);
@@ -461,7 +450,11 @@ export class OrderSyncService {
 
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const res = await fetch(url, { method: 'GET', credentials: 'include' });
+        const res = await fetch(url, {
+          method: 'GET',
+          credentials: 'include',
+          headers: this.nativeAuthTokens.authHeaders(),
+        });
         if (res.status === 401) {
           if (!refreshedAfter401 && this.onlineStateService.isOnline) {
             refreshedAfter401 = true;
@@ -488,11 +481,6 @@ export class OrderSyncService {
         }
 
         const tables = (json?.Tables ?? json?.tables ?? []) as any[];
-        debugLog('sse-sync', 'order-sync.service.ts:syncRestaurantState', 'snapshot applied', {
-          caller,
-          watermark: seq,
-          tableCount: tables.length,
-        });
         const activeGuestWaiterCalls = this.parseActiveGuestWaiterCalls(json);
         await this.offlineDB.applySyncSnapshot(tables as any);
         await this.applyOfflinePrintConfigFromSync(json, restaurantId);

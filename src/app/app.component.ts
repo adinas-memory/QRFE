@@ -26,9 +26,6 @@ import { OfflineSyncLockService } from './core/offline/offline-sync-lock.service
 import { NetworkMonitorService } from './core/platform/network-monitor.service';
 import { navigateToRoleHome } from './core/auth/auth-redirect.util';
 import { isAssignedRestaurantId } from './core/auth/restaurant-id.util';
-import { environment } from '../environments/environment';
-import { debugLog } from './core/offline/debug-log.util';
-
 
 @Component({
   selector: 'app-root',
@@ -115,14 +112,6 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    debugLog('startup', 'app.component.ts:ngOnInit', 'app startup', {
-      apiUrl: environment.apiUrl,
-      poweredBy: environment.poweredBy,
-      native: Capacitor.isNativePlatform(),
-      platform: Capacitor.getPlatform(),
-      href: typeof window !== 'undefined' ? window.location.href : null,
-      pageProtocol: typeof window !== 'undefined' ? window.location.protocol : null,
-    });
     if (Capacitor.isNativePlatform()) {
       void this.#onlineStateService.confirmConnectivity(true);
     }

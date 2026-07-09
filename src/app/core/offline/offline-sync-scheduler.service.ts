@@ -178,7 +178,16 @@ export class OfflineSyncSchedulerService {
       const isReconnect = this.reconnectSyncPending;
       this.reconnectSyncPending = false;
 
-      const willRunHeavySync = this.offlinePolicy.shouldRunHeavyOfflineReconnectSync({ isReconnect, pendingQueueCount: pendingCount });
+      const restaurantId = this.auth.getUserSnapshot()?.restaurantId ?? '';
+      const hasAnyOpenOrdersLocal = restaurantId
+        ? await this.offlineDb.hasAnyActiveOpenOrdersLocal(restaurantId)
+        : false;
+
+      const willRunHeavySync = this.offlinePolicy.shouldRunHeavyOfflineReconnectSync({
+        isReconnect,
+        pendingQueueCount: pendingCount,
+        hasAnyOpenOrdersLocal,
+      });
 
       if (!willRunHeavySync) {
         if (!this.offlinePolicy.isOfflinePrimaryDevice() && isReconnect) {
@@ -209,7 +218,6 @@ export class OfflineSyncSchedulerService {
         }
       }
 
-      const restaurantId = this.auth.getUserSnapshot()?.restaurantId ?? '';
       const delaySeconds = restaurantId
         ? this.resolveReconnectDelay(restaurantId)
         : 0;

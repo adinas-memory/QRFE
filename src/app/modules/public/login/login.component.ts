@@ -65,7 +65,6 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     const formValue = this.loginForm.value;
 
-
       this.authService.loginUser(formValue).subscribe({
         next: (response: unknown) => {
           const user = normalizeUserContext(response);

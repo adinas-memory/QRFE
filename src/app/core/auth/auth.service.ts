@@ -9,6 +9,8 @@ import { environment } from '../../../environments/environment';
 import { LoginUserRequestModel } from '../models/loginUserRequestModel';
 import { PushRegistrationService } from '../services/push/push-registration.service';
 import { normalizeRestaurantId } from './restaurant-id.util';
+import { NATIVE_AUTH_HEADER, NativeAuthTokenService } from './native-auth-token.service';
+import { acquireRefreshLeader, initRefreshCoordinator, releaseRefreshLeader, tryAcquireRefreshLeaderSync } from './auth-refresh-coordinator';
 
 export function isHttpAuthFailure(err: unknown): boolean {
   const status = (err as HttpErrorResponse)?.status;
@@ -98,6 +100,7 @@ export class AuthService {
     private http: HttpClient,
     private router: Router,
     private injector: Injector,
+    private nativeAuthTokens: NativeAuthTokenService,
   ) { }
 
   // --- Public API ---
@@ -155,10 +158,20 @@ export class AuthService {
     return normalizeRestaurantId(id);
   }
 
-  loginUser(payload: LoginUserRequestModel): Observable<any> {
-    return this.http.post(`${this.apiUrl}/api/user/login`, payload, {
-      headers: { 'Content-Type': 'application/json' }, withCredentials: true
-    });
+  loginUser(payload: LoginUserRequestModel): Observable<unknown> {
+    const url = `${this.apiUrl}/api/user/login`;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (this.nativeAuthTokens.isEnabled()) {
+      headers[NATIVE_AUTH_HEADER] = '1';
+    }
+    return this.http.post(url, payload, {
+      headers,
+      withCredentials: true,
+    }).pipe(
+      tap((response) => {
+        this.nativeAuthTokens.captureFromAuthPayload(response);
+      }),
+    );
   }
 
   registerUser(payload: RegisterUserRequestModel): Observable<any> {
@@ -242,6 +255,7 @@ export class AuthService {
   clearUser(): void {
     this.userSubject.next(null);
     localStorage.removeItem('UserCtx');
+    void this.nativeAuthTokens.clear();
   }
 
   /**
@@ -249,8 +263,20 @@ export class AuthService {
    * Does not navigate on failure — caller shows login when unauthenticated.
    */
   async tryRestoreNativeSession(): Promise<UserContextModel | null> {
+    await this.nativeAuthTokens.initialize();
     await firstValueFrom(this.restoreSession());
     return firstValueFrom(this.refreshUserContext({ redirectOnFailure: false }));
+  }
+
+  /** PWA startup: restore UserCtx then validate/renew via refresh-token cookie. */
+  async tryRestoreWebSession(): Promise<UserContextModel | null> {
+    initRefreshCoordinator();
+    await firstValueFrom(this.restoreSession());
+    if (!this.isAuthenticated()) {
+      return null;
+    }
+    const user = await firstValueFrom(this.refreshUserContext({ redirectOnFailure: false }));
+    return user;
   }
 
   restoreSession(): Observable<UserContextModel | null> {
@@ -277,7 +303,11 @@ export class AuthService {
   // --- Refresh from backend ---
 
   pingSession(isPublic: boolean = false): Observable<UserContextModel | null> {
-    return this.http.get<unknown>(`${this.apiUrl}/api/user/ping`, { withCredentials: true }).pipe(
+    const pingOptions = {
+      withCredentials: true,
+      headers: this.nativeAuthTokens.authHeaders(),
+    };
+    return this.http.get<unknown>(`${this.apiUrl}/api/user/ping`, pingOptions).pipe(
       map(raw => normalizeUserContext(raw)),
       tap(user => {
         if (user) this.setUser(user);
@@ -291,7 +321,7 @@ export class AuthService {
                 console.warn('Refresh credentials failed. Redirect @Login.');
                 return of(null);
               }
-              return this.http.get<unknown>(`${this.apiUrl}/api/user/ping`, { withCredentials: true }).pipe(
+              return this.http.get<unknown>(`${this.apiUrl}/api/user/ping`, pingOptions).pipe(
                 map(raw => normalizeUserContext(raw)),
                 tap(u => {
                   if (u) this.setUser(u);
@@ -313,35 +343,88 @@ export class AuthService {
       return this.refreshShared$;
     }
 
-    const refreshPromise = firstValueFrom(
-      this.http
-        .post<unknown>(`${this.apiUrl}/api/user/refresh-token`, {}, { withCredentials: true })
-        .pipe(
-          map(raw => this.resolveUserAfterRefresh(raw)),
-          tap(user => {
-            if (user) this.setUser(user);
-          }),
-          catchError(err => {
-            console.error('Refresh failed', err);
-            if (isHttpAuthFailure(err)) {
-              this.clearUser();
-              if (redirectOnFailure) {
-                void this.router.navigate(['/login']);
+    if (!this.nativeAuthTokens.isEnabled()) {
+      this.hydrateSessionFromStorageIfNeeded();
+      const hasLocalSession = !!localStorage.getItem('UserCtx') || !!this.userSubject.value;
+      if (!hasLocalSession) {
+        return of(null);
+      }
+    }
+
+    const refresh$ = (this.nativeAuthTokens.isEnabled()
+      ? from(this.nativeAuthTokens.initialize())
+      : of(undefined)
+    ).pipe(
+      switchMap(() => {
+        if (this.nativeAuthTokens.isEnabled()) {
+          return from(acquireRefreshLeader());
+        }
+        const syncRole = tryAcquireRefreshLeaderSync();
+        if (syncRole === 'contended') {
+          return from(acquireRefreshLeader());
+        }
+        return of(syncRole);
+      }),
+      switchMap((role) => {
+        if (role === 'follower' && !this.nativeAuthTokens.isEnabled()) {
+          this.hydrateSessionFromStorageIfNeeded();
+          const snapshot = this.getUserSnapshot();
+          return of(snapshot);
+        }
+
+        const refreshBody = this.nativeAuthTokens.isEnabled()
+          ? { refreshToken: this.nativeAuthTokens.getRefreshToken() }
+          : {};
+        const refreshHeaders: Record<string, string> = {};
+        if (this.nativeAuthTokens.isEnabled()) {
+          refreshHeaders[NATIVE_AUTH_HEADER] = '1';
+        }
+
+        const sentRefreshToken = this.nativeAuthTokens.isEnabled()
+          ? !!refreshBody.refreshToken
+          : true;
+
+        return this.http
+          .post<unknown>(`${this.apiUrl}/api/user/refresh-token`, refreshBody, {
+            withCredentials: true,
+            headers: refreshHeaders,
+          })
+          .pipe(
+            tap((raw) => {
+              this.nativeAuthTokens.captureFromAuthPayload(raw);
+            }),
+            map(raw => this.resolveUserAfterRefresh(raw)),
+            tap(user => {
+              if (user) this.setUser(user);
+            }),
+            catchError(err => {
+              console.error('Refresh failed', err);
+              if (isHttpAuthFailure(err) && sentRefreshToken) {
+                this.clearUser();
+                if (redirectOnFailure) {
+                  void this.router.navigate(['/login']);
+                }
               }
-            }
-            return of(null);
-          }),
-        ),
+              return of(null);
+            }),
+            finalize(() => {
+              if (role === 'leader') {
+                releaseRefreshLeader(!!this.getUserSnapshot());
+              }
+            }),
+          );
+      }),
     );
 
-    this.refreshShared$ = from(refreshPromise).pipe(
+    // Assign before subscribe so concurrent callers in the same tick join one stream.
+    const shared$ = refresh$.pipe(
       finalize(() => {
         this.refreshShared$ = null;
       }),
       shareReplay(1),
     );
-
-    return this.refreshShared$;
+    this.refreshShared$ = shared$;
+    return shared$;
   }
 
   /** After refresh, cookies hold the new JWT; keep local ctx if body omits user fields. */
@@ -356,18 +439,14 @@ export class AuthService {
   }
 
   logout(): Observable<void> {
+    this.unregisterPushToken();
+    this.clearUser();
+    this.clearRestaurantCtx();
     return this.http.post<void>(`${this.apiUrl}/api/user/logout`, {}, { withCredentials: true }).pipe(
-      tap(() => {
-        this.unregisterPushToken();
-        this.clearUser();
-        this.clearRestaurantCtx();
-      }),
+      map(() => undefined as void),
       catchError(err => {
-        console.error('Logout error', err);
-        this.unregisterPushToken();
-        this.clearUser();
-        this.clearRestaurantCtx();
-        return of(undefined as unknown as void);
+        console.warn('Logout API call failed; local session already cleared', err);
+        return of(undefined as void);
       }),
     );
   }

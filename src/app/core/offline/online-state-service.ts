@@ -2,7 +2,6 @@ import { Injectable, inject, Injector } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { SseConnectivityService } from './sse-connectivity.service';
-import { debugLog } from './debug-log.util';
 
 function isCapacitorNative(): boolean {
   if (typeof window === 'undefined') return false;
@@ -41,7 +40,7 @@ export class OnlineStateService {
   private resumeCheckInProgress = false;
   private supplementalHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
   /** Fast offline/online detection alongside SSE pulse (max ~10s when API stops). */
-  private readonly supplementalHeartbeatMs = 10_000;
+  private readonly supplementalHeartbeatMs = 5_000;
 
   constructor() {
     window.addEventListener('online', () => {
@@ -131,13 +130,6 @@ export class OnlineStateService {
 
     private async executePing(): Promise<boolean> {
     const pingUrl = `${this.apiUrl}/api/ping-lite`;
-    const pageProtocol = typeof window !== 'undefined' ? window.location.protocol : 'n/a';
-    debugLog('connectivity', 'online-state-service.ts:executePing:start', 'ping-lite start', {
-      pingUrl,
-      apiUrl: this.apiUrl,
-      pageProtocol,
-      isOnlineBefore: this._isOnline,
-    });
     try {
       const hasAbortTimeout =
         typeof AbortSignal !== 'undefined' &&
@@ -146,15 +138,9 @@ export class OnlineStateService {
       const res = await fetch(pingUrl, {
         method: 'HEAD',
         cache: 'no-store',
-        ...(hasAbortTimeout ? { signal: AbortSignal.timeout(8000) } : {}),
+        ...(hasAbortTimeout ? { signal: AbortSignal.timeout(3000) } : {}),
       });
       const ok = res.ok || res.status < 500;
-      debugLog('connectivity', 'online-state-service.ts:executePing:result', 'ping-lite response', {
-        pingUrl,
-        status: res.status,
-        ok,
-        pageProtocol,
-      });
       const sseConnectivity = this.injector.get(SseConnectivityService);
       if (sseConnectivity.isStreamActive()) {
         return ok;
@@ -167,11 +153,6 @@ export class OnlineStateService {
       }
       return ok;
     } catch (err) {
-      debugLog('connectivity', 'online-state-service.ts:executePing:error', 'ping-lite failed', {
-        pingUrl,
-        pageProtocol,
-        error: String(err),
-      });
       const sseConnectivity = this.injector.get(SseConnectivityService);
       if (!sseConnectivity.isStreamActive()) {
         sseConnectivity.reportPingFailed('ping-lite-error');
