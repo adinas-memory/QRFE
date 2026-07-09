@@ -13,6 +13,7 @@ import { DropdownModule, SidebarModule } from '@coreui/angular';
 import { IconSetService } from '@coreui/icons-angular';
 import { routes } from './app.routes';
 import { AuthService } from './core/auth/auth.service';
+import { NativeAuthTokenService } from './core/auth/native-auth-token.service';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { loadingInterceptor } from './core/interceptors/loading.interceptor';
 import { navigationCancelInterceptor } from './core/interceptors/navigation-cancel.interceptor';
@@ -68,13 +69,14 @@ export function initServiceWorkerCleanup() {
   };
 }
 
-export function initAuth(authService: AuthService) {
+export function initAuth(authService: AuthService, nativeAuthTokens: NativeAuthTokenService) {
   return async () => {
     if (isCapacitorNative()) {
+      await nativeAuthTokens.initialize();
       await authService.tryRestoreNativeSession();
       return;
     }
-    await firstValueFrom(authService.restoreSession());
+    await authService.tryRestoreWebSession();
   };
 }
 
@@ -109,7 +111,7 @@ export const appConfig: ApplicationConfig = {
     {
       provide: APP_INITIALIZER,
       useFactory: initAuth,
-      deps: [AuthService],
+      deps: [AuthService, NativeAuthTokenService],
       multi: true
     },
     {
