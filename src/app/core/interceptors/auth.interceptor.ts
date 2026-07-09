@@ -60,6 +60,14 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         // 401 means the API responded — session may be expired while network is fine.
         sseConnectivity.reportStreamActivity('http-401');
         auth.hydrateSessionFromStorageIfNeeded();
+        // #region agent log
+        debugLog('auth', 'auth.interceptor.ts', '401 before refresh', {
+          url: req.url,
+          userRole: auth.getUserRole(),
+          isAuthenticated: auth.isAuthenticated(),
+          hypothesisId: 'H16-refresh-401',
+        });
+        // #endregion agent log
         let attemptedRetry = false;
         return auth.refreshUserContext({ redirectOnFailure: false }).pipe(
           timeout({ first: REFRESH_TIMEOUT_MS }),
@@ -67,6 +75,14 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
             auth.hydrateSessionFromStorageIfNeeded();
             const sessionOk = user != null || auth.isAuthenticated();
             if (!sessionOk) {
+              // #region agent log
+              debugLog('auth', 'auth.interceptor.ts', 'refresh returned no session', {
+                url: req.url,
+                hadUser: user != null,
+                isAuthenticated: auth.isAuthenticated(),
+                hypothesisId: 'H16-refresh-401',
+              });
+              // #endregion agent log
               return throwError(() => error);
             }
             attemptedRetry = true;

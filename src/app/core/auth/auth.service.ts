@@ -366,8 +366,20 @@ export class AuthService {
           map(raw => this.resolveUserAfterRefresh(raw)),
           tap(user => {
             if (user) this.setUser(user);
+            // #region agent log
+            debugLog('auth', 'auth.service.ts:refreshUserContext', user ? 'refresh ok' : 'refresh empty user', {
+              hasUser: !!user,
+              role: user?.role ?? null,
+              hypothesisId: 'H16-refresh-401',
+            });
+            // #endregion agent log
           }),
           catchError(err => {
+            debugLog('auth', 'auth.service.ts:refreshUserContext', 'refresh failed', {
+              status: (err as HttpErrorResponse)?.status ?? null,
+              hasUserCtx: !!localStorage.getItem('UserCtx'),
+              hypothesisId: 'H16-refresh-401',
+            });
             console.error('Refresh failed', err);
             if (isHttpAuthFailure(err)) {
               this.clearUser();
