@@ -26,7 +26,6 @@ import { SubscriptionService } from '../../../core/services/subscription-service
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
 import { UserContextModel } from '../../../core/models/userContextModel';
-import { debugLog } from '../../../core/offline/debug-log.util';
 
 @Component({
   selector: 'app-login',
@@ -66,24 +65,6 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     const formValue = this.loginForm.value;
 
-    // #region agent log
-    try {
-      const emailRaw = String(formValue.email ?? '');
-      const passwordRaw = String(formValue.password ?? '');
-      debugLog('auth', 'login.component.ts:onSubmit', 'login submit snapshot (no PII)', {
-        hypothesisId: 'H5-invalid-credentials-client-side',
-        emailLength: emailRaw.length,
-        emailTrimChanged: emailRaw.trim() !== emailRaw,
-        emailHasUppercase: /[A-Z]/.test(emailRaw),
-        passwordLength: passwordRaw.length,
-        passwordTrimChanged: passwordRaw.trim() !== passwordRaw,
-      });
-    } catch {
-      // best-effort
-    }
-    // #endregion agent log
-
-
       this.authService.loginUser(formValue).subscribe({
         next: (response: unknown) => {
           const user = normalizeUserContext(response);
@@ -106,11 +87,6 @@ export class LoginComponent implements OnInit, OnDestroy {
         },
         error: (error: unknown) => {
           console.error('Login failed:', error);
-          debugLog('auth', 'login.component.ts:onSubmit', 'login failed', {
-            status: (error as { status?: number })?.status ?? null,
-            message: String((error as { message?: string })?.message ?? error),
-            hypothesisId: 'H4-login-fails',
-          });
           this.toast.error(this.misc.getFirstErrorMessage(error), this.transloco.translate('common.loginFailed'));
         }
       });

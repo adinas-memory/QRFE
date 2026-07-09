@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 import { PlatformStorageService } from '../platform/platform-storage.service';
-import { debugLog } from '../offline/debug-log.util';
 
 /** Request native token fields in login/refresh responses (Capacitor only). */
 export const NATIVE_AUTH_HEADER = 'X-URS-Native-Auth';
@@ -71,12 +70,6 @@ export class NativeAuthTokenService {
       this.refreshToken = normalizedRefresh;
     }
     if (access?.trim() || normalizedRefresh) {
-      debugLog('auth', 'native-auth-token.service.ts', 'native tokens captured', {
-        hasAccess: !!access?.trim(),
-        hasRefresh: !!normalizedRefresh,
-        refreshHadPercent: !!refresh?.includes('%'),
-        hypothesisId: 'H9-native-bearer',
-      });
       void this.persist();
     }
   }
@@ -98,13 +91,6 @@ export class NativeAuthTokenService {
     ]);
     this.accessToken = access?.trim() || null;
     this.refreshToken = this.normalizeRefreshToken(refresh);
-    // #region agent log
-    debugLog('auth', 'native-auth-token.service.ts:loadFromStorage', 'tokens loaded from storage', {
-      hasAccess: !!this.accessToken,
-      hasRefresh: !!this.refreshToken,
-      hypothesisId: 'H19-startup-hydrate',
-    });
-    // #endregion agent log
   }
 
   /** Cookie / persisted values may be URL-encoded (%24 → $); DB stores decoded bcrypt hash. */

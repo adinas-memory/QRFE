@@ -1,5 +1,3 @@
-import { debugLog } from '../offline/debug-log.util';
-
 const LOCK_KEY = 'qrfe-auth-refresh-lock';
 const LOCK_TTL_MS = 20_000;
 const ORPHAN_PROBE_MS = 400;
@@ -94,7 +92,6 @@ function waitForRefreshDone(maxMs: number): Promise<boolean> {
   });
 }
 
-/** True when another tab still holds the refresh lock and responds to probe. */
 async function isForeignLockHolderAlive(owner: string): Promise<boolean> {
   if (!refreshChannel || owner === TAB_ID) {
     return false;
@@ -121,19 +118,35 @@ async function isForeignLockHolderAlive(owner: string): Promise<boolean> {
   });
 }
 
+function isDocumentReload(): boolean {
+  if (typeof performance === 'undefined') {
+    return false;
+  }
+  const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+  return nav?.type === 'reload';
+}
+
+function clearForeignLockIfOrphan(reason: 'bootstrap' | 'reload'): boolean {
+  const existing = readLock();
+  if (!existing || existing.owner === TAB_ID) {
+    return false;
+  }
+  clearLock(existing.owner);
+  return true;
+}
+
 async function clearOrphanForeignLock(): Promise<boolean> {
   const existing = readLock();
   if (!existing || existing.owner === TAB_ID) {
     return false;
   }
+  if (isDocumentReload()) {
+    return clearForeignLockIfOrphan('reload');
+  }
   const alive = await isForeignLockHolderAlive(existing.owner);
   if (alive) {
     return false;
   }
-  debugLog('auth', 'auth-refresh-coordinator.ts', 'orphan refresh lock cleared', {
-    hypothesisId: 'H27-orphan-lock',
-    lockAgeMs: Date.now() - existing.startedAt,
-  });
   clearLock(existing.owner);
   return true;
 }
@@ -158,19 +171,19 @@ function bindRefreshCoordinatorLifecycle(): void {
 /** Call once on app bootstrap (before auth refresh). */
 export function initRefreshCoordinator(): void {
   bindRefreshCoordinatorLifecycle();
+  clearForeignLockIfOrphan('bootstrap');
 }
 
 export function tryAcquireRefreshLeaderSync(): 'leader' | 'follower' | 'contended' {
   bindRefreshCoordinatorLifecycle();
+  if (isDocumentReload()) {
+    clearForeignLockIfOrphan('reload');
+  }
   const existing = readLock();
   if (existing) {
     if (existing.owner !== TAB_ID) {
       return 'contended';
     }
-    debugLog('auth', 'auth-refresh-coordinator.ts', 'refresh same-tab contended', {
-      hypothesisId: 'H26-same-tab-singleflight',
-      lockAgeMs: Date.now() - existing.startedAt,
-    });
     return 'contended';
   }
   writeLock(TAB_ID);
@@ -192,17 +205,9 @@ export async function acquireRefreshLeader(): Promise<'leader' | 'follower'> {
 
   const role = tryAcquireRefreshLeaderSync();
   if (role === 'leader') {
-    debugLog('auth', 'auth-refresh-coordinator.ts', 'refresh leader acquired', {
-      hypothesisId: 'H23-refresh-singleflight',
-    });
     return 'leader';
   }
 
-  debugLog('auth', 'auth-refresh-coordinator.ts', 'refresh follower wait', {
-    hypothesisId: 'H23-refresh-singleflight',
-    foreignOwner: existing?.owner !== TAB_ID,
-    lockAgeMs: existing ? Date.now() - existing.startedAt : null,
-  });
   await waitForRefreshDone(LOCK_TTL_MS);
   return 'follower';
 }

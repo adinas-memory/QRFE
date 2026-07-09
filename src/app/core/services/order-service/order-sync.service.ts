@@ -17,7 +17,6 @@ import { OfflinePrintConfigDto } from '../../offline/offline-print-config.model'
 import { OfflinePolicyService } from '../../offline/offline-policy.service';
 import { OfflineSyncLockService } from '../../offline/offline-sync-lock.service';
 import { SseConnectivityService } from '../../offline/sse-connectivity.service';
-import { debugLog } from '../../offline/debug-log.util';
 import { Capacitor } from '@capacitor/core';
 
 @Injectable({
@@ -136,9 +135,6 @@ export class OrderSyncService {
     // Stale-watch detected a zombie stream — abort and reopen SSE.
     this.sseConnectivity.forceReconnect$.subscribe(() => {
       const rid = this.connectedRestaurantId ?? this.resolveRestaurantId();
-      debugLog('sse-sync', 'order-sync.service.ts:forceReconnect', 'zombie reconnect', {
-        restaurantId: rid,
-      });
       this.close(false);
       this.reconnectAttempts = 0;
       if (rid && this.onlineStateService.isOnline) {
@@ -305,12 +301,6 @@ export class OrderSyncService {
     this.connectedRestaurantId = restaurantId;
 
     const url = `${this.apiUrl.replace(/\/$/, '')}/sse/internal/restaurant/${restaurantId}`;
-    debugLog('sse', 'order-sync.service.ts:openConnection', 'sse open attempt', {
-      url,
-      restaurantId,
-      pageProtocol: typeof window !== 'undefined' ? window.location.protocol : null,
-      hypothesisId: 'H3-sse-open-fails',
-    });
 
     // reset reconnect attempts on manual open
     // (we'll increment on failures)
@@ -327,11 +317,6 @@ export class OrderSyncService {
        */
       openWhenHidden: true,
       onopen: async (response) => {
-        debugLog('sse', 'order-sync.service.ts:onopen', 'sse onopen', {
-          status: response.status,
-          ok: response.ok,
-          hypothesisId: 'H3-sse-open-fails',
-        });
         if (!response.ok) {
           const www = response.headers.get('www-authenticate');
           throw this.toSseHttpError(response.status, www);
@@ -402,11 +387,6 @@ export class OrderSyncService {
           }
 
           if (Sequence && Sequence < this.watermarkSequence) {
-            debugLog('sse-sync', 'order-sync.service.ts:onmessage', 'watermark drop', {
-              eventType: EventType,
-              sequence: Sequence,
-              watermark: this.watermarkSequence,
-            });
             if (this.isOrderSyncEventType(EventType)) {
               this.scheduleRefreshAfterWatermarkDrop();
             }
@@ -426,11 +406,6 @@ export class OrderSyncService {
             this.bufferEvent(sse);
           } else {
             if (this.isOrderSyncEventType(EventType)) {
-              debugLog('sse-sync', 'order-sync.service.ts:emit', 'sse event dispatched', {
-                eventType: EventType,
-                sequence: Sequence,
-                initiatedBy: InitiatedBy,
-              });
               this.noteDispatchedSequence(Sequence);
             }
             this.eventsSubject.next(sse);
@@ -447,11 +422,6 @@ export class OrderSyncService {
       onerror: (err) => {
         // fetchEventSource calls onerror on network/auth issues
         console.error('[SSE][internal] error', err);
-        debugLog('sse', 'order-sync.service.ts:onerror', 'sse onerror', {
-          status: (err as { status?: number })?.status ?? null,
-          message: String((err as Error)?.message ?? err),
-          hypothesisId: 'H3-sse-open-fails',
-        });
         const status = (err as { status?: number })?.status;
         const msg = String((err as Error)?.message ?? '');
         const isAuth401 = status === 401 || msg.includes('HTTP 401') || msg.includes('invalid_token');
@@ -486,14 +456,6 @@ export class OrderSyncService {
           headers: this.nativeAuthTokens.authHeaders(),
         });
         if (res.status === 401) {
-          debugLog('sse-sync', 'order-sync.service.ts:syncRestaurantState', 'sync http 401', {
-            caller,
-            attempt,
-            refreshedAfter401,
-            willRefresh: !refreshedAfter401 && this.onlineStateService.isOnline,
-            hasBearer: Object.keys(this.nativeAuthTokens.authHeaders()).length > 0,
-            hypothesisId: 'H13-staff-cookie-guard',
-          });
           if (!refreshedAfter401 && this.onlineStateService.isOnline) {
             refreshedAfter401 = true;
             const refreshed = await this.ensureFreshSession();
@@ -519,11 +481,6 @@ export class OrderSyncService {
         }
 
         const tables = (json?.Tables ?? json?.tables ?? []) as any[];
-        debugLog('sse-sync', 'order-sync.service.ts:syncRestaurantState', 'snapshot applied', {
-          caller,
-          watermark: seq,
-          tableCount: tables.length,
-        });
         const activeGuestWaiterCalls = this.parseActiveGuestWaiterCalls(json);
         await this.offlineDB.applySyncSnapshot(tables as any);
         await this.applyOfflinePrintConfigFromSync(json, restaurantId);
