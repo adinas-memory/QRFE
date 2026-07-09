@@ -146,6 +146,7 @@ export class AppComponent implements OnInit {
       platform: Capacitor.getPlatform(),
       href: typeof window !== 'undefined' ? window.location.href : null,
       pageProtocol: typeof window !== 'undefined' ? window.location.protocol : null,
+      authFixRev: 'H27+H28+H29',
     });
     if (Capacitor.isNativePlatform()) {
       void this.#onlineStateService.confirmConnectivity(true);

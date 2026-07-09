@@ -121,10 +121,40 @@ async function isForeignLockHolderAlive(owner: string): Promise<boolean> {
   });
 }
 
+function isDocumentReload(): boolean {
+  if (typeof performance === 'undefined') {
+    return false;
+  }
+  const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+  return nav?.type === 'reload';
+}
+
+/** Drop lock left by a previous document (F5) — previous tab id cannot respond to probe. */
+function clearForeignLockIfOrphan(reason: 'bootstrap' | 'reload' | 'probe'): boolean {
+  const existing = readLock();
+  if (!existing || existing.owner === TAB_ID) {
+    return false;
+  }
+  if (reason === 'probe') {
+    return false;
+  }
+  debugLog('auth', 'auth-refresh-coordinator.ts', 'orphan refresh lock cleared', {
+    hypothesisId: 'H27-orphan-lock',
+    reason,
+    lockAgeMs: Date.now() - existing.startedAt,
+    reload: isDocumentReload(),
+  });
+  clearLock(existing.owner);
+  return true;
+}
+
 async function clearOrphanForeignLock(): Promise<boolean> {
   const existing = readLock();
   if (!existing || existing.owner === TAB_ID) {
     return false;
+  }
+  if (isDocumentReload()) {
+    return clearForeignLockIfOrphan('reload');
   }
   const alive = await isForeignLockHolderAlive(existing.owner);
   if (alive) {
@@ -132,7 +162,9 @@ async function clearOrphanForeignLock(): Promise<boolean> {
   }
   debugLog('auth', 'auth-refresh-coordinator.ts', 'orphan refresh lock cleared', {
     hypothesisId: 'H27-orphan-lock',
+    reason: 'probe',
     lockAgeMs: Date.now() - existing.startedAt,
+    reload: false,
   });
   clearLock(existing.owner);
   return true;
@@ -158,10 +190,14 @@ function bindRefreshCoordinatorLifecycle(): void {
 /** Call once on app bootstrap (before auth refresh). */
 export function initRefreshCoordinator(): void {
   bindRefreshCoordinatorLifecycle();
+  clearForeignLockIfOrphan('bootstrap');
 }
 
 export function tryAcquireRefreshLeaderSync(): 'leader' | 'follower' | 'contended' {
   bindRefreshCoordinatorLifecycle();
+  if (isDocumentReload()) {
+    clearForeignLockIfOrphan('reload');
+  }
   const existing = readLock();
   if (existing) {
     if (existing.owner !== TAB_ID) {

@@ -362,6 +362,17 @@ export class AuthService {
       return this.refreshShared$;
     }
 
+    if (!this.nativeAuthTokens.isEnabled()) {
+      this.hydrateSessionFromStorageIfNeeded();
+      const hasLocalSession = !!localStorage.getItem('UserCtx') || !!this.userSubject.value;
+      if (!hasLocalSession) {
+        debugLog('auth', 'auth.service.ts:refreshUserContext', 'refresh skipped no local session', {
+          hypothesisId: 'H29-no-local-session',
+        });
+        return of(null);
+      }
+    }
+
     const refresh$ = (this.nativeAuthTokens.isEnabled()
       ? from(this.nativeAuthTokens.initialize())
       : of(undefined)
