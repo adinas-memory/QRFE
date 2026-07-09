@@ -11,7 +11,7 @@ import { debugLog } from '../offline/debug-log.util';
 import { PushRegistrationService } from '../services/push/push-registration.service';
 import { normalizeRestaurantId } from './restaurant-id.util';
 import { NATIVE_AUTH_HEADER, NativeAuthTokenService } from './native-auth-token.service';
-import { acquireRefreshLeader, releaseRefreshLeader, tryAcquireRefreshLeaderSync } from './auth-refresh-coordinator';
+import { acquireRefreshLeader, initRefreshCoordinator, releaseRefreshLeader, tryAcquireRefreshLeaderSync } from './auth-refresh-coordinator';
 
 export function isHttpAuthFailure(err: unknown): boolean {
   const status = (err as HttpErrorResponse)?.status;
@@ -277,11 +277,20 @@ export class AuthService {
 
   /** PWA startup: restore UserCtx then validate/renew via refresh-token cookie. */
   async tryRestoreWebSession(): Promise<UserContextModel | null> {
+    initRefreshCoordinator();
     await firstValueFrom(this.restoreSession());
     if (!this.isAuthenticated()) {
+      debugLog('auth', 'auth.service.ts:tryRestoreWebSession', 'no UserCtx in storage', {
+        hypothesisId: 'H28-startup-restore',
+      });
       return null;
     }
-    return firstValueFrom(this.refreshUserContext({ redirectOnFailure: false }));
+    const user = await firstValueFrom(this.refreshUserContext({ redirectOnFailure: false }));
+    debugLog('auth', 'auth.service.ts:tryRestoreWebSession', user ? 'startup refresh ok' : 'startup refresh failed', {
+      hypothesisId: 'H28-startup-restore',
+      hasUser: !!user,
+    });
+    return user;
   }
 
   restoreSession(): Observable<UserContextModel | null> {
