@@ -93,7 +93,15 @@ function waitForRefreshDone(maxMs: number): Promise<boolean> {
 
 export function tryAcquireRefreshLeaderSync(): 'leader' | 'follower' | 'contended' {
   const existing = readLock();
-  if (existing && existing.owner !== TAB_ID) {
+  if (existing) {
+    if (existing.owner !== TAB_ID) {
+      return 'contended';
+    }
+    // Same tab already has an in-flight refresh — do not start a second HTTP rotation.
+    debugLog('auth', 'auth-refresh-coordinator.ts', 'refresh same-tab contended', {
+      hypothesisId: 'H26-same-tab-singleflight',
+      lockAgeMs: Date.now() - existing.startedAt,
+    });
     return 'contended';
   }
   writeLock(TAB_ID);
