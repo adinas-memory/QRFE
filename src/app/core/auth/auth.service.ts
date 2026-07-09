@@ -345,6 +345,11 @@ export class AuthService {
   refreshUserContext(options?: { redirectOnFailure?: boolean }): Observable<UserContextModel | null> {
     const redirectOnFailure = options?.redirectOnFailure ?? true;
     if (this.refreshShared$) {
+      // #region agent log
+      debugLog('auth', 'auth.service.ts:refreshUserContext', 'refresh joined in-flight', {
+        hypothesisId: 'H26-same-tab-singleflight',
+      });
+      // #endregion agent log
       return this.refreshShared$;
     }
 
@@ -454,14 +459,15 @@ export class AuthService {
       }),
     );
 
-    this.refreshShared$ = refresh$.pipe(
+    // Assign before subscribe so concurrent callers in the same tick join one stream.
+    const shared$ = refresh$.pipe(
       finalize(() => {
         this.refreshShared$ = null;
       }),
       shareReplay(1),
     );
-
-    return this.refreshShared$;
+    this.refreshShared$ = shared$;
+    return shared$;
   }
 
   /** After refresh, cookies hold the new JWT; keep local ctx if body omits user fields. */
