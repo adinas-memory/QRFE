@@ -353,6 +353,14 @@ export class AuthService {
       });
     }
 
+    // #region agent log
+    debugLog('auth', 'auth.service.ts:refreshUserContext', 'refresh start', {
+      nativeAuth: this.nativeAuthTokens.isEnabled(),
+      hasUserCtx: !!localStorage.getItem('UserCtx'),
+      hypothesisId: 'H16-refresh-401',
+    });
+    // #endregion agent log
+
     const refreshPromise = firstValueFrom(
       this.http
         .post<unknown>(`${this.apiUrl}/api/user/refresh-token`, refreshBody, {
