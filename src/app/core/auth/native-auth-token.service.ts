@@ -98,6 +98,13 @@ export class NativeAuthTokenService {
     ]);
     this.accessToken = access?.trim() || null;
     this.refreshToken = this.normalizeRefreshToken(refresh);
+    // #region agent log
+    debugLog('auth', 'native-auth-token.service.ts:loadFromStorage', 'tokens loaded from storage', {
+      hasAccess: !!this.accessToken,
+      hasRefresh: !!this.refreshToken,
+      hypothesisId: 'H19-startup-hydrate',
+    });
+    // #endregion agent log
   }
 
   /** Cookie / persisted values may be URL-encoded (%24 → $); DB stores decoded bcrypt hash. */

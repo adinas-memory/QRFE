@@ -2,9 +2,19 @@ import { Capacitor } from '@capacitor/core';
 import { NetworkMonitor } from '../plugins/network-monitor.plugin';
 
 const MAX_WEB_BUFFER = 500;
-const MAX_WEB_STORAGE_LINES = 2000;
+const MAX_WEB_STORAGE_LINES = 500;
 const WEB_STORAGE_KEY = 'qrfe-debug-log';
+const PERSIST_DEBOUNCE_MS = 2_000;
 const webBuffer: string[] = [];
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingPersistLines: string[] | null = null;
+
+function shouldPersistToStorage(category: string, message: string): boolean {
+  if (category === 'sse' && message === 'js heartbeat') {
+    return false;
+  }
+  return true;
+}
 
 function readStoredWebLines(): string[] {
   if (typeof localStorage === 'undefined') {
@@ -33,13 +43,34 @@ function persistWebLines(lines: string[]): void {
   }
 }
 
-function appendWebLine(line: string): void {
+function flushPendingPersist(): void {
+  persistTimer = null;
+  if (!pendingPersistLines) {
+    return;
+  }
+  const lines = pendingPersistLines;
+  pendingPersistLines = null;
+  persistWebLines(lines);
+}
+
+function schedulePersist(lines: string[]): void {
+  pendingPersistLines = lines;
+  if (persistTimer !== null) {
+    return;
+  }
+  persistTimer = setTimeout(flushPendingPersist, PERSIST_DEBOUNCE_MS);
+}
+
+function appendWebLine(line: string, persist: boolean): void {
   webBuffer.push(line);
   while (webBuffer.length > MAX_WEB_BUFFER) {
     webBuffer.shift();
   }
+  if (!persist) {
+    return;
+  }
   const merged = [...readStoredWebLines(), line].slice(-MAX_WEB_STORAGE_LINES);
-  persistWebLines(merged);
+  schedulePersist(merged);
 }
 
 function collectWebLogLines(): string[] {
@@ -81,7 +112,7 @@ export function debugLog(category: string, location: string, message: string, da
   }
 
   try {
-    appendWebLine(line);
+    appendWebLine(line, shouldPersistToStorage(category, message));
   } catch {
     // best-effort
   }
@@ -104,6 +135,7 @@ export async function downloadWebDebugLog(): Promise<number> {
   if (typeof document === 'undefined') {
     return 0;
   }
+  flushPendingPersist();
   const lines = collectWebLogLines();
   if (lines.length === 0) {
     return 0;

@@ -3,6 +3,7 @@ import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { Router } from '@angular/router';
 import { AuthService, isHttpAuthFailure, normalizeUserContext } from './auth.service';
+import { resetRefreshCoordinatorForTests } from './auth-refresh-coordinator';
 import { UserContextModel } from '../models/userContextModel';
 import { environment } from '../../../environments/environment';
 
@@ -73,6 +74,7 @@ describe('AuthService offline session handling', () => {
   beforeEach(() => {
     router = jasmine.createSpyObj('Router', ['navigate']);
     localStorage.clear();
+    resetRefreshCoordinatorForTests();
 
     TestBed.configureTestingModule({
       providers: [
@@ -90,6 +92,7 @@ describe('AuthService offline session handling', () => {
   afterEach(() => {
     httpMock.verify();
     localStorage.clear();
+    resetRefreshCoordinatorForTests();
   });
 
   it('refreshUserContext on network error (status 0) does not logout', () => {

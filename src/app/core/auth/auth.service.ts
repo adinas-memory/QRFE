@@ -11,6 +11,7 @@ import { debugLog } from '../offline/debug-log.util';
 import { PushRegistrationService } from '../services/push/push-registration.service';
 import { normalizeRestaurantId } from './restaurant-id.util';
 import { NATIVE_AUTH_HEADER, NativeAuthTokenService } from './native-auth-token.service';
+import { acquireRefreshLeader, releaseRefreshLeader, tryAcquireRefreshLeaderSync } from './auth-refresh-coordinator';
 
 export function isHttpAuthFailure(err: unknown): boolean {
   const status = (err as HttpErrorResponse)?.status;
@@ -269,7 +270,17 @@ export class AuthService {
    * Does not navigate on failure — caller shows login when unauthenticated.
    */
   async tryRestoreNativeSession(): Promise<UserContextModel | null> {
+    await this.nativeAuthTokens.initialize();
     await firstValueFrom(this.restoreSession());
+    return firstValueFrom(this.refreshUserContext({ redirectOnFailure: false }));
+  }
+
+  /** PWA startup: restore UserCtx then validate/renew via refresh-token cookie. */
+  async tryRestoreWebSession(): Promise<UserContextModel | null> {
+    await firstValueFrom(this.restoreSession());
+    if (!this.isAuthenticated()) {
+      return null;
+    }
     return firstValueFrom(this.refreshUserContext({ redirectOnFailure: false }));
   }
 
@@ -337,70 +348,113 @@ export class AuthService {
       return this.refreshShared$;
     }
 
-    const refreshBody = this.nativeAuthTokens.isEnabled()
-      ? { refreshToken: this.nativeAuthTokens.getRefreshToken() }
-      : {};
-    const refreshHeaders: Record<string, string> = {};
-    if (this.nativeAuthTokens.isEnabled()) {
-      refreshHeaders[NATIVE_AUTH_HEADER] = '1';
-      const rt = refreshBody.refreshToken;
-      debugLog('auth', 'auth.service.ts', 'native refresh request', {
-        hasRefreshToken: !!rt,
-        refreshLen: rt?.length ?? 0,
-        refreshHasPercent: rt?.includes('%') ?? false,
-        refreshStartsDollar2a: rt?.startsWith('$2') ?? false,
-        hypothesisId: 'H10-refresh-decode',
-      });
-    }
+    const refresh$ = (this.nativeAuthTokens.isEnabled()
+      ? from(this.nativeAuthTokens.initialize())
+      : of(undefined)
+    ).pipe(
+      switchMap(() => {
+        if (this.nativeAuthTokens.isEnabled()) {
+          return from(acquireRefreshLeader());
+        }
+        const syncRole = tryAcquireRefreshLeaderSync();
+        if (syncRole === 'contended') {
+          return from(acquireRefreshLeader());
+        }
+        if (syncRole === 'leader') {
+          debugLog('auth', 'auth-refresh-coordinator.ts', 'refresh leader acquired', {
+            hypothesisId: 'H23-refresh-singleflight',
+          });
+        }
+        return of(syncRole);
+      }),
+      switchMap((role) => {
+        if (role === 'follower' && !this.nativeAuthTokens.isEnabled()) {
+          this.hydrateSessionFromStorageIfNeeded();
+          const snapshot = this.getUserSnapshot();
+          // #region agent log
+          debugLog('auth', 'auth.service.ts:refreshUserContext', 'refresh skipped follower', {
+            hasUser: !!snapshot,
+            role: snapshot?.role ?? null,
+            hypothesisId: 'H23-refresh-singleflight',
+          });
+          // #endregion agent log
+          return of(snapshot);
+        }
 
-    // #region agent log
-    debugLog('auth', 'auth.service.ts:refreshUserContext', 'refresh start', {
-      nativeAuth: this.nativeAuthTokens.isEnabled(),
-      hasUserCtx: !!localStorage.getItem('UserCtx'),
-      hypothesisId: 'H16-refresh-401',
-    });
-    // #endregion agent log
+        const refreshBody = this.nativeAuthTokens.isEnabled()
+          ? { refreshToken: this.nativeAuthTokens.getRefreshToken() }
+          : {};
+        const refreshHeaders: Record<string, string> = {};
+        if (this.nativeAuthTokens.isEnabled()) {
+          refreshHeaders[NATIVE_AUTH_HEADER] = '1';
+          const rt = refreshBody.refreshToken;
+          debugLog('auth', 'auth.service.ts', 'native refresh request', {
+            hasRefreshToken: !!rt,
+            refreshLen: rt?.length ?? 0,
+            refreshHasPercent: rt?.includes('%') ?? false,
+            refreshStartsDollar2a: rt?.startsWith('$2') ?? false,
+            hypothesisId: 'H10-refresh-decode',
+          });
+        }
 
-    const refreshPromise = firstValueFrom(
-      this.http
-        .post<unknown>(`${this.apiUrl}/api/user/refresh-token`, refreshBody, {
-          withCredentials: true,
-          headers: refreshHeaders,
-        })
-        .pipe(
-          tap((raw) => {
-            this.nativeAuthTokens.captureFromAuthPayload(raw);
-          }),
-          map(raw => this.resolveUserAfterRefresh(raw)),
-          tap(user => {
-            if (user) this.setUser(user);
-            // #region agent log
-            debugLog('auth', 'auth.service.ts:refreshUserContext', user ? 'refresh ok' : 'refresh empty user', {
-              hasUser: !!user,
-              role: user?.role ?? null,
-              hypothesisId: 'H16-refresh-401',
-            });
-            // #endregion agent log
-          }),
-          catchError(err => {
-            debugLog('auth', 'auth.service.ts:refreshUserContext', 'refresh failed', {
-              status: (err as HttpErrorResponse)?.status ?? null,
-              hasUserCtx: !!localStorage.getItem('UserCtx'),
-              hypothesisId: 'H16-refresh-401',
-            });
-            console.error('Refresh failed', err);
-            if (isHttpAuthFailure(err)) {
-              this.clearUser();
-              if (redirectOnFailure) {
-                void this.router.navigate(['/login']);
+        // #region agent log
+        debugLog('auth', 'auth.service.ts:refreshUserContext', 'refresh start', {
+          nativeAuth: this.nativeAuthTokens.isEnabled(),
+          hasUserCtx: !!localStorage.getItem('UserCtx'),
+          hypothesisId: 'H16-refresh-401',
+        });
+        // #endregion agent log
+
+        const sentRefreshToken = this.nativeAuthTokens.isEnabled()
+          ? !!refreshBody.refreshToken
+          : true;
+
+        return this.http
+          .post<unknown>(`${this.apiUrl}/api/user/refresh-token`, refreshBody, {
+            withCredentials: true,
+            headers: refreshHeaders,
+          })
+          .pipe(
+            tap((raw) => {
+              this.nativeAuthTokens.captureFromAuthPayload(raw);
+            }),
+            map(raw => this.resolveUserAfterRefresh(raw)),
+            tap(user => {
+              if (user) this.setUser(user);
+              // #region agent log
+              debugLog('auth', 'auth.service.ts:refreshUserContext', user ? 'refresh ok' : 'refresh empty user', {
+                hasUser: !!user,
+                role: user?.role ?? null,
+                hypothesisId: 'H16-refresh-401',
+              });
+              // #endregion agent log
+            }),
+            catchError(err => {
+              debugLog('auth', 'auth.service.ts:refreshUserContext', 'refresh failed', {
+                status: (err as HttpErrorResponse)?.status ?? null,
+                hasUserCtx: !!localStorage.getItem('UserCtx'),
+                sentRefreshToken,
+                hypothesisId: 'H16-refresh-401',
+              });
+              console.error('Refresh failed', err);
+              if (isHttpAuthFailure(err) && sentRefreshToken) {
+                this.clearUser();
+                if (redirectOnFailure) {
+                  void this.router.navigate(['/login']);
+                }
               }
-            }
-            return of(null);
-          }),
-        ),
+              return of(null);
+            }),
+            finalize(() => {
+              if (role === 'leader') {
+                releaseRefreshLeader(!!this.getUserSnapshot());
+              }
+            }),
+          );
+      }),
     );
 
-    this.refreshShared$ = from(refreshPromise).pipe(
+    this.refreshShared$ = refresh$.pipe(
       finalize(() => {
         this.refreshShared$ = null;
       }),
@@ -422,18 +476,14 @@ export class AuthService {
   }
 
   logout(): Observable<void> {
+    this.unregisterPushToken();
+    this.clearUser();
+    this.clearRestaurantCtx();
     return this.http.post<void>(`${this.apiUrl}/api/user/logout`, {}, { withCredentials: true }).pipe(
-      tap(() => {
-        this.unregisterPushToken();
-        this.clearUser();
-        this.clearRestaurantCtx();
-      }),
+      map(() => undefined as void),
       catchError(err => {
-        console.error('Logout error', err);
-        this.unregisterPushToken();
-        this.clearUser();
-        this.clearRestaurantCtx();
-        return of(undefined as unknown as void);
+        console.warn('Logout API call failed; local session already cleared', err);
+        return of(undefined as void);
       }),
     );
   }

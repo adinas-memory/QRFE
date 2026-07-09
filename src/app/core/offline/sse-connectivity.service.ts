@@ -25,6 +25,8 @@ export class SseConnectivityService {
   private staleWatchTimer: ReturnType<typeof setInterval> | null = null;
   private bootstrapFallbackTimer: ReturnType<typeof setTimeout> | null = null;
   private debugHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private lastHeartbeatLogAt = 0;
+  private lastHeartbeatSignature = '';
 
   /**
    * fetch()-based SSE (fetch-event-source) can go "zombie" on some mobile network transitions:
@@ -39,12 +41,23 @@ export class SseConnectivityService {
   constructor() {
     this.startStaleWatch();
     this.debugHeartbeatTimer = setInterval(() => {
+      const signature = `${this.streamOpen}:${this.onlineState.isOnline}:${typeof document !== 'undefined' ? document.hidden : null}`;
+      const now = Date.now();
+      const stateChanged = signature !== this.lastHeartbeatSignature;
+      const sampleDue = now - this.lastHeartbeatLogAt >= 60_000;
+      if (!stateChanged && !sampleDue) {
+        return;
+      }
+      this.lastHeartbeatSignature = signature;
+      this.lastHeartbeatLogAt = now;
       debugLog('sse', 'sse-connectivity.service.ts:heartbeat', 'js heartbeat', {
         streamOpen: this.streamOpen,
         pulseGapMs: this.lastPulseAt ? Date.now() - this.lastPulseAt : null,
         documentHidden: typeof document !== 'undefined' ? document.hidden : null,
         isOnline: this.onlineState.isOnline,
         native: Capacitor.isNativePlatform(),
+        sampled: !stateChanged,
+        hypothesisId: 'H24-heartbeat-sample',
       });
     }, 3000);
   }
