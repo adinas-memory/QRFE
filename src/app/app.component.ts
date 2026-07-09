@@ -26,10 +26,6 @@ import { OfflineSyncLockService } from './core/offline/offline-sync-lock.service
 import { NetworkMonitorService } from './core/platform/network-monitor.service';
 import { navigateToRoleHome } from './core/auth/auth-redirect.util';
 import { isAssignedRestaurantId } from './core/auth/restaurant-id.util';
-import { environment } from '../environments/environment';
-import { NetworkMonitor } from './core/plugins/network-monitor.plugin';
-import { debugLog, downloadWebDebugLog } from './core/offline/debug-log.util';
-
 
 @Component({
   selector: 'app-root',
@@ -54,15 +50,6 @@ import { debugLog, downloadWebDebugLog } from './core/offline/debug-log.util';
   <app-toasts></app-toasts>
   <router-outlet></router-outlet>
 
-  <button
-    type="button"
-    data-debug-export-btn
-    (click)="exportDebugLog()"
-    style="position:fixed;bottom:16px;right:16px;z-index:2147483647;opacity:1;padding:10px 14px;font-size:14px;font-weight:bold;background:#ffeb3b;color:#000;border:3px solid #000;border-radius:6px;"
-  >
-    EXPORT LOGS
-  </button>
-
 </div>`,
   imports: [RouterOutlet, SpinnerComponent, AppToastsComponent, TranslocoPipe],
 })
@@ -73,20 +60,6 @@ export class AppComponent implements OnInit {
   restaurantSyncFrozen = false;
   offlineBannerKey = 'offline.bannerLimited';
   private navHistory: string[] = [];
-
-  exportDebugLog(): void {
-    if (Capacitor.isNativePlatform()) {
-      void NetworkMonitor.shareDebugLog().catch(err => console.warn('[debug] shareDebugLog failed', err));
-      return;
-    }
-    void downloadWebDebugLog().then(lineCount => {
-      if (lineCount === 0) {
-        window.alert('No debug log lines yet. Use the app for a minute (SSE/connectivity), then export again.');
-        return;
-      }
-      window.alert(`Exported ${lineCount} log lines (download, share sheet, or clipboard).`);
-    });
-  }
 
   readonly #destroyRef: DestroyRef = inject(DestroyRef);
   readonly #activatedRoute: ActivatedRoute = inject(ActivatedRoute);
@@ -139,15 +112,6 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    debugLog('startup', 'app.component.ts:ngOnInit', 'app startup', {
-      apiUrl: environment.apiUrl,
-      poweredBy: environment.poweredBy,
-      native: Capacitor.isNativePlatform(),
-      platform: Capacitor.getPlatform(),
-      href: typeof window !== 'undefined' ? window.location.href : null,
-      pageProtocol: typeof window !== 'undefined' ? window.location.protocol : null,
-      authFixRev: 'H27+H28+H29',
-    });
     if (Capacitor.isNativePlatform()) {
       void this.#onlineStateService.confirmConnectivity(true);
     }

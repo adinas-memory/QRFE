@@ -2,7 +2,6 @@ import { Injectable, inject } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 import { Subject } from 'rxjs';
 import { OnlineStateService } from './online-state-service';
-import { debugLog } from './debug-log.util';
 
 /** Must stay aligned with SSEController KeepAliveLoop delay (seconds) + grace. */
 export const SSE_PULSE_INTERVAL_MS = 5_000;
@@ -24,9 +23,6 @@ export class SseConnectivityService {
   private offlineDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private staleWatchTimer: ReturnType<typeof setInterval> | null = null;
   private bootstrapFallbackTimer: ReturnType<typeof setTimeout> | null = null;
-  private debugHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
-  private lastHeartbeatLogAt = 0;
-  private lastHeartbeatSignature = '';
 
   /**
    * fetch()-based SSE (fetch-event-source) can go "zombie" on some mobile network transitions:
@@ -40,26 +36,6 @@ export class SseConnectivityService {
 
   constructor() {
     this.startStaleWatch();
-    this.debugHeartbeatTimer = setInterval(() => {
-      const signature = `${this.streamOpen}:${this.onlineState.isOnline}:${typeof document !== 'undefined' ? document.hidden : null}`;
-      const now = Date.now();
-      const stateChanged = signature !== this.lastHeartbeatSignature;
-      const sampleDue = now - this.lastHeartbeatLogAt >= 60_000;
-      if (!stateChanged && !sampleDue) {
-        return;
-      }
-      this.lastHeartbeatSignature = signature;
-      this.lastHeartbeatLogAt = now;
-      debugLog('sse', 'sse-connectivity.service.ts:heartbeat', 'js heartbeat', {
-        streamOpen: this.streamOpen,
-        pulseGapMs: this.lastPulseAt ? Date.now() - this.lastPulseAt : null,
-        documentHidden: typeof document !== 'undefined' ? document.hidden : null,
-        isOnline: this.onlineState.isOnline,
-        native: Capacitor.isNativePlatform(),
-        sampled: !stateChanged,
-        hypothesisId: 'H24-heartbeat-sample',
-      });
-    }, 3000);
   }
 
   /** True when the restaurant SSE stream is open — ping-lite must not drive online/offline. */
@@ -109,10 +85,6 @@ export class SseConnectivityService {
       return;
     }
     if (this.lastPulseAt === 0) {
-      debugLog('sse', 'sse-connectivity.service.ts:reportStreamError', 'ignored pre-stream error', {
-        hypothesisId: 'H2-sse-closed-before-open',
-        isAuth401,
-      });
       return;
     }
     this.scheduleOffline('sse-error');
@@ -131,12 +103,7 @@ export class SseConnectivityService {
     if (this.sseReconnecting) {
       return;
     }
-    // Failed open / pre-login close — ping-lite remains connectivity source of truth.
     if (!hadSuccessfulStream) {
-      debugLog('sse', 'sse-connectivity.service.ts:reportStreamClosed', 'ignored pre-stream close', {
-        hypothesisId: 'H2-sse-closed-before-open',
-        lastPulseAt: this.lastPulseAt,
-      });
       return;
     }
     this.scheduleOffline('sse-closed');
@@ -181,10 +148,6 @@ export class SseConnectivityService {
   }
 
   reportNativeNetworkLost(): void {
-    debugLog('sse', 'sse-connectivity.service.ts:reportNativeNetworkLost', 'native network lost', {
-      streamOpen: this.streamOpen,
-      lastPulseAgeMs: this.lastPulseAt ? Date.now() - this.lastPulseAt : null,
-    });
     this.scheduleOffline('native-network-lost');
   }
 
@@ -206,14 +169,6 @@ export class SseConnectivityService {
   }
 
   private scheduleOffline(reason: string): void {
-    if (Capacitor.isNativePlatform()) {
-      debugLog('sse', 'sse-connectivity.service.ts:scheduleOffline', 'scheduleOffline invoked', {
-        reason,
-        streamOpen: this.streamOpen,
-        lastPulseAgeMs: this.lastPulseAt ? Date.now() - this.lastPulseAt : null,
-        documentHidden: typeof document !== 'undefined' ? document.hidden : null,
-      });
-    }
     if (this.onlineState.isOnline === false && reason === 'stale-watch') {
       return;
     }
@@ -227,12 +182,6 @@ export class SseConnectivityService {
       const zombieStream = pulseStale && this.streamOpen;
       const stale = !this.streamOpen || pulseStale;
       if (zombieStream) {
-        debugLog('sse', 'sse-connectivity.service.ts:scheduleOffline', 'forcing reconnect: zombie stream', {
-          reason,
-          lastPulseAgeMs: this.lastPulseAt ? Date.now() - this.lastPulseAt : null,
-        });
-        // fetch-event-source can stall with streamOpen=true and no pulses while HTTP still works.
-        // Reconnect SSE directly — do NOT flip offline (avoids heavy-sync + false offline banner).
         this.streamOpen = false;
         this.forceReconnectSubject.next();
         return;

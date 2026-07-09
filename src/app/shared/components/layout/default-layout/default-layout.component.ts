@@ -26,7 +26,6 @@ import { TitleCasePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslocoService } from '@jsverse/transloco';
 import { catchError, of, switchMap } from 'rxjs';
-import { debugLog } from '../../../../core/offline/debug-log.util';
 
 function isOverflown(element: HTMLElement) {
   return (
@@ -117,16 +116,8 @@ export class DefaultLayoutComponent implements OnInit {
       });
   }
 
-  private refreshNavItems(source: string): void {
+  private refreshNavItems(_source: string): void {
     this.navItems = this.getNavItemsForRole(this.userRole);
-    // #region agent log
-    debugLog('nav', 'default-layout.component.ts', 'nav items refreshed', {
-      source,
-      role: this.userRole,
-      itemCount: this.navItems.length,
-      hypothesisId: 'H15-sidebar-blank',
-    });
-    // #endregion
   }
 
   getNavItemsForRole(role: string): INavData[] {

@@ -7,7 +7,6 @@ import { UserContextModel } from '../models/userContextModel';
 import { RegisterUserRequestModel } from '../models/registerUserRequestModel';
 import { environment } from '../../../environments/environment';
 import { LoginUserRequestModel } from '../models/loginUserRequestModel';
-import { debugLog } from '../offline/debug-log.util';
 import { PushRegistrationService } from '../services/push/push-registration.service';
 import { normalizeRestaurantId } from './restaurant-id.util';
 import { NATIVE_AUTH_HEADER, NativeAuthTokenService } from './native-auth-token.service';
@@ -165,12 +164,6 @@ export class AuthService {
     if (this.nativeAuthTokens.isEnabled()) {
       headers[NATIVE_AUTH_HEADER] = '1';
     }
-    debugLog('auth', 'auth.service.ts:loginUser', 'login attempt', {
-      url,
-      pageProtocol: typeof window !== 'undefined' ? window.location.protocol : null,
-      nativeAuth: this.nativeAuthTokens.isEnabled(),
-      hypothesisId: 'H4-login-fails',
-    });
     return this.http.post(url, payload, {
       headers,
       withCredentials: true,
@@ -280,16 +273,9 @@ export class AuthService {
     initRefreshCoordinator();
     await firstValueFrom(this.restoreSession());
     if (!this.isAuthenticated()) {
-      debugLog('auth', 'auth.service.ts:tryRestoreWebSession', 'no UserCtx in storage', {
-        hypothesisId: 'H28-startup-restore',
-      });
       return null;
     }
     const user = await firstValueFrom(this.refreshUserContext({ redirectOnFailure: false }));
-    debugLog('auth', 'auth.service.ts:tryRestoreWebSession', user ? 'startup refresh ok' : 'startup refresh failed', {
-      hypothesisId: 'H28-startup-restore',
-      hasUser: !!user,
-    });
     return user;
   }
 
@@ -354,11 +340,6 @@ export class AuthService {
   refreshUserContext(options?: { redirectOnFailure?: boolean }): Observable<UserContextModel | null> {
     const redirectOnFailure = options?.redirectOnFailure ?? true;
     if (this.refreshShared$) {
-      // #region agent log
-      debugLog('auth', 'auth.service.ts:refreshUserContext', 'refresh joined in-flight', {
-        hypothesisId: 'H26-same-tab-singleflight',
-      });
-      // #endregion agent log
       return this.refreshShared$;
     }
 
@@ -366,9 +347,6 @@ export class AuthService {
       this.hydrateSessionFromStorageIfNeeded();
       const hasLocalSession = !!localStorage.getItem('UserCtx') || !!this.userSubject.value;
       if (!hasLocalSession) {
-        debugLog('auth', 'auth.service.ts:refreshUserContext', 'refresh skipped no local session', {
-          hypothesisId: 'H29-no-local-session',
-        });
         return of(null);
       }
     }
@@ -385,24 +363,12 @@ export class AuthService {
         if (syncRole === 'contended') {
           return from(acquireRefreshLeader());
         }
-        if (syncRole === 'leader') {
-          debugLog('auth', 'auth-refresh-coordinator.ts', 'refresh leader acquired', {
-            hypothesisId: 'H23-refresh-singleflight',
-          });
-        }
         return of(syncRole);
       }),
       switchMap((role) => {
         if (role === 'follower' && !this.nativeAuthTokens.isEnabled()) {
           this.hydrateSessionFromStorageIfNeeded();
           const snapshot = this.getUserSnapshot();
-          // #region agent log
-          debugLog('auth', 'auth.service.ts:refreshUserContext', 'refresh skipped follower', {
-            hasUser: !!snapshot,
-            role: snapshot?.role ?? null,
-            hypothesisId: 'H23-refresh-singleflight',
-          });
-          // #endregion agent log
           return of(snapshot);
         }
 
@@ -412,23 +378,7 @@ export class AuthService {
         const refreshHeaders: Record<string, string> = {};
         if (this.nativeAuthTokens.isEnabled()) {
           refreshHeaders[NATIVE_AUTH_HEADER] = '1';
-          const rt = refreshBody.refreshToken;
-          debugLog('auth', 'auth.service.ts', 'native refresh request', {
-            hasRefreshToken: !!rt,
-            refreshLen: rt?.length ?? 0,
-            refreshHasPercent: rt?.includes('%') ?? false,
-            refreshStartsDollar2a: rt?.startsWith('$2') ?? false,
-            hypothesisId: 'H10-refresh-decode',
-          });
         }
-
-        // #region agent log
-        debugLog('auth', 'auth.service.ts:refreshUserContext', 'refresh start', {
-          nativeAuth: this.nativeAuthTokens.isEnabled(),
-          hasUserCtx: !!localStorage.getItem('UserCtx'),
-          hypothesisId: 'H16-refresh-401',
-        });
-        // #endregion agent log
 
         const sentRefreshToken = this.nativeAuthTokens.isEnabled()
           ? !!refreshBody.refreshToken
@@ -446,21 +396,8 @@ export class AuthService {
             map(raw => this.resolveUserAfterRefresh(raw)),
             tap(user => {
               if (user) this.setUser(user);
-              // #region agent log
-              debugLog('auth', 'auth.service.ts:refreshUserContext', user ? 'refresh ok' : 'refresh empty user', {
-                hasUser: !!user,
-                role: user?.role ?? null,
-                hypothesisId: 'H16-refresh-401',
-              });
-              // #endregion agent log
             }),
             catchError(err => {
-              debugLog('auth', 'auth.service.ts:refreshUserContext', 'refresh failed', {
-                status: (err as HttpErrorResponse)?.status ?? null,
-                hasUserCtx: !!localStorage.getItem('UserCtx'),
-                sentRefreshToken,
-                hypothesisId: 'H16-refresh-401',
-              });
               console.error('Refresh failed', err);
               if (isHttpAuthFailure(err) && sentRefreshToken) {
                 this.clearUser();

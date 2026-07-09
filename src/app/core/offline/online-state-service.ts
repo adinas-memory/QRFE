@@ -2,7 +2,6 @@ import { Injectable, inject, Injector } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { SseConnectivityService } from './sse-connectivity.service';
-import { debugLog } from './debug-log.util';
 
 function isCapacitorNative(): boolean {
   if (typeof window === 'undefined') return false;
@@ -131,13 +130,6 @@ export class OnlineStateService {
 
     private async executePing(): Promise<boolean> {
     const pingUrl = `${this.apiUrl}/api/ping-lite`;
-    const pageProtocol = typeof window !== 'undefined' ? window.location.protocol : 'n/a';
-    debugLog('connectivity', 'online-state-service.ts:executePing:start', 'ping-lite start', {
-      pingUrl,
-      apiUrl: this.apiUrl,
-      pageProtocol,
-      isOnlineBefore: this._isOnline,
-    });
     try {
       const hasAbortTimeout =
         typeof AbortSignal !== 'undefined' &&
@@ -149,14 +141,6 @@ export class OnlineStateService {
         ...(hasAbortTimeout ? { signal: AbortSignal.timeout(3000) } : {}),
       });
       const ok = res.ok || res.status < 500;
-      debugLog('connectivity', 'online-state-service.ts:executePing:result', 'ping-lite response', {
-        pingUrl,
-        status: res.status,
-        ok,
-        pageProtocol,
-        hypothesisId: 'H1-mixed-content',
-        runId: 'post-fix',
-      });
       const sseConnectivity = this.injector.get(SseConnectivityService);
       if (sseConnectivity.isStreamActive()) {
         return ok;
@@ -169,13 +153,6 @@ export class OnlineStateService {
       }
       return ok;
     } catch (err) {
-      debugLog('connectivity', 'online-state-service.ts:executePing:error', 'ping-lite failed', {
-        pingUrl,
-        pageProtocol,
-        error: String(err),
-        hypothesisId: 'H1-mixed-content',
-        runId: 'post-fix',
-      });
       const sseConnectivity = this.injector.get(SseConnectivityService);
       if (!sseConnectivity.isStreamActive()) {
         sseConnectivity.reportPingFailed('ping-lite-error');
