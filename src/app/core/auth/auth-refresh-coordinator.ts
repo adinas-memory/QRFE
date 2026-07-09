@@ -2,10 +2,13 @@ import { debugLog } from '../offline/debug-log.util';
 
 const LOCK_KEY = 'qrfe-auth-refresh-lock';
 const LOCK_TTL_MS = 20_000;
+const ORPHAN_PROBE_MS = 400;
 const TAB_ID = crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
 
 const refreshChannel: BroadcastChannel | null =
   typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('qrfe-auth-refresh') : null;
+
+let lifecycleBound = false;
 
 type LockPayload = { owner: string; startedAt: number };
 
@@ -91,13 +94,79 @@ function waitForRefreshDone(maxMs: number): Promise<boolean> {
   });
 }
 
+/** True when another tab still holds the refresh lock and responds to probe. */
+async function isForeignLockHolderAlive(owner: string): Promise<boolean> {
+  if (!refreshChannel || owner === TAB_ID) {
+    return false;
+  }
+  return new Promise(resolve => {
+    let settled = false;
+    const timer = setTimeout(() => finish(false), ORPHAN_PROBE_MS);
+    const onMessage = (ev: MessageEvent<{ type?: string; owner?: string }>) => {
+      if (ev.data?.type === 'refresh-probe-ack' && ev.data.owner === owner) {
+        finish(true);
+      }
+    };
+    const finish = (alive: boolean) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      refreshChannel.removeEventListener('message', onMessage);
+      resolve(alive);
+    };
+    refreshChannel.addEventListener('message', onMessage);
+    refreshChannel.postMessage({ type: 'refresh-probe', requester: TAB_ID, targetOwner: owner });
+  });
+}
+
+async function clearOrphanForeignLock(): Promise<boolean> {
+  const existing = readLock();
+  if (!existing || existing.owner === TAB_ID) {
+    return false;
+  }
+  const alive = await isForeignLockHolderAlive(existing.owner);
+  if (alive) {
+    return false;
+  }
+  debugLog('auth', 'auth-refresh-coordinator.ts', 'orphan refresh lock cleared', {
+    hypothesisId: 'H27-orphan-lock',
+    lockAgeMs: Date.now() - existing.startedAt,
+  });
+  clearLock(existing.owner);
+  return true;
+}
+
+function bindRefreshCoordinatorLifecycle(): void {
+  if (lifecycleBound || typeof window === 'undefined') {
+    return;
+  }
+  lifecycleBound = true;
+  window.addEventListener('pagehide', () => clearLock(TAB_ID));
+  refreshChannel?.addEventListener('message', (ev: MessageEvent<{ type?: string; targetOwner?: string }>) => {
+    if (ev.data?.type !== 'refresh-probe') {
+      return;
+    }
+    const lock = readLock();
+    if (lock?.owner === TAB_ID && ev.data.targetOwner === TAB_ID) {
+      refreshChannel?.postMessage({ type: 'refresh-probe-ack', owner: TAB_ID });
+    }
+  });
+}
+
+/** Call once on app bootstrap (before auth refresh). */
+export function initRefreshCoordinator(): void {
+  bindRefreshCoordinatorLifecycle();
+}
+
 export function tryAcquireRefreshLeaderSync(): 'leader' | 'follower' | 'contended' {
+  bindRefreshCoordinatorLifecycle();
   const existing = readLock();
   if (existing) {
     if (existing.owner !== TAB_ID) {
       return 'contended';
     }
-    // Same tab already has an in-flight refresh — do not start a second HTTP rotation.
     debugLog('auth', 'auth-refresh-coordinator.ts', 'refresh same-tab contended', {
       hypothesisId: 'H26-same-tab-singleflight',
       lockAgeMs: Date.now() - existing.startedAt,
@@ -114,6 +183,13 @@ export function tryAcquireRefreshLeaderSync(): 'leader' | 'follower' | 'contende
 
 /** Cross-tab / cross-bootstrap singleflight for cookie refresh (rotation revokes reused tokens). */
 export async function acquireRefreshLeader(): Promise<'leader' | 'follower'> {
+  bindRefreshCoordinatorLifecycle();
+
+  const existing = readLock();
+  if (existing?.owner !== TAB_ID) {
+    await clearOrphanForeignLock();
+  }
+
   const role = tryAcquireRefreshLeaderSync();
   if (role === 'leader') {
     debugLog('auth', 'auth-refresh-coordinator.ts', 'refresh leader acquired', {
@@ -124,6 +200,8 @@ export async function acquireRefreshLeader(): Promise<'leader' | 'follower'> {
 
   debugLog('auth', 'auth-refresh-coordinator.ts', 'refresh follower wait', {
     hypothesisId: 'H23-refresh-singleflight',
+    foreignOwner: existing?.owner !== TAB_ID,
+    lockAgeMs: existing ? Date.now() - existing.startedAt : null,
   });
   await waitForRefreshDone(LOCK_TTL_MS);
   return 'follower';
