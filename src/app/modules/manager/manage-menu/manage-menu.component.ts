@@ -93,6 +93,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
       menuItemName: ['', Validators.required],
       menuItemDescription: ['', Validators.required],
       menuItemPriceAmount: [0, [Validators.required, Validators.min(0.01)]],
+      menuItemVatPercent: [19, [Validators.required, Validators.min(0), Validators.max(100)]],
       menuItemCategory: ['', Validators.required],
       menuItemIcon: [null, Validators.required],
     });
@@ -349,6 +350,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
       menuItemName: item.menuItemName,
       menuItemDescription: item.menuItemDescription,
       menuItemPriceAmount: item.menuItemPriceAmount,
+      menuItemVatPercent: item.menuItemVatPercent ?? 19,
       menuItemCategory: canonicalMenuItemCategory(item.category),
       menuItemIcon: null,
     });
@@ -409,6 +411,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
     formData.append('menuItemName', this.menuItemsForm.value.menuItemName);
     formData.append('menuItemDescription', this.menuItemsForm.value.menuItemDescription);
     formData.append('menuItemPriceAmount', this.menuItemsForm.value.menuItemPriceAmount);
+    formData.append('menuItemVatPercent', this.menuItemsForm.value.menuItemVatPercent);
     formData.append('menuItemCategory', canonicalMenuItemCategory(this.menuItemsForm.value.menuItemCategory));
     formData.append('sourceLocale', this.transloco.getActiveLang() || 'ro');
     if (iconFile instanceof File) {
@@ -521,6 +524,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
     this.selectedFile = null;
     this.menuItemsForm.reset({
       menuItemPriceAmount: 0,
+      menuItemVatPercent: 19,
     });
     const iconControl = this.menuItemsForm.get('menuItemIcon');
     iconControl?.setValidators(Validators.required);
