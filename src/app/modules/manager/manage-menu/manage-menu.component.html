@@ -125,38 +125,21 @@
             <label cLabel for="setMenuTitle">{{ 'menu.manageMenu.setMenuTitleLabel' | transloco }}</label>
             <input id="setMenuTitle" cFormControl formControlName="title" class="form-control" />
           </div>
-          <div class="row g-2 mb-3">
-            <div class="col-8 col-md-9">
-              <label cLabel for="setMenuPrice">{{ 'menu.manageMenu.setMenuPriceLabel' | transloco }}</label>
-              <input
-                id="setMenuPrice"
-                cFormControl
-                formControlName="priceAmount"
-                type="number"
-                step="0.01"
-                min="0.01"
-                placeholder="0.00"
-                class="form-control"
-                [class.is-invalid]="setMenuForm.get('priceAmount')?.invalid && setMenuForm.get('priceAmount')?.touched"
-              />
-              <div class="invalid-feedback d-block" *ngIf="setMenuForm.get('priceAmount')?.invalid && setMenuForm.get('priceAmount')?.touched">
-                {{ 'menu.manageMenu.setMenuPriceRequired' | transloco }}
-              </div>
-            </div>
-            <div class="col-4 col-md-3">
-              <label cLabel for="setMenuVatPercent">{{ 'menu.manageMenu.vatLabel' | transloco }}</label>
-              <input
-                id="setMenuVatPercent"
-                cFormControl
-                formControlName="vatPercent"
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                [placeholder]="'menu.manageMenu.vatPlaceholder' | transloco"
-                class="form-control"
-                [class.is-invalid]="setMenuForm.get('vatPercent')?.invalid && setMenuForm.get('vatPercent')?.touched"
-              />
+          <div class="mb-3">
+            <label cLabel for="setMenuPrice">{{ 'menu.manageMenu.setMenuPriceLabel' | transloco }}</label>
+            <input
+              id="setMenuPrice"
+              cFormControl
+              formControlName="priceAmount"
+              type="number"
+              step="0.01"
+              min="0.01"
+              placeholder="0.00"
+              class="form-control"
+              [class.is-invalid]="setMenuForm.get('priceAmount')?.invalid && setMenuForm.get('priceAmount')?.touched"
+            />
+            <div class="invalid-feedback d-block" *ngIf="setMenuForm.get('priceAmount')?.invalid && setMenuForm.get('priceAmount')?.touched">
+              {{ 'menu.manageMenu.setMenuPriceRequired' | transloco }}
             </div>
           </div>
           <div class="mb-3 form-check">
@@ -164,15 +147,35 @@
             <label class="form-check-label" for="setMenuAvailable">{{ 'menu.manageMenu.setMenuAvailableLabel' | transloco }}</label>
           </div>
           <label class="form-label">{{ 'menu.manageMenu.setMenuLinesLabel' | transloco }}</label>
-          <div *ngFor="let ctrl of setMenuLines.controls; let i = index" class="input-group mb-2">
-            <input [formControl]="$any(ctrl)" class="form-control" [placeholder]="'menu.manageMenu.setMenuLinePlaceholder' | transloco: { n: i + 1 }" />
-            <button
-              *ngIf="setMenuLines.length > 1"
-              type="button"
-              class="btn btn-outline-danger"
-              (click)="removeSetMenuLine(i)"
-              [attr.aria-label]="'menu.manageMenu.removeSetMenuLineAria' | transloco: { n: i + 1 }"
-            >×</button>
+          <div *ngFor="let lineCtrl of setMenuLines.controls; let i = index" [formGroup]="$any(lineCtrl)" class="row g-2 mb-2 align-items-start">
+            <div class="col-8 col-md-9">
+              <input
+                formControlName="text"
+                class="form-control"
+                [placeholder]="'menu.manageMenu.setMenuLinePlaceholder' | transloco: { n: i + 1 }"
+              />
+            </div>
+            <div class="col-3 col-md-2">
+              <input
+                formControlName="vatPercent"
+                class="form-control"
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                [placeholder]="'menu.manageMenu.vatPlaceholder' | transloco"
+                [attr.aria-label]="'menu.manageMenu.vatLabel' | transloco"
+              />
+            </div>
+            <div class="col-1 d-flex justify-content-end">
+              <button
+                *ngIf="setMenuLines.length > 1"
+                type="button"
+                class="btn btn-outline-danger"
+                (click)="removeSetMenuLine(i)"
+                [attr.aria-label]="'menu.manageMenu.removeSetMenuLineAria' | transloco: { n: i + 1 }"
+              >×</button>
+            </div>
           </div>
           <button type="button" class="btn btn-outline-secondary btn-sm mb-3" (click)="addSetMenuLine()">{{ 'menu.manageMenu.addSetMenuLine' | transloco }}</button>
           <div>
@@ -200,14 +203,14 @@
                   <span class="badge bg-secondary me-2">{{ weekdayLabel(entry.weekday) }}</span>
                   <strong>{{ entry.title }}</strong>
                   <ul class="mb-0 mt-1 ps-3 small text-muted">
-                    <li *ngFor="let line of entry.lines | slice:0:4">{{ line.text }}</li>
+                    <li *ngFor="let line of entry.lines | slice:0:4">
+                      {{ line.text }}
+                      <span class="ms-1">· {{ 'menu.manageMenu.vatShort' | transloco: { value: line.vatPercent ?? 19 } }}</span>
+                    </li>
                   </ul>
                 </div>
                 <span class="text-nowrap fw-semibold">
                   {{ entry.priceAmount | currency: entry.priceCurrency : 'symbol' : '1.2-2' }}
-                  <span class="text-muted fw-normal small">
-                    · {{ 'menu.manageMenu.vatShort' | transloco: { value: entry.vatPercent ?? 19 } }}
-                  </span>
                 </span>
               </div>
             </li>
