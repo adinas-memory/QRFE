@@ -23,6 +23,12 @@ export const routes: Routes = [
         data: { title: 'FAQ', public: true }
       },
       {
+        path: 'partners',
+        loadComponent: () =>
+          import('./partners/partners-page.component').then(m => m.PartnersPageComponent),
+        data: { title: 'Partners', public: true }
+      },
+      {
         path: 'contact',
         loadComponent: () =>
           import('./static-public-page/static-public-page.component').then(m => m.StaticPublicPageComponent),

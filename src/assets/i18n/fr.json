@@ -9,7 +9,8 @@
       "pricing": "Tarifs",
       "contact": "Contact",
       "signin": "Connexion",
-      "getstarted": "Commencer"
+      "getstarted": "Commencer",
+      "partner": "Devenir partenaire / revendeur"
     },
     "hero": {
       "badge": "Fonctionne entièrement hors ligne",
@@ -142,11 +143,55 @@
       "rights": "© 2026 Universal Restaurant Systems. Tous droits réservés."
     }
   },
+  "partners": {
+    "hero": {
+      "title": "Développez votre activité de revendeur avec U.R.S.",
+      "subtitle": "Programme partenaire pour distributeurs de caisses enregistreuses et intégrateurs IT HoReCa."
+    },
+    "benefits": {
+      "title": "Ce que vous gagnez en tant que partenaire",
+      "margins": {
+        "title": "Marges Récurrentes Élevées",
+        "text": "Recevez jusqu'à 40 % de remise sur la valeur de l'abonnement cloud pour chaque client apporté, mois après mois."
+      },
+      "network": {
+        "title": "Zéro Problème Réseau (VPN Natif)",
+        "text": "Notre logiciel inclut un bridge Windows qui supprime la configuration des routeurs (pas de port forwarding, pas d'IP publique statique obligatoire)."
+      },
+      "support": {
+        "title": "Support B2B Dédié",
+        "text": "Vous gérez la relation directe et l'installation matérielle avec le restaurant ; nous assurons le bon fonctionnement du serveur Cloud 24h/24."
+      }
+    },
+    "form": {
+      "title": "Demander le programme partenaire",
+      "companyName": "Nom de l'entreprise",
+      "companyNamePlaceholder": "ex : Rossi Sistemi SRL",
+      "email": "Email de contact",
+      "cityRegion": "Ville / Région",
+      "cityRegionPlaceholder": "ex : Milan / Lombardie",
+      "portfolioSize": "Nombre de restaurants gérés actuellement",
+      "portfolio": {
+        "zeroToFifty": "0-50",
+        "fiftyToTwoHundred": "50-200",
+        "overTwoHundred": "plus de 200"
+      },
+      "message": "Message / Questions",
+      "submit": "Envoyer la demande",
+      "submitting": "Envoi en cours…",
+      "success": "Nous avons reçu votre demande. Un ingénieur solutions vous contactera sous 48 heures.",
+      "error": "Impossible d'envoyer la demande. Réessayez ou contactez-nous directement.",
+      "required": "Ce champ est obligatoire",
+      "invalidEmail": "Saisissez une adresse email valide"
+    }
+  },
   "seo": {
     "landingTitle": "U.R.S. | Système POS Restaurant — Logiciel POS Cloud & Mobile",
     "landingDescription": "Universal Restaurant Systems : POS offline-first pour restaurants, POS mobile, terminal de paiement, imprimante de reçus, gestion des stocks, rapports de ventes et POS cloud pour petites entreprises.",
     "faqTitle": "U.R.S. FAQ | Système POS & Logiciel Restaurant",
     "faqDescription": "Questions fréquentes sur le POS U.R.S. : POS restaurant, Printer Agent, commandes offline, menu QR, paiements Stripe et workflows staff.",
+    "partnersTitle": "Programme Partenaires U.R.S. | Devenir revendeur POS restaurant",
+    "partnersDescription": "Rejoignez le programme partenaires Universal Restaurant Systems : marges récurrentes, VPN natif sans configuration routeur et support B2B dédié pour les distributeurs HoReCa.",
     "keywords": "meilleur système POS, POS pour petites entreprises, POS pour restaurants, POS mobile, POS cloud, POS pas cher, terminal POS, système POS, caisse enregistreuse, logiciel POS, terminal de paiement, lecteur de carte, imprimante de reçus, POS retail, gestion des stocks, gestion des ventes, POS en ligne, rapports de ventes, intégration ERP"
   },
   "footer": {

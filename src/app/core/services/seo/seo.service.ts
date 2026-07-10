@@ -10,7 +10,7 @@ import {
   COMPANY_WEBSITE,
 } from '@app/core/constants/company-contact';
 
-export type PublicSeoPage = 'landing' | 'faq' | 'contact' | 'privacy' | 'terms';
+export type PublicSeoPage = 'landing' | 'faq' | 'contact' | 'privacy' | 'terms' | 'partners';
 
 const PAGE_PATHS: Record<PublicSeoPage, string> = {
   landing: '/',
@@ -18,6 +18,7 @@ const PAGE_PATHS: Record<PublicSeoPage, string> = {
   contact: '/contact',
   privacy: '/privacy',
   terms: '/terms',
+  partners: '/partners',
 };
 
 const SEO_TITLE_KEYS: Record<PublicSeoPage, string> = {
@@ -26,6 +27,7 @@ const SEO_TITLE_KEYS: Record<PublicSeoPage, string> = {
   contact: 'seo.contactTitle',
   privacy: 'seo.privacyTitle',
   terms: 'seo.termsTitle',
+  partners: 'seo.partnersTitle',
 };
 
 const SEO_DESCRIPTION_KEYS: Record<PublicSeoPage, string> = {
@@ -34,6 +36,7 @@ const SEO_DESCRIPTION_KEYS: Record<PublicSeoPage, string> = {
   contact: 'seo.contactDescription',
   privacy: 'seo.privacyDescription',
   terms: 'seo.termsDescription',
+  partners: 'seo.partnersDescription',
 };
 
 @Injectable({ providedIn: 'root' })

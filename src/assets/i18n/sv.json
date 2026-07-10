@@ -9,7 +9,8 @@
       "pricing": "Priser",
       "contact": "Kontakt",
       "signin": "Logga in",
-      "getstarted": "Kom igång"
+      "getstarted": "Kom igång",
+      "partner": "Bli partner / återförsäljare"
     },
     "hero": {
       "badge": "Fungerar helt offline",
@@ -142,11 +143,55 @@
       "rights": "© 2026 Universal Restaurant Systems. Alla rättigheter förbehållna."
     }
   },
+  "partners": {
+    "hero": {
+      "title": "Bygg ditt återförsäljarföretag med U.R.S.",
+      "subtitle": "Partnerprogram för distributörer av kassasystem och HoReCa IT-integratörer."
+    },
+    "benefits": {
+      "title": "Vad du får som partner",
+      "margins": {
+        "title": "Höga Återkommande Marginaler",
+        "text": "Få upp till 40 % rabatt på molnabonnemangets värde för varje kund du tar med, månad efter månad."
+      },
+      "network": {
+        "title": "Inga Nätverksproblem (Inbyggd VPN)",
+        "text": "Vår programvara inkluderar en Windows-brygga som tar bort behovet av routerkonfiguration (ingen port forwarding, ingen obligatorisk statisk publik IP)."
+      },
+      "support": {
+        "title": "Dedikerad B2B-support",
+        "text": "Ni hanterar den direkta relationen och hårdvaruinstallationen med restaurangen; vi ser till att molnservern fungerar felfritt dygnet runt."
+      }
+    },
+    "form": {
+      "title": "Ansök till partnerprogrammet",
+      "companyName": "Företagsnamn",
+      "companyNamePlaceholder": "t.ex. Rossi Sistemi SRL",
+      "email": "Kontakt-e-post",
+      "cityRegion": "Stad / Region",
+      "cityRegionPlaceholder": "t.ex. Milano / Lombardiet",
+      "portfolioSize": "Antal restauranger som förvaltas idag",
+      "portfolio": {
+        "zeroToFifty": "0-50",
+        "fiftyToTwoHundred": "50-200",
+        "overTwoHundred": "över 200"
+      },
+      "message": "Meddelande / Frågor",
+      "submit": "Skicka förfrågan",
+      "submitting": "Skickar…",
+      "success": "Vi har tagit emot din förfrågan. En solutions engineer kontaktar dig inom 48 timmar.",
+      "error": "Kunde inte skicka förfrågan. Försök igen eller kontakta oss direkt.",
+      "required": "Detta fält är obligatoriskt",
+      "invalidEmail": "Ange en giltig e-postadress"
+    }
+  },
   "seo": {
     "landingTitle": "U.R.S. | Restaurang-POS — Molnbaserat & Mobilt POS-system",
     "landingDescription": "Universal Restaurant Systems: offline-first POS för restauranger, mobil POS, betalterminal, kvittoskrivare, lagerhantering, försäljningsrapporter och molnbaserat POS för småföretag.",
     "faqTitle": "U.R.S. FAQ | POS-system & Restaurangprogramvara",
     "faqDescription": "Vanliga frågor om U.R.S. restaurang-POS: mobil POS, Printer Agent, offlinebeställningar, QR-meny, Stripe-betalningar och personalflöden.",
+    "partnersTitle": "U.R.S. partnerprogram | Bli återförsäljare av restaurang-POS",
+    "partnersDescription": "Gå med i Universal Restaurant Systems partnerprogram: återkommande marginaler, inbyggd VPN utan routerkonfiguration och dedikerad B2B-support för HoReCa-distributörer.",
     "keywords": "bästa POS-system, POS för småföretag, POS för restauranger, mobil POS, molnbaserat POS, billigt POS, POS-terminal, POS-system, kassaapparat, POS-programvara, betalterminal, kortläsare, kvittoskrivare, butik-POS, lagerhantering, försäljningshantering, online-POS, försäljningsrapporter, ERP-integration"
   },
   "footer": {
