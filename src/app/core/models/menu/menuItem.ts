@@ -8,6 +8,7 @@ export interface MenuItem {
   category: string;
   menuItemPriceCurrency?: string;
   menuItemIconUrl?: string;
+  menuItemVatPercent?: number;
   isAvailable?: boolean;
 }
 
