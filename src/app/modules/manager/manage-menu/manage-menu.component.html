@@ -61,30 +61,32 @@
         <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
       </select>
     </div>
-    <div class="mb-3">
-      <label cLabel for="menuItemPriceAmount">{{ 'menu.manageMenu.priceLabel' | transloco }}</label>
-      <input
-        formControlName="menuItemPriceAmount"
-        cFormControl
-        id="menuItemPriceAmount"
-        placeholder="9.99"
-        type="number"
-        step="0.01"
-        min="0.01"
-      />
-    </div>
-    <div class="mb-3">
-      <label cLabel for="menuItemVatPercent">{{ 'menu.manageMenu.vatLabel' | transloco }}</label>
-      <input
-        formControlName="menuItemVatPercent"
-        cFormControl
-        id="menuItemVatPercent"
-        [placeholder]="'menu.manageMenu.vatPlaceholder' | transloco"
-        type="number"
-        step="0.01"
-        min="0"
-        max="100"
-      />
+    <div class="row g-2 mb-3">
+      <div class="col-8 col-md-9">
+        <label cLabel for="menuItemPriceAmount">{{ 'menu.manageMenu.priceLabel' | transloco }}</label>
+        <input
+          formControlName="menuItemPriceAmount"
+          cFormControl
+          id="menuItemPriceAmount"
+          placeholder="9.99"
+          type="number"
+          step="0.01"
+          min="0.01"
+        />
+      </div>
+      <div class="col-4 col-md-3">
+        <label cLabel for="menuItemVatPercent">{{ 'menu.manageMenu.vatLabel' | transloco }}</label>
+        <input
+          formControlName="menuItemVatPercent"
+          cFormControl
+          id="menuItemVatPercent"
+          [placeholder]="'menu.manageMenu.vatPlaceholder' | transloco"
+          type="number"
+          step="0.01"
+          min="0"
+          max="100"
+        />
+      </div>
     </div>
     <div class="mb-3">
       <label cLabel for="menuItemDescription">Description</label>
@@ -285,21 +287,23 @@
           <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
         </select>
       </div>
-      <div class="mb-3">
-        <label cLabel for="menuItemPriceAmountEdit">{{ 'menu.manageMenu.priceLabel' | transloco }}</label>
-        <input formControlName="menuItemPriceAmount" cFormControl id="menuItemPriceAmountEdit" type="number" step="0.01" min="0.01" />
-      </div>
-      <div class="mb-3">
-        <label cLabel for="menuItemVatPercentEdit">{{ 'menu.manageMenu.vatLabel' | transloco }}</label>
-        <input
-          formControlName="menuItemVatPercent"
-          cFormControl
-          id="menuItemVatPercentEdit"
-          type="number"
-          step="0.01"
-          min="0"
-          max="100"
-        />
+      <div class="row g-2 mb-3">
+        <div class="col-8 col-md-9">
+          <label cLabel for="menuItemPriceAmountEdit">{{ 'menu.manageMenu.priceLabel' | transloco }}</label>
+          <input formControlName="menuItemPriceAmount" cFormControl id="menuItemPriceAmountEdit" type="number" step="0.01" min="0.01" />
+        </div>
+        <div class="col-4 col-md-3">
+          <label cLabel for="menuItemVatPercentEdit">{{ 'menu.manageMenu.vatLabel' | transloco }}</label>
+          <input
+            formControlName="menuItemVatPercent"
+            cFormControl
+            id="menuItemVatPercentEdit"
+            type="number"
+            step="0.01"
+            min="0"
+            max="100"
+          />
+        </div>
       </div>
       <div class="mb-3">
         <label cLabel for="menuItemDescriptionEdit">Description</label>
