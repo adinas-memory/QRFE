@@ -16,6 +16,7 @@ export interface SetMenuDTO {
   weekday: number;
   title: string;
   priceAmount: number;
+  vatPercent?: number;
   priceCurrency?: string;
   isAvailable: boolean;
   linkedMenuItemId: string;
@@ -61,6 +62,7 @@ export function setMenuToMenuItem(setMenu: SetMenuDTO, locale?: string) {
     menuItemDescription: lines.join('\n'),
     menuItemPriceAmount: setMenu.priceAmount,
     menuItemPriceCurrency: setMenu.priceCurrency,
+    menuItemVatPercent: setMenu.vatPercent ?? 19,
     category: 'SetMenu',
     isAvailable: setMenu.isAvailable,
   };

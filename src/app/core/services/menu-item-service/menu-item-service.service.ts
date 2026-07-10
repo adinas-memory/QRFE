@@ -128,7 +128,7 @@ async getAllWithFallback(
   upsertSetMenu(
     restaurantId: string,
     weekday: number,
-    body: { title: string; priceAmount: number; lines: string[]; isAvailable: boolean; sourceLocale?: string }
+    body: { title: string; priceAmount: number; vatPercent: number; lines: string[]; isAvailable: boolean; sourceLocale?: string }
   ): Observable<SetMenuDTO> {
     return this.http.put<SetMenuDTO>(
       `${this.apiUrl}/api/restaurants/${restaurantId}/admin/set-menu/${weekday}`,

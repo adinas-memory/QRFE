@@ -100,6 +100,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
     this.setMenuForm = this.fb.group({
       title: ['Meniul Zilei', Validators.required],
       priceAmount: [null, [Validators.required, Validators.min(0.01)]],
+      vatPercent: [19, [Validators.required, Validators.min(0), Validators.max(100)]],
       isAvailable: [true],
       lines: this.fb.array([this.fb.control('', Validators.required)]),
     });
@@ -150,6 +151,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
       this.setMenuForm.patchValue({
         title: existing.title,
         priceAmount: existing.priceAmount,
+        vatPercent: existing.vatPercent ?? 19,
         isAvailable: existing.isAvailable,
       });
     } else {
@@ -157,6 +159,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
       this.setMenuForm.patchValue({
         title: 'Meniul Zilei',
         priceAmount: null,
+        vatPercent: 19,
         isAvailable: true,
       });
     }
@@ -171,6 +174,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
     const raw = this.setMenuForm.getRawValue();
     const title = (raw.title ?? '').trim();
     const priceAmount = Number(raw.priceAmount);
+    const vatPercent = Number(raw.vatPercent);
     const lines = (raw.lines as string[]).map(l => (l ?? '').trim()).filter(Boolean);
 
     if (!title) {
@@ -183,6 +187,11 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
       this.appToast.error('Introduceți un preț valid (minim 0,01).');
       return;
     }
+    if (!Number.isFinite(vatPercent) || vatPercent < 0 || vatPercent > 100) {
+      this.setMenuForm.get('vatPercent')?.markAsTouched();
+      this.appToast.error(this.transloco.translate('menu.manageMenu.formInvalid'));
+      return;
+    }
     if (!lines.length) {
       this.setMenuForm.markAllAsTouched();
       this.appToast.error('Adăugați cel puțin o linie în meniu.');
@@ -192,6 +201,7 @@ export class ManageMenuComponent implements OnInit, OnDestroy {
     this.menuItemService.upsertSetMenu(this.restaurantId, this.selectedSetMenuWeekday, {
       title,
       priceAmount,
+      vatPercent,
       lines,
       isAvailable: !!raw.isAvailable,
       sourceLocale: this.transloco.getActiveLang() || 'ro',
