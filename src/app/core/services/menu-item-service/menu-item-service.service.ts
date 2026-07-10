@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment';
 import { Observable } from 'rxjs';
 import { MenuItem, MenuManagementResponse, MenuResponse } from '../../models/menu/menuItem';
-import { SetMenuDTO, WeeklySetMenuResponse } from '../../models/menu/setMenu';
+import { SetMenuDTO, SetMenuLineInput, WeeklySetMenuResponse } from '../../models/menu/setMenu';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { MenuItemEntity, OfflineDbService } from '../../offline/offline-db';
@@ -128,7 +128,7 @@ async getAllWithFallback(
   upsertSetMenu(
     restaurantId: string,
     weekday: number,
-    body: { title: string; priceAmount: number; lines: string[]; isAvailable: boolean; sourceLocale?: string }
+    body: { title: string; priceAmount: number; lines: SetMenuLineInput[]; isAvailable: boolean; sourceLocale?: string }
   ): Observable<SetMenuDTO> {
     return this.http.put<SetMenuDTO>(
       `${this.apiUrl}/api/restaurants/${restaurantId}/admin/set-menu/${weekday}`,

@@ -7,7 +7,13 @@ export interface SetMenuLineDTO {
   setMenuLineId?: string;
   sortOrder: number;
   text: string;
+  vatPercent?: number;
   translations?: SetMenuLineTranslationDTO[];
+}
+
+export interface SetMenuLineInput {
+  text: string;
+  vatPercent: number;
 }
 
 export interface SetMenuDTO {
@@ -40,6 +46,13 @@ export function setMenuLineTexts(setMenu: SetMenuDTO, locale?: string): string[]
     });
 }
 
+export function maxSetMenuLineVatPercent(lines: SetMenuLineDTO[] | null | undefined): number {
+  const values = (lines ?? [])
+    .map(line => line.vatPercent)
+    .filter((value): value is number => Number.isFinite(value));
+  return values.length ? Math.max(...values) : 19;
+}
+
 /** True when an order line is the daily set menu (linked placeholder or SetMenu category). */
 export function isSetMenuOrderLine(
   menuItemId: string,
@@ -61,6 +74,7 @@ export function setMenuToMenuItem(setMenu: SetMenuDTO, locale?: string) {
     menuItemDescription: lines.join('\n'),
     menuItemPriceAmount: setMenu.priceAmount,
     menuItemPriceCurrency: setMenu.priceCurrency,
+    menuItemVatPercent: maxSetMenuLineVatPercent(setMenu.lines),
     category: 'SetMenu',
     isAvailable: setMenu.isAvailable,
   };

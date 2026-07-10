@@ -61,17 +61,32 @@
         <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
       </select>
     </div>
-    <div class="mb-3">
-      <label cLabel for="menuItemPriceAmount">Price</label>
-      <input
-        formControlName="menuItemPriceAmount"
-        cFormControl
-        id="menuItemPriceAmount"
-        placeholder="9.99"
-        type="number"
-      />
-    </div>
-    <div class="mb-3">
+    <div class="row g-2 mb-3">
+      <div class="col-8 col-md-9">
+        <label cLabel for="menuItemPriceAmount">{{ 'menu.manageMenu.priceLabel' | transloco }}</label>
+        <input
+          formControlName="menuItemPriceAmount"
+          cFormControl
+          id="menuItemPriceAmount"
+          placeholder="9.99"
+          type="number"
+          step="0.01"
+          min="0.01"
+        />
+      </div>
+      <div class="col-4 col-md-3">
+        <label cLabel for="menuItemVatPercent">{{ 'menu.manageMenu.vatLabel' | transloco }}</label>
+        <input
+          formControlName="menuItemVatPercent"
+          cFormControl
+          id="menuItemVatPercent"
+          [placeholder]="'menu.manageMenu.vatPlaceholder' | transloco"
+          type="number"
+          step="0.01"
+          min="0"
+          max="100"
+        />
+      </div>
     </div>
     <div class="mb-3">
       <label cLabel for="menuItemDescription">Description</label>
@@ -132,15 +147,35 @@
             <label class="form-check-label" for="setMenuAvailable">{{ 'menu.manageMenu.setMenuAvailableLabel' | transloco }}</label>
           </div>
           <label class="form-label">{{ 'menu.manageMenu.setMenuLinesLabel' | transloco }}</label>
-          <div *ngFor="let ctrl of setMenuLines.controls; let i = index" class="input-group mb-2">
-            <input [formControl]="$any(ctrl)" class="form-control" [placeholder]="'menu.manageMenu.setMenuLinePlaceholder' | transloco: { n: i + 1 }" />
-            <button
-              *ngIf="setMenuLines.length > 1"
-              type="button"
-              class="btn btn-outline-danger"
-              (click)="removeSetMenuLine(i)"
-              [attr.aria-label]="'menu.manageMenu.removeSetMenuLineAria' | transloco: { n: i + 1 }"
-            >×</button>
+          <div *ngFor="let lineCtrl of setMenuLines.controls; let i = index" [formGroup]="$any(lineCtrl)" class="row g-2 mb-2 align-items-start">
+            <div class="col-8 col-md-9">
+              <input
+                formControlName="text"
+                class="form-control"
+                [placeholder]="'menu.manageMenu.setMenuLinePlaceholder' | transloco: { n: i + 1 }"
+              />
+            </div>
+            <div class="col-3 col-md-2">
+              <input
+                formControlName="vatPercent"
+                class="form-control"
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                [placeholder]="'menu.manageMenu.vatPlaceholder' | transloco"
+                [attr.aria-label]="'menu.manageMenu.vatLabel' | transloco"
+              />
+            </div>
+            <div class="col-1 d-flex justify-content-end">
+              <button
+                *ngIf="setMenuLines.length > 1"
+                type="button"
+                class="btn btn-outline-danger"
+                (click)="removeSetMenuLine(i)"
+                [attr.aria-label]="'menu.manageMenu.removeSetMenuLineAria' | transloco: { n: i + 1 }"
+              >×</button>
+            </div>
           </div>
           <button type="button" class="btn btn-outline-secondary btn-sm mb-3" (click)="addSetMenuLine()">{{ 'menu.manageMenu.addSetMenuLine' | transloco }}</button>
           <div>
@@ -168,7 +203,10 @@
                   <span class="badge bg-secondary me-2">{{ weekdayLabel(entry.weekday) }}</span>
                   <strong>{{ entry.title }}</strong>
                   <ul class="mb-0 mt-1 ps-3 small text-muted">
-                    <li *ngFor="let line of entry.lines | slice:0:4">{{ line.text }}</li>
+                    <li *ngFor="let line of entry.lines | slice:0:4">
+                      {{ line.text }}
+                      <span class="ms-1">· {{ 'menu.manageMenu.vatShort' | transloco: { value: line.vatPercent ?? 19 } }}</span>
+                    </li>
                   </ul>
                 </div>
                 <span class="text-nowrap fw-semibold">
@@ -216,6 +254,9 @@
                     item.menuItemPriceAmount
                       | currency: item.menuItemPriceCurrency : 'symbol' : '1.2-2'
                   }})
+                </span>
+                <span class="text-muted ms-1">
+                  · {{ 'menu.manageMenu.vatShort' | transloco: { value: item.menuItemVatPercent ?? 19 } }}
                 </span>
                 <div>{{ item.menuItemDescription }}</div>
               </div>
@@ -269,12 +310,24 @@
           <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
         </select>
       </div>
-      <div class="mb-3">
-        <label cLabel for="menuItemPriceAmountEdit">Price</label>
-        <input formControlName="menuItemPriceAmount" cFormControl id="menuItemPriceAmountEdit" type="number" />
-      </div>
-      <div class="mb-3">
+      <div class="row g-2 mb-3">
+        <div class="col-8 col-md-9">
+          <label cLabel for="menuItemPriceAmountEdit">{{ 'menu.manageMenu.priceLabel' | transloco }}</label>
+          <input formControlName="menuItemPriceAmount" cFormControl id="menuItemPriceAmountEdit" type="number" step="0.01" min="0.01" />
         </div>
+        <div class="col-4 col-md-3">
+          <label cLabel for="menuItemVatPercentEdit">{{ 'menu.manageMenu.vatLabel' | transloco }}</label>
+          <input
+            formControlName="menuItemVatPercent"
+            cFormControl
+            id="menuItemVatPercentEdit"
+            type="number"
+            step="0.01"
+            min="0"
+            max="100"
+          />
+        </div>
+      </div>
       <div class="mb-3">
         <label cLabel for="menuItemDescriptionEdit">Description</label>
         <input formControlName="menuItemDescription" cFormControl id="menuItemDescriptionEdit" type="text" />
