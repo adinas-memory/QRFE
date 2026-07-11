@@ -640,7 +640,11 @@
     "recentRestaurants": "Restaurants",
     "viewAll": "Manage all",
     "loading": "Loading…",
-    "empty": "No restaurants yet."
+    "empty": "No restaurants yet.",
+    "colBilling": "Billing",
+    "colNextInvoice": "Next invoice on",
+    "billingManual": "Manual",
+    "billingStripe": "Stripe"
   },
   "managePrinterFleet": {
     "title": "Printer fleet",

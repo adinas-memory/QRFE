@@ -10,6 +10,8 @@ export interface RestaurantStatisticDTO {
   hasManager?: boolean;
   hasRestaurantKey?: boolean;
   subscriptionStatus?: string | null;
+  isManuallyProvisioned?: boolean;
+  nextInvoiceOnUtc?: string | null;
 }
 
 export interface ListRestaurantsResponse {
