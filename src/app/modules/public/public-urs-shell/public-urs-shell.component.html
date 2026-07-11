@@ -83,6 +83,9 @@
               <i class="bi bi-moon-stars-fill"></i>
             }
           </button>
+          <a routerLink="/partners" class="btn btn-outline-primary" (click)="closeNav()">
+            {{ 'landing.nav.partner' | transloco }}
+          </a>
           <a routerLink="/login" class="btn btn-outline-primary" (click)="closeNav()">
             {{ 'landing.nav.signin' | transloco }}
           </a>

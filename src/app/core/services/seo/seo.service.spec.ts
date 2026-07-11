@@ -48,6 +48,13 @@ describe('SeoService', () => {
   });
 
   it('adds canonical link and og:url for public pages', () => {
+    service.applyPublicPage('partners');
+
+    const canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    expect(canonical?.href).toBe(`${environment.publicSiteUrl}/partners`);
+  });
+
+  it('adds canonical link and og:url for faq', () => {
     service.applyPublicPage('faq');
 
     const canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;

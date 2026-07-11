@@ -9,7 +9,8 @@
       "pricing": "Prețuri",
       "contact": "Contact",
       "signin": "Autentificare",
-      "getstarted": "Începe acum"
+      "getstarted": "Începe acum",
+      "partner": "Deveniți Partener / Reseller"
     },
     "hero": {
       "badge": "Funcționează complet offline",
@@ -142,6 +143,48 @@
       "rights": "© 2026 Universal Restaurant Systems. Toate drepturile rezervate."
     }
   },
+  "partners": {
+    "hero": {
+      "title": "Construiți afacerea de reseller cu U.R.S.",
+      "subtitle": "Program de parteneriat pentru distribuitori de case de marcat și integratori IT din HoReCa."
+    },
+    "benefits": {
+      "title": "Ce câștigați ca partener",
+      "margins": {
+        "title": "Margini Recurente Mari",
+        "text": "Primiți până la 40% discount din valoarea abonamentului cloud pentru fiecare client adus, lună de lună."
+      },
+      "network": {
+        "title": "Zero Probleme de Rețea (VPN Nativ)",
+        "text": "Softul nostru include un bridge de Windows care elimină necesitatea configurării routerelor (fără port forwarding, fără IP public static obligatoriu)."
+      },
+      "support": {
+        "title": "Suport B2B Dedicat",
+        "text": "Voi gestionați relația directă și instalarea hardware cu restaurantul, noi ne asigurăm că serverul din Cloud funcționează impecabil 24/7."
+      }
+    },
+    "form": {
+      "title": "Solicitați programul de parteneri",
+      "companyName": "Numele Companiei",
+      "companyNamePlaceholder": "ex: Rossi Sistemi SRL",
+      "email": "Email contact",
+      "cityRegion": "Orașul / Regiunea",
+      "cityRegionPlaceholder": "ex: Milano / Lombardia",
+      "portfolioSize": "Numărul de restaurante gestionate în prezent",
+      "portfolio": {
+        "zeroToFifty": "0-50",
+        "fiftyToTwoHundred": "50-200",
+        "overTwoHundred": "peste 200"
+      },
+      "message": "Mesaj / Întrebări",
+      "submit": "Trimite solicitarea",
+      "submitting": "Se trimite…",
+      "success": "Am primit solicitarea dumneavoastră. Un inginer de soluții vă va contacta în maximum 48 de ore.",
+      "error": "Nu am putut trimite solicitarea. Încercați din nou sau contactați-ne direct.",
+      "required": "Acest câmp este obligatoriu",
+      "invalidEmail": "Introduceți o adresă de email validă"
+    }
+  },
   "seo": {
     "landingTitle": "U.R.S. | Sistem POS Restaurant — Software POS & Casă de Marcat",
     "landingDescription": "Universal Restaurant Systems: sistem POS offline-first pentru restaurante, POS mobil, terminal de plată, imprimantă bonuri, gestiune stocuri, raportare vânzări și POS în cloud pentru mici afaceri.",
@@ -153,6 +196,8 @@
     "privacyDescription": "Politica de confidențialitate pentru software-ul POS Universal Restaurant Systems (U.R.S.), date colectate și drepturile GDPR.",
     "termsTitle": "Termeni și condiții | Universal Restaurant Systems",
     "termsDescription": "Termeni și condiții pentru abonamentele și serviciile Universal Restaurant Systems (U.R.S.) pentru restaurante.",
+    "partnersTitle": "Program Parteneri U.R.S. | Deveniți Reseller POS Restaurant",
+    "partnersDescription": "Alăturați-vă programului de parteneri Universal Restaurant Systems: marje recurente, VPN nativ fără configurare router și suport B2B dedicat pentru distribuitori HoReCa.",
     "keywords": "sistem POS, casă de marcat, software POS, POS restaurant, POS ieftin, cel mai bun POS, POS pentru mici afaceri, POS pentru restaurante, terminal POS, terminal de plată, POS mobil, cititor card, imprimantă bonuri, POS retail, gestiune stocuri, management vânzări, POS în cloud, POS online, raportare vânzări, integrare ERP"
   },
   "legal": {
