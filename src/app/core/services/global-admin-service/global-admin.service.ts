@@ -6,6 +6,10 @@ import {
   CreateRestaurantRequest,
   DeleteRestaurantResponse,
   ListRestaurantsResponse,
+  ProvisionRestaurantResponse,
+  ProvisionRestaurantWithManagerRequest,
+  RepairRestaurantProvisioningRequest,
+  RepairRestaurantProvisioningResponse,
   RestaurantDetailDTO,
   UpdateRestaurantRequest
 } from '../../models/global-admin-restaurant.model';
@@ -29,6 +33,21 @@ export class GlobalAdminService {
 
   createRestaurant(payload: CreateRestaurantRequest): Observable<RestaurantDetailDTO> {
     return this.http.post<RestaurantDetailDTO>(this.base, payload, this.creds);
+  }
+
+  provisionRestaurantWithManager(payload: ProvisionRestaurantWithManagerRequest): Observable<ProvisionRestaurantResponse> {
+    return this.http.post<ProvisionRestaurantResponse>(`${this.base}/provision`, payload, this.creds);
+  }
+
+  repairRestaurantProvisioning(
+    restaurantId: string,
+    payload: RepairRestaurantProvisioningRequest
+  ): Observable<RepairRestaurantProvisioningResponse> {
+    return this.http.post<RepairRestaurantProvisioningResponse>(
+      `${this.base}/${restaurantId}/repair-provisioning`,
+      payload,
+      this.creds
+    );
   }
 
   updateRestaurant(id: string, payload: UpdateRestaurantRequest): Observable<RestaurantDetailDTO> {

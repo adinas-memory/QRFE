@@ -6,25 +6,54 @@
 
   <c-tabs-content>
     <c-tab-panel class="p-3" [itemKey]="0">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <span class="text-body-secondary small">
-          {{ 'manageRestaurants.pageLabel' | transloco: { page: pageNumber, total: totalPages } }}
-        </span>
-        <div class="d-flex gap-2">
-          <button cButton color="secondary" variant="outline" size="sm" type="button" (click)="onPrevPage()" [disabled]="pageNumber <= 1 || loading">
-            {{ 'manageRestaurants.prev' | transloco }}
-          </button>
-          <button cButton color="secondary" variant="outline" size="sm" type="button" (click)="onNextPage()" [disabled]="pageNumber >= totalPages || loading">
-            {{ 'manageRestaurants.next' | transloco }}
-          </button>
-          <button cButton color="primary" variant="outline" size="sm" type="button" (click)="loadPage()" [disabled]="loading">
-            {{ 'manageRestaurants.refresh' | transloco }}
-          </button>
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div class="d-flex flex-wrap align-items-center gap-3">
+          <span class="text-body-secondary small">
+            {{ 'manageRestaurants.pageLabel' | transloco: { page: pageNumber, total: totalPages } }}
+          </span>
+          <span class="text-body-secondary small">
+            {{ 'manageRestaurants.totalCount' | transloco: { count: totalCount } }}
+          </span>
+          <label class="d-flex align-items-center gap-2 small mb-0">
+            <span>{{ 'manageRestaurants.pageSize' | transloco }}</span>
+            <select cSelect size="sm" [value]="pageSize" (change)="onPageSizeChange($any($event.target).value)">
+              <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
+            </select>
+          </label>
         </div>
+
+        @if (showPagination) {
+          <nav class="d-flex flex-wrap align-items-center gap-1" aria-label="Restaurant pagination">
+            <button cButton color="primary" variant="outline" size="sm" type="button" (click)="onPrevPage()" [disabled]="pageNumber <= 1 || loading">
+              {{ 'manageRestaurants.prev' | transloco }}
+            </button>
+            <button
+              *ngFor="let p of pageNumbers"
+              cButton
+              [color]="p === pageNumber ? 'primary' : 'secondary'"
+              [variant]="p === pageNumber ? undefined : 'outline'"
+              size="sm"
+              type="button"
+              (click)="goToPage(p)"
+              [disabled]="loading"
+            >
+              {{ p }}
+            </button>
+            <button cButton color="primary" variant="outline" size="sm" type="button" (click)="onNextPage()" [disabled]="pageNumber >= totalPages || loading">
+              {{ 'manageRestaurants.next' | transloco }}
+            </button>
+          </nav>
+        }
+
+        <button cButton color="primary" size="sm" type="button" (click)="loadPage()" [disabled]="loading">
+          {{ 'manageRestaurants.refresh' | transloco }}
+        </button>
       </div>
 
       @if (loading) {
         <p class="text-body-secondary">{{ 'manageRestaurants.loading' | transloco }}</p>
+      } @else if (showEmptyPageHint) {
+        <p class="text-body-secondary">{{ 'manageRestaurants.emptyPage' | transloco }}</p>
       } @else if (restaurants.length === 0) {
         <p class="text-body-secondary">{{ 'manageRestaurants.empty' | transloco }}</p>
       } @else {
@@ -35,6 +64,7 @@
               <th>{{ 'manageRestaurants.colType' | transloco }}</th>
               <th>{{ 'manageRestaurants.colTables' | transloco }}</th>
               <th>{{ 'manageRestaurants.colBars' | transloco }}</th>
+              <th>{{ 'manageRestaurants.colProvisioning' | transloco }}</th>
               <th class="text-end">{{ 'manageRestaurants.colActions' | transloco }}</th>
             </tr>
           </thead>
@@ -44,10 +74,20 @@
               <td class="text-uppercase">{{ r.restaurantType }}</td>
               <td>{{ r.numberOfTables }}</td>
               <td>{{ r.numberOfBars }}</td>
+              <td>
+                <span [class.text-success]="!needsRepair(r)" [class.text-warning]="needsRepair(r)">
+                  {{ provisioningLabel(r) }}
+                </span>
+              </td>
               <td class="text-end">
                 <button cButton color="info" variant="outline" size="sm" class="me-1" type="button" (click)="onDetails(r)">
                   {{ 'manageRestaurants.details' | transloco }}
                 </button>
+                @if (needsRepair(r)) {
+                  <button cButton color="warning" variant="outline" size="sm" class="me-1" type="button" (click)="onRepair(r)">
+                    {{ 'manageRestaurants.repair' | transloco }}
+                  </button>
+                }
                 <button cButton color="primary" variant="outline" size="sm" class="me-1" type="button" (click)="onEdit(r)">
                   {{ 'manageRestaurants.edit' | transloco }}
                 </button>
@@ -60,11 +100,10 @@
         </table>
       }
     </c-tab-panel>
-  </c-tabs-content>
 
-  <c-tabs-content>
     <c-tab-panel class="p-3" [itemKey]="1">
       <form [formGroup]="addForm" (ngSubmit)="onAdd()" cForm>
+        <h6 class="mb-3">{{ 'manageRestaurants.sectionRestaurant' | transloco }}</h6>
         <div class="row">
           <div class="col-md-4 mb-3">
             <label cLabel>{{ 'manageRestaurants.fieldName' | transloco }}</label>
@@ -104,8 +143,48 @@
           </div>
         </div>
 
+        <h6 class="mb-3 mt-2">{{ 'manageRestaurants.sectionManager' | transloco }}</h6>
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label cLabel>{{ 'manageRestaurants.fieldManagerName' | transloco }}</label>
+            <input cFormControl formControlName="name" />
+          </div>
+          <div class="col-md-4 mb-3">
+            <label cLabel>{{ 'manageRestaurants.fieldManagerSurname' | transloco }}</label>
+            <input cFormControl formControlName="surname" />
+          </div>
+          <div class="col-md-4 mb-3">
+            <label cLabel>{{ 'manageRestaurants.fieldManagerPhone' | transloco }}</label>
+            <input cFormControl formControlName="phone" />
+          </div>
+          <div class="col-md-4 mb-3">
+            <label cLabel>{{ 'manageRestaurants.fieldManagerEmail' | transloco }}</label>
+            <input cFormControl type="email" formControlName="email" />
+          </div>
+          <div class="col-md-4 mb-3">
+            <label cLabel>{{ 'manageRestaurants.fieldManagerPassword' | transloco }}</label>
+            <input cFormControl type="password" formControlName="password" />
+          </div>
+        </div>
+
+        <h6 class="mb-3 mt-2">{{ 'manageRestaurants.sectionBillingOptional' | transloco }}</h6>
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label cLabel>{{ 'manageRestaurants.fieldCity' | transloco }}</label>
+            <input cFormControl formControlName="city" />
+          </div>
+          <div class="col-md-4 mb-3">
+            <label cLabel>{{ 'manageRestaurants.fieldCountry' | transloco }}</label>
+            <input cFormControl formControlName="country" />
+          </div>
+          <div class="col-md-4 mb-3">
+            <label cLabel>{{ 'manageRestaurants.fieldAddress' | transloco }}</label>
+            <input cFormControl formControlName="address" />
+          </div>
+        </div>
+
         <button cButton color="primary" type="submit" [disabled]="addForm.invalid">
-          {{ 'manageRestaurants.create' | transloco }}
+          {{ 'manageRestaurants.createWithManager' | transloco }}
         </button>
       </form>
     </c-tab-panel>
@@ -150,6 +229,50 @@
   <c-modal-footer>
     <button cButton color="secondary" type="button" (click)="deleteModalVisible = false">{{ 'manageRestaurants.cancel' | transloco }}</button>
     <button cButton color="danger" type="button" (click)="onConfirmDelete()">{{ 'manageRestaurants.delete' | transloco }}</button>
+  </c-modal-footer>
+</c-modal>
+
+<c-modal [(visible)]="repairModalVisible" alignment="center">
+  <c-modal-header>
+    <h5 cModalTitle>{{ 'manageRestaurants.repairTitle' | transloco }}</h5>
+    <button type="button" cButtonClose (click)="repairModalVisible = false"></button>
+  </c-modal-header>
+  <c-modal-body>
+    <p class="text-body-secondary small">
+      {{ (selectedRestaurant?.hasManager ? 'manageRestaurants.repairHintExistingManager' : 'manageRestaurants.repairHint') | transloco }}
+    </p>
+    <form [formGroup]="repairForm" cForm>
+      <div class="mb-3">
+        <label cLabel>{{ 'manageRestaurants.fieldName' | transloco }}</label>
+        <input cFormControl formControlName="restaurantName" />
+      </div>
+      <div class="mb-3">
+        <label cLabel>{{ 'manageRestaurants.fieldManagerName' | transloco }}</label>
+        <input cFormControl formControlName="name" />
+      </div>
+      <div class="mb-3">
+        <label cLabel>{{ 'manageRestaurants.fieldManagerSurname' | transloco }}</label>
+        <input cFormControl formControlName="surname" />
+      </div>
+      <div class="mb-3">
+        <label cLabel>{{ 'manageRestaurants.fieldManagerEmail' | transloco }}</label>
+        <input cFormControl type="email" formControlName="email" />
+      </div>
+      <div class="mb-3">
+        <label cLabel>{{ 'manageRestaurants.fieldManagerPassword' | transloco }}</label>
+        <input cFormControl type="password" formControlName="password" />
+      </div>
+      <div class="mb-3">
+        <label cLabel>{{ 'manageRestaurants.fieldManagerPhone' | transloco }}</label>
+        <input cFormControl formControlName="phone" />
+      </div>
+    </form>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" type="button" (click)="repairModalVisible = false">{{ 'manageRestaurants.cancel' | transloco }}</button>
+    <button cButton color="warning" type="button" (click)="onConfirmRepair()" [disabled]="repairForm.invalid || repairSubmitting">
+      {{ 'manageRestaurants.repair' | transloco }}
+    </button>
   </c-modal-footer>
 </c-modal>
 
