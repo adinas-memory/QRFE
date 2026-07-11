@@ -76,6 +76,8 @@
             <th>{{ 'manageRestaurants.colType' | transloco }}</th>
             <th>{{ 'manageRestaurants.colTables' | transloco }}</th>
             <th>{{ 'manageRestaurants.colBars' | transloco }}</th>
+            <th>{{ 'gadminDashboard.colBilling' | transloco }}</th>
+            <th>{{ 'gadminDashboard.colNextInvoice' | transloco }}</th>
           </tr>
         </thead>
         <tbody>
@@ -85,6 +87,20 @@
               <td class="text-uppercase">{{ r.restaurantType }}</td>
               <td>{{ r.numberOfTables }}</td>
               <td>{{ r.numberOfBars }}</td>
+              <td>
+                @if (r.isManuallyProvisioned) {
+                  <span class="badge bg-info text-dark">{{ 'gadminDashboard.billingManual' | transloco }}</span>
+                } @else {
+                  <span class="badge bg-secondary">{{ 'gadminDashboard.billingStripe' | transloco }}</span>
+                }
+              </td>
+              <td>
+                @if (r.isManuallyProvisioned) {
+                  {{ formatNextInvoice(r.nextInvoiceOnUtc) }}
+                } @else {
+                  —
+                }
+              </td>
             </tr>
           }
         </tbody>

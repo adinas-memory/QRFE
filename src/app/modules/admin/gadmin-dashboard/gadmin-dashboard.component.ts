@@ -1,4 +1,4 @@
-import { DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
@@ -22,6 +22,7 @@ import { RestaurantStatisticDTO } from '../../../core/models/global-admin-restau
   standalone: true,
   imports: [
     DecimalPipe,
+    DatePipe,
     RouterLink,
     RowComponent,
     ColComponent,
@@ -87,6 +88,12 @@ export class GadminDashboardComponent implements OnInit, OnDestroy {
 
   typeKeys(): string[] {
     return Object.keys(this.typeBreakdown).sort();
+  }
+
+  formatNextInvoice(value: string | null | undefined): string {
+    if (!value) return '—';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString();
   }
 
   ngOnDestroy(): void {

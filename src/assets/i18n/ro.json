@@ -636,7 +636,11 @@
     "recentRestaurants": "Restaurante",
     "viewAll": "Gestionează toate",
     "loading": "Se încarcă…",
-    "empty": "Niciun restaurant încă."
+    "empty": "Niciun restaurant încă.",
+    "colBilling": "Facturare",
+    "colNextInvoice": "Următoarea factură",
+    "billingManual": "Manual",
+    "billingStripe": "Stripe"
   },
   "managePrinterFleet": {
     "title": "Flotă imprimante",

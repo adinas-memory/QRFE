@@ -319,6 +319,8 @@ export class AuthService {
               this.hydrateSessionFromStorageIfNeeded();
               if (!user && !this.isAuthenticated()) {
                 console.warn('Refresh credentials failed. Redirect @Login.');
+                this.clearUser();
+                this.clearRestaurantCtx();
                 return of(null);
               }
               return this.http.get<unknown>(`${this.apiUrl}/api/user/ping`, pingOptions).pipe(
@@ -326,10 +328,18 @@ export class AuthService {
                 tap(u => {
                   if (u) this.setUser(u);
                 }),
-                catchError(() => of(null)),
+                catchError(() => {
+                  this.clearUser();
+                  this.clearRestaurantCtx();
+                  return of(null);
+                }),
               );
             }),
           );
+        }
+        if (error.status === 401) {
+          this.clearUser();
+          this.clearRestaurantCtx();
         }
         console.warn('Ping failed, but route is public or error is not 401.');
         return of(null);
