@@ -16,6 +16,8 @@ describe('ManageRestaurantsComponent', () => {
       'listRestaurants',
       'getRestaurant',
       'createRestaurant',
+      'provisionRestaurantWithManager',
+      'repairRestaurantProvisioning',
       'updateRestaurant',
       'deleteRestaurant'
     ]);
@@ -25,9 +27,18 @@ describe('ManageRestaurantsComponent', () => {
         restaurantName: 'Cafe-test',
         numberOfTables: 3,
         numberOfBars: 0,
-        restaurantType: 'Small'
+        restaurantType: 'Small',
+        hasManager: true,
+        hasRestaurantKey: true,
+        subscriptionStatus: 'active'
       }],
-      totalCount: 1
+      totalCount: 25
+    }));
+    globalAdminSpy.provisionRestaurantWithManager.and.returnValue(of({
+      isSuccess: true,
+      restaurantId: '22222222-2222-2222-2222-222222222222',
+      managerUserId: '22222222-2222-2222-2222-222222222222',
+      keyVersion: 1
     }));
 
     const miscSpy = jasmine.createSpyObj('MiscellaneousService', ['getRestaurantLimits', 'getCurrencies']);
@@ -55,6 +66,37 @@ describe('ManageRestaurantsComponent', () => {
   it('loadPage populates restaurants list', () => {
     expect(globalAdminSpy.listRestaurants).toHaveBeenCalledWith(1, 10);
     expect(component.restaurants.length).toBe(1);
-    expect(component.totalCount).toBe(1);
+    expect(component.totalCount).toBe(25);
+  });
+
+  it('computes page numbers for pagination', () => {
+    expect(component.totalPages).toBe(3);
+    expect(component.pageNumbers).toEqual([1, 2, 3]);
+    expect(component.showPagination).toBeTrue();
+  });
+
+  it('onAdd calls provisionRestaurantWithManager and reloads page 1', () => {
+    component.addForm.patchValue({
+      restaurantName: 'New Cafe',
+      restaurantType: 'Small',
+      useCurrency: 'RON',
+      name: 'Ana',
+      surname: 'Pop',
+      email: 'ana@test.com',
+      password: 'secret1',
+      phone: '0700000000'
+    });
+
+    component.onAdd();
+
+    expect(globalAdminSpy.provisionRestaurantWithManager).toHaveBeenCalled();
+    expect(globalAdminSpy.listRestaurants).toHaveBeenCalledTimes(2);
+    expect(component.pageNumber).toBe(1);
+  });
+
+  it('goToPage navigates when valid', () => {
+    component.goToPage(2);
+    expect(component.pageNumber).toBe(2);
+    expect(globalAdminSpy.listRestaurants).toHaveBeenCalledWith(2, 10);
   });
 });

@@ -13,6 +13,7 @@ import {
   FormCheckLabelDirective,
   FormControlDirective,
   FormLabelDirective,
+  FormSelectDirective,
   ModalBodyComponent,
   ModalComponent,
   ModalFooterComponent,
@@ -33,6 +34,7 @@ import {
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
 import { VenueSizeConfigList } from '../../../core/models/venueSizeConfigModel';
 import { ToastBaseComponent } from '../../../shared/components/toast-base/toast-base.component';
+import { emailFieldValidators } from '../../../core/validators/email.validator';
 
 @Component({
   selector: 'app-manage-restaurants',
@@ -53,6 +55,7 @@ import { ToastBaseComponent } from '../../../shared/components/toast-base/toast-
     ButtonCloseDirective,
     FormControlDirective,
     FormLabelDirective,
+    FormSelectDirective,
     FormCheckComponent,
     FormCheckInputDirective,
     FormCheckLabelDirective,
@@ -68,6 +71,7 @@ import { ToastBaseComponent } from '../../../shared/components/toast-base/toast-
 })
 export class ManageRestaurantsComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
+  readonly pageSizeOptions = [10, 25, 50];
 
   restaurants: RestaurantStatisticDTO[] = [];
   selectedRestaurant: RestaurantStatisticDTO | null = null;
@@ -82,12 +86,15 @@ export class ManageRestaurantsComponent implements OnInit, OnDestroy {
 
   addForm: FormGroup;
   editForm: FormGroup;
+  repairForm: FormGroup;
 
   activeTab = 0;
   loading = false;
+  repairSubmitting = false;
   editModalVisible = false;
   deleteModalVisible = false;
   detailsModalVisible = false;
+  repairModalVisible = false;
   placement = 'top-end';
 
   readonly toaster = viewChild(ToasterComponent);
@@ -101,12 +108,29 @@ export class ManageRestaurantsComponent implements OnInit, OnDestroy {
     this.addForm = this.fb.group({
       restaurantName: ['', [Validators.required, Validators.maxLength(200)]],
       restaurantType: ['', Validators.required],
-      useCurrency: ['RON', Validators.required]
+      useCurrency: ['RON', Validators.required],
+      name: ['', [Validators.required, Validators.maxLength(100)]],
+      surname: ['', [Validators.required, Validators.maxLength(100)]],
+      email: ['', emailFieldValidators],
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      phone: [''],
+      city: [''],
+      country: [''],
+      address: ['']
     });
 
     this.editForm = this.fb.group({
       restaurantName: ['', [Validators.required, Validators.maxLength(200)]],
       itHasBar: [false]
+    });
+
+    this.repairForm = this.fb.group({
+      restaurantName: [''],
+      name: ['', Validators.required],
+      surname: ['', Validators.required],
+      email: ['', emailFieldValidators],
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      phone: ['']
     });
   }
 
@@ -117,6 +141,25 @@ export class ManageRestaurantsComponent implements OnInit, OnDestroy {
 
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.totalCount / this.pageSize));
+  }
+
+  get pageNumbers(): number[] {
+    const total = this.totalPages;
+    const current = this.pageNumber;
+    const windowSize = 5;
+    const half = Math.floor(windowSize / 2);
+    let start = Math.max(1, current - half);
+    const end = Math.min(total, start + windowSize - 1);
+    start = Math.max(1, end - windowSize + 1);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  }
+
+  get showPagination(): boolean {
+    return this.totalPages > 1;
+  }
+
+  get showEmptyPageHint(): boolean {
+    return !this.loading && this.restaurants.length === 0 && this.totalCount > 0;
   }
 
   loadDropdownData(): void {
@@ -156,16 +199,26 @@ export class ManageRestaurantsComponent implements OnInit, OnDestroy {
       });
   }
 
-  onPrevPage(): void {
-    if (this.pageNumber <= 1) return;
-    this.pageNumber--;
+  onPageSizeChange(raw: string): void {
+    const next = Number(raw);
+    if (!Number.isFinite(next) || next <= 0) return;
+    this.pageSize = next;
+    this.pageNumber = 1;
     this.loadPage();
   }
 
-  onNextPage(): void {
-    if (this.pageNumber >= this.totalPages) return;
-    this.pageNumber++;
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages || page === this.pageNumber || this.loading) return;
+    this.pageNumber = page;
     this.loadPage();
+  }
+
+  onPrevPage(): void {
+    this.goToPage(this.pageNumber - 1);
+  }
+
+  onNextPage(): void {
+    this.goToPage(this.pageNumber + 1);
   }
 
   onAdd(): void {
@@ -178,18 +231,33 @@ export class ManageRestaurantsComponent implements OnInit, OnDestroy {
       restaurantName: string;
       restaurantType: string;
       useCurrency: string;
+      name: string;
+      surname: string;
+      email: string;
+      password: string;
+      phone: string;
+      city: string;
+      country: string;
+      address: string;
     };
 
-    this.globalAdmin.createRestaurant(payload)
+    this.globalAdmin.provisionRestaurantWithManager(payload)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () => {
+        next: res => {
           this.addToast(
             this.transloco.translate('manageRestaurants.createSuccessTitle'),
-            payload.restaurantName,
+            res.message ?? payload.restaurantName,
             'success'
           );
-          this.addForm.reset({ useCurrency: 'RON' });
+          this.addForm.reset({
+            useCurrency: 'RON',
+            restaurantType: '',
+            phone: '',
+            city: '',
+            country: '',
+            address: ''
+          });
           this.activeTab = 0;
           this.pageNumber = 1;
           this.loadPage();
@@ -200,6 +268,73 @@ export class ManageRestaurantsComponent implements OnInit, OnDestroy {
           'danger'
         )
       });
+  }
+
+  needsRepair(restaurant: RestaurantStatisticDTO): boolean {
+    return !restaurant.hasManager
+      || !restaurant.hasRestaurantKey
+      || (restaurant.subscriptionStatus ?? '').toLowerCase() !== 'active';
+  }
+
+  onRepair(restaurant: RestaurantStatisticDTO): void {
+    this.selectedRestaurant = restaurant;
+    const requiresManager = !restaurant.hasManager;
+    this.repairForm = this.fb.group({
+      restaurantName: [restaurant.baseRestaurantName || restaurant.restaurantName],
+      name: ['', requiresManager ? Validators.required : []],
+      surname: ['', requiresManager ? Validators.required : []],
+      email: ['', requiresManager ? emailFieldValidators : []],
+      password: ['', requiresManager ? [Validators.required, Validators.minLength(6)] : []],
+      phone: ['']
+    });
+    this.repairModalVisible = true;
+  }
+
+  onConfirmRepair(): void {
+    if (!this.selectedRestaurant || this.repairForm.invalid) {
+      this.repairForm.markAllAsTouched();
+      return;
+    }
+
+    const payload = this.repairForm.value as {
+      restaurantName: string;
+      name: string;
+      surname: string;
+      email: string;
+      password: string;
+      phone: string;
+    };
+
+    this.repairSubmitting = true;
+    this.globalAdmin.repairRestaurantProvisioning(this.selectedRestaurant.restaurantId, payload)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: res => {
+          this.repairSubmitting = false;
+          this.repairModalVisible = false;
+          this.selectedRestaurant = null;
+          this.addToast(
+            this.transloco.translate('manageRestaurants.repairSuccessTitle'),
+            res.message ?? this.transloco.translate('manageRestaurants.repairSuccessBody'),
+            'success'
+          );
+          this.loadPage();
+        },
+        error: err => {
+          this.repairSubmitting = false;
+          this.addToast(
+            this.transloco.translate('manageRestaurants.errorTitle'),
+            err?.error?.message ?? this.transloco.translate('manageRestaurants.repairError'),
+            'danger'
+          );
+        }
+      });
+  }
+
+  provisioningLabel(restaurant: RestaurantStatisticDTO): string {
+    if (this.needsRepair(restaurant))
+      return this.transloco.translate('manageRestaurants.provisioningIncomplete');
+    return this.transloco.translate('manageRestaurants.provisioningComplete');
   }
 
   onEdit(restaurant: RestaurantStatisticDTO): void {

@@ -7,6 +7,9 @@ export interface RestaurantStatisticDTO {
   numberOfBars: number;
   restaurantType: string;
   baseRestaurantName?: string;
+  hasManager?: boolean;
+  hasRestaurantKey?: boolean;
+  subscriptionStatus?: string | null;
 }
 
 export interface ListRestaurantsResponse {
@@ -28,6 +31,50 @@ export interface CreateRestaurantRequest {
   restaurantName: string;
   useCurrency: string;
   restaurantType: RestaurantType | string;
+}
+
+export interface ProvisionRestaurantWithManagerRequest {
+  name: string;
+  surname: string;
+  email: string;
+  password: string;
+  phone: string;
+  restaurantName: string;
+  useCurrency: string;
+  restaurantType: RestaurantType | string;
+  city?: string;
+  country?: string;
+  address?: string;
+}
+
+export interface ProvisionRestaurantResponse {
+  isSuccess: boolean;
+  message?: string | null;
+  restaurantId: string;
+  managerUserId: string;
+  managerEmail?: string | null;
+  keyVersion: number;
+}
+
+export interface RepairRestaurantProvisioningRequest {
+  name?: string;
+  surname?: string;
+  email?: string;
+  password?: string;
+  phone?: string;
+  restaurantName?: string;
+  restaurantType?: RestaurantType | string;
+  useCurrency?: string;
+}
+
+export interface RepairRestaurantProvisioningResponse {
+  isSuccess: boolean;
+  message?: string | null;
+  restaurantId: string;
+  managerUserId: string;
+  managerEmail?: string | null;
+  keyVersion: number;
+  wasRecreated: boolean;
 }
 
 export interface UpdateRestaurantRequest {
