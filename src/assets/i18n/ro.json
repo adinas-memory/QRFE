@@ -148,6 +148,7 @@
       "title": "Construiți afacerea de reseller cu U.R.S.",
       "subtitle": "Program de parteneriat pentru distribuitori de case de marcat și integratori IT din HoReCa."
     },
+    "loginReseller": "Autentificare partener",
     "benefits": {
       "title": "Ce câștigați ca partener",
       "margins": {
@@ -593,6 +594,64 @@
     "successBody": "Noul membru staff se poate autentifica cu emailul și parola setate.",
     "errorGeneric": "Nu s-a putut crea utilizatorul staff. Verifică datele sau încearcă din nou."
   },
+  "manageResellers": {
+    "title": "Creează cont reseller",
+    "subtitle": "Generezi date de autentificare pentru un partener care își poate gestiona restaurantele proprii.",
+    "name": "Prenume",
+    "surname": "Nume",
+    "email": "Email",
+    "phone": "Telefon (opțional)",
+    "password": "Parolă",
+    "confirmPassword": "Confirmă parola",
+    "submit": "Creează reseller",
+    "required": "Acest câmp este obligatoriu.",
+    "emailInvalid": "Introdu o adresă de email validă.",
+    "passwordRules": "Minim 8 caractere, cu majuscule și minuscule, o cifră și un caracter special din: @$!%*?&",
+    "passwordMismatch": "Parolele nu coincid.",
+    "successTitle": "Reseller creat",
+    "successBody": "Partenerul se poate autentifica cu emailul și parola setate.",
+    "errorGeneric": "Nu s-a putut crea contul de reseller. Verifică datele sau încearcă din nou."
+  },
+  "resellerDashboard": {
+    "title": "Restaurantele tale",
+    "subtitle": "Restaurantele pe care le-ai provizionat pentru clienți.",
+    "addRestaurant": "Adaugă restaurant",
+    "loading": "Se încarcă…",
+    "empty": "Niciun restaurant încă. Folosește Adaugă restaurant pentru primul.",
+    "colName": "Restaurant",
+    "colType": "Tip",
+    "colTables": "Mese",
+    "colManager": "Manager",
+    "settings": "Setări",
+    "yes": "Da",
+    "no": "Nu",
+    "pageSize": "Pe pagină",
+    "prev": "Înapoi",
+    "next": "Înainte",
+    "total": "total",
+    "loadError": "Nu s-au putut încărca restaurantele."
+  },
+  "resellerManageRestaurants": {
+    "title": "Provizionare restaurant",
+    "subtitle": "Creezi un restaurant și cont de manager sub contul tău de partener.",
+    "restaurantSection": "Restaurant",
+    "managerSection": "Cont manager",
+    "restaurantName": "Nume restaurant",
+    "restaurantType": "Tip locație",
+    "selectType": "Selectează tipul",
+    "currency": "Monedă",
+    "city": "Oraș",
+    "country": "Țară",
+    "address": "Adresă",
+    "name": "Prenume",
+    "surname": "Nume",
+    "email": "Email",
+    "password": "Parolă",
+    "phone": "Telefon",
+    "submit": "Creează restaurant",
+    "successTitle": "Restaurant creat",
+    "errorGeneric": "Nu s-a putut proviziona restaurantul. Verifică datele sau încearcă din nou."
+  },
   "reservations": {
     "title": "Rezervări",
     "listTitle": "Listă rezervări",
@@ -748,7 +807,9 @@
     "qrCodes": "Coduri QR",
     "restaurants": "Restaurante",
     "subscriptionProducts": "Produse abonament",
-    "printerFleet": "Flotă imprimante"
+    "printerFleet": "Flotă imprimante",
+    "resellers": "Reselleri",
+    "addRestaurant": "Adaugă restaurant"
   },
   "header": {
     "settings": "Setări",

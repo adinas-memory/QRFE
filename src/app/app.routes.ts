@@ -28,5 +28,12 @@ export const routes: Routes = [
       import('./modules/admin/admin.routes').then(m => m.adminRoutes),
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['gadmin'] }
+  },
+  {
+    path: 'reseller',
+    loadChildren: () =>
+      import('./modules/reseller/reseller.routes').then(m => m.resellerRoutes),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['reseller'] }
   }
 ];

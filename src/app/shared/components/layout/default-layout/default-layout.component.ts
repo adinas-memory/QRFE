@@ -248,6 +248,24 @@ export class DefaultLayoutComponent implements OnInit {
             url: '/gadmin/manage-printer-fleet',
             iconComponent: { name: 'cilPrint' }
           },
+          {
+            name: this.transloco.translate('nav.resellers'),
+            url: '/gadmin/manage-resellers',
+            iconComponent: { name: 'cilPeople' }
+          },
+        ];
+      case 'reseller':
+        return [
+          {
+            name: this.transloco.translate('nav.dashboard'),
+            url: '/reseller/dashboard',
+            iconComponent: { name: 'cil-speedometer' }
+          },
+          {
+            name: this.transloco.translate('nav.addRestaurant'),
+            url: '/reseller/manage-restaurants',
+            iconComponent: { name: 'cilRestaurant' }
+          }
         ];
       default:
         return [];

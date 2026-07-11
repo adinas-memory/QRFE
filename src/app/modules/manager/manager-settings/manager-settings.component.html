@@ -381,7 +381,7 @@
       </c-card-body>
     </c-card>
 
-    @if (isManager) {
+    @if (isManager && !hideSubscriptionCancel) {
       <c-card class="mb-4" id="manager-subscription">
         <c-card-header>
           <strong>{{ 'restaurantSettings.subscriptionTitle' | transloco }}</strong>

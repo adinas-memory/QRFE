@@ -36,6 +36,12 @@ export const adminRoutes: Routes = [
           import('./manage-printer-fleet/manage-printer-fleet.component').then(m => m.ManagePrinterFleetComponent),
         data: { title: 'Printer fleet' }
       },
+      {
+        path: 'manage-resellers',
+        loadComponent: () =>
+          import('./manage-resellers/manage-resellers.component').then(m => m.ManageResellersComponent),
+        data: { title: 'Manage resellers' }
+      },
     ]
   }
 ];

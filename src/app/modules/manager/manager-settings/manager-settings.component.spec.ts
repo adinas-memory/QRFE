@@ -144,3 +144,66 @@ describe('ManagerSettingsComponent bill printer', () => {
     );
   });
 });
+
+describe('ManagerSettingsComponent reseller context', () => {
+  it('hides subscription cancel for reseller role', async () => {
+    await TestBed.configureTestingModule({
+      imports: [ManagerSettingsComponent],
+      providers: [
+        {
+          provide: AuthService,
+          useValue: {
+            getUserRole: () => 'reseller',
+            getUserRestaurantId: () => null,
+            getUserSnapshot: () => ({ id: 'res-1', role: 'reseller' }),
+          },
+        },
+        {
+          provide: MiscellaneousService,
+          useValue: { getCurrencies: () => of(['EUR']), getFirstErrorMessage: () => 'error' },
+        },
+        {
+          provide: SubscriptionService,
+          useValue: { cancelSubscription: () => of(void 0), getManagerSubscriptionStatus: () => of(null) },
+        },
+        { provide: AppToastService, useValue: { success: (): void => {}, error: (): void => {} } },
+        {
+          provide: PrintJobsService,
+          useValue: {
+            listAgentPrinters: () => of([]),
+            listAgentInstallations: () => of([]),
+            getDefaultBillPrinter: () => of({ defaultBillPrinterId: null }),
+          },
+        },
+        {
+          provide: OfflinePrimaryService,
+          useValue: {
+            listStaff: () => of([]),
+            getPolicy: () => of({ offlinePrimaryStaffUserId: null, deviceBound: false }),
+            updatePolicy: () => of({ offlinePrimaryStaffUserId: null, deviceBound: false }),
+          },
+        },
+        provideTransloco({
+          config: {
+            availableLangs: ['en'],
+            defaultLang: 'en',
+            fallbackLang: 'en',
+            reRenderOnLangChange: true,
+            prodMode: true,
+          },
+        }),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        provideNoopAnimations(),
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(ManagerSettingsComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(component.hideSubscriptionCancel).toBeTrue();
+    expect(component.isManager).toBeFalse();
+  });
+});
