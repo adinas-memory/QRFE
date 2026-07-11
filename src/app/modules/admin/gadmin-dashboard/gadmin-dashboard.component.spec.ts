@@ -45,4 +45,13 @@ describe('GadminDashboardComponent', () => {
     expect(component.totalCount).toBe(1);
     expect(component.restaurants.length).toBe(1);
   });
+
+  it('computes page numbers for pagination', () => {
+    component.totalCount = 45;
+    component.pageSize = 10;
+    component.pageNumber = 3;
+    expect(component.totalPages).toBe(5);
+    expect(component.pageNumbers).toEqual([1, 2, 3, 4, 5]);
+    expect(component.showPagination).toBeTrue();
+  });
 });

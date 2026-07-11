@@ -639,6 +639,7 @@
     "empty": "Niciun restaurant încă.",
     "colBilling": "Facturare",
     "colNextInvoice": "Următoarea factură",
+    "colCreatedBy": "Creat de",
     "billingManual": "Manual",
     "billingStripe": "Stripe"
   },
