@@ -12,6 +12,9 @@ export interface RestaurantStatisticDTO {
   subscriptionStatus?: string | null;
   isManuallyProvisioned?: boolean;
   nextInvoiceOnUtc?: string | null;
+  createdByUserId?: string | null;
+  createdByRole?: string | null;
+  createdByLabel?: string | null;
 }
 
 export interface ListRestaurantsResponse {

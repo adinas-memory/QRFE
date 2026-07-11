@@ -7,7 +7,7 @@
   <c-col sm="6" xl="3">
     <c-widget-stat-a color="primary" [title]="'gadminDashboard.kpiRestaurants' | transloco">
       <ng-template cTemplateId="widgetValueTemplate">
-        @if (loading) {
+        @if (statsLoading) {
           <span class="placeholder col-6"></span>
         } @else {
           {{ totalCount | number }}
@@ -18,7 +18,7 @@
   <c-col sm="6" xl="3">
     <c-widget-stat-a color="info" [title]="'gadminDashboard.kpiTables' | transloco">
       <ng-template cTemplateId="widgetValueTemplate">
-        @if (loading) {
+        @if (statsLoading) {
           <span class="placeholder col-6"></span>
         } @else {
           {{ totalTables | number }}
@@ -29,7 +29,7 @@
   <c-col sm="6" xl="3">
     <c-widget-stat-a color="warning" [title]="'gadminDashboard.kpiBars' | transloco">
       <ng-template cTemplateId="widgetValueTemplate">
-        @if (loading) {
+        @if (statsLoading) {
           <span class="placeholder col-6"></span>
         } @else {
           {{ totalBars | number }}
@@ -40,7 +40,7 @@
   <c-col sm="6" xl="3">
     <c-widget-stat-a color="success" [title]="'gadminDashboard.kpiTypes' | transloco">
       <ng-template cTemplateId="widgetValueTemplate">
-        @if (loading) {
+        @if (statsLoading) {
           <span class="placeholder col-8"></span>
         } @else if (typeKeys().length === 0) {
           —
@@ -64,7 +64,47 @@
     </a>
   </c-card-header>
   <c-card-body>
-    @if (loading) {
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+      <div class="d-flex flex-wrap align-items-center gap-3">
+        <span class="text-body-secondary small">
+          {{ 'manageRestaurants.pageLabel' | transloco: { page: pageNumber, total: totalPages } }}
+        </span>
+        <span class="text-body-secondary small">
+          {{ 'manageRestaurants.totalCount' | transloco: { count: totalCount } }}
+        </span>
+        <label class="d-flex align-items-center gap-2 small mb-0">
+          <span>{{ 'manageRestaurants.pageSize' | transloco }}</span>
+          <select cSelect size="sm" [value]="pageSize" (change)="onPageSizeChange($any($event.target).value)">
+            <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
+          </select>
+        </label>
+      </div>
+
+      @if (showPagination) {
+        <nav class="d-flex flex-wrap align-items-center gap-1" aria-label="Restaurant pagination">
+          <button cButton color="primary" variant="outline" size="sm" type="button" (click)="onPrevPage()" [disabled]="pageNumber <= 1 || tableLoading">
+            {{ 'manageRestaurants.prev' | transloco }}
+          </button>
+          <button
+            *ngFor="let p of pageNumbers"
+            cButton
+            [color]="p === pageNumber ? 'primary' : 'secondary'"
+            [variant]="p === pageNumber ? undefined : 'outline'"
+            size="sm"
+            type="button"
+            (click)="goToPage(p)"
+            [disabled]="tableLoading"
+          >
+            {{ p }}
+          </button>
+          <button cButton color="primary" variant="outline" size="sm" type="button" (click)="onNextPage()" [disabled]="pageNumber >= totalPages || tableLoading">
+            {{ 'manageRestaurants.next' | transloco }}
+          </button>
+        </nav>
+      }
+    </div>
+
+    @if (tableLoading) {
       <p class="text-body-secondary mb-0">{{ 'gadminDashboard.loading' | transloco }}</p>
     } @else if (restaurants.length === 0) {
       <p class="text-body-secondary mb-0">{{ 'gadminDashboard.empty' | transloco }}</p>
@@ -75,7 +115,7 @@
             <th>{{ 'manageRestaurants.colName' | transloco }}</th>
             <th>{{ 'manageRestaurants.colType' | transloco }}</th>
             <th>{{ 'manageRestaurants.colTables' | transloco }}</th>
-            <th>{{ 'manageRestaurants.colBars' | transloco }}</th>
+            <th>{{ 'gadminDashboard.colCreatedBy' | transloco }}</th>
             <th>{{ 'gadminDashboard.colBilling' | transloco }}</th>
             <th>{{ 'gadminDashboard.colNextInvoice' | transloco }}</th>
           </tr>
@@ -86,7 +126,7 @@
               <td>{{ r.baseRestaurantName || r.restaurantName }}</td>
               <td class="text-uppercase">{{ r.restaurantType }}</td>
               <td>{{ r.numberOfTables }}</td>
-              <td>{{ r.numberOfBars }}</td>
+              <td>{{ formatCreatedBy(r) }}</td>
               <td>
                 @if (r.isManuallyProvisioned) {
                   <span class="badge bg-info text-dark">{{ 'gadminDashboard.billingManual' | transloco }}</span>

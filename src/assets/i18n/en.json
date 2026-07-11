@@ -643,6 +643,7 @@
     "empty": "No restaurants yet.",
     "colBilling": "Billing",
     "colNextInvoice": "Next invoice on",
+    "colCreatedBy": "Created by",
     "billingManual": "Manual",
     "billingStripe": "Stripe"
   },
