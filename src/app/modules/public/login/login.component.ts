@@ -57,6 +57,17 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
 
+  get showCreateAccountLink(): boolean {
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    if (returnUrl?.startsWith('/reseller')) {
+      return false;
+    }
+    if (this.route.snapshot.queryParamMap.get('partnerLogin') === 'true') {
+      return false;
+    }
+    return true;
+  }
+
   onSubmit() {
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();

@@ -30,6 +30,20 @@ export interface CreateResellerResponse {
   email?: string | null;
 }
 
+export interface ResellerListItem {
+  userId: string;
+  name: string;
+  surname: string;
+  email: string;
+  phone: string;
+  createdAtUtc: string;
+}
+
+export interface ListResellersResponse {
+  result: ResellerListItem[] | null;
+  totalCount: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class GlobalAdminService {
   private readonly apiUrl = environment.apiUrl;
@@ -79,5 +93,12 @@ export class GlobalAdminService {
 
   createReseller(payload: CreateResellerRequest): Observable<CreateResellerResponse> {
     return this.http.post<CreateResellerResponse>(`${this.base}/resellers`, payload, this.creds);
+  }
+
+  listResellers(pageNumber: number, pageSize: number): Observable<ListResellersResponse> {
+    return this.http.get<ListResellersResponse>(
+      `${this.base}/resellers/${pageNumber}/${pageSize}`,
+      this.creds
+    );
   }
 }

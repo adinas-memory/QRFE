@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import {
   ButtonDirective,
@@ -10,6 +11,7 @@ import {
   FormDirective,
   FormLabelDirective,
   RowComponent,
+  TableDirective,
   ToasterComponent,
   ToasterPlacement
 } from '@coreui/angular';
@@ -23,7 +25,7 @@ import {
 } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { GlobalAdminService } from '../../../core/services/global-admin-service/global-admin.service';
+import { GlobalAdminService, ResellerListItem } from '../../../core/services/global-admin-service/global-admin.service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { emailFieldValidators } from '../../../core/validators/email.validator';
 
@@ -44,6 +46,8 @@ const RESELLER_PASSWORD_PATTERN =
     FormLabelDirective,
     FormControlDirective,
     ButtonDirective,
+    TableDirective,
+    DatePipe,
     ReactiveFormsModule,
     TranslocoPipe,
     ToasterComponent
@@ -55,6 +59,8 @@ export class ManageResellersComponent implements OnInit, OnDestroy {
 
   resellerForm: FormGroup;
   submitting = false;
+  loadingList = false;
+  resellers: ResellerListItem[] = [];
   readonly placement = ToasterPlacement.TopEnd;
 
   constructor(
@@ -68,7 +74,7 @@ export class ManageResellersComponent implements OnInit, OnDestroy {
         name: ['', [Validators.required, Validators.maxLength(150)]],
         surname: ['', [Validators.required, Validators.maxLength(150)]],
         email: ['', [...emailFieldValidators, Validators.maxLength(200)]],
-        phone: ['', [Validators.maxLength(50)]],
+        phone: ['', [Validators.required, Validators.maxLength(50)]],
         password: ['', [Validators.required, Validators.pattern(RESELLER_PASSWORD_PATTERN)]],
         confirmPassword: ['', [Validators.required]]
       },
@@ -85,7 +91,24 @@ export class ManageResellersComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    /* no-op */
+    this.loadResellers();
+  }
+
+  loadResellers(): void {
+    this.loadingList = true;
+    this.globalAdmin
+      .listResellers(1, 100)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: res => {
+          this.resellers = res.result ?? [];
+          this.loadingList = false;
+        },
+        error: () => {
+          this.loadingList = false;
+          this.appToast.error(this.transloco.translate('manageResellers.listLoadError'));
+        }
+      });
   }
 
   onSubmit(): void {
@@ -108,7 +131,7 @@ export class ManageResellersComponent implements OnInit, OnDestroy {
         name: v.name.trim(),
         surname: v.surname.trim(),
         email: v.email.trim(),
-        phone: (v.phone ?? '').trim(),
+        phone: v.phone.trim(),
         password: v.password
       })
       .pipe(takeUntil(this.destroy$))
@@ -121,6 +144,7 @@ export class ManageResellersComponent implements OnInit, OnDestroy {
               this.transloco.translate('manageResellers.successTitle')
             );
             this.resellerForm.reset();
+            this.loadResellers();
           } else {
             this.appToast.error(this.transloco.translate('manageResellers.errorGeneric'));
           }

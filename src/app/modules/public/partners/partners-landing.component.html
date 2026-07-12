@@ -3,12 +3,16 @@
     <header class="partners-hero text-center mx-auto mb-5">
       <p class="urs-eyebrow mb-3">{{ 'landing.nav.partner' | transloco }}</p>
       <h1 class="mb-3">{{ 'partners.hero.title' | transloco }}</h1>
-      <p class="urs-lead mb-3">{{ 'partners.hero.subtitle' | transloco }}</p>
-      <p class="mb-0">
-        <a routerLink="/login" [queryParams]="{ returnUrl: '/reseller' }" class="link-primary">
+      <p class="urs-lead mb-4">{{ 'partners.hero.subtitle' | transloco }}</p>
+      <div class="d-flex justify-content-center">
+        <a
+          routerLink="/login"
+          [queryParams]="{ returnUrl: '/reseller' }"
+          class="btn btn-primary btn-lg"
+        >
           {{ 'partners.loginReseller' | transloco }}
         </a>
-      </p>
+      </div>
     </header>
 
     <div class="row g-4 mb-5">

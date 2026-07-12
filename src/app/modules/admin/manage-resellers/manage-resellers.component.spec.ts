@@ -21,7 +21,8 @@ describe('ManageResellersComponent', () => {
           provide: GlobalAdminService,
           useValue: {
             createReseller: () =>
-              of({ isSuccess: true, userId: '00000000-0000-0000-0000-000000000001', email: 'r@example.com' })
+              of({ isSuccess: true, userId: '00000000-0000-0000-0000-000000000001', email: 'r@example.com' }),
+            listResellers: () => of({ result: [], totalCount: 0 })
           }
         },
         { provide: AppToastService, useValue: { success: (): void => {}, error: (): void => {} } },
@@ -55,7 +56,7 @@ describe('ManageResellersComponent', () => {
       name: 'Pat',
       surname: 'Partner',
       email: 'partner@example.com',
-      phone: '',
+      phone: '+40123456789',
       password: 'Secret1!@',
       confirmPassword: 'Secret1!@'
     });

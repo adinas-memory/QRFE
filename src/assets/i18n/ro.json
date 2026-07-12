@@ -600,7 +600,7 @@
     "name": "Prenume",
     "surname": "Nume",
     "email": "Email",
-    "phone": "Telefon (opțional)",
+    "phone": "Telefon",
     "password": "Parolă",
     "confirmPassword": "Confirmă parola",
     "submit": "Creează reseller",
@@ -610,7 +610,15 @@
     "passwordMismatch": "Parolele nu coincid.",
     "successTitle": "Reseller creat",
     "successBody": "Partenerul se poate autentifica cu emailul și parola setate.",
-    "errorGeneric": "Nu s-a putut crea contul de reseller. Verifică datele sau încearcă din nou."
+    "errorGeneric": "Nu s-a putut crea contul de reseller. Verifică datele sau încearcă din nou.",
+    "listTitle": "Conturi reseller",
+    "listLoading": "Se încarcă resellerii…",
+    "listEmpty": "Niciun cont reseller încă.",
+    "listLoadError": "Nu s-au putut încărca conturile de reseller.",
+    "colName": "Nume",
+    "colEmail": "Email",
+    "colPhone": "Telefon",
+    "colCreated": "Creat la"
   },
   "resellerDashboard": {
     "title": "Restaurantele tale",
@@ -1010,7 +1018,7 @@
       "refresh": "Reîmprospătează lista"
     },
     "offlinePrimaryStaff": {
-      "title": "Staff POS offline",
+      "title": "Configurare dispozitiv offline implicit",
       "hint": "Alege un membru al staff-ului (după email) care poate folosi modul offline complet pe un singur dispozitiv înregistrat — deschide mese, confirmă și închide comenzi fără internet.",
       "disclaimer": "Ideal pentru pană totală de internet pe o tabletă dedicată. Dacă alte dispozitive rămân online, pot apărea conflicte pe mese; staff-ul pe celelalte dispozitive ar trebui să editeze doar comanda curentă offline.",
       "loading": "Se încarcă staff-ul…",
