@@ -180,8 +180,33 @@ export class ManageSubscriptionProductsComponent implements OnInit, OnDestroy {
       });
   }
 
+  onDelete(product: SubscriptionProductModel): void {
+    const label = `${product.market ?? ''} ${product.restaurantType}`.trim();
+    if (!confirm(`Delete subscription product "${label}"? This cannot be undone.`)) {
+      return;
+    }
+
+    this.subscriptionService.deleteProduct(product.productPriceId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.addToast('Product Deleted', label, 'success');
+          if (this.selectedProduct?.productPriceId === product.productPriceId) {
+            this.editModalVisible = false;
+            this.selectedProduct = null;
+          }
+          this.loadProducts();
+        },
+        error: err => this.addToast('Error', err?.Message ?? 'Failed to delete product', 'danger'),
+      });
+  }
+
   setMarket(market: SubscriptionMarket, form: FormGroup): void {
     form.get('market')?.setValue(market);
+  }
+
+  setCurrency(currency: string, form: FormGroup): void {
+    form.get('priceCurrency')?.setValue(currency);
   }
 
   parseFeatureKeys(raw: string | null | undefined): string[] {

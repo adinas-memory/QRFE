@@ -21,7 +21,10 @@
               <li *ngFor="let k of parseFeatureKeys(p.features)">{{ k | transloco }}</li>
             </ul>
           </div>
-          <button class="btn btn-sm btn-outline-primary" type="button" (click)="onEdit(p)">Edit</button>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-primary" type="button" (click)="onEdit(p)">Edit</button>
+            <button class="btn btn-sm btn-outline-danger" type="button" (click)="onDelete(p)">Delete</button>
+          </div>
         </li>
       </ul>
     </c-tab-panel>
@@ -166,8 +169,31 @@
       </div>
       <textarea cFormControl formControlName="features" rows="2"></textarea>
 
-      <label cLabel>Price</label>
-      <input type="number" cFormControl formControlName="priceAmount" />
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label cLabel>Currency</label>
+          <c-dropdown>
+            <button cButton cDropdownToggle color="secondary" class="w-100 text-start">
+              {{ editForm.value.priceCurrency || 'Select currency...' }}
+            </button>
+            <ul cDropdownMenu class="w-100">
+              <li *ngFor="let c of currencies">
+                <button type="button" cDropdownItem (click)="setCurrency(c, editForm)">
+                  {{ c }}
+                </button>
+              </li>
+            </ul>
+          </c-dropdown>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label cLabel>Price</label>
+          <input type="number" cFormControl formControlName="priceAmount" />
+        </div>
+      </div>
+
+      <label cLabel>Interval</label>
+      <input cFormControl formControlName="subscriptionInterval" />
     </form>
   </c-modal-body>
 

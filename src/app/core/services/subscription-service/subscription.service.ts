@@ -98,6 +98,13 @@ export class SubscriptionService {
     );
   }
 
+  deleteProduct(productPriceId: string): Observable<{ isDeleted: boolean; productPriceId: string }> {
+    return this.http.delete<{ isDeleted: boolean; productPriceId: string }>(
+      `${this.apiUrl}/api/restaurants/subscription-products/${productPriceId}`,
+      { withCredentials: true },
+    );
+  }
+
   /** Store a pending plan (when user not logged in yet) */
   setPendingPlan(plan: PendingPlanModel): void {
     this.pendingPlan = plan;
