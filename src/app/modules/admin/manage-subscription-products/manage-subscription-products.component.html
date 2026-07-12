@@ -11,6 +11,7 @@
         <li *ngFor="let p of products" class="list-group-item d-flex justify-content-between align-items-start">
           <div class="me-3">
             <div class="d-flex align-items-center gap-2">
+              <span class="badge text-bg-secondary">{{ p.market }}</span>
               <strong class="text-uppercase">{{ p.restaurantType }}</strong>
               <span class="text-muted small">{{ p.priceAmount | currency : p.priceCurrency }}</span>
             </div>
@@ -20,7 +21,10 @@
               <li *ngFor="let k of parseFeatureKeys(p.features)">{{ k | transloco }}</li>
             </ul>
           </div>
-          <button class="btn btn-sm btn-outline-primary" type="button" (click)="onEdit(p)">Edit</button>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-primary" type="button" (click)="onEdit(p)">Edit</button>
+            <button class="btn btn-sm btn-outline-danger" type="button" (click)="onDelete(p)">Delete</button>
+          </div>
         </li>
       </ul>
     </c-tab-panel>
@@ -31,6 +35,24 @@
     <c-tab-panel class="p-3" [itemKey]="1">
       <form [formGroup]="addForm" (ngSubmit)="onAdd()" cForm>
         <div class="row">
+          <div class="col-md-4 mb-3">
+            <label cLabel>Market</label>
+
+            <c-dropdown>
+              <button cButton cDropdownToggle color="secondary" class="w-100 text-start">
+                {{ addForm.value.market || 'Select market...' }}
+              </button>
+
+              <ul cDropdownMenu class="w-100">
+                <li *ngFor="let m of markets">
+                  <button type="button" cDropdownItem (click)="setMarket(m, addForm)">
+                    {{ m }}
+                  </button>
+                </li>
+              </ul>
+            </c-dropdown>
+          </div>
+
           <div class="col-md-4 mb-3">
             <label cLabel>Restaurant Type</label>
 
@@ -123,6 +145,9 @@
 
   <c-modal-body>
     <form [formGroup]="editForm" cForm>
+      <label cLabel>Market</label>
+      <input cFormControl formControlName="market" readonly />
+
       <label cLabel>Restaurant Type</label>
       <input cFormControl formControlName="restaurantType" readonly />
 
@@ -144,8 +169,31 @@
       </div>
       <textarea cFormControl formControlName="features" rows="2"></textarea>
 
-      <label cLabel>Price</label>
-      <input type="number" cFormControl formControlName="priceAmount" />
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label cLabel>Currency</label>
+          <c-dropdown>
+            <button cButton cDropdownToggle color="secondary" class="w-100 text-start">
+              {{ editForm.value.priceCurrency || 'Select currency...' }}
+            </button>
+            <ul cDropdownMenu class="w-100">
+              <li *ngFor="let c of currencies">
+                <button type="button" cDropdownItem (click)="setCurrency(c, editForm)">
+                  {{ c }}
+                </button>
+              </li>
+            </ul>
+          </c-dropdown>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label cLabel>Price</label>
+          <input type="number" cFormControl formControlName="priceAmount" />
+        </div>
+      </div>
+
+      <label cLabel>Interval</label>
+      <input cFormControl formControlName="subscriptionInterval" />
     </form>
   </c-modal-body>
 

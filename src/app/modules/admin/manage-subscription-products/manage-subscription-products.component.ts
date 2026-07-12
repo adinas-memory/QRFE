@@ -16,6 +16,7 @@ import { ToastBaseComponent } from '../../../shared/components/toast-base/toast-
 import { SubscriptionProductModel } from '../../../core/models/subscription-product';
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
 import { VenueSizeConfigList } from '../../../core/models/venueSizeConfigModel';
+import { SUBSCRIPTION_MARKETS, type SubscriptionMarket } from '../../../core/i18n/subscription-market.config';
 
 
 @Component({
@@ -39,6 +40,7 @@ export class ManageSubscriptionProductsComponent implements OnInit, OnDestroy {
   selectedProduct: SubscriptionProductModel | null = null;
   restaurantTypes: VenueSizeConfigList = [];
   currencies: string[] = [];
+  readonly markets = SUBSCRIPTION_MARKETS;
 
   readonly featureKeys = [
     'pricing.features.cardPayments',
@@ -71,6 +73,7 @@ export class ManageSubscriptionProductsComponent implements OnInit, OnDestroy {
     private miscService: MiscellaneousService
   ) {
     this.addForm = this.fb.group({
+      market: ['RO', Validators.required],
       restaurantType: ['', Validators.required],
       description: ['', Validators.required],
       features: ['', Validators.required],
@@ -81,6 +84,8 @@ export class ManageSubscriptionProductsComponent implements OnInit, OnDestroy {
     });
 
     this.editForm = this.fb.group({
+      productPriceId: ['', Validators.required],
+      market: ['', Validators.required],
       restaurantType: ['', Validators.required],
       description: ['', Validators.required],
       features: ['', Validators.required],
@@ -113,7 +118,7 @@ export class ManageSubscriptionProductsComponent implements OnInit, OnDestroy {
 
 
   loadProducts(): void {
-    this.subscriptionService.getProducts()
+    this.subscriptionService.getAllProductsForAdmin()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: products => this.products = products,
@@ -141,6 +146,8 @@ export class ManageSubscriptionProductsComponent implements OnInit, OnDestroy {
   onEdit(product: SubscriptionProductModel): void {
     this.selectedProduct = product;
     this.editForm.patchValue({
+      productPriceId: product.productPriceId,
+      market: product.market ?? 'RO',
       restaurantType: product.restaurantType,
       description: product.description,
       features: product.features,
@@ -171,6 +178,35 @@ export class ManageSubscriptionProductsComponent implements OnInit, OnDestroy {
           this.addToast('Error', err?.Message ?? 'Failed to update product', 'danger');
         }
       });
+  }
+
+  onDelete(product: SubscriptionProductModel): void {
+    const label = `${product.market ?? ''} ${product.restaurantType}`.trim();
+    if (!confirm(`Delete subscription product "${label}"? This cannot be undone.`)) {
+      return;
+    }
+
+    this.subscriptionService.deleteProduct(product.productPriceId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.addToast('Product Deleted', label, 'success');
+          if (this.selectedProduct?.productPriceId === product.productPriceId) {
+            this.editModalVisible = false;
+            this.selectedProduct = null;
+          }
+          this.loadProducts();
+        },
+        error: err => this.addToast('Error', err?.Message ?? 'Failed to delete product', 'danger'),
+      });
+  }
+
+  setMarket(market: SubscriptionMarket, form: FormGroup): void {
+    form.get('market')?.setValue(market);
+  }
+
+  setCurrency(currency: string, form: FormGroup): void {
+    form.get('priceCurrency')?.setValue(currency);
   }
 
   parseFeatureKeys(raw: string | null | undefined): string[] {

@@ -26,6 +26,32 @@ describe('SubscriptionService', () => {
     expect(service).toBeTruthy();
   });
 
+  it('getProducts requests market query param', async () => {
+    const resultPromise = firstValueFrom(service.getProducts('RO'));
+
+    const req = httpMock.expectOne(
+      r => r.url === `${environment.apiUrl}/api/stripe/subscription` && r.params.get('market') === 'RO',
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush([{ priceId: 'price_ro', restaurantType: 'small', market: 'RO' }]);
+
+    const products = await resultPromise;
+    expect(products.length).toBe(1);
+    expect(products[0].market).toBe('RO');
+  });
+
+  it('deleteProduct calls admin delete endpoint', async () => {
+    const id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    const resultPromise = firstValueFrom(service.deleteProduct(id));
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/restaurants/subscription-products/${id}`);
+    expect(req.request.method).toBe('DELETE');
+    req.flush({ isDeleted: true, productPriceId: id });
+
+    const result = await resultPromise;
+    expect(result.isDeleted).toBeTrue();
+  });
+
   it('cancelSubscription parses legacy plain-text 200 response', async () => {
     const resultPromise = firstValueFrom(service.cancelSubscription());
 

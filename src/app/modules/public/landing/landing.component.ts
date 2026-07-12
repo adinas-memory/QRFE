@@ -9,7 +9,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
 import { ProductLimitModel, SubscriptionProductModel } from '../../../core/models/subscription-product';
-import { combineLatest, Subject, takeUntil } from 'rxjs';
+import { combineLatest, distinctUntilChanged, map, startWith, Subject, switchMap, takeUntil } from 'rxjs';
 import { CurrencyPipe } from '@angular/common';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { FaqComponent } from '../faq/faq.component';
@@ -19,6 +19,7 @@ import {
   resolveLandingSubscriptionProducts,
 } from './landing-subscription-fallback';
 import { SeoService } from '../../../core/services/seo/seo.service';
+import { marketFromLang } from '../../../core/i18n/subscription-market.config';
 
 interface LandingFeature {
   icon: string;
@@ -56,6 +57,7 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly destroy$ = new Subject<void>();
   private revealObserver: IntersectionObserver | null = null;
   private sectionObserver: IntersectionObserver | null = null;
+  private activeMarket = marketFromLang(this.transloco.getActiveLang());
 
   constructor(
     private authService: AuthService,
@@ -169,13 +171,29 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnInit(): void {
     this.seo.applyPublicPage('landing');
 
+    const market$ = this.transloco.langChanges$.pipe(
+      startWith(this.transloco.getActiveLang()),
+      map(lang => marketFromLang(lang)),
+      distinctUntilChanged(),
+    );
+
     combineLatest([
-      this.subscriptionService.getProducts(),
+      market$.pipe(
+        switchMap(market => {
+          if (market !== this.activeMarket) {
+            this.subscriptionService.clearPendingPlan();
+            this.activeMarket = market;
+          }
+          return this.subscriptionService.getProducts(market).pipe(
+            map(products => ({ market, products })),
+          );
+        }),
+      ),
       this.subscriptionService.getProductsLimits(),
     ])
       .pipe(takeUntil(this.destroy$))
-      .subscribe(([products, limits]) => {
-        this.cards = resolveLandingSubscriptionProducts(products);
+      .subscribe(([{ market, products }, limits]) => {
+        this.cards = resolveLandingSubscriptionProducts(products, market);
         this.productLimits = limits?.length ? limits : [...LANDING_PRODUCT_LIMITS_FALLBACK];
       });
   }
