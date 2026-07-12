@@ -25,7 +25,7 @@ import { OfflinePolicyService } from './core/offline/offline-policy.service';
 import { OfflineSyncLockService } from './core/offline/offline-sync-lock.service';
 import { NetworkMonitorService } from './core/platform/network-monitor.service';
 import { navigateToRoleHome } from './core/auth/auth-redirect.util';
-import { isAssignedRestaurantId } from './core/auth/restaurant-id.util';
+import { isAssignedRestaurantId, shouldRunRestaurantRealtimeSync } from './core/auth/restaurant-id.util';
 
 @Component({
   selector: 'app-root',
@@ -129,7 +129,13 @@ export class AppComponent implements OnInit {
 
     // 4. Restul logicii tale (SSE, routing, session)
     this.#authService.getUserContext()
-      .pipe(filter(user => isAssignedRestaurantId(user?.restaurantId ?? null)), take(1))
+      .pipe(
+        filter(user =>
+          !!user
+          && shouldRunRestaurantRealtimeSync(user.role)
+          && isAssignedRestaurantId(user.restaurantId ?? null)),
+        take(1),
+      )
       .subscribe(user => {
         if (!this.sseStarted) {
           this.sseStarted = true;
@@ -140,6 +146,12 @@ export class AppComponent implements OnInit {
       });
 
     this.#authService.loggedIn$.subscribe(() => {
+      const user = this.#authService.getUserSnapshot();
+      if (!user || !shouldRunRestaurantRealtimeSync(user.role)) {
+        this.#orderSyncService.close(false);
+        this.#offlineSyncLock.stopRestaurantLockWatch();
+        this.sseStarted = false;
+      }
       void this.#networkMonitor.syncWithAuthState();
     });
 

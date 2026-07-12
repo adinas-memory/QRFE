@@ -148,6 +148,7 @@
       "title": "Costruisci il tuo business da rivenditore con U.R.S.",
       "subtitle": "Programma partner per distributori di registratori di cassa e integratori IT nel settore HoReCa."
     },
+    "loginReseller": "Accesso partner",
     "benefits": {
       "title": "Cosa ottieni come partner",
       "margins": {
@@ -506,6 +507,48 @@
     "successBody": "Il nuovo membro dello staff può accedere con l’email e la password che hai impostato.",
     "errorGeneric": "Impossibile creare l’utente staff. Controlla i dati o riprova."
   },
+  "resellerDashboard": {
+    "title": "I tuoi ristoranti",
+    "subtitle": "Ristoranti che hai provisionato per i tuoi clienti.",
+    "addRestaurant": "Aggiungi ristorante",
+    "loading": "Caricamento…",
+    "empty": "Nessun ristorante ancora. Usa Aggiungi ristorante per il primo.",
+    "colName": "Ristorante",
+    "colType": "Tipo",
+    "colTables": "Tavoli",
+    "colManager": "Manager",
+    "settings": "Impostazioni",
+    "yes": "Sì",
+    "no": "No",
+    "pageSize": "Per pagina",
+    "prev": "Precedente",
+    "next": "Successivo",
+    "total": "totali",
+    "loadError": "Impossibile caricare i ristoranti."
+  },
+  "resellerManageRestaurants": {
+    "title": "Provisiona ristorante",
+    "subtitle": "Crea un ristorante e un account manager sotto il tuo account partner.",
+    "restaurantSection": "Ristorante",
+    "managerSection": "Account manager",
+    "restaurantName": "Nome ristorante",
+    "restaurantType": "Tipo di locale",
+    "selectType": "Seleziona tipo",
+    "currency": "Valuta",
+    "city": "Città",
+    "country": "Paese",
+    "address": "Indirizzo",
+    "registrationNumber": "Numero di registrazione",
+    "zip": "CAP",
+    "name": "Nome",
+    "surname": "Cognome",
+    "email": "Email",
+    "password": "Password",
+    "phone": "Telefono",
+    "submit": "Crea ristorante",
+    "successTitle": "Ristorante creato",
+    "errorGeneric": "Impossibile provisionare il ristorante. Controlla i dati o riprova."
+  },
   "reservations": {
     "title": "Prenotazioni",
     "listTitle": "Elenco prenotazioni",
@@ -608,7 +651,9 @@
     "staff": "Staff",
     "qrCodes": "Codici QR",
     "restaurants": "Ristoranti",
-    "subscriptionProducts": "Prodotti abbonamento"
+    "subscriptionProducts": "Prodotti abbonamento",
+    "resellers": "Rivenditori",
+    "addRestaurant": "Aggiungi ristorante"
   },
   "header": {
     "settings": "Impostazioni",
