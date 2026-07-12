@@ -148,6 +148,7 @@
       "title": "Bygg ditt återförsäljarföretag med U.R.S.",
       "subtitle": "Partnerprogram för distributörer av kassasystem och HoReCa IT-integratörer."
     },
+    "loginReseller": "Partnerinloggning",
     "benefits": {
       "title": "Vad du får som partner",
       "margins": {
@@ -506,6 +507,48 @@
     "successBody": "Den nya medarbetaren kan logga in med e-posten och lösenordet som du angav.",
     "errorGeneric": "Kunde inte skapa personalanvändaren. Kontrollera uppgifterna eller försök igen."
   },
+  "resellerDashboard": {
+    "title": "Dina restauranger",
+    "subtitle": "Restauranger du har provisionerat för dina kunder.",
+    "addRestaurant": "Lägg till restaurang",
+    "loading": "Laddar…",
+    "empty": "Inga restauranger ännu. Använd Lägg till restaurang för den första.",
+    "colName": "Restaurang",
+    "colType": "Typ",
+    "colTables": "Bord",
+    "colManager": "Manager",
+    "settings": "Inställningar",
+    "yes": "Ja",
+    "no": "Nej",
+    "pageSize": "Per sida",
+    "prev": "Föregående",
+    "next": "Nästa",
+    "total": "totalt",
+    "loadError": "Kunde inte ladda restauranger."
+  },
+  "resellerManageRestaurants": {
+    "title": "Provisionera restaurang",
+    "subtitle": "Skapa en restaurang och ett managerkonto under ditt partnerkonto.",
+    "restaurantSection": "Restaurang",
+    "managerSection": "Managerkonto",
+    "restaurantName": "Restaurangnamn",
+    "restaurantType": "Lokaltyp",
+    "selectType": "Välj typ",
+    "currency": "Valuta",
+    "city": "Stad",
+    "country": "Land",
+    "address": "Adress",
+    "registrationNumber": "Registreringsnummer",
+    "zip": "Postnummer",
+    "name": "Förnamn",
+    "surname": "Efternamn",
+    "email": "E-post",
+    "password": "Lösenord",
+    "phone": "Telefon",
+    "submit": "Skapa restaurang",
+    "successTitle": "Restaurang skapad",
+    "errorGeneric": "Kunde inte provisionera restaurangen. Kontrollera uppgifterna eller försök igen."
+  },
   "reservations": {
     "title": "Bokningar",
     "listTitle": "Bokningslista",
@@ -608,7 +651,9 @@
     "staff": "Personal",
     "qrCodes": "QR-koder",
     "restaurants": "Restauranger",
-    "subscriptionProducts": "Prenumerationsprodukter"
+    "subscriptionProducts": "Prenumerationsprodukter",
+    "resellers": "Återförsäljare",
+    "addRestaurant": "Lägg till restaurang"
   },
   "header": {
     "settings": "Inställningar",

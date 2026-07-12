@@ -15,6 +15,35 @@ import {
 } from '../../models/global-admin-restaurant.model';
 import { GlobalAdminPrinterFleetItem } from '../../models/global-admin-printer-fleet.model';
 
+export interface CreateResellerRequest {
+  name: string;
+  surname: string;
+  email: string;
+  password: string;
+  phone: string;
+}
+
+export interface CreateResellerResponse {
+  isSuccess: boolean;
+  message?: string | null;
+  userId: string;
+  email?: string | null;
+}
+
+export interface ResellerListItem {
+  userId: string;
+  name: string;
+  surname: string;
+  email: string;
+  phone: string;
+  createdAtUtc: string;
+}
+
+export interface ListResellersResponse {
+  result: ResellerListItem[] | null;
+  totalCount: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class GlobalAdminService {
   private readonly apiUrl = environment.apiUrl;
@@ -60,5 +89,16 @@ export class GlobalAdminService {
 
   listPrinterFleet(): Observable<GlobalAdminPrinterFleetItem[]> {
     return this.http.get<GlobalAdminPrinterFleetItem[]>(`${this.base}/printer-fleet`, this.creds);
+  }
+
+  createReseller(payload: CreateResellerRequest): Observable<CreateResellerResponse> {
+    return this.http.post<CreateResellerResponse>(`${this.base}/resellers`, payload, this.creds);
+  }
+
+  listResellers(pageNumber: number, pageSize: number): Observable<ListResellersResponse> {
+    return this.http.get<ListResellersResponse>(
+      `${this.base}/resellers/${pageNumber}/${pageSize}`,
+      this.creds
+    );
   }
 }

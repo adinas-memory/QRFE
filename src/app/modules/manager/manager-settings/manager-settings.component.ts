@@ -22,7 +22,7 @@ import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.
 import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { Currency } from '../../../core/models/restaurantTablesModel';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
   PrintJobsService,
@@ -118,6 +118,8 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
   loadingOfflinePrimary = false;
   savingOfflinePrimary = false;
 
+  private readonly routeRestaurantId: string | null;
+
   constructor(
     private fb: FormBuilder,
     private http: HttpClient,
@@ -125,11 +127,14 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     private miscellaneousService: MiscellaneousService,
     private subscriptionService: SubscriptionService,
     private router: Router,
+    private route: ActivatedRoute,
     private toast: AppToastService,
     private transloco: TranslocoService,
     private printJobs: PrintJobsService,
     private offlinePrimary: OfflinePrimaryService,
-  ) {}
+  ) {
+    this.routeRestaurantId = this.route.snapshot.paramMap.get('restaurantId');
+  }
 
   ngOnInit(): void {
     this.miscellaneousService.getCurrencies().subscribe({
@@ -160,7 +165,14 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     return this.authService.getUserRole()?.toLowerCase() === 'manager';
   }
 
+  get hideSubscriptionCancel(): boolean {
+    return this.authService.getUserRole()?.toLowerCase() === 'reseller';
+  }
+
   get restaurantId(): string | null {
+    if (this.routeRestaurantId) {
+      return this.routeRestaurantId;
+    }
     const id = this.authService.getUserRestaurantId();
     return typeof id === 'string' ? id : Array.isArray(id) ? id[0] ?? null : null;
   }

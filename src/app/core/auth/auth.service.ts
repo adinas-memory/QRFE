@@ -8,7 +8,7 @@ import { RegisterUserRequestModel } from '../models/registerUserRequestModel';
 import { environment } from '../../../environments/environment';
 import { LoginUserRequestModel } from '../models/loginUserRequestModel';
 import { PushRegistrationService } from '../services/push/push-registration.service';
-import { normalizeRestaurantId } from './restaurant-id.util';
+import { normalizeRestaurantId, mergeRestaurantId } from './restaurant-id.util';
 import { NATIVE_AUTH_HEADER, NativeAuthTokenService } from './native-auth-token.service';
 import { acquireRefreshLeader, initRefreshCoordinator, releaseRefreshLeader, tryAcquireRefreshLeaderSync } from './auth-refresh-coordinator';
 
@@ -66,7 +66,7 @@ function mergeUserContext(
 ): UserContextModel {
   return {
     ...incoming,
-    restaurantId: normalizeRestaurantId(incoming.restaurantId) ?? normalizeRestaurantId(previous?.restaurantId ?? null),
+    restaurantId: mergeRestaurantId(incoming.role, incoming.restaurantId, previous?.restaurantId),
     restaurantName: incoming.restaurantName ?? previous?.restaurantName ?? null,
     restaurantType: incoming.restaurantType ?? previous?.restaurantType ?? null,
     displayName: incoming.displayName ?? previous?.displayName ?? null,

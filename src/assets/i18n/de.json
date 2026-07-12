@@ -148,6 +148,7 @@
       "title": "Bauen Sie Ihr Reseller-Geschäft mit U.R.S. auf",
       "subtitle": "Partnerprogramm für Kassensystem-Distributoren und HoReCa-IT-Integratoren."
     },
+    "loginReseller": "Partner-Anmeldung",
     "benefits": {
       "title": "Was Sie als Partner gewinnen",
       "margins": {
@@ -506,6 +507,48 @@
     "successBody": "Der neue Mitarbeiter kann sich mit der von Ihnen festgelegten E-Mail und dem Passwort anmelden.",
     "errorGeneric": "Mitarbeiter konnte nicht erstellt werden. Prüfen Sie die Angaben oder versuchen Sie es erneut."
   },
+  "resellerDashboard": {
+    "title": "Ihre Restaurants",
+    "subtitle": "Restaurants, die Sie für Ihre Kunden bereitgestellt haben.",
+    "addRestaurant": "Restaurant hinzufügen",
+    "loading": "Wird geladen…",
+    "empty": "Noch keine Restaurants. Nutzen Sie „Restaurant hinzufügen“ für das erste.",
+    "colName": "Restaurant",
+    "colType": "Typ",
+    "colTables": "Tische",
+    "colManager": "Manager",
+    "settings": "Einstellungen",
+    "yes": "Ja",
+    "no": "Nein",
+    "pageSize": "Pro Seite",
+    "prev": "Zurück",
+    "next": "Weiter",
+    "total": "gesamt",
+    "loadError": "Restaurants konnten nicht geladen werden."
+  },
+  "resellerManageRestaurants": {
+    "title": "Restaurant bereitstellen",
+    "subtitle": "Erstellen Sie ein Restaurant und ein Manager-Konto unter Ihrem Partnerkonto.",
+    "restaurantSection": "Restaurant",
+    "managerSection": "Manager-Konto",
+    "restaurantName": "Restaurantname",
+    "restaurantType": "Lokationstyp",
+    "selectType": "Typ wählen",
+    "currency": "Währung",
+    "city": "Stadt",
+    "country": "Land",
+    "address": "Adresse",
+    "registrationNumber": "Registrierungsnummer",
+    "zip": "PLZ",
+    "name": "Vorname",
+    "surname": "Nachname",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "phone": "Telefon",
+    "submit": "Restaurant erstellen",
+    "successTitle": "Restaurant erstellt",
+    "errorGeneric": "Restaurant konnte nicht bereitgestellt werden. Prüfen Sie die Angaben oder versuchen Sie es erneut."
+  },
   "reservations": {
     "title": "Reservierungen",
     "listTitle": "Reservierungsliste",
@@ -608,7 +651,9 @@
     "staff": "Personal",
     "qrCodes": "QR-Codes",
     "restaurants": "Restaurants",
-    "subscriptionProducts": "Abonnement-Produkte"
+    "subscriptionProducts": "Abonnement-Produkte",
+    "resellers": "Reseller",
+    "addRestaurant": "Restaurant hinzufügen"
   },
   "header": {
     "settings": "Einstellungen",

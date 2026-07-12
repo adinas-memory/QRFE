@@ -1,0 +1,96 @@
+<div class="px-4 py-3">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+      <h1 class="h4 mb-1">{{ 'resellerDashboard.title' | transloco }}</h1>
+      <p class="text-body-secondary small mb-0">{{ 'resellerDashboard.subtitle' | transloco }}</p>
+    </div>
+    <a cButton color="primary" routerLink="/reseller/manage-restaurants">
+      {{ 'resellerDashboard.addRestaurant' | transloco }}
+    </a>
+  </div>
+
+  @if (loading) {
+    <p class="text-body-secondary">{{ 'resellerDashboard.loading' | transloco }}</p>
+  } @else if (restaurants.length === 0) {
+    <p class="text-body-secondary">{{ 'resellerDashboard.empty' | transloco }}</p>
+  } @else {
+    <div class="table-responsive">
+      <table cTable hover>
+        <thead>
+          <tr>
+            <th>{{ 'resellerDashboard.colName' | transloco }}</th>
+            <th>{{ 'resellerDashboard.colType' | transloco }}</th>
+            <th>{{ 'resellerDashboard.colTables' | transloco }}</th>
+            <th>{{ 'resellerDashboard.colManager' | transloco }}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of restaurants; track r.restaurantId) {
+            <tr>
+              <td>{{ r.restaurantName }}</td>
+              <td>{{ r.restaurantType }}</td>
+              <td>{{ r.numberOfTables }}</td>
+              <td>{{ r.hasManager ? ('resellerDashboard.yes' | transloco) : ('resellerDashboard.no' | transloco) }}</td>
+              <td class="text-end">
+                <a
+                  cButton
+                  color="secondary"
+                  size="sm"
+                  variant="outline"
+                  [routerLink]="['/reseller/restaurants', r.restaurantId, 'settings']"
+                >
+                  {{ 'resellerDashboard.settings' | transloco }}
+                </a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mt-3">
+      <div class="d-flex align-items-center gap-2">
+        <label class="small text-body-secondary mb-0" for="resellerPageSize">{{ 'resellerDashboard.pageSize' | transloco }}</label>
+        <select
+          cSelect
+          id="resellerPageSize"
+          class="form-select form-select-sm w-auto"
+          [value]="pageSize"
+          (change)="onPageSizeChange($any($event.target).value)"
+        >
+          @for (size of pageSizeOptions; track size) {
+            <option [value]="size">{{ size }}</option>
+          }
+        </select>
+      </div>
+
+      @if (showPagination) {
+        <div class="d-flex align-items-center gap-2">
+          <button cButton color="secondary" size="sm" variant="outline" [disabled]="pageNumber <= 1 || loading" (click)="goToPage(pageNumber - 1)">
+            {{ 'resellerDashboard.prev' | transloco }}
+          </button>
+          @for (p of pageNumbers; track p) {
+            <button
+              cButton
+              size="sm"
+              [color]="p === pageNumber ? 'primary' : 'secondary'"
+              [variant]="p === pageNumber ? undefined : 'outline'"
+              [disabled]="loading"
+              (click)="goToPage(p)"
+            >
+              {{ p }}
+            </button>
+          }
+          <button cButton color="secondary" size="sm" variant="outline" [disabled]="pageNumber >= totalPages || loading" (click)="goToPage(pageNumber + 1)">
+            {{ 'resellerDashboard.next' | transloco }}
+          </button>
+        </div>
+      }
+
+      <span class="small text-body-secondary">
+        {{ totalCount | number }} {{ 'resellerDashboard.total' | transloco }}
+      </span>
+    </div>
+  }
+</div>

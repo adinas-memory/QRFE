@@ -1,0 +1,95 @@
+<c-container class="px-4 py-3">
+  <c-row class="justify-content-center">
+    <c-col lg="10" xl="8">
+      <c-card-group>
+        <c-card class="p-4">
+          <c-card-body>
+            <h1 class="h4 mb-1">{{ 'resellerManageRestaurants.title' | transloco }}</h1>
+            <p class="text-body-secondary small mb-4">{{ 'resellerManageRestaurants.subtitle' | transloco }}</p>
+
+            <form [formGroup]="addForm" (ngSubmit)="onSubmit()" cForm>
+              <h2 class="h6 mb-3">{{ 'resellerManageRestaurants.restaurantSection' | transloco }}</h2>
+              <div class="mb-3">
+                <label cLabel for="restaurantName">{{ 'resellerManageRestaurants.restaurantName' | transloco }}</label>
+                <input cFormControl id="restaurantName" type="text" formControlName="restaurantName" />
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label cLabel for="restaurantType">{{ 'resellerManageRestaurants.restaurantType' | transloco }}</label>
+                  <select cSelect id="restaurantType" formControlName="restaurantType">
+                    <option value="">{{ 'resellerManageRestaurants.selectType' | transloco }}</option>
+                    @for (t of restaurantTypes; track t.type) {
+                      <option [value]="t.type">{{ t.type }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label cLabel for="useCurrency">{{ 'resellerManageRestaurants.currency' | transloco }}</label>
+                  <select cSelect id="useCurrency" formControlName="useCurrency">
+                    @for (c of currencies; track c) {
+                      <option [value]="c">{{ c }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label cLabel for="registrationNumber">{{ 'resellerManageRestaurants.registrationNumber' | transloco }} <span class="text-danger">*</span></label>
+                  <input cFormControl id="registrationNumber" type="text" formControlName="registrationNumber" />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label cLabel for="zip">{{ 'resellerManageRestaurants.zip' | transloco }}</label>
+                  <input cFormControl id="zip" type="text" formControlName="zip" />
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label cLabel for="city">{{ 'resellerManageRestaurants.city' | transloco }}</label>
+                  <input cFormControl id="city" type="text" formControlName="city" />
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label cLabel for="country">{{ 'resellerManageRestaurants.country' | transloco }}</label>
+                  <input cFormControl id="country" type="text" formControlName="country" />
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label cLabel for="address">{{ 'resellerManageRestaurants.address' | transloco }}</label>
+                  <input cFormControl id="address" type="text" formControlName="address" />
+                </div>
+              </div>
+
+              <h2 class="h6 mb-3 mt-2">{{ 'resellerManageRestaurants.managerSection' | transloco }}</h2>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label cLabel for="managerName">{{ 'resellerManageRestaurants.name' | transloco }}</label>
+                  <input cFormControl id="managerName" type="text" formControlName="name" />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label cLabel for="managerSurname">{{ 'resellerManageRestaurants.surname' | transloco }}</label>
+                  <input cFormControl id="managerSurname" type="text" formControlName="surname" />
+                </div>
+              </div>
+              <div class="mb-3">
+                <label cLabel for="managerEmail">{{ 'resellerManageRestaurants.email' | transloco }}</label>
+                <input cFormControl id="managerEmail" type="email" formControlName="email" />
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label cLabel for="managerPassword">{{ 'resellerManageRestaurants.password' | transloco }}</label>
+                  <input cFormControl id="managerPassword" type="password" formControlName="password" />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label cLabel for="managerPhone">{{ 'resellerManageRestaurants.phone' | transloco }}</label>
+                  <input cFormControl id="managerPhone" type="tel" formControlName="phone" />
+                </div>
+              </div>
+
+              <button cButton color="primary" type="submit" [disabled]="submitting || addForm.invalid">
+                {{ 'resellerManageRestaurants.submit' | transloco }}
+              </button>
+            </form>
+          </c-card-body>
+        </c-card>
+      </c-card-group>
+    </c-col>
+  </c-row>
+</c-container>

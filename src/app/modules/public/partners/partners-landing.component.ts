@@ -5,6 +5,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { finalize } from 'rxjs';
 import { PartnerPortfolioSize } from '@app/core/models/partner-inquiry.model';
@@ -15,7 +16,7 @@ import type { AppLang } from '@app/core/i18n/transloco.config';
 @Component({
   selector: 'app-partners-landing',
   standalone: true,
-  imports: [ReactiveFormsModule, TranslocoPipe],
+  imports: [ReactiveFormsModule, TranslocoPipe, RouterLink],
   templateUrl: './partners-landing.component.html',
   styleUrl: './partners-landing.component.scss',
 })

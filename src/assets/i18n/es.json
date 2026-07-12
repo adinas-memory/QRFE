@@ -148,6 +148,7 @@
       "title": "Haga crecer su negocio de revendedor con U.R.S.",
       "subtitle": "Programa de socios para distribuidores de cajas registradoras e integradores IT HoReCa."
     },
+    "loginReseller": "Acceso para socios",
     "benefits": {
       "title": "Lo que gana como socio",
       "margins": {
@@ -506,6 +507,48 @@
     "successBody": "El nuevo empleado puede iniciar sesión con el email y la contraseña que configuraste.",
     "errorGeneric": "No se pudo crear el usuario de personal. Revisa los datos o inténtalo de nuevo."
   },
+  "resellerDashboard": {
+    "title": "Sus restaurantes",
+    "subtitle": "Restaurantes que ha provisionado para sus clientes.",
+    "addRestaurant": "Añadir restaurante",
+    "loading": "Cargando…",
+    "empty": "Aún no hay restaurantes. Use Añadir restaurante para el primero.",
+    "colName": "Restaurante",
+    "colType": "Tipo",
+    "colTables": "Mesas",
+    "colManager": "Manager",
+    "settings": "Ajustes",
+    "yes": "Sí",
+    "no": "No",
+    "pageSize": "Por página",
+    "prev": "Anterior",
+    "next": "Siguiente",
+    "total": "en total",
+    "loadError": "No se pudieron cargar los restaurantes."
+  },
+  "resellerManageRestaurants": {
+    "title": "Provisionar restaurante",
+    "subtitle": "Cree un restaurante y una cuenta de manager bajo su cuenta de socio.",
+    "restaurantSection": "Restaurante",
+    "managerSection": "Cuenta de manager",
+    "restaurantName": "Nombre del restaurante",
+    "restaurantType": "Tipo de local",
+    "selectType": "Seleccionar tipo",
+    "currency": "Moneda",
+    "city": "Ciudad",
+    "country": "País",
+    "address": "Dirección",
+    "registrationNumber": "Número de registro",
+    "zip": "Código postal",
+    "name": "Nombre",
+    "surname": "Apellido",
+    "email": "Email",
+    "password": "Contraseña",
+    "phone": "Teléfono",
+    "submit": "Crear restaurante",
+    "successTitle": "Restaurante creado",
+    "errorGeneric": "No se pudo provisionar el restaurante. Revise los datos o inténtelo de nuevo."
+  },
   "reservations": {
     "title": "Reservas",
     "listTitle": "Lista de reservas",
@@ -608,7 +651,9 @@
     "staff": "Personal",
     "qrCodes": "Códigos QR",
     "restaurants": "Restaurantes",
-    "subscriptionProducts": "Productos de suscripción"
+    "subscriptionProducts": "Productos de suscripción",
+    "resellers": "Revendedores",
+    "addRestaurant": "Añadir restaurante"
   },
   "header": {
     "settings": "Ajustes",

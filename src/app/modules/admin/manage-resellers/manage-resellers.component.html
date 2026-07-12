@@ -1,0 +1,134 @@
+<c-container class="px-4 py-3">
+  <c-row class="justify-content-center">
+    <c-col lg="10" xl="9">
+      <c-card-group>
+        <c-card class="p-4 mb-4">
+          <c-card-body>
+            <h1 class="h4 mb-1">{{ 'manageResellers.title' | transloco }}</h1>
+            <p class="text-body-secondary small mb-4">{{ 'manageResellers.subtitle' | transloco }}</p>
+
+            <form [formGroup]="resellerForm" (ngSubmit)="onSubmit()" cForm>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label cLabel for="resellerName">
+                    {{ 'manageResellers.name' | transloco }} <span class="text-danger" aria-hidden="true">*</span>
+                  </label>
+                  <input cFormControl id="resellerName" type="text" formControlName="name" autocomplete="given-name" />
+                  @if (resellerForm.get('name')?.invalid && resellerForm.get('name')?.touched) {
+                    <div class="invalid-feedback d-block">{{ 'manageResellers.required' | transloco }}</div>
+                  }
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label cLabel for="resellerSurname">
+                    {{ 'manageResellers.surname' | transloco }} <span class="text-danger" aria-hidden="true">*</span>
+                  </label>
+                  <input cFormControl id="resellerSurname" type="text" formControlName="surname" autocomplete="family-name" />
+                  @if (resellerForm.get('surname')?.invalid && resellerForm.get('surname')?.touched) {
+                    <div class="invalid-feedback d-block">{{ 'manageResellers.required' | transloco }}</div>
+                  }
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label cLabel for="resellerEmail">
+                  {{ 'manageResellers.email' | transloco }} <span class="text-danger" aria-hidden="true">*</span>
+                </label>
+                <input cFormControl id="resellerEmail" type="email" formControlName="email" autocomplete="email" />
+                @if (resellerForm.get('email')?.errors?.['required'] && resellerForm.get('email')?.touched) {
+                  <div class="invalid-feedback d-block">{{ 'manageResellers.required' | transloco }}</div>
+                }
+                @if (resellerForm.get('email')?.errors?.['email'] && resellerForm.get('email')?.touched) {
+                  <div class="invalid-feedback d-block">{{ 'manageResellers.emailInvalid' | transloco }}</div>
+                }
+              </div>
+
+              <div class="mb-3">
+                <label cLabel for="resellerPhone">
+                  {{ 'manageResellers.phone' | transloco }} <span class="text-danger" aria-hidden="true">*</span>
+                </label>
+                <input cFormControl id="resellerPhone" type="tel" formControlName="phone" autocomplete="tel" />
+                @if (resellerForm.get('phone')?.invalid && resellerForm.get('phone')?.touched) {
+                  <div class="invalid-feedback d-block">{{ 'manageResellers.required' | transloco }}</div>
+                }
+              </div>
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label cLabel for="resellerPassword">
+                    {{ 'manageResellers.password' | transloco }} <span class="text-danger" aria-hidden="true">*</span>
+                  </label>
+                  <input cFormControl id="resellerPassword" type="password" formControlName="password" autocomplete="new-password" />
+                  @if (resellerForm.get('password')?.errors?.['required'] && resellerForm.get('password')?.touched) {
+                    <div class="invalid-feedback d-block">{{ 'manageResellers.required' | transloco }}</div>
+                  }
+                  @if (resellerForm.get('password')?.errors?.['pattern'] && resellerForm.get('password')?.touched) {
+                    <div class="invalid-feedback d-block">{{ 'manageResellers.passwordRules' | transloco }}</div>
+                  }
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label cLabel for="resellerConfirm">
+                    {{ 'manageResellers.confirmPassword' | transloco }} <span class="text-danger" aria-hidden="true">*</span>
+                  </label>
+                  <input cFormControl id="resellerConfirm" type="password" formControlName="confirmPassword" autocomplete="new-password" />
+                  @if (resellerForm.get('confirmPassword')?.errors?.['required'] && resellerForm.get('confirmPassword')?.touched) {
+                    <div class="invalid-feedback d-block">{{ 'manageResellers.required' | transloco }}</div>
+                  }
+                  @if (resellerForm.hasError('mismatch') && resellerForm.get('confirmPassword')?.touched) {
+                    <div class="invalid-feedback d-block">{{ 'manageResellers.passwordMismatch' | transloco }}</div>
+                  }
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                cButton
+                color="primary"
+                class="mt-2"
+                [disabled]="submitting || resellerForm.invalid"
+              >
+                {{ 'manageResellers.submit' | transloco }}
+              </button>
+            </form>
+          </c-card-body>
+        </c-card>
+
+        <c-card class="p-4">
+          <c-card-body>
+            <h2 class="h5 mb-3">{{ 'manageResellers.listTitle' | transloco }}</h2>
+
+            @if (loadingList) {
+              <p class="text-body-secondary mb-0">{{ 'manageResellers.listLoading' | transloco }}</p>
+            } @else if (resellers.length === 0) {
+              <p class="text-body-secondary mb-0">{{ 'manageResellers.listEmpty' | transloco }}</p>
+            } @else {
+              <div class="table-responsive">
+                <table cTable hover>
+                  <thead>
+                    <tr>
+                      <th>{{ 'manageResellers.colName' | transloco }}</th>
+                      <th>{{ 'manageResellers.colEmail' | transloco }}</th>
+                      <th>{{ 'manageResellers.colPhone' | transloco }}</th>
+                      <th>{{ 'manageResellers.colCreated' | transloco }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (r of resellers; track r.userId) {
+                      <tr>
+                        <td>{{ r.name }} {{ r.surname }}</td>
+                        <td>{{ r.email }}</td>
+                        <td>{{ r.phone }}</td>
+                        <td>{{ r.createdAtUtc | date: 'medium' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </c-card-body>
+        </c-card>
+      </c-card-group>
+    </c-col>
+  </c-row>
+</c-container>
+
+<c-toaster class="p-3" position="fixed" [placement]="placement" />

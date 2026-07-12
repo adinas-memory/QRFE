@@ -148,6 +148,7 @@
       "title": "Développez votre activité de revendeur avec U.R.S.",
       "subtitle": "Programme partenaire pour distributeurs de caisses enregistreuses et intégrateurs IT HoReCa."
     },
+    "loginReseller": "Connexion partenaire",
     "benefits": {
       "title": "Ce que vous gagnez en tant que partenaire",
       "margins": {
@@ -506,6 +507,48 @@
     "successBody": "Le nouvel employé peut se connecter avec l’e-mail et le mot de passe que vous avez définis.",
     "errorGeneric": "Impossible de créer l’utilisateur employé. Vérifiez les informations ou réessayez."
   },
+  "resellerDashboard": {
+    "title": "Vos restaurants",
+    "subtitle": "Restaurants que vous avez provisionnés pour vos clients.",
+    "addRestaurant": "Ajouter un restaurant",
+    "loading": "Chargement…",
+    "empty": "Aucun restaurant pour l'instant. Utilisez Ajouter un restaurant pour le premier.",
+    "colName": "Restaurant",
+    "colType": "Type",
+    "colTables": "Tables",
+    "colManager": "Manager",
+    "settings": "Paramètres",
+    "yes": "Oui",
+    "no": "Non",
+    "pageSize": "Par page",
+    "prev": "Précédent",
+    "next": "Suivant",
+    "total": "au total",
+    "loadError": "Impossible de charger les restaurants."
+  },
+  "resellerManageRestaurants": {
+    "title": "Provisionner un restaurant",
+    "subtitle": "Créez un restaurant et un compte manager sous votre compte partenaire.",
+    "restaurantSection": "Restaurant",
+    "managerSection": "Compte manager",
+    "restaurantName": "Nom du restaurant",
+    "restaurantType": "Type d'établissement",
+    "selectType": "Sélectionner le type",
+    "currency": "Devise",
+    "city": "Ville",
+    "country": "Pays",
+    "address": "Adresse",
+    "registrationNumber": "Numéro d'enregistrement",
+    "zip": "Code postal",
+    "name": "Prénom",
+    "surname": "Nom",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "phone": "Téléphone",
+    "submit": "Créer le restaurant",
+    "successTitle": "Restaurant créé",
+    "errorGeneric": "Impossible de provisionner le restaurant. Vérifiez les informations ou réessayez."
+  },
   "reservations": {
     "title": "Réservations",
     "listTitle": "Liste des réservations",
@@ -608,7 +651,9 @@
     "staff": "Personnel",
     "qrCodes": "Codes QR",
     "restaurants": "Restaurants",
-    "subscriptionProducts": "Produits d'abonnement"
+    "subscriptionProducts": "Produits d'abonnement",
+    "resellers": "Revendeurs",
+    "addRestaurant": "Ajouter un restaurant"
   },
   "header": {
     "settings": "Paramètres",

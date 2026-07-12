@@ -51,9 +51,11 @@
                 <button cButton color="info" variant="outline" type="submit">
                   Login
                 </button>
-                <button cButton color="light" variant="outline" type="button" routerLink="/register">
-                  Create an account
-                </button>
+                @if (showCreateAccountLink) {
+                  <button cButton color="light" variant="outline" type="button" routerLink="/register">
+                    Create an account
+                  </button>
+                }
               </div>
 
               <div class="text-center mt-3">

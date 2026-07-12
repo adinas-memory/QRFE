@@ -8,6 +8,7 @@ export function getRoleHomeUrl(role: string | null | undefined, pendingPlan: boo
   if (role === 'staff') return '/staff';
   if (role === 'manager') return '/manager';
   if (role === 'gadmin') return '/gadmin';
+  if (role === 'reseller') return '/reseller';
   if (pendingPlan && !role) return '/register';
   return '/register';
 }

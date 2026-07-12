@@ -7,7 +7,7 @@ import { environment } from '../../../../environments/environment';
 import { SseEvent } from '../../models/sseModel';
 import { AuthService } from '../../auth/auth.service';
 import { NativeAuthTokenService } from '../../auth/native-auth-token.service';
-import { isAssignedRestaurantId } from '../../auth/restaurant-id.util';
+import { isAssignedRestaurantId, shouldRunRestaurantRealtimeSync } from '../../auth/restaurant-id.util';
 import { OfflineSyncSchedulerService } from '../../offline/offline-sync-scheduler.service';
 import { OfflineQueueProcessor } from '../../offline/offline-queue-processor.service';
 import { OfflineDbService } from '../../offline/offline-db';
@@ -153,6 +153,9 @@ export class OrderSyncService {
   }
 
   private resolveRestaurantId(): string | null {
+    if (!shouldRunRestaurantRealtimeSync(this.auth.getUserRole())) {
+      return null;
+    }
     if (this.lastRestaurantId && isAssignedRestaurantId(this.lastRestaurantId)) {
       return this.lastRestaurantId;
     }

@@ -215,6 +215,26 @@ describe('AuthService offline session handling', () => {
     req.flush({ isSuccess: true, message: 'refreshed successfully' });
   });
 
+  it('setUser clears stale restaurantId for reseller', () => {
+    service.setUser({
+      id: '1',
+      role: 'manager',
+      restaurantId: 'r1',
+      restaurantName: 'Bistro',
+      restaurantType: 'Small',
+    });
+
+    service.setUser({
+      id: '2',
+      role: 'reseller',
+      restaurantId: null,
+      restaurantName: null,
+      restaurantType: null,
+    });
+
+    expect(service.getUserSnapshot()?.restaurantId).toBeNull();
+  });
+
   it('setUser preserves restaurantName when ping omits it', () => {
     service.setUser({
       id: '1',

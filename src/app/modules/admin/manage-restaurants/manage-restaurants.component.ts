@@ -116,7 +116,9 @@ export class ManageRestaurantsComponent implements OnInit, OnDestroy {
       phone: [''],
       city: [''],
       country: [''],
-      address: ['']
+      address: [''],
+      registrationNumber: ['', [Validators.required, Validators.maxLength(50)]],
+      zip: ['', Validators.maxLength(20)]
     });
 
     this.editForm = this.fb.group({
@@ -239,6 +241,8 @@ export class ManageRestaurantsComponent implements OnInit, OnDestroy {
       city: string;
       country: string;
       address: string;
+      registrationNumber: string;
+      zip: string;
     };
 
     this.globalAdmin.provisionRestaurantWithManager(payload)
@@ -256,7 +260,9 @@ export class ManageRestaurantsComponent implements OnInit, OnDestroy {
             phone: '',
             city: '',
             country: '',
-            address: ''
+            address: '',
+            registrationNumber: '',
+            zip: ''
           });
           this.activeTab = 0;
           this.pageNumber = 1;

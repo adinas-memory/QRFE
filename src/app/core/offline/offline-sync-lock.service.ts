@@ -3,7 +3,7 @@ import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { HttpClient, HttpContext } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../auth/auth.service';
-import { isAssignedRestaurantId } from '../auth/restaurant-id.util';
+import { isAssignedRestaurantId, shouldRunRestaurantRealtimeSync } from '../auth/restaurant-id.util';
 import { ClientInstanceService } from '../services/device/client-instance.service';
 import { CLIENT_INSTANCE_HEADER } from '../interceptors/client-instance.interceptor';
 import { SKIP_CONNECTIVITY_OFFLINE } from '../interceptors/auth.interceptor';
@@ -92,7 +92,12 @@ export class OfflineSyncLockService {
 
   private async tickRestaurantLockWatch(): Promise<void> {
     const user = this.auth.getUserSnapshot();
-    if (!user?.restaurantId || user.isOfflinePrimaryDevice || !this.onlineState.isOnline) {
+    if (
+      !user?.restaurantId
+      || !shouldRunRestaurantRealtimeSync(user.role)
+      || user.isOfflinePrimaryDevice
+      || !this.onlineState.isOnline
+    ) {
       return;
     }
     // Secondary reconnect poll owns /offline-sync/status while awaiting primary sync.
@@ -212,6 +217,9 @@ export class OfflineSyncLockService {
   }
 
   private resolveRestaurantId(): string | null {
+    if (!shouldRunRestaurantRealtimeSync(this.auth.getUserSnapshot()?.role ?? this.auth.getUserRole())) {
+      return null;
+    }
     const id = this.auth.getUserSnapshot()?.restaurantId ?? this.auth.getUserRestaurantId();
     return typeof id === 'string' && isAssignedRestaurantId(id) ? id : null;
   }
