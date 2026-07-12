@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpResponse } from '@angular/common/http';
-import { BehaviorSubject, Observable, shareReplay, map, of, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, map, of, throwError } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 import { ProductLimitModel, SubscriptionProductModel } from '../../models/subscription-product';
 import { PendingPlanModel } from '../../models/pendingPlanModel';
@@ -11,6 +11,7 @@ import {
   CancelSubscriptionResultModel,
   ManagerSubscriptionStatusModel,
 } from '../../models/manager-subscription-status.model';
+import { SubscriptionMarket } from '../../i18n/subscription-market.config';
 
 @Injectable({ providedIn: 'root' })
 export class SubscriptionService {
@@ -29,25 +30,38 @@ export class SubscriptionService {
     );
   }
 
-  loadProducts(): void {
-    this.http.get<SubscriptionProductModel[]>(`${this.apiUrl}/api/stripe/subscription`)
-      .subscribe({
-        next: products => this.products$.next(products),
-        error: err => console.error('Failed to load subscription products', err)
-      });
+  loadProducts(market: SubscriptionMarket): void {
+    this.getProducts(market).subscribe({
+      next: products => this.products$.next(products),
+      error: err => console.error('Failed to load subscription products', err),
+    });
   }
 
-  /** Expose products as observable */
-  getProducts(): Observable<SubscriptionProductModel[]> {
+  /** Expose products as observable for a specific market. */
+  getProducts(market: SubscriptionMarket): Observable<SubscriptionProductModel[]> {
     return this.http.get<SubscriptionProductModel[] | { products?: SubscriptionProductModel[] }>(
       `${this.apiUrl}/api/stripe/subscription`,
+      { params: { market } },
     ).pipe(
       map(raw => this.normalizeProductsResponse(raw)),
       catchError(err => {
         console.error('Failed to load subscription products', err);
         return of([]);
       }),
-      shareReplay(1),
+    );
+  }
+
+  /** Global admin: all markets, no filter. */
+  getAllProductsForAdmin(): Observable<SubscriptionProductModel[]> {
+    return this.http.get<SubscriptionProductModel[]>(
+      `${this.apiUrl}/api/restaurants/subscription-products`,
+      { withCredentials: true },
+    ).pipe(
+      map(raw => this.normalizeProductsResponse(raw)),
+      catchError(err => {
+        console.error('Failed to load admin subscription products', err);
+        return of([]);
+      }),
     );
   }
 
@@ -66,16 +80,17 @@ export class SubscriptionService {
   private normalizeProduct(raw: SubscriptionProductModel): SubscriptionProductModel {
     return {
       ...raw,
+      market: (raw.market ?? '').toUpperCase(),
       restaurantType: (raw.restaurantType ?? '').toLowerCase(),
       subscriptionInterval: raw.subscriptionInterval ?? 'month',
     };
   }
 
-  createProduct(payload: any): Observable<CreateSubscriptionProductModel> {
+  createProduct(payload: CreateSubscriptionProductModel): Observable<CreateSubscriptionProductModel> {
     return this.http.post<CreateSubscriptionProductModel>(`${this.apiUrl}/api/restaurants/create-subscription-product`, payload, { withCredentials: true });
   }
 
-  updateProduct(payload: any): Observable<{ productId: string; priceId: string }> {
+  updateProduct(payload: CreateSubscriptionProductModel & { productPriceId: string }): Observable<{ productId: string; priceId: string }> {
     return this.http.put<{ productId: string; priceId: string }>(
       `${this.apiUrl}/api/restaurants/update-subscription-product`,
       payload,
@@ -120,8 +135,8 @@ export class SubscriptionService {
     sessionStorage.removeItem(SubscriptionService.pendingRestaurantCurrencyKey);
   }
 
-  subscribeToPlan(payload: SubscriptionPayloadModel): Observable<any> {
-    return this.http.post(`${this.apiUrl}/api/stripe/subscription`,
+  subscribeToPlan(payload: SubscriptionPayloadModel): Observable<{ checkoutUrl: string }> {
+    return this.http.post<{ checkoutUrl: string }>(`${this.apiUrl}/api/stripe/subscription`,
       payload, { withCredentials: true });
   }
 

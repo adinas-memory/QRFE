@@ -1,6 +1,7 @@
 export interface SubscriptionProductModel {
   productPriceId: string;
   priceId: string;
+  market?: string;
   restaurantType: string;
   description: string;
   features: string;
@@ -10,6 +11,7 @@ export interface SubscriptionProductModel {
 }
 
 export interface CreateSubscriptionProductModel {
+  market: string;
   restaurantType: string;
   description: string;
   features: string;  

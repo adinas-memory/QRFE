@@ -11,6 +11,7 @@
         <li *ngFor="let p of products" class="list-group-item d-flex justify-content-between align-items-start">
           <div class="me-3">
             <div class="d-flex align-items-center gap-2">
+              <span class="badge text-bg-secondary">{{ p.market }}</span>
               <strong class="text-uppercase">{{ p.restaurantType }}</strong>
               <span class="text-muted small">{{ p.priceAmount | currency : p.priceCurrency }}</span>
             </div>
@@ -31,6 +32,24 @@
     <c-tab-panel class="p-3" [itemKey]="1">
       <form [formGroup]="addForm" (ngSubmit)="onAdd()" cForm>
         <div class="row">
+          <div class="col-md-4 mb-3">
+            <label cLabel>Market</label>
+
+            <c-dropdown>
+              <button cButton cDropdownToggle color="secondary" class="w-100 text-start">
+                {{ addForm.value.market || 'Select market...' }}
+              </button>
+
+              <ul cDropdownMenu class="w-100">
+                <li *ngFor="let m of markets">
+                  <button type="button" cDropdownItem (click)="setMarket(m, addForm)">
+                    {{ m }}
+                  </button>
+                </li>
+              </ul>
+            </c-dropdown>
+          </div>
+
           <div class="col-md-4 mb-3">
             <label cLabel>Restaurant Type</label>
 
@@ -123,6 +142,9 @@
 
   <c-modal-body>
     <form [formGroup]="editForm" cForm>
+      <label cLabel>Market</label>
+      <input cFormControl formControlName="market" readonly />
+
       <label cLabel>Restaurant Type</label>
       <input cFormControl formControlName="restaurantType" readonly />
 
