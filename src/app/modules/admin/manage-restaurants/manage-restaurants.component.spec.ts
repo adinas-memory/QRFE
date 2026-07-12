@@ -84,7 +84,8 @@ describe('ManageRestaurantsComponent', () => {
       surname: 'Pop',
       email: 'ana@test.com',
       password: 'secret1',
-      phone: '0700000000'
+      phone: '0700000000',
+      registrationNumber: 'RO12345678'
     });
 
     component.onAdd();

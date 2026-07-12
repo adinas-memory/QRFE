@@ -33,6 +33,16 @@
                 </div>
               </div>
               <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label cLabel for="registrationNumber">{{ 'resellerManageRestaurants.registrationNumber' | transloco }} <span class="text-danger">*</span></label>
+                  <input cFormControl id="registrationNumber" type="text" formControlName="registrationNumber" />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label cLabel for="zip">{{ 'resellerManageRestaurants.zip' | transloco }}</label>
+                  <input cFormControl id="zip" type="text" formControlName="zip" />
+                </div>
+              </div>
+              <div class="row">
                 <div class="col-md-4 mb-3">
                   <label cLabel for="city">{{ 'resellerManageRestaurants.city' | transloco }}</label>
                   <input cFormControl id="city" type="text" formControlName="city" />

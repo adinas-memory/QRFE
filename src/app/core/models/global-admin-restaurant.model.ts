@@ -50,6 +50,8 @@ export interface ProvisionRestaurantWithManagerRequest {
   city?: string;
   country?: string;
   address?: string;
+  registrationNumber: string;
+  zip?: string;
 }
 
 export interface ProvisionRestaurantResponse {
