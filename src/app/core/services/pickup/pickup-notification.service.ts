@@ -58,15 +58,11 @@ export class PickupNotificationService {
     const eventType: WaiterPushEventType =
       kind === 'kitchen' ? 'KitchenWaiterCall' : 'BarWaiterCall';
 
-    // Haptic before toast — SSE reached this device (ClientInstanceId gates FCM only).
-    const vibrated = await this.#deviceFeedback.pulsePickup(kind, parsed.tableId, 'sse');
-    if (!vibrated) {
-      console.warn('[PickupNotification] pickup haptic failed', {
-        kind,
-        tableId: parsed.tableId,
-        source: 'sse',
-      });
-    }
+    // Haptic only on the staff device that last acted on the table.
+    this.#deviceFeedback.notifyPickupReady(kind, {
+      tableId: parsed.tableId,
+      clientInstanceId: parsed.clientInstanceId,
+    });
 
     await this.#pushRegistration.deliverPickupAlert({
       eventType,

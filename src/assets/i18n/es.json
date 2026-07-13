@@ -331,7 +331,8 @@
       "multilanguageUI": "Interfaz multilingüe",
       "menuDescriptionTranslation": "Traducción automática de descripciones del menú",
       "sseTablesLive": "Actualizaciones en vivo de mesas y pedidos (SSE)",
-      "ecoBon": "ECO BON (recibo digital PDF)"
+      "ecoBon": "ECO BON (recibo digital PDF)",
+      "unlimitedDevicesPerRestaurant": "Dispositivos ilimitados por restaurante"
     }
   },
   "client": {
@@ -975,6 +976,10 @@
       "kitchenBarToastDismiss": {
         "q": "¿Por qué los avisos de pedido nuevo o producto eliminado hay que cerrarlos a mano en cocina y bar?",
         "a": "Esas notificaciones permanecen hasta que alguien las cierra: está pensado así para asegurar que el equipo vio el pedido nuevo o que un plato ya no debe prepararse. Los avisos de subir o bajar cantidad desaparecen solos al cabo de un momento — son informativos."
+      },
+      "kitchenBarPickupVibration": {
+        "q": "Cuando cocina o bar llaman al camarero para recoger comida o bebida, ¿qué dispositivos vibran?",
+        "a": "Solo el teléfono o la tablet que actuó por última vez en el pedido de esa mesa (por ejemplo, añadir productos o cambiar cantidades). Los demás dispositivos del personal pueden ver la alerta en pantalla, pero no vibran. Cuando un cliente llama al camarero desde el menú QR, todos los dispositivos del personal reciben la alerta, incluida la vibración."
       },
       "offlineOrders": {
         "q": "¿Qué pasa si falla el Wi‑Fi mientras tomo un pedido?",

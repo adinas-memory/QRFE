@@ -57,6 +57,7 @@ export class ManageSubscriptionProductsComponent implements OnInit, OnDestroy {
     'pricing.features.menuDescriptionTranslation',
     'pricing.features.sseTablesLive',
     'pricing.features.ecoBon',
+    'pricing.features.unlimitedDevicesPerRestaurant',
   ] as const;
 
 

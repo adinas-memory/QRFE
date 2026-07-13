@@ -331,7 +331,8 @@
       "multilanguageUI": "Interfaccia multilingue",
       "menuDescriptionTranslation": "Traduzione automatica descrizioni menu",
       "sseTablesLive": "Aggiornamenti live tavoli & ordini (SSE)",
-      "ecoBon": "ECO BON (ricevuta digitale PDF)"
+      "ecoBon": "ECO BON (ricevuta digitale PDF)",
+      "unlimitedDevicesPerRestaurant": "Dispositivi illimitati per ristorante"
     }
   },
   "client": {
@@ -975,6 +976,10 @@
       "kitchenBarToastDismiss": {
         "q": "Perché i toast per nuovo ordine o prodotto eliminato vanno chiusi manualmente in cucina e al bar?",
         "a": "Restano finché qualcuno non li chiude: è voluto così per essere sicuri che siano stati visti un ordine nuovo o la cancellazione di una preparazione. I toast per aumento o diminuzione quantità scompaiono da soli dopo poco — sono solo informativi."
+      },
+      "kitchenBarPickupVibration": {
+        "q": "Quando cucina o bar chiamano il cameriere per ritirare cibo o bevande, quali dispositivi vibrano?",
+        "a": "Solo il telefono o il tablet che ha agito per ultimo sull’ordine di quel tavolo (ad esempio aggiungendo prodotti o modificando le quantità). Gli altri dispositivi del personale possono vedere l’avviso sullo schermo, ma non vibrano. Quando un ospite chiama il cameriere dal menu QR, tutti i dispositivi del personale ricevono l’avviso, inclusa la vibrazione."
       },
       "offlineOrders": {
         "q": "E se il Wi‑Fi cade mentre prendo un ordine?",

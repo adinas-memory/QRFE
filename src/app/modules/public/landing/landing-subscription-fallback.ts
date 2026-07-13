@@ -16,6 +16,7 @@ const FEATURE_KEYS = [
   'pricing.features.kitchenBarScreens',
   'pricing.features.ecoBon',
   'pricing.features.menuDescriptionTranslation',
+  'pricing.features.unlimitedDevicesPerRestaurant',
 ] as const;
 
 function buildFallbackProduct(

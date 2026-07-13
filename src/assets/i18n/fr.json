@@ -331,7 +331,8 @@
       "multilanguageUI": "Interface multilingue",
       "menuDescriptionTranslation": "Traduction automatique des descriptions du menu",
       "sseTablesLive": "Mises à jour en direct tables & commandes (SSE)",
-      "ecoBon": "ECO BON (reçu numérique PDF)"
+      "ecoBon": "ECO BON (reçu numérique PDF)",
+      "unlimitedDevicesPerRestaurant": "Appareils illimités par restaurant"
     }
   },
   "client": {
@@ -975,6 +976,10 @@
       "kitchenBarToastDismiss": {
         "q": "Pourquoi les toasts « nouvelle commande » ou « produit supprimé » doivent-ils être fermés manuellement en cuisine et au bar ?",
         "a": "Ils restent affichés jusqu’à fermeture volontaire : nous voulons être sûrs qu’une nouvelle commande ou l’annulation d’un plat a bien été vue. Les toasts d’augmentation ou de diminution de quantité disparaissent seuls après un court délai — ils sont informatifs."
+      },
+      "kitchenBarPickupVibration": {
+        "q": "Quand la cuisine ou le bar appelle le serveur pour récupérer des plats ou des boissons, quels appareils vibrent ?",
+        "a": "Uniquement le téléphone ou la tablette qui a agi en dernier sur la commande de cette table (par exemple en ajoutant des articles ou en modifiant les quantités). Les autres appareils du personnel peuvent voir l’alerte à l’écran, mais ne vibrent pas. Quand un client appelle le serveur depuis le menu QR, tous les appareils du personnel sont alertés — y compris la vibration."
       },
       "offlineOrders": {
         "q": "Et si le Wi‑Fi tombe pendant une commande ?",

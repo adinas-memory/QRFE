@@ -331,7 +331,8 @@
       "multilanguageUI": "Mehrsprachige UI",
       "menuDescriptionTranslation": "Automatische Übersetzung der Menübeschreibungen",
       "sseTablesLive": "Live-Updates für Tische & Bestellungen (SSE)",
-      "ecoBon": "ECO BON (digitaler Beleg als PDF)"
+      "ecoBon": "ECO BON (digitaler Beleg als PDF)",
+      "unlimitedDevicesPerRestaurant": "Unbegrenzte Geräte pro Restaurant"
     }
   },
   "client": {
@@ -975,6 +976,10 @@
       "kitchenBarToastDismiss": {
         "q": "Warum müssen Toasts für neue Bestellung oder gelöschtes Produkt in Küche und Bar manuell geschlossen werden?",
         "a": "Diese Toasts bleiben sichtbar, bis jemand sie wegklickt: so stellen wir sicher, dass eine neue Bestellung oder die Absage eines Gerichts wirklich gesehen wurde. Toasts bei Mengenerhöhung oder -verringerung verschwinden nach kurzer Zeit von selbst — sie sind rein informativ."
+      },
+      "kitchenBarPickupVibration": {
+        "q": "Wenn Küche oder Bar den Kellner zum Abholen von Speisen oder Getränken rufen, welche Geräte vibrieren?",
+        "a": "Nur das Telefon oder Tablet, das zuletzt die Bestellung dieses Tisches bearbeitet hat (z. B. Artikel hinzugefügt oder Mengen geändert). Andere Staff-Geräte sehen die Bildschirmwarnung, vibrieren aber nicht. Wenn ein Gast den Kellner über das QR-Menü ruft, werden alle Staff-Geräte alarmiert — einschließlich Vibration."
       },
       "offlineOrders": {
         "q": "Was passiert bei WLAN-Ausfall während einer Bestellung?",
