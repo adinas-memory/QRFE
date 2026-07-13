@@ -368,7 +368,8 @@
       "multilanguageUI": "Interfață multilingvă",
       "menuDescriptionTranslation": "Traducere automată descrieri meniu",
       "sseTablesLive": "Update-uri live mese & comenzi (SSE)",
-      "ecoBon": "ECO BON (bon digital nefiscal)"
+      "ecoBon": "ECO BON (bon digital nefiscal)",
+      "unlimitedDevicesPerRestaurant": "Dispozitive nelimitate per restaurant"
     }
   },
   "client": {
@@ -1131,6 +1132,10 @@
       "kitchenBarToastDismiss": {
         "q": "De ce toasturile pentru comandă nouă sau ștergere produs trebuie închise manual la Bucătărie și Bar?",
         "a": "Aceste notificări rămân până le închide cineva din echipă: au fost lăsate expres așa ca să ne asigurăm că personalul a văzut comanda nouă sau anularea preparării unui produs. Toasturile pentru creștere sau scădere de cantitate dispar singure după un scurt interval — sunt informative și nu cer confirmare."
+      },
+      "kitchenBarPickupVibration": {
+        "q": "Când bucătăria sau barul cheamă ospătarul să ridice mâncarea sau băutura, care dispozitive vibrează?",
+        "a": "Doar telefonul sau tableta care a acționat ultima dată pe comanda mesei respective (de exemplu adăugare produse sau modificare cantități). Celelalte dispozitive staff pot vedea alerta pe ecran, dar nu vibrează. Când oaspetele cheamă ospătarul din meniul QR, toate dispozitivele staff sunt alertate — inclusiv cu vibrație."
       },
       "offlineOrders": {
         "q": "Ce se întâmplă dacă cade Wi‑Fi-ul în timp ce iau comanda?",

@@ -30,9 +30,13 @@ export class DeviceFeedbackService {
     void this.deliverPickupReady(kind, options);
   }
 
-  /** FCM/SSE on this device — token or connection already implies delivery; skip ClientInstanceId gate. */
-  notifyPickupFromPush(kind: PickupReadyKind, tableId: string): void {
-    void this.pulsePickup(kind, tableId, 'push');
+  /** FCM/SSE on this device — vibrate only when payload targets this client instance. */
+  notifyPickupFromPush(
+    kind: PickupReadyKind,
+    tableId: string,
+    clientInstanceId?: string | null,
+  ): void {
+    void this.deliverPickupReady(kind, { tableId, clientInstanceId });
   }
 
   /**

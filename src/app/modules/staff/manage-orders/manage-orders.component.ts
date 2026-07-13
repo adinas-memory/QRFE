@@ -655,7 +655,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     const inMemoryCart = this.tableCarts[this.currentTableId] ?? [];
     const persistedCart = await this.offlineDB.loadCart(this.currentTableId);
     const cart = inMemoryCart.length > 0 ? inMemoryCart : persistedCart;
-    await this.offlineDB.saveCart(this.currentTableId, cart, localOrderId);
+    await this.offlineDB.saveCart(this.currentTableId, cart, localOrderId, false, this.restaurantId);
     this.tableCarts[this.currentTableId] = [...cart];
 
     await this.offlineDB.addOfflineAction({
@@ -708,7 +708,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     if (existing) existing.quantity++;
     else cart.push({ item, quantity: 1, orderItemId: undefined });
 
-    await this.offlineDB.saveCart(tableId, cart, orderId ?? undefined);
+    await this.offlineDB.saveCart(tableId, cart, orderId ?? undefined, false, this.restaurantId);
     this.tableCarts[tableId] = [...cart];
 
     if (!this.orderIsConfirmed) return;

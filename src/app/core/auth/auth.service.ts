@@ -8,6 +8,8 @@ import { RegisterUserRequestModel } from '../models/registerUserRequestModel';
 import { environment } from '../../../environments/environment';
 import { LoginUserRequestModel } from '../models/loginUserRequestModel';
 import { PushRegistrationService } from '../services/push/push-registration.service';
+import { OfflineDbService } from '../offline/offline-db';
+import { OrdersService } from '../services/order-service/orders.service';
 import { normalizeRestaurantId, mergeRestaurantId } from './restaurant-id.util';
 import { NATIVE_AUTH_HEADER, NativeAuthTokenService } from './native-auth-token.service';
 import { acquireRefreshLeader, initRefreshCoordinator, releaseRefreshLeader, tryAcquireRefreshLeaderSync } from './auth-refresh-coordinator';
@@ -450,6 +452,7 @@ export class AuthService {
 
   logout(): Observable<void> {
     this.unregisterPushToken();
+    this.resetLocalStaffSessionData();
     this.clearUser();
     this.clearRestaurantCtx();
     return this.http.post<void>(`${this.apiUrl}/api/user/logout`, {}, { withCredentials: true }).pipe(
@@ -466,6 +469,21 @@ export class AuthService {
       void this.injector.get(PushRegistrationService).unregisterCurrentToken();
     } catch {
       // optional on web-only bundles
+    }
+  }
+
+  private resetLocalStaffSessionData(): void {
+    try {
+      localStorage.removeItem('currentTableId');
+      localStorage.removeItem('tableInitiatedByMap');
+    } catch {
+      // ignore
+    }
+    try {
+      void this.injector.get(OfflineDbService).resetAllOfflineTenantData();
+      void this.injector.get(OrdersService).clearInitiatedByCache();
+    } catch {
+      // ignore optional bundles
     }
   }
 

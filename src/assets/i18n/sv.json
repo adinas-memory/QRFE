@@ -331,7 +331,8 @@
       "multilanguageUI": "Flerspråkigt gränssnitt",
       "menuDescriptionTranslation": "Automatisk översättning av menybeskrivningar",
       "sseTablesLive": "Live-uppdateringar för bord och ordrar (SSE)",
-      "ecoBon": "ECO BON (digitalt kvitto som PDF)"
+      "ecoBon": "ECO BON (digitalt kvitto som PDF)",
+      "unlimitedDevicesPerRestaurant": "Obegränsat antal enheter per restaurang"
     }
   },
   "client": {
@@ -975,6 +976,10 @@
       "kitchenBarToastDismiss": {
         "q": "Varför måste toastar för ny order eller borttagen produkt stängas manuellt i kök och bar?",
         "a": "De ligger kvar tills någon stänger dem: så är det med flit så att personalen verkligen sett en ny order eller att en rätt inte längre ska tillagas. Toastar för ökad eller minskad kvantitet försvinner av sig själva efter en stund — de är bara informativa."
+      },
+      "kitchenBarPickupVibration": {
+        "q": "När kök eller bar kallar servitören för att hämta mat eller dryck, vilka enheter vibrerar?",
+        "a": "Endast telefonen eller surfplattan som senast agerade på bordets order (till exempel genom att lägga till produkter eller ändra antal). Övriga personalenheter kan fortfarande se varningen på skärmen, men vibrerar inte. När en gäst kallar servitören från QR-menyn varnas alla personalenheter — inklusive vibration."
       },
       "offlineOrders": {
         "q": "Vad händer om Wi‑Fi faller under en order?",

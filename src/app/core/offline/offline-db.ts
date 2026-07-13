@@ -157,12 +157,25 @@ export class OfflineDbService {
         removedCarts: number;
         removedActions: number;
     }> {
+        return this.prepareForRestaurantSwitch(restaurantId);
+    }
+
+    /** Clears table/menu snapshots and removes carts/queue rows from other tenants. */
+    async prepareForRestaurantSwitch(restaurantId: string): Promise<{
+        removedCarts: number;
+        removedActions: number;
+    }> {
         let removedCarts = 0;
         let removedActions = 0;
 
-        const carts = await this.db.carts.toArray();
-        for (const cart of carts) {
-            if (cart.restaurantId && cart.restaurantId !== restaurantId) {
+        const cartsBefore = await this.db.carts.toArray();
+
+        await this.db.tablesStore.clear();
+        await this.db.tablesStatus.clear();
+        await this.db.menuItems.clear();
+
+        for (const cart of cartsBefore) {
+            if (!cart.restaurantId || cart.restaurantId !== restaurantId) {
                 await this.db.carts.delete(cart.tableId);
                 removedCarts++;
             }
@@ -177,6 +190,14 @@ export class OfflineDbService {
         }
 
         return { removedCarts, removedActions };
+    }
+
+    async resetAllOfflineTenantData(): Promise<void> {
+        await this.db.carts.clear();
+        await this.db.queue.clear();
+        await this.db.tablesStore.clear();
+        await this.db.tablesStatus.clear();
+        await this.db.menuItems.clear();
     }
 
     /** Remove carts for table IDs that are not part of the current restaurant layout. */

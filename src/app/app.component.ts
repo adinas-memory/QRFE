@@ -23,6 +23,7 @@ import { SubscriptionService } from './core/services/subscription-service/subscr
 import { TranslocoPipe } from '@jsverse/transloco';
 import { OfflinePolicyService } from './core/offline/offline-policy.service';
 import { OfflineSyncLockService } from './core/offline/offline-sync-lock.service';
+import { OfflineDbService } from './core/offline/offline-db';
 import { NetworkMonitorService } from './core/platform/network-monitor.service';
 import { navigateToRoleHome } from './core/auth/auth-redirect.util';
 import { isAssignedRestaurantId, shouldRunRestaurantRealtimeSync } from './core/auth/restaurant-id.util';
@@ -77,6 +78,7 @@ export class AppComponent implements OnInit {
   readonly #pushRegistration = inject(PushRegistrationService);
   readonly #pickupNotification = inject(PickupNotificationService);
   readonly #offlineSyncLock = inject(OfflineSyncLockService);
+  readonly #offlineDb = inject(OfflineDbService);
   readonly #location = inject(Location);
   readonly #subscriptionService = inject(SubscriptionService);
 
@@ -151,6 +153,19 @@ export class AppComponent implements OnInit {
         this.#orderSyncService.close(false);
         this.#offlineSyncLock.stopRestaurantLockWatch();
         this.sseStarted = false;
+        void this.#networkMonitor.syncWithAuthState();
+        return;
+      }
+
+      const restaurantId = user.restaurantId;
+      if (isAssignedRestaurantId(restaurantId ?? null) && restaurantId) {
+        void (async () => {
+          await this.#offlineDb.prepareForRestaurantSwitch(restaurantId);
+          this.#orderSyncService.listenToRestaurantEvents(restaurantId);
+          this.sseStarted = true;
+          this.#offlineSyncLock.startRestaurantLockWatch();
+          await this.#orderSyncService.refreshRestaurantSnapshot({ force: true });
+        })();
       }
       void this.#networkMonitor.syncWithAuthState();
     });

@@ -248,6 +248,16 @@ export class OrdersService {
     }
   }
 
+  clearInitiatedByCache(): void {
+    this.initiatedByCache = {};
+    try {
+      localStorage.removeItem(this.initiatedByMapKey);
+    } catch {
+      // ignore
+    }
+    void this.platformStorage.setString(this.initiatedByMapKey, '{}');
+  }
+
   mapPayloadToComputed(
     payload: OrderUpdatedSSEPayload,
     tables: TableDTO[],

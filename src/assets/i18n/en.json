@@ -368,7 +368,8 @@
       "multilanguageUI": "Multi-language UI",
       "menuDescriptionTranslation": "Automatic menu description translation",
       "sseTablesLive": "Live table & order updates (SSE)",
-      "ecoBon": "ECO BON (non-fiscal receipt PDF)"
+      "ecoBon": "ECO BON (non-fiscal receipt PDF)",
+      "unlimitedDevicesPerRestaurant": "Unlimited devices per restaurant"
     }
   },
   "client": {
@@ -1135,6 +1136,10 @@
       "kitchenBarToastDismiss": {
         "q": "Why must new-order and item-deleted toasts be closed manually on Kitchen and Bar?",
         "a": "Those toasts stay until someone dismisses them on purpose: we want to be sure staff noticed a brand-new order or that a dish should no longer be prepared. Toasts for quantity up or quantity down clear by themselves after a short time—they are informational and do not need acknowledgment."
+      },
+      "kitchenBarPickupVibration": {
+        "q": "When the kitchen or bar calls a waiter to pick up food or drinks, which devices vibrate?",
+        "a": "Only the phone or tablet that last acted on that table's order (for example adding items or changing quantities). Other staff devices can still see the on-screen alert, but they do not vibrate. When a guest calls the waiter from the QR menu, all staff devices are alerted—including vibration."
       },
       "offlineOrders": {
         "q": "What happens if Wi‑Fi drops while I am taking an order?",

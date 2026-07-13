@@ -17,7 +17,7 @@ import androidx.core.app.NotificationCompat;
 
 public class NetworkMonitorService extends Service {
 
-    public static final String CHANNEL_ID = "network_monitor_v1";
+    public static final String CHANNEL_ID = "network_monitor_v2";
     private static final int NOTIFICATION_ID = 41001;
 
     // Doze/App Standby suspends network I/O on screen-off unless the process holds a CPU wake lock.
@@ -132,19 +132,21 @@ public class NetworkMonitorService extends Service {
         NotificationChannel channel = new NotificationChannel(
             CHANNEL_ID,
             "Network monitor",
-            NotificationManager.IMPORTANCE_LOW
+            NotificationManager.IMPORTANCE_MIN
         );
         channel.setDescription("Keeps POS connectivity monitoring active");
+        channel.setShowBadge(false);
         nm.createNotificationChannel(channel);
     }
 
     private Notification buildNotification() {
         return new NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.app_name))
-            .setContentText("Monitoring restaurant connectivity")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setSilent(true)
+            .setPriority(NotificationCompat.PRIORITY_MIN)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .build();
     }
 }

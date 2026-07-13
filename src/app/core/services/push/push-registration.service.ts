@@ -14,7 +14,7 @@ import { App } from '@capacitor/app';
 
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../auth/auth.service';
-import { ClientInstanceService } from '../device/client-instance.service';
+import { ClientInstanceService, clientInstanceIdsMatch } from '../device/client-instance.service';
 import { DeviceFeedbackService } from '../device/device-feedback.service';
 import { RuntimePlatformService } from '../../platform/runtime-platform.service';
 import { HttpClient } from '@angular/common/http';
@@ -291,7 +291,7 @@ export class PushRegistrationService {
     // Native background: SSE may still run — pulse if WebView is alive and app not in foreground.
     if (this.isNativeInBackground(appActive)) {
       const kind = options.eventType === 'BarWaiterCall' ? 'bar' : 'kitchen';
-      this.#deviceFeedback.notifyPickupFromPush(kind, options.tableId);
+      this.#deviceFeedback.notifyPickupFromPush(kind, options.tableId, options.clientInstanceId);
     }
     if (!this.isDebounced(debounceKey)) {
       this.markHandled(debounceKey);
@@ -478,9 +478,14 @@ export class PushRegistrationService {
     }
 
     const kind = payload.eventType === 'BarWaiterCall' ? 'bar' : 'kitchen';
+    const localId = await this.#clientInstance.whenReady();
+    const matchesTarget = clientInstanceIdsMatch(payload.clientInstanceId, localId);
+    if (!matchesTarget) {
+      return;
+    }
 
     if (this.isNativeInBackground(appActive)) {
-      this.#deviceFeedback.notifyPickupFromPush(kind, tableId);
+      this.#deviceFeedback.notifyPickupFromPush(kind, tableId, payload.clientInstanceId);
       return;
     }
 
@@ -488,7 +493,7 @@ export class PushRegistrationService {
       const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
       await Haptics.impact({ style: ImpactStyle.Heavy });
     } catch {
-      this.#deviceFeedback.notifyPickupFromPush(kind, tableId);
+      this.#deviceFeedback.notifyPickupFromPush(kind, tableId, payload.clientInstanceId);
     }
   }
 

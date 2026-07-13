@@ -228,6 +228,7 @@ export class LandingComponent implements OnInit, OnDestroy, AfterViewInit {
       'pricing.features.menuDescriptionTranslation',
       'pricing.features.sseTablesLive',
       'pricing.features.ecoBon',
+      'pricing.features.unlimitedDevicesPerRestaurant',
     ];
   }
 

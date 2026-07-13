@@ -27,6 +27,7 @@ const FAQ_ITEM_IDS = [
   'tableColors',
   'kitchenBarSse',
   'kitchenBarToastDismiss',
+  'kitchenBarPickupVibration',
   'offlineOrders',
   'realtimeSync',
   'rolesAccess',
