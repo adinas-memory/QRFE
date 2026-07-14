@@ -2,6 +2,8 @@ import { DestroyRef, inject, Injectable, Renderer2, RendererFactory2 } from '@an
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Meta, Title } from '@angular/platform-browser';
 import { TranslocoService } from '@jsverse/transloco';
+import { switchMap } from 'rxjs';
+import { type AppLang } from '@app/core/i18n/transloco.config';
 import { environment } from '../../../../environments/environment';
 import {
   COMPANY_EMAIL,
@@ -39,6 +41,18 @@ const SEO_DESCRIPTION_KEYS: Record<PublicSeoPage, string> = {
   partners: 'seo.partnersDescription',
 };
 
+const OG_LOCALE_BY_LANG: Record<AppLang, string> = {
+  en: 'en_US',
+  ro: 'ro_RO',
+  it: 'it_IT',
+  fr: 'fr_FR',
+  es: 'es_ES',
+  de: 'de_DE',
+  sv: 'sv_SE',
+};
+
+const OG_SITE_NAME = 'Universal Restaurant Systems';
+
 @Injectable({ providedIn: 'root' })
 export class SeoService {
   private readonly title = inject(Title);
@@ -56,7 +70,10 @@ export class SeoService {
     this.renderer = rendererFactory.createRenderer(null, null);
 
     this.transloco.langChanges$
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        switchMap((lang) => this.transloco.load(lang)),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe(() => {
         if (this.activePage) {
           this.applyNow(this.activePage);
@@ -66,7 +83,15 @@ export class SeoService {
 
   applyPublicPage(page: PublicSeoPage): void {
     this.activePage = page;
-    this.applyNow(page);
+    this.clearNoIndex();
+    void this.applyWhenTranslationsReady(page);
+  }
+
+  applyNoIndex(): void {
+    this.activePage = null;
+    this.removeCanonical();
+    this.removeJsonLd();
+    this.upsertMeta('name', 'robots', 'noindex, nofollow');
   }
 
   clearPublicPage(): void {
@@ -75,12 +100,27 @@ export class SeoService {
     this.removeJsonLd();
   }
 
+  getOgImageUrl(): string {
+    return `${this.publicSiteBase()}/public/icons/icon-512x512.png`;
+  }
+
+  private applyWhenTranslationsReady(page: PublicSeoPage): void {
+    const lang = this.transloco.getActiveLang();
+    this.transloco.load(lang).subscribe(() => {
+      if (this.activePage === page) {
+        this.applyNow(page);
+      }
+    });
+  }
+
   private applyNow(page: PublicSeoPage): void {
     const pageTitle = this.transloco.translate(SEO_TITLE_KEYS[page]);
     const description = this.transloco.translate(SEO_DESCRIPTION_KEYS[page]);
     const keywords = this.transloco.translate('seo.keywords');
-    const lang = this.transloco.getActiveLang();
+    const lang = this.transloco.getActiveLang() as AppLang;
+    const ogLocale = OG_LOCALE_BY_LANG[lang] ?? lang;
     const canonicalUrl = this.buildCanonicalUrl(PAGE_PATHS[page]);
+    const ogImage = this.getOgImageUrl();
 
     this.title.setTitle(pageTitle);
     document.documentElement.lang = lang;
@@ -89,19 +129,36 @@ export class SeoService {
     this.upsertMeta('name', 'keywords', keywords);
     this.upsertMeta('property', 'og:title', pageTitle);
     this.upsertMeta('property', 'og:description', description);
-    this.upsertMeta('property', 'og:locale', lang);
+    this.upsertMeta('property', 'og:locale', ogLocale);
     this.upsertMeta('property', 'og:url', canonicalUrl);
     this.upsertMeta('property', 'og:type', 'website');
+    this.upsertMeta('property', 'og:image', ogImage);
+    this.upsertMeta('property', 'og:site_name', OG_SITE_NAME);
+    this.upsertMeta('name', 'twitter:card', 'summary_large_image');
+    this.upsertMeta('name', 'twitter:title', pageTitle);
+    this.upsertMeta('name', 'twitter:description', description);
+    this.upsertMeta('name', 'twitter:image', ogImage);
 
     this.setCanonical(canonicalUrl);
     this.setOrganizationJsonLd();
   }
 
-  private buildCanonicalUrl(path: string): string {
-    const base = (environment.publicSiteUrl ?? '').replace(/\/$/, '')
+  private publicSiteBase(): string {
+    return (environment.publicSiteUrl ?? '').replace(/\/$/, '')
       || (typeof window !== 'undefined' ? window.location.origin : COMPANY_WEBSITE);
+  }
+
+  private buildCanonicalUrl(path: string): string {
+    const base = this.publicSiteBase();
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
     return `${base}${normalizedPath === '/' ? '' : normalizedPath}` || base;
+  }
+
+  private clearNoIndex(): void {
+    const tag = this.meta.getTag("name='robots'");
+    if (tag?.content === 'noindex, nofollow') {
+      this.meta.removeTag("name='robots'");
+    }
   }
 
   private setCanonical(url: string): void {

@@ -17,6 +17,7 @@ import {
 import { IconDirective } from '@coreui/icons-angular';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { AuthService } from '../../../core/auth/auth.service';
+import { SeoService } from '../../../core/services/seo/seo.service';
 
 @Component({
   selector: 'app-reset-password',
@@ -42,6 +43,7 @@ export class ResetPasswordComponent implements OnInit {
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private authService: AuthService,
+    private seo: SeoService,
   ) {
     this.form = this.fb.group({
       password: ['', [Validators.required, Validators.minLength(6)]],
@@ -50,6 +52,7 @@ export class ResetPasswordComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.seo.applyNoIndex();
     this.token = this.route.snapshot.queryParamMap.get('token') ?? '';
     if (!this.token) {
       this.errorKey = 'resetPassword.invalidToken';

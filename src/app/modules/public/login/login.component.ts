@@ -26,6 +26,7 @@ import { SubscriptionService } from '../../../core/services/subscription-service
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
 import { UserContextModel } from '../../../core/models/userContextModel';
+import { SeoService } from '../../../core/services/seo/seo.service';
 
 @Component({
   selector: 'app-login',
@@ -49,7 +50,8 @@ export class LoginComponent implements OnInit, OnDestroy {
     private subscriptionService: SubscriptionService,
     private toast: AppToastService,
     private misc: MiscellaneousService,
-    private transloco: TranslocoService) {
+    private transloco: TranslocoService,
+    private seo: SeoService) {
     this.loginForm = this.fb.group({
       email: ['', emailFieldValidators],
       password: ['', Validators.required],
@@ -104,6 +106,8 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   async ngOnInit(): Promise<void> {
+    this.seo.applyNoIndex();
+
     if (!Capacitor.isNativePlatform()) {
       return;
     }

@@ -18,6 +18,7 @@ import { AppFooterContentComponent } from '@app/shared/components/layout/app-foo
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { LANG_STORAGE_KEY, type AppLang } from '../../../core/i18n/transloco.config';
+import { SeoService } from '../../../core/services/seo/seo.service';
 import {
   BehaviorSubject,
   Subject,
@@ -78,6 +79,7 @@ export class PublicLayoutComponent implements OnInit, OnDestroy {
     private toast: AppToastService,
     readonly guestMenuView: GuestMenuViewService,
     private cdr: ChangeDetectorRef,
+    private seo: SeoService,
   ) {}
 
   get showSetMenuButton(): boolean {
@@ -170,6 +172,7 @@ export class PublicLayoutComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.seo.applyNoIndex();
     this.syncOrderPageFlag();
     this.theme = (localStorage.getItem('publicTheme') as 'dark' | 'light') || 'dark';
 
