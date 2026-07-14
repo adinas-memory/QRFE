@@ -193,7 +193,41 @@
     "faqDescription": "Domande frequenti sul POS U.R.S.: POS ristoranti, Printer Agent, ordini offline, menu QR, pagamenti Stripe e flussi staff.",
     "partnersTitle": "Programma Partner U.R.S. | Diventa Rivenditore POS Ristoranti",
     "partnersDescription": "Unisciti al programma partner Universal Restaurant Systems: margini ricorrenti, VPN nativo senza configurazione router e supporto B2B dedicato per distributori HoReCa.",
+    "contactTitle": "Contatti U.R.S. | Universal Restaurant Systems",
+    "contactDescription": "Contatta Universal Restaurant Systems per vendite, supporto e partnership sulla nostra piattaforma POS offline-first per ristoranti.",
+    "privacyTitle": "Informativa sulla privacy | Universal Restaurant Systems",
+    "privacyDescription": "Informativa sulla privacy di Universal Restaurant Systems (U.R.S.) per il software POS ristoranti: dati raccolti e diritti GDPR.",
+    "termsTitle": "Termini e condizioni | Universal Restaurant Systems",
+    "termsDescription": "Termini e condizioni per l'utilizzo degli abbonamenti e dei servizi Universal Restaurant Systems (U.R.S.) POS ristoranti.",
     "keywords": "miglior sistema POS, POS per piccole imprese, POS per ristoranti, POS mobile, POS cloud, POS economico, terminale POS, sistema POS, registratore di cassa, software POS, terminale di pagamento, lettore di carte, stampante per ricevute, POS retail, gestione inventario, gestione vendite, POS online, reportistica vendite, integrazione ERP"
+  },
+  "legal": {
+    "contact": {
+      "pageTitle": "Contattaci",
+      "intro": "Contatta il team Universal Restaurant Systems per vendite, onboarding o supporto tecnico.",
+      "p1": "Aiutiamo ristoranti, bar e caffè ad avviarsi con POS offline-first, menu QR, flussi cucina e integrazione stampanti.",
+      "p2": "Per informazioni generali e vendite, scrivici via email. Per supporto tecnico, chiamaci o scrivici su WhatsApp negli orari di ufficio."
+    },
+    "privacy": {
+      "nav": "Privacy",
+      "pageTitle": "Informativa sulla privacy",
+      "intro": "Questa informativa descrive come Universal Restaurant Systems tratta i dati personali quando usi il sito e la piattaforma POS.",
+      "p1": "Raccogliamo dati di account, ristorante e utilizzo necessari per il servizio U.R.S., gli abbonamenti Stripe e il supporto allo staff.",
+      "p2": "Non vendiamo dati personali. I fornitori (hosting, email, pagamenti) accedono ai dati solo per erogare il servizio.",
+      "p3": "Gli operatori di ristorante sono responsabili dei dati degli ospiti raccolti tramite menu QR e ordini, secondo la legge applicabile.",
+      "p4": "Puoi richiedere accesso, rettifica o cancellazione dei tuoi dati personali contattandoci a ciao@universalrestaurant.systems.",
+      "p5": "Potremmo aggiornare questa informativa. Le modifiche rilevanti saranno indicate su questa pagina."
+    },
+    "terms": {
+      "nav": "Termini",
+      "pageTitle": "Termini e condizioni",
+      "intro": "Questi termini regolano l'utilizzo del software e degli abbonamenti Universal Restaurant Systems.",
+      "p1": "Creando un account o sottoscrivendo un abbonamento, accetti di usare U.R.S. in conformità alla legge e solo per operazioni legittime di ristorazione.",
+      "p2": "Gli abbonamenti sono fatturati tramite Stripe secondo il piano selezionato. Tariffe, rinnovo e cancellazione seguono i termini mostrati al checkout.",
+      "p3": "Il servizio è fornito \"così com'è\". Funzionalità offline e online dipendono dai dispositivi e dalla connettività.",
+      "p4": "Sei responsabile delle credenziali dello staff, della configurazione delle stampanti e dell'accuratezza di menu, prezzi e imposte.",
+      "p5": "Per domande su questi termini: ciao@universalrestaurant.systems."
+    }
   },
   "footer": {
     "copyright": "© Universal Restaurant Systems",

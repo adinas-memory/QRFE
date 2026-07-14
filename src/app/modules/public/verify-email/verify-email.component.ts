@@ -13,6 +13,7 @@ import {
 import { IconDirective } from '@coreui/icons-angular';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { AuthService } from '../../../core/auth/auth.service';
+import { SeoService } from '../../../core/services/seo/seo.service';
 
 @Component({
   selector: 'app-verify-email',
@@ -34,9 +35,11 @@ export class VerifyEmailComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private authService: AuthService,
+    private seo: SeoService,
   ) {}
 
   ngOnInit(): void {
+    this.seo.applyNoIndex();
     const token = this.route.snapshot.queryParamMap.get('token') ?? '';
 
     if (!token) {

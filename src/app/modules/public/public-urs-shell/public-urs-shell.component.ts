@@ -12,12 +12,12 @@ import { RouterLink } from '@angular/router';
 import { DropdownComponent, DropdownItemDirective, DropdownMenuDirective, DropdownToggleDirective } from '@coreui/angular';
 import { NgClass } from '@angular/common';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { firstValueFrom } from 'rxjs';
 import { LANG_STORAGE_KEY, type AppLang } from '../../../core/i18n/transloco.config';
 import { environment } from '../../../../environments/environment';
 import { FeedbackLaunchComponent } from '@app/shared/components/feedback/feedback-launch.component';
 import { FeedbackModalComponent } from '@app/shared/components/feedback/feedback-modal.component';
 import { AppFooterContentComponent } from '@app/shared/components/layout/app-footer-content.component';
-import { SeoService } from '../../../core/services/seo/seo.service';
 
 export interface PublicUrsNavLink {
   id: string;
@@ -82,10 +82,7 @@ export class PublicUrsShellComponent implements OnInit, OnDestroy {
     sv: 'cif-se',
   };
 
-  constructor(
-    private transloco: TranslocoService,
-    private seo: SeoService,
-  ) {}
+  constructor(private transloco: TranslocoService) {}
 
   get activeLang(): AppLang {
     const l = this.transloco.getActiveLang();
@@ -116,14 +113,10 @@ export class PublicUrsShellComponent implements OnInit, OnDestroy {
     document.documentElement.removeAttribute('data-theme');
   }
 
-  setLanguage(l: AppLang): void {
+  async setLanguage(l: AppLang): Promise<void> {
     this.transloco.setActiveLang(l);
     try { localStorage.setItem(LANG_STORAGE_KEY, l); } catch { /* ignore */ }
-    if (this.fragmentNav) {
-      this.seo.applyPublicPage('faq');
-    } else {
-      this.seo.applyPublicPage('landing');
-    }
+    await firstValueFrom(this.transloco.load(l));
   }
 
   toggleTheme(): void {

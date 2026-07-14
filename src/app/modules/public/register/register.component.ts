@@ -24,6 +24,7 @@ import { AppToastService } from '../../../core/services/toast-service/toast-serv
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
 import { UserContextModel } from '../../../core/models/userContextModel';
 import { PendingPlanModel } from '../../../core/models/pendingPlanModel';
+import { SeoService } from '../../../core/services/seo/seo.service';
 
 @Component({
   selector: 'app-register',
@@ -50,7 +51,8 @@ export class RegisterComponent implements OnInit {
     private toast: AppToastService,
     private misc: MiscellaneousService,
     private transloco: TranslocoService,
-    public iconSet: IconSetService
+    public iconSet: IconSetService,
+    private seo: SeoService
   ) {
     this.iconSet.icons = { cilMobile, cilLockLocked, cilUser };
     this.registerForm = this.fb.group({
@@ -91,6 +93,7 @@ export class RegisterComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.seo.applyNoIndex();
     this.pendingSubscriptionPlan = this.subscriptionService.getPendingPlan();
   }
 

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { emailFieldValidators } from '../../../core/validators/email.validator';
 import { RouterLink } from '@angular/router';
@@ -18,6 +18,7 @@ import {
 } from '@coreui/angular';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { AuthService } from '../../../core/auth/auth.service';
+import { SeoService } from '../../../core/services/seo/seo.service';
 
 @Component({
   selector: 'app-forgot-password',
@@ -32,7 +33,7 @@ import { AuthService } from '../../../core/auth/auth.service';
     AlertComponent, TranslocoPipe,
   ],
 })
-export class ForgotPasswordComponent {
+export class ForgotPasswordComponent implements OnInit {
   form: FormGroup;
   submitted = false;
   loading = false;
@@ -41,10 +42,15 @@ export class ForgotPasswordComponent {
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
+    private seo: SeoService,
   ) {
     this.form = this.fb.group({
       email: ['', emailFieldValidators],
     });
+  }
+
+  ngOnInit(): void {
+    this.seo.applyNoIndex();
   }
 
   onSubmit(): void {

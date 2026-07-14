@@ -1,4 +1,5 @@
-import { Component, computed, input, OnDestroy, OnInit } from '@angular/core';
+import { Component, computed, DestroyRef, inject, input, OnDestroy, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import {
   AccordionButtonDirective,
@@ -7,7 +8,8 @@ import {
   ContainerComponent,
   TemplateIdDirective
 } from '@coreui/angular';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { switchMap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { SeoService } from '../../../core/services/seo/seo.service';
 
@@ -58,19 +60,31 @@ export type FaqItemId = (typeof FAQ_ITEM_IDS)[number];
   styleUrl: './faq.component.scss'
 })
 export class FaqComponent implements OnInit, OnDestroy {
-  protected readonly printerAgentDownloadUrl = environment.printerAgentDownloadUrl?.trim() ?? '';
+  private readonly seo = inject(SeoService);
+  private readonly transloco = inject(TranslocoService);
+  private readonly destroyRef = inject(DestroyRef);
 
-  constructor(private readonly seo: SeoService) {}
+  private faqJsonLdScript: HTMLScriptElement | null = null;
+
+  protected readonly printerAgentDownloadUrl = environment.printerAgentDownloadUrl?.trim() ?? '';
 
   ngOnInit(): void {
     if (!this.embedded()) {
       this.seo.applyPublicPage('faq');
+      this.transloco.langChanges$
+        .pipe(
+          switchMap((lang) => this.transloco.load(lang)),
+          takeUntilDestroyed(this.destroyRef),
+        )
+        .subscribe(() => this.setFaqJsonLd());
+      this.setFaqJsonLd();
     }
   }
 
   ngOnDestroy(): void {
     if (!this.embedded()) {
       this.seo.clearPublicPage();
+      this.removeFaqJsonLd();
     }
   }
 
@@ -96,4 +110,36 @@ export class FaqComponent implements OnInit, OnDestroy {
     const ids = [...this.allItemIds];
     return this.compact() ? ids.slice(0, 6) : ids;
   });
+
+  private setFaqJsonLd(): void {
+    const mainEntity = FAQ_ITEM_IDS.map((id) => ({
+      '@type': 'Question',
+      name: this.transloco.translate(`faq.items.${id}.q`),
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: this.transloco.translate(`faq.items.${id}.a`),
+      },
+    }));
+
+    const payload = {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity,
+    };
+
+    if (!this.faqJsonLdScript) {
+      this.faqJsonLdScript = document.createElement('script');
+      this.faqJsonLdScript.type = 'application/ld+json';
+      this.faqJsonLdScript.setAttribute('data-faq-jsonld', 'true');
+      document.head.appendChild(this.faqJsonLdScript);
+    }
+    this.faqJsonLdScript.textContent = JSON.stringify(payload);
+  }
+
+  private removeFaqJsonLd(): void {
+    if (this.faqJsonLdScript?.parentNode) {
+      this.faqJsonLdScript.parentNode.removeChild(this.faqJsonLdScript);
+    }
+    this.faqJsonLdScript = null;
+  }
 }
