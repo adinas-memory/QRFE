@@ -7,7 +7,7 @@ import { SubscriptionService } from '../../../core/services/subscription-service
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { PrintJobsService } from '../../../core/services/print-jobs/print-jobs.service';
 import { OfflinePrimaryService } from '../../../core/services/offline-primary/offline-primary.service';
-import { provideTransloco } from '@jsverse/transloco';
+import { provideTransloco, TranslocoService } from '@jsverse/transloco';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
@@ -25,6 +25,8 @@ describe('ManagerSettingsComponent bill printer', () => {
       'listAgentInstallations',
       'getDefaultBillPrinter',
       'updateDefaultBillPrinter',
+      'getFiscalPrinterSettings',
+      'updateFiscalPrinterSettings',
     ]);
     offlinePrimary = jasmine.createSpyObj('OfflinePrimaryService', [
       'listStaff',
@@ -52,6 +54,20 @@ describe('ManagerSettingsComponent bill printer', () => {
     );
     printJobs.listAgentInstallations.and.returnValue(of([]));
     printJobs.getDefaultBillPrinter.and.returnValue(of({ defaultBillPrinterId: 'main-printer' }));
+    printJobs.getFiscalPrinterSettings.and.returnValue(
+      of({
+        fiscalPrintingEnabled: false,
+        defaultFiscalPrinterId: null,
+        vatGroupMapping: { '19': 1, '9': 2, '5': 3 },
+      }),
+    );
+    printJobs.updateFiscalPrinterSettings.and.returnValue(
+      of({
+        fiscalPrintingEnabled: true,
+        defaultFiscalPrinterId: 'fiscal-1',
+        vatGroupMapping: { '19': 1 },
+      }),
+    );
 
     await TestBed.configureTestingModule({
       imports: [ManagerSettingsComponent],
@@ -143,6 +159,23 @@ describe('ManagerSettingsComponent bill printer', () => {
       'staff-1',
     );
   });
+
+  it('hides fiscal printer card when locale is not Romanian', () => {
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#fiscal-printer')).toBeNull();
+  });
+
+  it('shows fiscal printer card when locale is Romanian', async () => {
+    const transloco = TestBed.inject(TranslocoService);
+    await transloco.load('ro').toPromise();
+    transloco.setActiveLang('ro');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#fiscal-printer')).not.toBeNull();
+  });
+
+  it('loads fiscal printer settings on init', () => {
+    expect(printJobs.getFiscalPrinterSettings).toHaveBeenCalledWith('019c1a13-db50-763a-8cde-4a39922a538d');
+  });
 });
 
 describe('ManagerSettingsComponent reseller context', () => {
@@ -173,6 +206,18 @@ describe('ManagerSettingsComponent reseller context', () => {
             listAgentPrinters: () => of([]),
             listAgentInstallations: () => of([]),
             getDefaultBillPrinter: () => of({ defaultBillPrinterId: null }),
+            getFiscalPrinterSettings: () =>
+              of({
+                fiscalPrintingEnabled: false,
+                defaultFiscalPrinterId: null,
+                vatGroupMapping: {},
+              }),
+            updateFiscalPrinterSettings: () =>
+              of({
+                fiscalPrintingEnabled: false,
+                defaultFiscalPrinterId: null,
+                vatGroupMapping: {},
+              }),
           },
         },
         {
