@@ -198,10 +198,10 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
   /** Saved default is set but not present in the latest agent heartbeat list. */
   get isDefaultBillPrinterMismatch(): boolean {
     const id = this.defaultBillPrinterId;
-    if (!id || this.billPrinters.length === 0) {
+    if (!id || this.escPosBillPrinters.length === 0) {
       return false;
     }
-    return !this.billPrinters.some(p => p.id === id);
+    return !this.escPosBillPrinters.some(p => p.id === id);
   }
 
   get isRomanianLocale(): boolean {
@@ -209,7 +209,19 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
   }
 
   get fiscalPrinters(): PrinterAgentPrinterDto[] {
-    return this.billPrinters.filter(p => (p.type ?? 'escpos').toLowerCase() === 'fiscalnet');
+    return this.billPrinters.filter(p => this.isFiscalNetPrinter(p));
+  }
+
+  get escPosBillPrinters(): PrinterAgentPrinterDto[] {
+    return this.billPrinters.filter(p => !this.isFiscalNetPrinter(p));
+  }
+
+  private isFiscalNetPrinter(printer: PrinterAgentPrinterDto): boolean {
+    const type = (printer.type ?? 'escpos').toLowerCase();
+    if (type === 'fiscalnet') {
+      return true;
+    }
+    return printer.port === 65400;
   }
 
   get isDefaultFiscalPrinterMismatch(): boolean {
@@ -297,9 +309,9 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Printers from agent heartbeat, plus a synthetic row when DB has a default id not yet in the list. */
+  /** ESC/POS bill printers from agent heartbeat (excludes FiscalNet). */
   get billPrinterOptions(): PrinterAgentPrinterDto[] {
-    const list = [...this.billPrinters];
+    const list = [...this.escPosBillPrinters];
     const id = this.defaultBillPrinterId;
     if (id && !list.some(p => p.id === id)) {
       list.unshift({
@@ -662,12 +674,12 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Pre-select the sole agent printer when the saved default is missing or invalid. */
+  /** Pre-select the sole ESC/POS agent printer when the saved default is missing or invalid. */
   private maybeAutoSelectBillPrinter(): void {
-    if (this.billPrinters.length !== 1) {
+    if (this.escPosBillPrinters.length !== 1) {
       return;
     }
-    const onlyId = this.billPrinters[0].id;
+    const onlyId = this.escPosBillPrinters[0].id;
     if (!this.defaultBillPrinterId || this.isDefaultBillPrinterMismatch) {
       this.defaultBillPrinterId = onlyId;
     }
