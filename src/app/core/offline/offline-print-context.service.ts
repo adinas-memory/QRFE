@@ -5,6 +5,7 @@ import {
   OfflinePrintConfigStored,
   offlinePrintStorageKey,
 } from './offline-print-config.model';
+import type { FiscalVatGroupMapping } from '../fiscal/fiscal-vat-group.mapper';
 
 @Injectable({ providedIn: 'root' })
 export class OfflinePrintContextService {
@@ -13,6 +14,9 @@ export class OfflinePrintContextService {
   private readonly defaultBillPrinterId = signal<string | null>(null);
   private readonly agentLocalBaseUrl = signal<string | null>(null);
   private readonly localPrintAuthToken = signal<string | null>(null);
+  private readonly fiscalPrintingEnabled = signal(false);
+  private readonly defaultFiscalPrinterId = signal<string | null>(null);
+  private readonly fiscalVatGroupMapping = signal<FiscalVatGroupMapping>({});
 
   readonly defaultBillPrinterIdSnapshot = this.defaultBillPrinterId.asReadonly();
   readonly agentLocalBaseUrlSnapshot = this.agentLocalBaseUrl.asReadonly();
@@ -21,8 +25,26 @@ export class OfflinePrintContextService {
     return !!this.defaultBillPrinterId()?.trim() && !!this.agentLocalBaseUrl()?.trim();
   }
 
+  isReadyForOfflineFiscalPrint(): boolean {
+    return this.isReadyForOfflinePrint()
+      && this.fiscalPrintingEnabled()
+      && !!this.defaultFiscalPrinterId()?.trim();
+  }
+
   getDefaultBillPrinterId(): string | null {
     return this.defaultBillPrinterId();
+  }
+
+  getDefaultFiscalPrinterId(): string | null {
+    return this.defaultFiscalPrinterId();
+  }
+
+  getFiscalVatGroupMapping(): FiscalVatGroupMapping {
+    return this.fiscalVatGroupMapping();
+  }
+
+  isFiscalPrintingEnabledOffline(): boolean {
+    return this.fiscalPrintingEnabled();
   }
 
   getAgentLocalBaseUrl(): string | null {
@@ -62,6 +84,9 @@ export class OfflinePrintContextService {
       localPrintAuthToken: normalized.localPrintAuthToken ?? null,
       agentId: normalized.agentId ?? null,
       fromHeartbeatUtc: normalized.fromHeartbeatUtc ?? null,
+      fiscalPrintingEnabled: normalized.fiscalPrintingEnabled ?? false,
+      defaultFiscalPrinterId: normalized.defaultFiscalPrinterId ?? null,
+      fiscalVatGroupMapping: normalized.fiscalVatGroupMapping ?? null,
       cachedAtUtc: new Date().toISOString(),
     };
 
@@ -74,12 +99,18 @@ export class OfflinePrintContextService {
     this.defaultBillPrinterId.set(null);
     this.agentLocalBaseUrl.set(null);
     this.localPrintAuthToken.set(null);
+    this.fiscalPrintingEnabled.set(false);
+    this.defaultFiscalPrinterId.set(null);
+    this.fiscalVatGroupMapping.set({});
   }
 
   private apply(config: OfflinePrintConfigDto): void {
     this.defaultBillPrinterId.set((config.defaultBillPrinterId ?? '').trim() || null);
     this.agentLocalBaseUrl.set((config.agentLocalBaseUrl ?? '').trim() || null);
     this.localPrintAuthToken.set((config.localPrintAuthToken ?? '').trim() || null);
+    this.fiscalPrintingEnabled.set(!!config.fiscalPrintingEnabled);
+    this.defaultFiscalPrinterId.set((config.defaultFiscalPrinterId ?? '').trim() || null);
+    this.fiscalVatGroupMapping.set(config.fiscalVatGroupMapping ?? {});
   }
 
   private normalizeConfig(
@@ -95,6 +126,9 @@ export class OfflinePrintContextService {
       localPrintAuthToken: (c['localPrintAuthToken'] ?? c['LocalPrintAuthToken']) as string | null | undefined,
       agentId: (c['agentId'] ?? c['AgentId']) as string | null | undefined,
       fromHeartbeatUtc: (c['fromHeartbeatUtc'] ?? c['FromHeartbeatUtc']) as string | null | undefined,
+      fiscalPrintingEnabled: (c['fiscalPrintingEnabled'] ?? c['FiscalPrintingEnabled']) as boolean | undefined,
+      defaultFiscalPrinterId: (c['defaultFiscalPrinterId'] ?? c['DefaultFiscalPrinterId']) as string | null | undefined,
+      fiscalVatGroupMapping: (c['fiscalVatGroupMapping'] ?? c['FiscalVatGroupMapping']) as Record<string, number> | null | undefined,
     };
   }
 }

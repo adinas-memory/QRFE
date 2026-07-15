@@ -58,6 +58,7 @@ import { KitchenService } from '../../../core/services/kitchen-service/kitchen.s
 import { BarService } from '../../../core/services/bar-service/bar.service';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { PrintJobsService } from '../../../core/services/print-jobs/print-jobs.service';
+import { buildFiscalPrintItems } from '../../../core/fiscal/fiscal-print-payload.builder';
 import { DeviceFeedbackService } from '../../../core/services/device/device-feedback.service';
 import { PickupNotificationService } from '../../../core/services/pickup/pickup-notification.service';
 import {
@@ -501,6 +502,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     } else {
       await this.openTable(table);
     }
+  }
+
+  get isRomanianLocale(): boolean {
+    return this.transloco.getActiveLang() === 'ro';
   }
 
   /** Print allowed online, or offline on primary device with cached agent config. */
@@ -1500,6 +1505,103 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.appToast.error(
         this.transloco.translate('manageOrders.printErrorBody'),
         this.transloco.translate('manageOrders.printErrorTitle'),
+      );
+    }
+  }
+
+  async printFiscalReceipt(paymentMethod: 'cash' | 'card' = 'cash'): Promise<void> {
+    const restaurantId = this.restaurantId;
+    const orderId = this.currentOrderId;
+    if (!restaurantId || !orderId) return;
+    await this.enqueueFiscalReceiptJob({ restaurantId, orderId, paymentMethod });
+  }
+
+  private async enqueueFiscalReceiptJob(args: {
+    restaurantId: string;
+    orderId: string;
+    paymentMethod: 'cash' | 'card';
+  }): Promise<void> {
+    try {
+      const offlineFiscal = !this.isOnline && this.offlinePolicy.canUseFullOffline();
+      let fiscalPrintingEnabled = false;
+      let printerId = '';
+      let vatMapping: Record<string, number> = {};
+
+      if (offlineFiscal && this.offlinePrintContext.isReadyForOfflineFiscalPrint()) {
+        fiscalPrintingEnabled = this.offlinePrintContext.isFiscalPrintingEnabledOffline();
+        printerId = (this.offlinePrintContext.getDefaultFiscalPrinterId() ?? '').trim();
+        vatMapping = this.offlinePrintContext.getFiscalVatGroupMapping();
+      } else {
+        const fiscalCfg = await firstValueFrom(this.printJobs.getDefaultFiscalPrinterForStaff(args.restaurantId));
+        fiscalPrintingEnabled = !!fiscalCfg?.fiscalPrintingEnabled;
+        printerId = (fiscalCfg?.defaultFiscalPrinterId ?? '').trim();
+        vatMapping = fiscalCfg?.vatGroupMapping ?? {};
+      }
+
+      if (!fiscalPrintingEnabled) {
+        return;
+      }
+
+      if (!printerId) {
+        this.appToast.info(
+          this.transloco.translate('manageOrders.fiscalPrintNoPrinterBody'),
+          this.transloco.translate('manageOrders.fiscalPrintNoPrinterTitle'),
+        );
+        return;
+      }
+
+      const mappedItems = buildFiscalPrintItems(
+        this.selectedItems.map(x => ({
+          name: x.item.menuItemName,
+          quantity: x.quantity,
+          unitPrice: x.item.menuItemPriceAmount,
+          menuItemVatPercent: x.item.menuItemVatPercent,
+        })),
+        vatMapping,
+      );
+
+      const payload = {
+        type: 'fiscal-receipt' as const,
+        orderId: args.orderId,
+        restaurantName: this.authService.getUserSnapshot()?.restaurantName ?? '',
+        tableName: (this.tableName ?? '').trim() || null,
+        currency: this.cartCurrency ?? null,
+        subTotal: this.cartSubTotal ?? 0,
+        finalTotal: this.cartSubTotal ?? 0,
+        paymentMethod: args.paymentMethod,
+        closedAtUtc: new Date().toISOString(),
+        items: mappedItems.map(item => ({
+          name: item.name,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          vatPercent: item.menuItemVatPercent,
+          vatGroup: item.vatGroup,
+        })),
+      };
+
+      if (offlineFiscal && this.offlinePrintContext.isReadyForOfflineFiscalPrint()) {
+        await this.offlinePrintService.printFiscalReceiptSync({
+          restaurantId: args.restaurantId,
+          printerId,
+          payload,
+        });
+        this.appToast.success(
+          this.transloco.translate('manageOrders.fiscalPrintQueuedBody'),
+          this.transloco.translate('manageOrders.fiscalPrintQueuedTitle'),
+        );
+        return;
+      }
+
+      await firstValueFrom(this.printJobs.createBillPrintJob(args.restaurantId, printerId, payload));
+      this.appToast.success(
+        this.transloco.translate('manageOrders.fiscalPrintQueuedBody'),
+        this.transloco.translate('manageOrders.fiscalPrintQueuedTitle'),
+      );
+    } catch (err) {
+      console.error('Fiscal print job failed', err);
+      this.appToast.error(
+        this.transloco.translate('manageOrders.fiscalPrintErrorBody'),
+        this.transloco.translate('manageOrders.fiscalPrintErrorTitle'),
       );
     }
   }

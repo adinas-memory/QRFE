@@ -4,6 +4,9 @@ export interface OfflinePrintConfigDto {
   localPrintAuthToken?: string | null;
   agentId?: string | null;
   fromHeartbeatUtc?: string | null;
+  fiscalPrintingEnabled?: boolean;
+  defaultFiscalPrinterId?: string | null;
+  fiscalVatGroupMapping?: Record<string, number> | null;
 }
 
 export interface OfflinePrintConfigStored extends OfflinePrintConfigDto {

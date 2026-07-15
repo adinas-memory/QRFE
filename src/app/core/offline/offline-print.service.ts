@@ -14,6 +14,25 @@ export interface LocalBillPrintPayload {
   items: Array<{ name: string; quantity: number; unitPrice: number }>;
 }
 
+export interface LocalFiscalPrintPayload {
+  type: 'fiscal-receipt';
+  orderId: string;
+  restaurantName: string;
+  tableName: string | null;
+  currency: string | null;
+  subTotal: number;
+  finalTotal: number;
+  paymentMethod: string;
+  closedAtUtc: string;
+  items: Array<{
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    vatPercent?: number | null;
+    vatGroup?: number;
+  }>;
+}
+
 @Injectable({ providedIn: 'root' })
 export class OfflinePrintService {
   private readonly context = inject(OfflinePrintContextService);
@@ -23,6 +42,22 @@ export class OfflinePrintService {
     printerId: string;
     payload: LocalBillPrintPayload;
   }): Promise<void> {
+    await this.postLocalPrintJob(args.restaurantId, args.printerId, args.payload);
+  }
+
+  async printFiscalReceiptSync(args: {
+    restaurantId: string;
+    printerId: string;
+    payload: LocalFiscalPrintPayload;
+  }): Promise<void> {
+    await this.postLocalPrintJob(args.restaurantId, args.printerId, args.payload);
+  }
+
+  private async postLocalPrintJob(
+    restaurantId: string,
+    printerId: string,
+    payload: LocalBillPrintPayload | LocalFiscalPrintPayload,
+  ): Promise<void> {
     const baseUrl = this.context.getAgentLocalBaseUrl()?.replace(/\/$/, '');
     if (!baseUrl) {
       throw new Error('Offline print agent URL not configured.');
@@ -37,17 +72,13 @@ export class OfflinePrintService {
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15_000);
+    const timeout = setTimeout(() => controller.abort(), 120_000);
 
     try {
       const res = await fetch(`${baseUrl}/local/print-jobs`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          restaurantId: args.restaurantId,
-          printerId: args.printerId,
-          payload: args.payload,
-        }),
+        body: JSON.stringify({ restaurantId, printerId, payload }),
         signal: controller.signal,
       });
 

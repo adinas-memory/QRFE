@@ -8,6 +8,7 @@ export interface PrinterAgentPrinterDto {
   name: string;
   ipAddress: string;
   port: number;
+  type?: string;
 }
 
 export interface PrinterAgentInstallationDto {
@@ -17,6 +18,19 @@ export interface PrinterAgentInstallationDto {
   version: string | null;
   printerIds: string[];
   wireGuardAddressCidr: string | null;
+}
+
+export interface FiscalPrinterSettingsDto {
+  fiscalPrintingEnabled: boolean;
+  defaultFiscalPrinterId: string | null;
+  vatGroupMapping: Record<string, number>;
+}
+
+export interface FiscalPrintErrorDto {
+  jobId: string;
+  errorCode: string | null;
+  deviceErrorCode: string | null;
+  updatedAtUtc: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -31,6 +45,13 @@ export class PrintJobsService {
   getDefaultBillPrinterForStaff(restaurantId: string): Observable<{ defaultBillPrinterId: string | null }> {
     return this.http.get<{ defaultBillPrinterId: string | null }>(
       `${this.apiUrl}/api/restaurants/${restaurantId}/staff/default-bill-printer`,
+      { withCredentials: true },
+    );
+  }
+
+  getDefaultFiscalPrinterForStaff(restaurantId: string): Observable<FiscalPrinterSettingsDto> {
+    return this.http.get<FiscalPrinterSettingsDto>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/staff/default-fiscal-printer`,
       { withCredentials: true },
     );
   }
@@ -63,6 +84,31 @@ export class PrintJobsService {
   getDefaultBillPrinter(restaurantId: string): Observable<{ defaultBillPrinterId: string | null }> {
     return this.http.get<{ defaultBillPrinterId: string | null }>(
       `${this.apiUrl}/api/restaurants/${restaurantId}/admin/default-bill-printer`,
+      { withCredentials: true },
+    );
+  }
+
+  getFiscalPrinterSettings(restaurantId: string): Observable<FiscalPrinterSettingsDto> {
+    return this.http.get<FiscalPrinterSettingsDto>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/admin/fiscal-printer-settings`,
+      { withCredentials: true },
+    );
+  }
+
+  updateFiscalPrinterSettings(
+    restaurantId: string,
+    body: Partial<FiscalPrinterSettingsDto>,
+  ): Observable<FiscalPrinterSettingsDto> {
+    return this.http.patch<FiscalPrinterSettingsDto>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/admin/fiscal-printer-settings`,
+      body,
+      { withCredentials: true },
+    );
+  }
+
+  getRecentFiscalPrintErrors(restaurantId: string, limit = 10): Observable<FiscalPrintErrorDto[]> {
+    return this.http.get<FiscalPrintErrorDto[]>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/admin/fiscal-print-errors?limit=${limit}`,
       { withCredentials: true },
     );
   }

@@ -260,6 +260,103 @@
       </c-card-body>
     </c-card>
 
+    @if (isRomanianLocale) {
+      <c-card class="mb-4" id="fiscal-printer">
+        <c-card-header>
+          <strong>{{ 'restaurantSettings.fiscalPrinter.title' | transloco }}</strong>
+        </c-card-header>
+        <c-card-body>
+          <p class="text-body-secondary small mb-3">
+            {{ 'restaurantSettings.fiscalPrinter.hint' | transloco }}
+          </p>
+          @if (!restaurantId) {
+            <p class="text-warning mb-0">{{ 'restaurantSettings.noRestaurant' | transloco }}</p>
+          } @else if (loadingFiscalSettings || loadingBillPrinters) {
+            <p class="text-body-secondary small mb-0">{{ 'restaurantSettings.fiscalPrinter.loading' | transloco }}</p>
+          } @else {
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="fiscalPrintingEnabled" [(ngModel)]="fiscalPrintingEnabled" />
+              <label class="form-check-label" for="fiscalPrintingEnabled">
+                {{ 'restaurantSettings.fiscalPrinter.enabledLabel' | transloco }}
+              </label>
+            </div>
+            @if (isDefaultFiscalPrinterMismatch) {
+              <c-alert color="warning" class="small py-2 mb-3">
+                {{ 'restaurantSettings.fiscalPrinter.mismatchWarning' | transloco: { id: defaultFiscalPrinterId } }}
+              </c-alert>
+            }
+            @if (fiscalPrinters.length === 0 && !defaultFiscalPrinterId) {
+              <p class="text-body-secondary small mb-3">{{ 'restaurantSettings.fiscalPrinter.noPrinters' | transloco }}</p>
+            }
+            <div class="mb-3">
+              <label cLabel for="fiscalPrinter">{{ 'restaurantSettings.fiscalPrinter.label' | transloco }}</label>
+              <select cSelect id="fiscalPrinter" [(ngModel)]="defaultFiscalPrinterId">
+                <option [ngValue]="null">—</option>
+                @for (p of fiscalPrinterOptions; track p.id) {
+                  <option [ngValue]="p.id">{{ p.name }} ({{ p.id }}) — {{ p.ipAddress }}:{{ p.port }}</option>
+                }
+              </select>
+            </div>
+            <h6 class="mb-2">{{ 'restaurantSettings.fiscalPrinter.vatMappingTitle' | transloco }}</h6>
+            @for (row of fiscalVatRows; track $index) {
+              <div class="row g-2 align-items-end mb-2">
+                <div class="col-5">
+                  <label class="form-label small">{{ 'restaurantSettings.fiscalPrinter.vatPercent' | transloco }}</label>
+                  <input class="form-control form-control-sm" [(ngModel)]="row.percent" />
+                </div>
+                <div class="col-4">
+                  <label class="form-label small">{{ 'restaurantSettings.fiscalPrinter.vatGroup' | transloco }}</label>
+                  <input class="form-control form-control-sm" type="number" min="1" max="5" [(ngModel)]="row.group" />
+                </div>
+                <div class="col-3">
+                  <button type="button" class="btn btn-outline-secondary btn-sm" (click)="removeFiscalVatRow($index)">
+                    {{ 'restaurantSettings.fiscalPrinter.removeVatRow' | transloco }}
+                  </button>
+                </div>
+              </div>
+            }
+            <button type="button" class="btn btn-outline-secondary btn-sm mb-3" (click)="addFiscalVatRow()">
+              {{ 'restaurantSettings.fiscalPrinter.addVatRow' | transloco }}
+            </button>
+            <div>
+              <button
+                type="button"
+                class="btn btn-primary"
+                [disabled]="savingFiscalSettings"
+                (click)="saveFiscalPrinterSettings()"
+              >
+                @if (savingFiscalSettings) {
+                  {{ 'restaurantSettings.fiscalPrinter.saving' | transloco }}
+                } @else {
+                  {{ 'restaurantSettings.fiscalPrinter.save' | transloco }}
+                }
+              </button>
+            </div>
+            <hr class="my-4" />
+            <h6 class="mb-2">{{ 'restaurantSettings.fiscalPrinter.errorsTitle' | transloco }}</h6>
+            @if (loadingFiscalPrintErrors) {
+              <p class="text-body-secondary small mb-0">{{ 'restaurantSettings.fiscalPrinter.errorsLoading' | transloco }}</p>
+            } @else if (fiscalPrintErrors.length === 0) {
+              <p class="text-body-secondary small mb-0">{{ 'restaurantSettings.fiscalPrinter.errorsEmpty' | transloco }}</p>
+            } @else {
+              @for (err of fiscalPrintErrors; track err.jobId) {
+                <div class="border rounded p-2 mb-2 small">
+                  <div class="fw-semibold">{{ fiscalErrorInfo(err.errorCode).title }}</div>
+                  <div class="text-body-secondary">{{ err.errorCode }} @if (err.deviceErrorCode) { ({{ err.deviceErrorCode }}) }</div>
+                  <ul class="mb-1 ps-3">
+                    @for (step of fiscalErrorInfo(err.errorCode).steps; track $index) {
+                      <li>{{ step }}</li>
+                    }
+                  </ul>
+                  <div class="text-body-secondary">{{ err.updatedAtUtc | date: 'short' }}</div>
+                </div>
+              }
+            }
+          }
+        </c-card-body>
+      </c-card>
+    }
+
     <c-card class="mb-4" id="offline-primary-staff">
       <c-card-header>
         <strong>{{ 'restaurantSettings.offlinePrimaryStaff.title' | transloco }}</strong>

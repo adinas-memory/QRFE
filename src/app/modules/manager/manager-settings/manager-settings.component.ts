@@ -27,8 +27,16 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
   PrintJobsService,
   PrinterAgentInstallationDto,
-  PrinterAgentPrinterDto
+  PrinterAgentPrinterDto,
+  FiscalPrinterSettingsDto,
 } from '../../../core/services/print-jobs/print-jobs.service';
+import { resolveFiscalErrorInfo } from '../../../core/fiscal/fiscal-error-catalog';
+import {
+  defaultRomanianVatMapping,
+  mappingRowsFromRecord,
+  recordFromMappingRows,
+} from '../../../core/fiscal/fiscal-vat-group.mapper';
+import type { FiscalPrintErrorDto } from '../../../core/services/print-jobs/print-jobs.service';
 import {
   OfflinePrimaryService,
   OfflinePrimaryStaffPolicy,
@@ -112,6 +120,14 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
   savingDefaultBillPrinter = false;
   defaultBillPrinterId: string | null = null;
 
+  fiscalPrintingEnabled = false;
+  defaultFiscalPrinterId: string | null = null;
+  loadingFiscalSettings = false;
+  savingFiscalSettings = false;
+  fiscalVatRows: Array<{ percent: string; group: number }> = mappingRowsFromRecord(defaultRomanianVatMapping());
+  fiscalPrintErrors: FiscalPrintErrorDto[] = [];
+  loadingFiscalPrintErrors = false;
+
   offlinePrimaryStaff: RestaurantStaffListItem[] = [];
   offlinePrimaryPolicy: OfflinePrimaryStaffPolicy | null = null;
   selectedOfflinePrimaryStaffUserId: string | null = null;
@@ -151,6 +167,8 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     this.loadAgentInstallations();
     this.loadStripeConnectStatus();
     this.loadBillPrinters();
+    this.loadFiscalPrinterSettings();
+    this.loadFiscalPrintErrors();
     this.loadOfflinePrimaryStaff();
     if (this.isManager) {
       this.loadManagerSubscriptionStatus();
@@ -184,6 +202,37 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
       return false;
     }
     return !this.billPrinters.some(p => p.id === id);
+  }
+
+  get isRomanianLocale(): boolean {
+    return this.transloco.getActiveLang() === 'ro';
+  }
+
+  get fiscalPrinters(): PrinterAgentPrinterDto[] {
+    return this.billPrinters.filter(p => (p.type ?? 'escpos').toLowerCase() === 'fiscalnet');
+  }
+
+  get isDefaultFiscalPrinterMismatch(): boolean {
+    const id = this.defaultFiscalPrinterId;
+    if (!id || this.fiscalPrinters.length === 0) {
+      return false;
+    }
+    return !this.fiscalPrinters.some(p => p.id === id);
+  }
+
+  get fiscalPrinterOptions(): PrinterAgentPrinterDto[] {
+    const list = [...this.fiscalPrinters];
+    const id = this.defaultFiscalPrinterId;
+    if (id && !list.some(p => p.id === id)) {
+      list.unshift({
+        id,
+        name: this.transloco.translate('restaurantSettings.fiscalPrinter.pendingPrinterName'),
+        ipAddress: '',
+        port: 65400,
+        type: 'fiscalnet',
+      });
+    }
+    return list;
   }
 
   get subscriptionEndsAt(): Date | null {
@@ -680,6 +729,95 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
         this.toast.error(detail, this.transloco.translate('restaurantSettings.billPrinter.toastErrorTitle'));
       }
     });
+  }
+
+  loadFiscalPrinterSettings(): void {
+    const rid = this.restaurantId;
+    if (!rid) {
+      return;
+    }
+    this.loadingFiscalSettings = true;
+    this.printJobs.getFiscalPrinterSettings(rid).subscribe({
+      next: (settings: FiscalPrinterSettingsDto) => {
+        this.applyFiscalSettings(settings);
+        this.loadingFiscalSettings = false;
+      },
+      error: err => {
+        console.error('Failed to load fiscal printer settings', err);
+        this.loadingFiscalSettings = false;
+      },
+    });
+  }
+
+  loadFiscalPrintErrors(): void {
+    const rid = this.restaurantId;
+    if (!rid || !this.isRomanianLocale) {
+      return;
+    }
+    this.loadingFiscalPrintErrors = true;
+    this.printJobs.getRecentFiscalPrintErrors(rid, 10).subscribe({
+      next: rows => {
+        this.fiscalPrintErrors = rows ?? [];
+        this.loadingFiscalPrintErrors = false;
+      },
+      error: err => {
+        console.error('Failed to load fiscal print errors', err);
+        this.loadingFiscalPrintErrors = false;
+      },
+    });
+  }
+
+  fiscalErrorInfo(errorCode: string | null | undefined) {
+    return resolveFiscalErrorInfo(errorCode);
+  }
+
+  private applyFiscalSettings(settings: FiscalPrinterSettingsDto): void {
+    this.fiscalPrintingEnabled = !!settings.fiscalPrintingEnabled;
+    this.defaultFiscalPrinterId = settings.defaultFiscalPrinterId ?? null;
+    const mapping = settings.vatGroupMapping ?? {};
+    this.fiscalVatRows = mappingRowsFromRecord(
+      Object.keys(mapping).length > 0 ? mapping : defaultRomanianVatMapping(),
+    );
+  }
+
+  addFiscalVatRow(): void {
+    this.fiscalVatRows = [...this.fiscalVatRows, { percent: '19', group: 1 }];
+  }
+
+  removeFiscalVatRow(index: number): void {
+    this.fiscalVatRows = this.fiscalVatRows.filter((_, i) => i !== index);
+  }
+
+  saveFiscalPrinterSettings(): void {
+    const rid = this.restaurantId;
+    if (!rid) {
+      return;
+    }
+    this.savingFiscalSettings = true;
+    this.printJobs
+      .updateFiscalPrinterSettings(rid, {
+        fiscalPrintingEnabled: this.fiscalPrintingEnabled,
+        defaultFiscalPrinterId: this.defaultFiscalPrinterId,
+        vatGroupMapping: recordFromMappingRows(this.fiscalVatRows),
+      })
+      .subscribe({
+        next: settings => {
+          this.applyFiscalSettings(settings);
+          this.savingFiscalSettings = false;
+          this.toast.success(
+            this.transloco.translate('restaurantSettings.fiscalPrinter.toastSavedBody'),
+            this.transloco.translate('restaurantSettings.fiscalPrinter.toastSavedTitle'),
+          );
+        },
+        error: err => {
+          console.error('Failed to save fiscal printer settings', err);
+          this.savingFiscalSettings = false;
+          const detail =
+            this.miscellaneousService.getFirstErrorMessage(err) ||
+            this.transloco.translate('restaurantSettings.fiscalPrinter.toastErrorBody');
+          this.toast.error(detail, this.transloco.translate('restaurantSettings.fiscalPrinter.toastErrorTitle'));
+        },
+      });
   }
 
   stripeConnectStatusLabel(status: string | null): string {
