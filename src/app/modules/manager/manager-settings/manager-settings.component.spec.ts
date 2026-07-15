@@ -138,11 +138,29 @@ describe('ManagerSettingsComponent bill printer', () => {
     expect(component.isDefaultBillPrinterMismatch).toBeFalse();
   });
 
-  it('includes synthetic pending option for mismatched saved id', () => {
+    it('includes synthetic pending option for mismatched saved id', () => {
     component.defaultBillPrinterId = 'main-printer';
     const ids = component.billPrinterOptions.map(p => p.id);
     expect(ids).toContain('main-printer');
     expect(ids).toContain('main-prnt');
+  });
+
+  it('excludes FiscalNet printers from bill printer dropdown', () => {
+    component.defaultBillPrinterId = null;
+    component.billPrinters = [
+      { id: 'main-fiscal', name: 'main-fiscal', ipAddress: '192.168.43.237', port: 65400, type: 'escpos' },
+      { id: 'main-non-fiscal', name: 'main-NON-fiscal', ipAddress: '192.168.43.237', port: 9100, type: 'escpos' },
+    ];
+    expect(component.fiscalPrinters.map(p => p.id)).toEqual(['main-fiscal']);
+    expect(component.billPrinterOptions.map(p => p.id)).toEqual(['main-non-fiscal']);
+  });
+
+  it('infers fiscal printer from port 65400 when type is escpos', () => {
+    component.billPrinters = [
+      { id: 'main-fiscal', name: 'main-fiscal', ipAddress: '192.168.43.237', port: 65400, type: 'escpos' },
+    ];
+    expect(component.fiscalPrinters.length).toBe(1);
+    expect(component.escPosBillPrinters.length).toBe(0);
   });
 
   it('loads offline primary staff list on init', () => {
