@@ -316,29 +316,37 @@
             (click)="confirmCloseOrder()"> {{ 'manageOrders.closeOrder' | transloco }} </button> </div>
       </div>
 
-      <div class="d-flex flex-wrap gap-2" *ngIf="orderIsConfirmed">
-        <button class="btn btn-outline-secondary" (click)="printOrder()"
-          [disabled]="selectedItems.length === 0 || !canPrintBill">
-          <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
-          {{ 'manageOrders.print' | transloco }}
-        </button>
+      <div class="cart-actions" *ngIf="orderIsConfirmed">
+        <div class="cart-actions__print-row">
+          <button
+            class="btn btn-sm btn-outline-secondary cart-actions__btn"
+            (click)="printOrder()"
+            [disabled]="selectedItems.length === 0 || !canPrintBill"
+          >
+            <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
+            {{ 'manageOrders.print' | transloco }}
+          </button>
+          <button
+            class="btn btn-sm btn-outline-primary cart-actions__btn"
+            (click)="printFiscalReceipt('cash')"
+            [disabled]="selectedItems.length === 0 || !canPrintBill || !canPrintFiscal"
+          >
+            <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
+            {{ 'manageOrders.fiscalPrint' | transloco }}
+          </button>
+          <button
+            class="btn btn-sm btn-outline-secondary cart-actions__btn"
+            (click)="openCashDrawer()"
+            [disabled]="!canOpenCashDrawer"
+          >
+            {{ 'manageOrders.openCashDrawer' | transloco }}
+          </button>
+        </div>
         <button
-          class="btn btn-outline-primary"
-          (click)="printFiscalReceipt('cash')"
-          [disabled]="selectedItems.length === 0 || !canPrintBill || !canPrintFiscal"
+          class="btn btn-warning cart-actions__close"
+          (click)="closeOrder()"
+          [disabled]="selectedItems.length === 0 || !canBypassOfflineUiGates"
         >
-          <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
-          {{ 'manageOrders.fiscalPrint' | transloco }}
-        </button>
-        <button
-          class="btn btn-outline-secondary"
-          (click)="openCashDrawer()"
-          [disabled]="!canOpenCashDrawer"
-        >
-          {{ 'manageOrders.openCashDrawer' | transloco }}
-        </button>
-        <button class="btn btn-warning flex-grow-1" (click)="closeOrder()"
-          [disabled]="selectedItems.length === 0 || !canBypassOfflineUiGates">
           {{ 'manageOrders.closeOrder' | transloco }} – {{ cartSubTotal | currency: cartCurrency }}
         </button>
       </div>
