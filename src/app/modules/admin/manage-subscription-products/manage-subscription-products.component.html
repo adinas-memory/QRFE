@@ -98,7 +98,7 @@
             <label cLabel>Features</label>
             <div class="d-flex flex-wrap gap-2">
               <button
-                *ngFor="let k of featureKeys"
+                *ngFor="let k of featureKeysForForm(addForm)"
                 type="button"
                 class="btn btn-sm"
                 [class.btn-outline-secondary]="!hasFeatureKey(k, addForm)"
@@ -157,7 +157,7 @@
       <label cLabel>Features</label>
       <div class="d-flex flex-wrap gap-2 mb-2">
         <button
-          *ngFor="let k of featureKeys"
+          *ngFor="let k of featureKeysForForm(editForm)"
           type="button"
           class="btn btn-sm"
           [class.btn-outline-secondary]="!hasFeatureKey(k, editForm)"

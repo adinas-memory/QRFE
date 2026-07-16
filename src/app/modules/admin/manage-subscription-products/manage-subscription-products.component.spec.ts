@@ -35,4 +35,10 @@ describe('ManageSubscriptionProductsComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('exposes fiscal integration feature only for RO market forms', () => {
+    expect(component.featureKeysForForm(component.addForm)).toContain('pricing.features.fiscalNetIntegration');
+    component.addForm.get('market')?.setValue('IT');
+    expect(component.featureKeysForForm(component.addForm)).not.toContain('pricing.features.fiscalNetIntegration');
+  });
 });

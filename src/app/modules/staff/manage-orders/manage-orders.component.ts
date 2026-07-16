@@ -26,6 +26,7 @@ import { UserContextModel } from '../../../core/models/userContextModel';
 import { WaiterCallState } from '../../../core/models/callWaiter/callWaiter';
 import { MenuItem } from '../../../core/models/menu/menuItem';
 import { SetMenuDTO, setMenuToMenuItem } from '../../../core/models/menu/setMenu';
+import { isKitchenCartLine } from '../../../core/models/menu/cart-item-category';
 import { MenuItemServiceService } from '../../../core/services/menu-item-service/menu-item-service.service';
 import { OrdersService } from '../../../core/services/order-service/orders.service';
 import {
@@ -118,6 +119,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   private readonly maxRecentSseSequences = 300;
   private restaurantId = '';
   readonly fiscalStaffConfig = signal<FiscalPrinterSettingsDto | null>(null);
+  readonly billStaffConfig = signal<{ defaultBillPrinterId: string | null } | null>(null);
 
   waiterState: Record<string, WaiterCallState> = {};
   WaiterCallState = WaiterCallState;
@@ -703,6 +705,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     await this.refreshLocalSessionTableIds();
 
     if (this.onlineStateService.isOnline) this.queueProcessor.triggerProcessing();
+
+    void this.maybeEnqueueEscPosBillOnConfirm(localOrderId);
   }
 
   async addCartItem(item: MenuItem) {
@@ -1451,19 +1455,36 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     await this.enqueueBillPrintJob({ restaurantId, orderId });
   }
 
-  private async enqueueBillPrintJob(args: { restaurantId: string; orderId: string }): Promise<void> {
+  private async enqueueBillPrintJob(args: {
+    restaurantId: string;
+    orderId: string;
+    forcePrinterId?: string;
+    kitchenItemsOnly?: boolean;
+  }): Promise<void> {
     try {
+      const billLines = args.kitchenItemsOnly
+        ? this.selectedItems.filter(isKitchenCartLine)
+        : this.selectedItems;
+      if (billLines.length === 0) {
+        return;
+      }
+
+      const billTotal = billLines.reduce(
+        (sum, x) => sum + x.item.menuItemPriceAmount * x.quantity,
+        0,
+      );
+
       const payload = {
         type: 'bill' as const,
         orderId: args.orderId,
         restaurantName: this.authService.getUserSnapshot()?.restaurantName ?? '',
         tableName: (this.tableName ?? '').trim() || null,
-        currency: this.cartCurrency ?? null,
-        subTotal: this.cartSubTotal ?? 0,
-        finalTotal: this.cartSubTotal ?? 0,
+        currency: billLines[0]?.item.menuItemPriceCurrency ?? this.cartCurrency ?? null,
+        subTotal: billTotal,
+        finalTotal: billTotal,
         paymentMethod: 'cash',
         closedAtUtc: new Date().toISOString(),
-        items: this.selectedItems.map(x => ({
+        items: billLines.map(x => ({
           name: x.item.menuItemName,
           quantity: x.quantity,
           unitPrice: x.item.menuItemPriceAmount,
@@ -1471,18 +1492,18 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       };
 
       if (!this.isOnline && this.offlinePolicy.canUseFullOffline()) {
-        const printerId = (this.offlinePrintContext.getDefaultBillPrinterId() ?? '').trim();
-        if (!printerId) {
-          this.appToast.info(
-            this.transloco.translate('manageOrders.printNoPrinterBody'),
-            this.transloco.translate('manageOrders.printNoPrinterTitle'),
-          );
-          return;
-        }
         if (!this.offlinePrintContext.isReadyForOfflinePrint()) {
           this.appToast.info(
             this.transloco.translate('manageOrders.printOfflineConfigBody'),
             this.transloco.translate('manageOrders.printOfflineConfigTitle'),
+          );
+          return;
+        }
+        const printerId = (args.forcePrinterId ?? this.offlinePrintContext.getEffectiveBillPrinterId() ?? '').trim();
+        if (!printerId) {
+          this.appToast.info(
+            this.transloco.translate('manageOrders.printNoPrinterBody'),
+            this.transloco.translate('manageOrders.printNoPrinterTitle'),
           );
           return;
         }
@@ -1498,8 +1519,17 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         return;
       }
 
-      const cfg = await firstValueFrom(this.printJobs.getDefaultBillPrinterForStaff(args.restaurantId));
-      const printerId = (cfg?.defaultBillPrinterId ?? '').trim();
+      const billCfg = await firstValueFrom(this.printJobs.getDefaultBillPrinterForStaff(args.restaurantId));
+      let fiscalCfg = this.fiscalStaffConfig();
+      if (!fiscalCfg) {
+        fiscalCfg = await firstValueFrom(this.printJobs.getDefaultFiscalPrinterForStaff(args.restaurantId));
+      }
+      const printerId = (args.forcePrinterId ?? '').trim()
+        || this.resolveBillPrinterId({
+          fiscalPrintingEnabled: !!fiscalCfg?.fiscalPrintingEnabled,
+          defaultFiscalPrinterId: fiscalCfg?.defaultFiscalPrinterId,
+          defaultBillPrinterId: billCfg?.defaultBillPrinterId,
+        });
       if (!printerId) {
         this.appToast.info(
           this.transloco.translate('manageOrders.printNoPrinterBody'),
@@ -1520,6 +1550,61 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.transloco.translate('manageOrders.printErrorTitle'),
       );
     }
+  }
+
+  private resolveBillPrinterId(args: {
+    fiscalPrintingEnabled: boolean;
+    defaultFiscalPrinterId?: string | null;
+    defaultBillPrinterId?: string | null;
+  }): string {
+    const fiscalId = (args.defaultFiscalPrinterId ?? '').trim();
+    if (args.fiscalPrintingEnabled && fiscalId) {
+      return fiscalId;
+    }
+    return (args.defaultBillPrinterId ?? '').trim();
+  }
+
+  /** ESC/POS bill printer (port 9100): print only on canvas Confirm when fiscal is also enabled. */
+  private resolveEscPosBillPrinterIdForConfirm(): string | null {
+    if (!this.isOnline && this.offlinePolicy.canUseFullOffline()) {
+      if (!this.offlinePrintContext.isFiscalPrintingEnabledOffline()) {
+        return null;
+      }
+      const escPosId = (this.offlinePrintContext.getDefaultBillPrinterId() ?? '').trim();
+      const fiscalId = (this.offlinePrintContext.getDefaultFiscalPrinterId() ?? '').trim();
+      if (!escPosId || escPosId === fiscalId) {
+        return null;
+      }
+      return escPosId;
+    }
+
+    const fiscalCfg = this.fiscalStaffConfig();
+    if (!fiscalCfg?.fiscalPrintingEnabled) {
+      return null;
+    }
+    const escPosId = (this.billStaffConfig()?.defaultBillPrinterId ?? '').trim();
+    const fiscalId = (fiscalCfg.defaultFiscalPrinterId ?? '').trim();
+    if (!escPosId || escPosId === fiscalId) {
+      return null;
+    }
+    return escPosId;
+  }
+
+  private async maybeEnqueueEscPosBillOnConfirm(orderId: string): Promise<void> {
+    const restaurantId = this.restaurantId;
+    if (!restaurantId || !orderId) {
+      return;
+    }
+    const escPosPrinterId = this.resolveEscPosBillPrinterIdForConfirm();
+    if (!escPosPrinterId) {
+      return;
+    }
+    await this.enqueueBillPrintJob({
+      restaurantId,
+      orderId,
+      forcePrinterId: escPosPrinterId,
+      kitchenItemsOnly: true,
+    });
   }
 
   async printFiscalReceipt(paymentMethod: 'cash' | 'card' = 'cash'): Promise<void> {
@@ -1603,11 +1688,16 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     }
 
     try {
-      const cfg = await firstValueFrom(this.printJobs.getDefaultFiscalPrinterForStaff(this.restaurantId));
-      this.fiscalStaffConfig.set(cfg);
+      const [fiscalCfg, billCfg] = await Promise.all([
+        firstValueFrom(this.printJobs.getDefaultFiscalPrinterForStaff(this.restaurantId)),
+        firstValueFrom(this.printJobs.getDefaultBillPrinterForStaff(this.restaurantId)),
+      ]);
+      this.fiscalStaffConfig.set(fiscalCfg);
+      this.billStaffConfig.set({ defaultBillPrinterId: billCfg?.defaultBillPrinterId ?? null });
     } catch (err) {
-      console.warn('Failed to load fiscal printer settings for staff', err);
+      console.warn('Failed to load printer settings for staff', err);
       this.fiscalStaffConfig.set(null);
+      this.billStaffConfig.set(null);
     }
   }
 

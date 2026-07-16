@@ -1,7 +1,7 @@
 import { ProductLimitModel, RestaurantType, SubscriptionProductModel } from '../../../core/models/subscription-product';
 import { SubscriptionMarket } from '../../../core/i18n/subscription-market.config';
 
-const FEATURE_KEYS = [
+const BASE_FEATURE_KEYS = [
   'pricing.features.cardPayments',
   'pricing.features.qrMenu',
   'pricing.features.callWaiter',
@@ -19,6 +19,15 @@ const FEATURE_KEYS = [
   'pricing.features.unlimitedDevicesPerRestaurant',
 ] as const;
 
+const RO_FEATURE_KEYS = [
+  ...BASE_FEATURE_KEYS,
+  'pricing.features.fiscalNetIntegration',
+] as const;
+
+function featureKeysForMarket(market: SubscriptionMarket): readonly string[] {
+  return market === 'RO' ? RO_FEATURE_KEYS : BASE_FEATURE_KEYS;
+}
+
 function buildFallbackProduct(
   market: SubscriptionMarket,
   restaurantType: 'small' | 'medium' | 'large',
@@ -35,7 +44,7 @@ function buildFallbackProduct(
     market,
     restaurantType,
     description: `${title} - ${subtitle}`,
-    features: JSON.stringify([...FEATURE_KEYS]),
+    features: JSON.stringify([...featureKeysForMarket(market)]),
     priceAmount,
     priceCurrency,
     subscriptionInterval: 'month',

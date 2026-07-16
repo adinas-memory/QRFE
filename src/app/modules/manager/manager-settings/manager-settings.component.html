@@ -196,6 +196,11 @@
         <p class="text-body-secondary small mb-3">
           {{ 'restaurantSettings.billPrinter.hint' | transloco }}
         </p>
+        @if (fiscalPrintingEnabled) {
+          <p class="text-body-secondary small mb-3">
+            {{ 'restaurantSettings.billPrinter.fiscalBillHint' | transloco }}
+          </p>
+        }
         @if (billPrintersAutoRefreshActive) {
           <p class="text-body-secondary small mb-3 mb-md-2" role="status">
             @if (isDefaultBillPrinterMismatch || billPrinters.length === 0) {

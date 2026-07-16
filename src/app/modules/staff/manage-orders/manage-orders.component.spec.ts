@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { TranslocoService } from '@jsverse/transloco';
+import { of } from 'rxjs';
 import { WaiterCallState } from '../../../core/models/callWaiter/callWaiter';
+import { MenuItemCategory } from '../../../core/models/menu/menuItem';
 import { Currency } from '../../../core/models/restaurantTablesModel';
 import { ManageOrdersComponent } from './manage-orders.component';
 import {
@@ -995,6 +997,131 @@ describe('ManageOrdersComponent', () => {
       await component.openCashDrawer();
 
       expect(mocks.appToast.info).toHaveBeenCalled();
+      expect(mocks.printJobs.createBillPrintJob).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('bill print routing', () => {
+    it('printOrder uses fiscal printer when fiscal printing is enabled', async () => {
+      const { component, mocks } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
+      setRestaurantId(component);
+      component.currentTableId = TABLE_A;
+      component.currentOrderId = 'order-1';
+      component.tableCarts[TABLE_A] = [{ item: createMenuItem({ menuItemName: 'Soup' }), quantity: 1 }];
+      component.fiscalStaffConfig.set({
+        fiscalPrintingEnabled: true,
+        defaultFiscalPrinterId: 'fiscal-6',
+        vatGroupMapping: {},
+      });
+      component.billStaffConfig.set({ defaultBillPrinterId: 'escpos-1' });
+      mocks.printJobs.getDefaultBillPrinterForStaff.and.returnValue(of({ defaultBillPrinterId: 'escpos-1' }));
+
+      await component.printOrder();
+
+      expect(mocks.printJobs.createBillPrintJob).toHaveBeenCalledWith(
+        TEST_RESTAURANT_ID,
+        'fiscal-6',
+        jasmine.objectContaining({ type: 'bill', orderId: 'order-1' }),
+      );
+    });
+
+    it('printOrder uses bill printer when fiscal printing is disabled', async () => {
+      const { component, mocks } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
+      setRestaurantId(component);
+      component.currentTableId = TABLE_A;
+      component.currentOrderId = 'order-2';
+      component.tableCarts[TABLE_A] = [{ item: createMenuItem(), quantity: 1 }];
+      component.fiscalStaffConfig.set({
+        fiscalPrintingEnabled: false,
+        defaultFiscalPrinterId: 'fiscal-6',
+        vatGroupMapping: {},
+      });
+      mocks.printJobs.getDefaultBillPrinterForStaff.and.returnValue(of({ defaultBillPrinterId: 'escpos-1' }));
+
+      await component.printOrder();
+
+      expect(mocks.printJobs.createBillPrintJob).toHaveBeenCalledWith(
+        TEST_RESTAURANT_ID,
+        'escpos-1',
+        jasmine.objectContaining({ type: 'bill', orderId: 'order-2' }),
+      );
+    });
+
+    it('confirmOrder prints to ESC/POS when fiscal and non-fiscal printers are configured', async () => {
+      const { component, mocks } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
+      setRestaurantId(component);
+      component.currentTableId = TABLE_A;
+      component.tableCarts[TABLE_A] = [{ item: createMenuItem({ menuItemName: 'Soup', category: MenuItemCategory.Appetizer }), quantity: 1 }];
+      component.fiscalStaffConfig.set({
+        fiscalPrintingEnabled: true,
+        defaultFiscalPrinterId: 'fiscal-6',
+        vatGroupMapping: {},
+      });
+      component.billStaffConfig.set({ defaultBillPrinterId: 'escpos-1' });
+      mocks.offlineDb.loadCart.and.resolveTo(component.tableCarts[TABLE_A]);
+      Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+
+      await component.confirmOrder();
+
+      expect(mocks.printJobs.createBillPrintJob).toHaveBeenCalledWith(
+        TEST_RESTAURANT_ID,
+        'escpos-1',
+        jasmine.objectContaining({
+          type: 'bill',
+          items: [{ name: 'Soup', quantity: 1, unitPrice: 25 }],
+        }),
+      );
+    });
+
+    it('confirmOrder ESC/POS print includes only kitchen lines from mixed cart', async () => {
+      const { component, mocks } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
+      setRestaurantId(component);
+      component.currentTableId = TABLE_A;
+      component.tableCarts[TABLE_A] = [
+        { item: createMenuItem({ menuItemName: 'Soup', category: MenuItemCategory.Appetizer }), quantity: 1 },
+        { item: createMenuItem({ menuItemId: 'wine-1', menuItemName: 'Merlot', category: MenuItemCategory.RedWine, menuItemPriceAmount: 30 }), quantity: 2 },
+      ];
+      component.fiscalStaffConfig.set({
+        fiscalPrintingEnabled: true,
+        defaultFiscalPrinterId: 'fiscal-6',
+        vatGroupMapping: {},
+      });
+      component.billStaffConfig.set({ defaultBillPrinterId: 'escpos-1' });
+      mocks.offlineDb.loadCart.and.resolveTo(component.tableCarts[TABLE_A]);
+      Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+
+      await component.confirmOrder();
+
+      expect(mocks.printJobs.createBillPrintJob).toHaveBeenCalledWith(
+        TEST_RESTAURANT_ID,
+        'escpos-1',
+        jasmine.objectContaining({
+          type: 'bill',
+          subTotal: 25,
+          finalTotal: 25,
+          items: [{ name: 'Soup', quantity: 1, unitPrice: 25 }],
+        }),
+      );
+    });
+
+    it('confirmOrder skips ESC/POS print when cart has only bar lines', async () => {
+      const { component, mocks } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
+      setRestaurantId(component);
+      component.currentTableId = TABLE_A;
+      component.tableCarts[TABLE_A] = [
+        { item: createMenuItem({ menuItemName: 'Merlot', category: MenuItemCategory.RedWine }), quantity: 1 },
+      ];
+      component.fiscalStaffConfig.set({
+        fiscalPrintingEnabled: true,
+        defaultFiscalPrinterId: 'fiscal-6',
+        vatGroupMapping: {},
+      });
+      component.billStaffConfig.set({ defaultBillPrinterId: 'escpos-1' });
+      mocks.offlineDb.loadCart.and.resolveTo(component.tableCarts[TABLE_A]);
+      Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+
+      await component.confirmOrder();
+
       expect(mocks.printJobs.createBillPrintJob).not.toHaveBeenCalled();
     });
   });

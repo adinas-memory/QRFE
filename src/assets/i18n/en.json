@@ -369,6 +369,7 @@
       "menuDescriptionTranslation": "Automatic menu description translation",
       "sseTablesLive": "Live table & order updates (SSE)",
       "ecoBon": "ECO BON (non-fiscal receipt PDF)",
+      "fiscalNetIntegration": "FiscalNet / other fiscal printer integration",
       "unlimitedDevicesPerRestaurant": "Unlimited devices per restaurant"
     }
   },
@@ -1036,7 +1037,8 @@
       "autoRefreshHint": "The list refreshes automatically every 30 seconds.",
       "autoRefreshFastHint": "Checking every 10 seconds until the agent reports a printer or the id mismatch is resolved.",
       "mismatchWarning": "The saved printer ({{id}}) is not reported by the Printer Agent. Bills will not print until you select a printer from the list and click Save.",
-      "refresh": "Refresh list"
+      "refresh": "Refresh list",
+      "fiscalBillHint": "Fiscal printing is enabled — FiscalNet Print includes all lines; ESC/POS (:9100) on Confirm prints kitchen items only."
     },
     "offlinePrimaryStaff": {
       "title": "Setup default offline device",
@@ -1112,6 +1114,31 @@
       "printerAgentReconnectAfterNetwork": {
         "q": "Bill printing or the Printer Agent stopped working after Wi‑Fi or a hotspot dropped. Do I need to reboot the PC?",
         "a": "Usually not. First restart the Windows service URS Printer Agent (services.msc) — that restarts the agent process and reconnects to the backend and Redis. If the agent uses a WireGuard VPN tunnel, restart the WireGuard tunnel service for your tunnel, wait until it is active, then restart URS Printer Agent again so the tunnel is ready before the agent connects. Reboot the whole PC only if those steps still fail; it resets the entire network stack and all services."
+      },
+      "fiscalAndEscposPrintRouting": {
+        "q": "How are print jobs routed when I have both a fiscal printer and ESC/POS?",
+        "a": "With fiscal printing enabled and two printers: Confirm prints kitchen lines only on ESC/POS; Print prints the full cart on the fiscal printer; Fiscal receipt prints the full cart with VAT on the fiscal printer.",
+        "aIntro": "When fiscal printing is enabled (FiscalNet or another fiscal printer connected via Printer Agent) and you also have a separate ESC/POS bill printer, the buttons send different jobs:",
+        "tableAction": "Action",
+        "tablePrinter": "Printer",
+        "tablePrints": "What prints",
+        "rows": {
+          "confirm": {
+            "action": "Confirm",
+            "printer": "ESC/POS (default bill printer)",
+            "prints": "Kitchen only"
+          },
+          "print": {
+            "action": "Print",
+            "printer": "FiscalNet or other fiscal printer (when fiscal is enabled)",
+            "prints": "Full cart"
+          },
+          "fiscalReceipt": {
+            "action": "Fiscal receipt",
+            "printer": "FiscalNet or other fiscal printer",
+            "prints": "Full cart + VAT"
+          }
+        }
       },
       "byodStaffDevices": {
         "q": "Can restaurant staff use their own phones or tablets?",

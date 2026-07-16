@@ -70,6 +70,25 @@
   background: transparent;
 }
 
+.faq-print-routing-table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--ink-soft, #426067);
+  --bs-table-border-color: var(--line, #dfe9e6);
+  margin-top: 0.25rem;
+}
+
+.faq-print-routing-table th {
+  color: var(--ink, #07262b);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.faq-print-routing-table td:first-child {
+  font-weight: 600;
+  color: var(--ink, #07262b);
+  white-space: nowrap;
+}
+
 :host-context(.urs-landing-shell[data-theme='dark']) .faq {
   color: var(--ink, #e9f3f1);
 }
@@ -105,4 +124,14 @@
 
 :host-context(.urs-landing-shell[data-theme='dark']) .faq :deep(.accordion-body) {
   background: var(--card, #102a2e);
+}
+
+:host-context(.urs-landing-shell[data-theme='dark']) .faq-print-routing-table {
+  --bs-table-color: var(--ink-soft, #9bb9b8);
+  --bs-table-border-color: var(--line, #1e3b40);
+}
+
+:host-context(.urs-landing-shell[data-theme='dark']) .faq-print-routing-table th,
+:host-context(.urs-landing-shell[data-theme='dark']) .faq-print-routing-table td:first-child {
+  color: var(--ink, #e9f3f1);
 }

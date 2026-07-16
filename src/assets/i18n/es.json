@@ -366,6 +366,7 @@
       "menuDescriptionTranslation": "Traducción automática de descripciones del menú",
       "sseTablesLive": "Actualizaciones en vivo de mesas y pedidos (SSE)",
       "ecoBon": "ECO BON (recibo digital PDF)",
+      "fiscalNetIntegration": "Integración FiscalNet / otra impresora fiscal",
       "unlimitedDevicesPerRestaurant": "Dispositivos ilimitados por restaurante"
     }
   },
@@ -1001,6 +1002,31 @@
       "printerAgentReconnectAfterNetwork": {
         "q": "La impresión de la cuenta o Printer Agent dejó de funcionar tras un corte de Wi‑Fi o del hotspot. ¿Tengo que reiniciar el PC?",
         "a": "Normalmente no. Primero reinicia el servicio de Windows URS Printer Agent (services.msc): reinicia el proceso del agente y vuelve a conectar con el backend y Redis. Si el agente usa un túnel VPN WireGuard, reinicia el servicio de túnel WireGuard de tu túnel, espera a que esté activo y luego reinicia de nuevo URS Printer Agent para que el túnel esté listo antes de la conexión. Reinicia el PC entero solo si esos pasos siguen fallando: restablece toda la pila de red y los servicios."
+      },
+      "fiscalAndEscposPrintRouting": {
+        "q": "¿Cómo se reparten las impresiones cuando tengo impresora fiscal y ESC/POS?",
+        "a": "Con fiscal activo y dos impresoras: Confirmar imprime solo cocina en ESC/POS; Imprimir imprime todo el carrito en la fiscal; Recibo fiscal imprime todo el carrito con IVA en la fiscal.",
+        "aIntro": "Cuando la impresión fiscal está activa (FiscalNet u otra impresora fiscal conectada vía Printer Agent) y también hay una impresora ESC/POS separada para la cuenta, los botones envían trabajos distintos:",
+        "tableAction": "Acción",
+        "tablePrinter": "Impresora",
+        "tablePrints": "Qué se imprime",
+        "rows": {
+          "confirm": {
+            "action": "Confirmar",
+            "printer": "ESC/POS (impresora de cuenta predeterminada)",
+            "prints": "Solo cocina"
+          },
+          "print": {
+            "action": "Imprimir",
+            "printer": "FiscalNet u otra impresora fiscal (si fiscal activo)",
+            "prints": "Carrito completo"
+          },
+          "fiscalReceipt": {
+            "action": "Recibo fiscal",
+            "printer": "FiscalNet u otra impresora fiscal",
+            "prints": "Carrito completo + IVA"
+          }
+        }
       },
       "byodStaffDevices": {
         "q": "¿El personal puede usar sus propios teléfonos o tabletas?",

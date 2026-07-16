@@ -366,6 +366,7 @@
       "menuDescriptionTranslation": "Traduction automatique des descriptions du menu",
       "sseTablesLive": "Mises à jour en direct tables & commandes (SSE)",
       "ecoBon": "ECO BON (reçu numérique PDF)",
+      "fiscalNetIntegration": "Intégration FiscalNet / autre imprimante fiscale",
       "unlimitedDevicesPerRestaurant": "Appareils illimités par restaurant"
     }
   },
@@ -1001,6 +1002,31 @@
       "printerAgentReconnectAfterNetwork": {
         "q": "L’impression de l’addition ou Printer Agent ne fonctionne plus après une coupure Wi‑Fi ou du point d’accès. Dois-je redémarrer le PC ?",
         "a": "En général non. Redémarrez d’abord le service Windows URS Printer Agent (services.msc) — cela relance le processus de l’agent et reconnecte au backend et à Redis. Si l’agent utilise un tunnel VPN WireGuard, redémarrez le service de tunnel WireGuard de votre tunnel, attendez qu’il soit actif, puis redémarrez à nouveau URS Printer Agent afin que le tunnel soit prêt avant la connexion. Ne redémarrez tout le PC qu’en dernier recours si ces étapes échouent : cela réinitialise toute la pile réseau et les services."
+      },
+      "fiscalAndEscposPrintRouting": {
+        "q": "Comment les impressions sont-elles réparties quand j’ai une imprimante fiscale et une ESC/POS ?",
+        "a": "Avec le fiscal actif et deux imprimantes : Confirmer imprime uniquement la cuisine sur ESC/POS ; Imprimer imprime tout le panier sur le fiscal ; Reçu fiscal imprime tout le panier avec TVA sur le fiscal.",
+        "aIntro": "Lorsque l’impression fiscale est activée (FiscalNet ou autre imprimante fiscale connectée via Printer Agent) et qu’une imprimante ESC/POS séparée est configurée pour l’addition, les boutons envoient des travaux différents :",
+        "tableAction": "Action",
+        "tablePrinter": "Imprimante",
+        "tablePrints": "Ce qui s’imprime",
+        "rows": {
+          "confirm": {
+            "action": "Confirmer",
+            "printer": "ESC/POS (imprimante d’addition par défaut)",
+            "prints": "Cuisine uniquement"
+          },
+          "print": {
+            "action": "Imprimer",
+            "printer": "FiscalNet ou autre imprimante fiscale (si fiscal actif)",
+            "prints": "Panier complet"
+          },
+          "fiscalReceipt": {
+            "action": "Reçu fiscal",
+            "printer": "FiscalNet ou autre imprimante fiscale",
+            "prints": "Panier complet + TVA"
+          }
+        }
       },
       "byodStaffDevices": {
         "q": "Le personnel peut-il utiliser ses propres téléphones ou tablettes ?",
