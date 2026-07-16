@@ -867,15 +867,15 @@
       "toastGeneratedBody": "Kopiere den Code jetzt; er kann später nicht abgerufen werden."
     },
     "billPrinter": {
-      "title": "Rechnung (nicht steuerlich) — Standarddrucker",
-      "hint": "Wähle den Drucker für nicht steuerliche Rechnungen. Drucker werden vom Printer Agent per Heartbeat gemeldet.",
+      "title": "Nicht-Fiskal- / Küchendrucker",
+      "hint": "Wähle den ESC/POS-Drucker für Küchenbestellungen (nicht steuerlich). Drucker werden vom Printer Agent per Heartbeat gemeldet.",
       "loading": "Drucker werden geladen…",
       "noPrinters": "Keine Drucker gemeldet. Starte den Printer Agent und prüfe den Heartbeat.",
       "label": "Drucker",
       "save": "Speichern",
       "saving": "Speichern…",
       "toastSavedTitle": "Einstellungen gespeichert",
-      "toastSavedBody": "Standard-Rechnungsdrucker aktualisiert.",
+      "toastSavedBody": "Nicht-Fiskal- / Küchendrucker aktualisiert.",
       "toastErrorTitle": "Drucker konnte nicht gespeichert werden",
       "toastErrorBody": "Bitte erneut versuchen.",
       "pendingPrinterName": "Gespeicherter Drucker (wartet auf Agent-Heartbeat)",
@@ -997,7 +997,7 @@
         "step5": "Windows-Taste drücken, „URS Printer Agent Configurator“ suchen und die App öffnen.",
         "step6": "Einmalcode einfügen, bestätigen, dass das Netzwerk gescannt wird, Drucker-IP auswählen und Weiter klicken.",
         "step7": "Hauptdrucker benennen (z. B. bill-printer), speichern und den Configurator schließen.",
-        "step8": "Zurück in Einstellungen unter Rechnung (nicht steuerlich) — Standarddrucker: bis zu ca. 30 Sekunden warten, bis der Drucker in der Liste erscheint, auswählen und Speichern."
+        "step8": "Zurück in Einstellungen unter Nicht-Fiskal- / Küchendrucker: bis zu ca. 30 Sekunden warten, bis der Drucker in der Liste erscheint, auswählen und Speichern."
       },
       "printerAgentReconnectAfterNetwork": {
         "q": "Rechnungsdruck oder Printer Agent funktionieren nach einem Wi‑Fi- oder Hotspot-Ausfall nicht mehr. Muss ich den PC neu starten?",

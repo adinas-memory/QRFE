@@ -867,15 +867,15 @@
       "toastGeneratedBody": "Kopiera koden nu; den kan inte hämtas senare."
     },
     "billPrinter": {
-      "title": "Nota (ej fiscal) — standardskrivare",
-      "hint": "Välj skrivare för icke-fiskala notor. Skrivare rapporteras av Printer Agent via heartbeat.",
+      "title": "Icke-fiskal / köksskrivare",
+      "hint": "Välj ESC/POS-skrivaren för köksbeställningar (ej fiscal). Skrivare rapporteras av Printer Agent via heartbeat.",
       "loading": "Laddar skrivare…",
       "noPrinters": "Inga skrivare rapporterade. Starta Printer Agent och verifiera heartbeat.",
       "label": "Skrivare",
       "save": "Spara",
       "saving": "Sparar…",
       "toastSavedTitle": "Inställningar sparade",
-      "toastSavedBody": "Standard skrivare för nota uppdaterad.",
+      "toastSavedBody": "Icke-fiskal / köksskrivare uppdaterad.",
       "toastErrorTitle": "Kunde inte spara skrivare",
       "toastErrorBody": "Försök igen.",
       "pendingPrinterName": "Sparad skrivare (väntar på agent-heartbeat)",

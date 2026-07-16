@@ -867,15 +867,15 @@
       "toastGeneratedBody": "Copiez le code maintenant ; il ne pourra pas être récupéré plus tard."
     },
     "billPrinter": {
-      "title": "Addition (non fiscale) — imprimante par défaut",
-      "hint": "Choisissez l'imprimante pour les additions non fiscales. Les imprimantes sont signalées par le Printer Agent via heartbeat.",
+      "title": "Imprimante non fiscale / cuisine",
+      "hint": "Choisissez l'imprimante ESC/POS pour les tickets cuisine (non fiscal). Les imprimantes sont signalées par le Printer Agent via heartbeat.",
       "loading": "Chargement des imprimantes…",
       "noPrinters": "Aucune imprimante signalée. Démarrez le Printer Agent et vérifiez le heartbeat.",
       "label": "Imprimante",
       "save": "Enregistrer",
       "saving": "Enregistrement…",
       "toastSavedTitle": "Paramètres enregistrés",
-      "toastSavedBody": "Imprimante par défaut pour l'addition mise à jour.",
+      "toastSavedBody": "Imprimante non fiscale / cuisine mise à jour.",
       "toastErrorTitle": "Impossible d'enregistrer l'imprimante",
       "toastErrorBody": "Veuillez réessayer.",
       "pendingPrinterName": "Imprimante enregistrée (en attente du heartbeat agent)",
@@ -997,7 +997,7 @@
         "step5": "Appuyez sur la touche Windows, recherchez « URS Printer Agent Configurator » et ouvrez l’application.",
         "step6": "Collez le code, confirmez que le réseau sera scanné, sélectionnez l’IP de l’imprimante trouvée et cliquez sur Suivant.",
         "step7": "Nommez l’imprimante principale (par ex. bill-printer), puis Enregistrer et fermez le Configurator.",
-        "step8": "Retournez dans Paramètres, section Addition (non fiscale) — imprimante par défaut : attendez environ 30 secondes que l’imprimante apparaisse, sélectionnez-la et Enregistrer."
+        "step8": "Retournez dans Paramètres, section Imprimante non fiscale / cuisine : attendez environ 30 secondes que l’imprimante apparaisse, sélectionnez-la et Enregistrer."
       },
       "printerAgentReconnectAfterNetwork": {
         "q": "L’impression de l’addition ou Printer Agent ne fonctionne plus après une coupure Wi‑Fi ou du point d’accès. Dois-je redémarrer le PC ?",

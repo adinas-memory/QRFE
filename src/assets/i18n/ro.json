@@ -510,6 +510,10 @@
     "openCashDrawerErrorBody": "Nu s-a putut deschide sertarul.",
     "printQueuedTitle": "Notă de plată",
     "printQueuedBody": "Nota de plată a fost trimisă la imprimantă.",
+    "printKitchenQueuedTitle": "Bucătărie",
+    "printKitchenQueuedBody": "Comanda a fost trimisă la imprimanta de bucătărie.",
+    "printKitchenOfflineSuccessTitle": "Bucătărie",
+    "printKitchenOfflineSuccessBody": "Comanda a fost trimisă la imprimanta de bucătărie.",
     "printNoPrinterTitle": "Notă de plată",
     "printNoPrinterBody": "Nu există o imprimantă configurată/raportată de Printer Agent.",
     "printErrorTitle": "Notă de plată",
@@ -1018,15 +1022,15 @@
       "toastGeneratedBody": "Copiază codul acum; nu poate fi recuperat ulterior."
     },
     "billPrinter": {
-      "title": "Notă de plată — imprimantă implicită",
-      "hint": "Alege imprimanta folosită pentru nota de plată (nefiscală). Imprimantele sunt raportate de Printer Agent prin heartbeat.",
+      "title": "Imprimantă non-fiscală / bucătărie",
+      "hint": "Alege imprimanta ESC/POS folosită pentru comenzile de bucătărie (notă nefiscală). Imprimantele sunt raportate de Printer Agent prin heartbeat.",
       "loading": "Se încarcă imprimantele…",
       "noPrinters": "Nu există imprimante raportate. Pornește Printer Agent și verifică heartbeat-ul.",
       "label": "Imprimantă",
       "save": "Salvează",
       "saving": "Se salvează…",
       "toastSavedTitle": "Setări salvate",
-      "toastSavedBody": "Imprimanta implicită pentru nota de plată a fost actualizată.",
+      "toastSavedBody": "Imprimanta non-fiscală / bucătărie a fost actualizată.",
       "toastErrorTitle": "Nu s-a putut salva imprimanta",
       "toastErrorBody": "Încearcă din nou.",
       "pendingPrinterName": "Imprimantă salvată (așteaptă heartbeat agent)",
@@ -1132,7 +1136,7 @@
         "step5": "Apăsați tasta Windows, căutați „URS Printer Agent Configurator” și deschideți aplicația.",
         "step6": "Introduceți codul de înrolare copiat, bifați că ați înțeles că rețeaua va fi scanată, selectați IP-ul imprimantei găsite în rețea și apăsați Next.",
         "step7": "Denumiți imprimanta principală (de exemplu bill-printer), apoi Salvează și închideți Configuratorul.",
-        "step8": "Reveniți în Setări la Notă de plată — imprimantă implicită. Așteptați până la aproximativ 30 de secunde ca imprimanta să apară în listă, selectați-o și apăsați Salvează."
+        "step8": "Reveniți în Setări la Imprimantă non-fiscală / bucătărie. Așteptați până la aproximativ 30 de secunde ca imprimanta să apară în listă, selectați-o și apăsați Salvează."
       },
       "printerAgentReconnectAfterNetwork": {
         "q": "Nota de plată sau Printer Agent nu mai merg după ce Wi‑Fi-ul sau hotspot-ul a picat. Trebuie să repornesc PC-ul?",

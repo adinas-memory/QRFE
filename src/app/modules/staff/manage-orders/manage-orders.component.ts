@@ -120,6 +120,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   private restaurantId = '';
   readonly fiscalStaffConfig = signal<FiscalPrinterSettingsDto | null>(null);
   readonly billStaffConfig = signal<{ defaultBillPrinterId: string | null } | null>(null);
+  private pendingKitchenPrintOnConfirm: {
+    tableId: string;
+    restaurantId: string;
+    escPosPrinterId: string;
+  } | null = null;
 
   waiterState: Record<string, WaiterCallState> = {};
   WaiterCallState = WaiterCallState;
@@ -706,7 +711,18 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
     if (this.onlineStateService.isOnline) this.queueProcessor.triggerProcessing();
 
-    void this.maybeEnqueueEscPosBillOnConfirm(localOrderId);
+    const escPosPrinterId = this.resolveEscPosBillPrinterIdForConfirm();
+    if (escPosPrinterId && this.restaurantId) {
+      if (this.isOnline) {
+        this.pendingKitchenPrintOnConfirm = {
+          tableId: this.currentTableId,
+          restaurantId: this.restaurantId,
+          escPosPrinterId,
+        };
+      } else {
+        void this.maybeEnqueueEscPosBillOnConfirm(localOrderId);
+      }
+    }
   }
 
   async addCartItem(item: MenuItem) {
@@ -1474,9 +1490,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         0,
       );
 
+      const resolvedOrderId = this.resolveOrderIdForPrint(args.orderId);
+
       const payload = {
         type: 'bill' as const,
-        orderId: args.orderId,
+        orderId: resolvedOrderId ?? '',
         restaurantName: this.authService.getUserSnapshot()?.restaurantName ?? '',
         tableName: (this.tableName ?? '').trim() || null,
         currency: billLines[0]?.item.menuItemPriceCurrency ?? this.cartCurrency ?? null,
@@ -1513,8 +1531,16 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           payload,
         });
         this.appToast.success(
-          this.transloco.translate('manageOrders.printOfflineSuccessBody'),
-          this.transloco.translate('manageOrders.printOfflineSuccessTitle'),
+          this.transloco.translate(
+            args.kitchenItemsOnly
+              ? 'manageOrders.printKitchenOfflineSuccessBody'
+              : 'manageOrders.printOfflineSuccessBody',
+          ),
+          this.transloco.translate(
+            args.kitchenItemsOnly
+              ? 'manageOrders.printKitchenOfflineSuccessTitle'
+              : 'manageOrders.printOfflineSuccessTitle',
+          ),
         );
         return;
       }
@@ -1540,8 +1566,12 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
       await firstValueFrom(this.printJobs.createBillPrintJob(args.restaurantId, printerId, payload));
       this.appToast.success(
-        this.transloco.translate('manageOrders.printQueuedBody'),
-        this.transloco.translate('manageOrders.printQueuedTitle'),
+        this.transloco.translate(
+          args.kitchenItemsOnly ? 'manageOrders.printKitchenQueuedBody' : 'manageOrders.printQueuedBody',
+        ),
+        this.transloco.translate(
+          args.kitchenItemsOnly ? 'manageOrders.printKitchenQueuedTitle' : 'manageOrders.printQueuedTitle',
+        ),
       );
     } catch (err) {
       console.error('Print job failed', err);
@@ -1550,6 +1580,14 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         this.transloco.translate('manageOrders.printErrorTitle'),
       );
     }
+  }
+
+  private resolveOrderIdForPrint(orderId: string): string | null {
+    const trimmed = (orderId ?? '').trim();
+    if (!trimmed || trimmed.startsWith('local-')) {
+      return null;
+    }
+    return trimmed;
   }
 
   private resolveBillPrinterId(args: {
@@ -2421,6 +2459,17 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
             }
             this.markTableAsClosed(tableId);
             this.updateComputedLocal(tableId);
+
+            const pendingKitchenPrint = this.pendingKitchenPrintOnConfirm;
+            if (pendingKitchenPrint?.tableId === tableId) {
+              this.pendingKitchenPrintOnConfirm = null;
+              await this.enqueueBillPrintJob({
+                restaurantId: pendingKitchenPrint.restaurantId,
+                orderId,
+                forcePrinterId: pendingKitchenPrint.escPosPrinterId,
+                kitchenItemsOnly: true,
+              });
+            }
           });
 
         this.search$

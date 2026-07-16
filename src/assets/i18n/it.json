@@ -867,15 +867,15 @@
       "toastGeneratedBody": "Copia il codice ora; non potrà essere recuperato in seguito."
     },
     "billPrinter": {
-      "title": "Conto (non fiscale) — stampante predefinita",
-      "hint": "Scegli la stampante per i conti non fiscali. Le stampanti sono segnalate dal Printer Agent tramite heartbeat.",
+      "title": "Stampante non fiscale / cucina",
+      "hint": "Scegli la stampante ESC/POS per i ticket cucina (non fiscale). Le stampanti sono segnalate dal Printer Agent tramite heartbeat.",
       "loading": "Caricamento stampanti…",
       "noPrinters": "Nessuna stampante segnalata. Avvia il Printer Agent e verifica l'heartbeat.",
       "label": "Stampante",
       "save": "Salva",
       "saving": "Salvataggio…",
       "toastSavedTitle": "Impostazioni salvate",
-      "toastSavedBody": "Stampante predefinita per il conto aggiornata.",
+      "toastSavedBody": "Stampante non fiscale / cucina aggiornata.",
       "toastErrorTitle": "Impossibile salvare la stampante",
       "toastErrorBody": "Riprova.",
       "pendingPrinterName": "Stampante salvata (in attesa heartbeat agent)",
@@ -997,7 +997,7 @@
         "step5": "Premi il tasto Windows, cerca « URS Printer Agent Configurator » e apri l’app.",
         "step6": "Incolla il codice, conferma che la rete verrà scansionata, seleziona l’IP della stampante trovata e clicca Avanti.",
         "step7": "Assegna un nome alla stampante principale (es. bill-printer), poi Salva e chiudi il Configurator.",
-        "step8": "Torna in Impostazioni, sezione Conto (non fiscale) — stampante predefinita: attendi fino a circa 30 secondi che compaia in elenco, selezionala e Salva."
+        "step8": "Torna in Impostazioni, sezione Stampante non fiscale / cucina: attendi fino a circa 30 secondi che compaia in elenco, selezionala e Salva."
       },
       "printerAgentReconnectAfterNetwork": {
         "q": "La stampa del conto o Printer Agent non funziona più dopo un calo di Wi‑Fi o dell’hotspot. Devo riavviare il PC?",
