@@ -1654,7 +1654,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           name: x.item.menuItemName,
           quantity: x.quantity,
           unitPrice: x.item.menuItemPriceAmount,
-          menuItemVatPercent: x.item.menuItemVatPercent,
+          menuItemVatPercent:
+            x.item.menuItemVatPercent
+            ?? this.menuItems.find(m => m.menuItemId === x.item.menuItemId)?.menuItemVatPercent,
         })),
         vatMapping,
       );

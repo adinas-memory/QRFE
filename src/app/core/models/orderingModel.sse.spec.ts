@@ -32,6 +32,18 @@ describe('orderingModel SSE helpers', () => {
     expect(cart[0].orderItemId).toBe('oi-1');
   });
 
+  it('cartItemsFromSseLines preserves menuItemVatPercent from menu cache', () => {
+    const menuItems = [{
+      menuItemId: 'menu-1',
+      menuItemName: 'Glupers',
+      menuItemPriceAmount: 20,
+      category: 'Appetizer',
+      menuItemVatPercent: 19,
+    }];
+    const cart = cartItemsFromSseLines([line], menuItems);
+    expect(cart[0].item.menuItemVatPercent).toBe(19);
+  });
+
   it('orderDtoFromSsePayload builds open order with items', () => {
     const payload: OrderUpdatedSSEPayload = {
       RestaurantId: 'r1',

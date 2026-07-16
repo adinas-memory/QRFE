@@ -90,6 +90,7 @@ export function cartItemFromOrderLine(
     menuItemIconUrl: fromMenu?.menuItemIconUrl,
     category: categoryFromOrderLine(orderItem.category, fromMenu),
     isAvailable: fromMenu?.isAvailable,
+    menuItemVatPercent: fromMenu?.menuItemVatPercent,
   };
 
   return {

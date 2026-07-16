@@ -81,6 +81,14 @@ const CATALOG: Record<string, FiscalErrorInfo> = {
     title: 'Driver FiscalNet indisponibil',
     steps: ['Verificați că FiscalNet rulează pe PC (de obicei 127.0.0.1:65400).'],
   },
+  NOT_FISCALNET_API: {
+    title: 'Pe portul 65400 rulează emulatorul ESC/POS, nu FiscalNet',
+    steps: [
+      'Emulatorul de bonuri nefiscale nu trebuie să asculte pe portul 65400.',
+      'Păstrați ESC/POS pe port 9100; instalați driverul FiscalNet (sau stub-ul de test) pe 65400.',
+      'În Configurator: imprimanta fiscală = FiscalNet, IP LAN al PC-ului, port 65400.',
+    ],
+  },
 };
 
 export function resolveFiscalErrorInfo(errorCode: string | null | undefined): FiscalErrorInfo {
