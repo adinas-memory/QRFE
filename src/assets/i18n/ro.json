@@ -369,6 +369,7 @@
       "menuDescriptionTranslation": "Traducere automată descrieri meniu",
       "sseTablesLive": "Update-uri live mese & comenzi (SSE)",
       "ecoBon": "ECO BON (bon digital nefiscal)",
+      "fiscalNetIntegration": "Integrare FiscalNet / altă imprimantă fiscală",
       "unlimitedDevicesPerRestaurant": "Dispozitive nelimitate per restaurant"
     }
   },
@@ -1032,7 +1033,8 @@
       "autoRefreshHint": "Lista se actualizează automat la fiecare 30 de secunde.",
       "autoRefreshFastHint": "Se verifică la fiecare 10 secunde până apare imprimanta agentului sau se rezolvă nepotrivirea de id.",
       "mismatchWarning": "Imprimanta salvată ({{id}}) nu este raportată de Printer Agent. Bonurile nu se vor printa până nu selectezi o imprimantă din listă și apeși Salvează.",
-      "refresh": "Reîmprospătează lista"
+      "refresh": "Reîmprospătează lista",
+      "fiscalBillHint": "Bonul fiscal este activ — nota FiscalNet (Print) include toate liniile; imprimanta ESC/POS (:9100) primește la Confirmare doar articolele de bucătărie."
     },
     "fiscalPrinter": {
       "title": "Casă de marcat FiscalNet",
@@ -1135,6 +1137,31 @@
       "printerAgentReconnectAfterNetwork": {
         "q": "Nota de plată sau Printer Agent nu mai merg după ce Wi‑Fi-ul sau hotspot-ul a picat. Trebuie să repornesc PC-ul?",
         "a": "De obicei nu. Repornește mai întâi serviciul Windows URS Printer Agent (services.msc) — repornește procesul agentului și reconectează la backend și Redis. Dacă agentul folosește tunel VPN WireGuard, repornește serviciul de tunel WireGuard pentru tunelul tău, așteaptă să fie activ, apoi repornește din nou URS Printer Agent, ca tunelul să fie gata înainte de conexiunea agentului. Repornirea întregului PC doar dacă pașii de mai sus nu rezolvă — resetează stiva de rețea și toate serviciile."
+      },
+      "fiscalAndEscposPrintRouting": {
+        "q": "Cum se împart notele de plată când am și imprimantă fiscală și ESC/POS?",
+        "a": "Cu fiscal activ și două imprimante: Confirmă tipărește doar bucătăria pe ESC/POS; Print tipărește tot coșul pe fiscală; Bon fiscal tipărește tot coșul cu TVA pe fiscală.",
+        "aIntro": "Când imprimarea fiscală este activă (FiscalNet sau altă imprimantă fiscală conectată prin Printer Agent) și există și o imprimantă ESC/POS separată pentru notă de plată, butoanele trimit joburi diferite:",
+        "tableAction": "Acțiune",
+        "tablePrinter": "Imprimantă",
+        "tablePrints": "Ce se printează",
+        "rows": {
+          "confirm": {
+            "action": "Confirmă",
+            "printer": "ESC/POS (notă de plată implicită)",
+            "prints": "Doar bucătărie"
+          },
+          "print": {
+            "action": "Print",
+            "printer": "FiscalNet sau altă imprimantă fiscală (dacă fiscal activ)",
+            "prints": "Tot coșul"
+          },
+          "fiscalReceipt": {
+            "action": "Bon fiscal",
+            "printer": "FiscalNet sau altă imprimantă fiscală",
+            "prints": "Tot coșul + TVA"
+          }
+        }
       },
       "byodStaffDevices": {
         "q": "Personalul poate folosi propriile telefoane sau tablete?",

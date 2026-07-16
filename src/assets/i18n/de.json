@@ -366,6 +366,7 @@
       "menuDescriptionTranslation": "Automatische Übersetzung der Menübeschreibungen",
       "sseTablesLive": "Live-Updates für Tische & Bestellungen (SSE)",
       "ecoBon": "ECO BON (digitaler Beleg als PDF)",
+      "fiscalNetIntegration": "FiscalNet / andere Fiskaldrucker-Integration",
       "unlimitedDevicesPerRestaurant": "Unbegrenzte Geräte pro Restaurant"
     }
   },
@@ -1001,6 +1002,31 @@
       "printerAgentReconnectAfterNetwork": {
         "q": "Rechnungsdruck oder Printer Agent funktionieren nach einem Wi‑Fi- oder Hotspot-Ausfall nicht mehr. Muss ich den PC neu starten?",
         "a": "Meistens nein. Starten Sie zuerst den Windows-Dienst URS Printer Agent neu (services.msc) — damit startet der Agent-Prozess neu und verbindet sich erneut mit Backend und Redis. Nutzt der Agent einen WireGuard-VPN-Tunnel, starten Sie den WireGuard-Tunnel-Dienst für Ihren Tunnel neu, warten Sie bis er aktiv ist, und starten Sie danach erneut URS Printer Agent, damit der Tunnel vor der Agent-Verbindung bereit ist. Ein kompletter PC-Neustart nur, wenn diese Schritte nicht helfen — er setzt den gesamten Netzwerk-Stack und alle Dienste zurück."
+      },
+      "fiscalAndEscposPrintRouting": {
+        "q": "Wie werden Druckaufträge verteilt, wenn ich sowohl einen Fiskaldrucker als auch ESC/POS habe?",
+        "a": "Mit aktivem Fiskaldruck und zwei Druckern: Bestätigen druckt nur Küchenpositionen auf ESC/POS; Drucken druckt den gesamten Warenkorb auf den Fiskaldrucker; Fiskalbeleg druckt den gesamten Warenkorb mit MwSt. auf den Fiskaldrucker.",
+        "aIntro": "Wenn der Fiskaldruck aktiv ist (FiscalNet oder ein anderer Fiskaldrucker über Printer Agent) und zusätzlich ein separater ESC/POS-Rechnungsdrucker existiert, senden die Schaltflächen unterschiedliche Aufträge:",
+        "tableAction": "Aktion",
+        "tablePrinter": "Drucker",
+        "tablePrints": "Was wird gedruckt",
+        "rows": {
+          "confirm": {
+            "action": "Bestätigen",
+            "printer": "ESC/POS (Standard-Rechnungsdrucker)",
+            "prints": "Nur Küche"
+          },
+          "print": {
+            "action": "Drucken",
+            "printer": "FiscalNet oder anderer Fiskaldrucker (wenn Fiskal aktiv)",
+            "prints": "Gesamter Warenkorb"
+          },
+          "fiscalReceipt": {
+            "action": "Fiskalbeleg",
+            "printer": "FiscalNet oder anderer Fiskaldrucker",
+            "prints": "Gesamter Warenkorb + MwSt."
+          }
+        }
       },
       "byodStaffDevices": {
         "q": "Darf das Personal eigene Telefone oder Tablets nutzen?",

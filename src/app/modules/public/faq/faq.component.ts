@@ -20,6 +20,7 @@ const FAQ_ITEM_IDS = [
   'printerAgentDownload',
   'printerAgentInstall',
   'printerAgentReconnectAfterNetwork',
+  'fiscalAndEscposPrintRouting',
   'byodStaffDevices',
   'qrSignedSecurity',
   'bookingsSlotDuration',
@@ -98,6 +99,8 @@ export class FaqComponent implements OnInit, OnDestroy {
     'step7',
     'step8',
   ] as const;
+
+  protected readonly fiscalPrintRoutingRows = ['confirm', 'print', 'fiscalReceipt'] as const;
 
   /** On the landing page: show only the first questions + link to `/faq`. */
   readonly compact = input(false);

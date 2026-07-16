@@ -22,17 +22,26 @@ export class OfflinePrintContextService {
   readonly agentLocalBaseUrlSnapshot = this.agentLocalBaseUrl.asReadonly();
 
   isReadyForOfflinePrint(): boolean {
-    return !!this.defaultBillPrinterId()?.trim() && !!this.agentLocalBaseUrl()?.trim();
+    return !!this.agentLocalBaseUrl()?.trim() && !!this.getEffectiveBillPrinterId();
   }
 
   isReadyForOfflineFiscalPrint(): boolean {
-    return this.isReadyForOfflinePrint()
+    return !!this.agentLocalBaseUrl()?.trim()
       && this.fiscalPrintingEnabled()
       && !!this.defaultFiscalPrinterId()?.trim();
   }
 
   getDefaultBillPrinterId(): string | null {
     return this.defaultBillPrinterId();
+  }
+
+  getEffectiveBillPrinterId(): string | null {
+    const fiscalId = (this.defaultFiscalPrinterId() ?? '').trim();
+    if (this.fiscalPrintingEnabled() && fiscalId) {
+      return fiscalId;
+    }
+    const billId = (this.defaultBillPrinterId() ?? '').trim();
+    return billId || null;
   }
 
   getDefaultFiscalPrinterId(): string | null {

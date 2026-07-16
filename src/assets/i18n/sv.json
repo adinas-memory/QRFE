@@ -366,6 +366,7 @@
       "menuDescriptionTranslation": "Automatisk översättning av menybeskrivningar",
       "sseTablesLive": "Live-uppdateringar för bord och ordrar (SSE)",
       "ecoBon": "ECO BON (digitalt kvitto som PDF)",
+      "fiscalNetIntegration": "FiscalNet / annan fiskal skrivarintegrering",
       "unlimitedDevicesPerRestaurant": "Obegränsat antal enheter per restaurang"
     }
   },
@@ -1001,6 +1002,31 @@
       "printerAgentReconnectAfterNetwork": {
         "q": "Kvitto-/räkningsutskrift eller Printer Agent slutade fungera efter att Wi‑Fi eller hotspot tappats. Måste jag starta om datorn?",
         "a": "Oftast inte. Starta om Windows-tjänsten URS Printer Agent först (services.msc) — det startar om agentprocessen och återansluter till backend och Redis. Om agenten använder en WireGuard-VPN-tunnel: starta om WireGuard-tunneltjänsten för din tunnel, vänta tills den är aktiv och starta sedan URS Printer Agent igen så att tunneln är klar före anslutningen. Starta om hela datorn först om stegen inte hjälper — det nollställer hela nätverksstacken och alla tjänster."
+      },
+      "fiscalAndEscposPrintRouting": {
+        "q": "Hur fördelas utskrifter när jag har både fiskal skrivare och ESC/POS?",
+        "a": "Med fiskal aktiv och två skrivare: Bekräfta skriver ut endast kök på ESC/POS; Skriv ut skriver ut hela varukorgen på fiskal; Fiskalt kvitto skriver ut hela varukorgen med moms på fiskal.",
+        "aIntro": "När fiskal utskrift är aktiverad (FiscalNet eller annan fiskal skrivare via Printer Agent) och du också har en separat ESC/POS-räkningsskrivare skickar knapparna olika jobb:",
+        "tableAction": "Åtgärd",
+        "tablePrinter": "Skrivare",
+        "tablePrints": "Vad skrivs ut",
+        "rows": {
+          "confirm": {
+            "action": "Bekräfta",
+            "printer": "ESC/POS (standard räkningsskrivare)",
+            "prints": "Endast kök"
+          },
+          "print": {
+            "action": "Skriv ut",
+            "printer": "FiscalNet eller annan fiskal skrivare (om fiskal aktiv)",
+            "prints": "Hela varukorgen"
+          },
+          "fiscalReceipt": {
+            "action": "Fiskalt kvitto",
+            "printer": "FiscalNet eller annan fiskal skrivare",
+            "prints": "Hela varukorgen + moms"
+          }
+        }
       },
       "byodStaffDevices": {
         "q": "Kan personal använda egna telefoner eller surfplattor?",

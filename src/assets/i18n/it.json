@@ -366,6 +366,7 @@
       "menuDescriptionTranslation": "Traduzione automatica descrizioni menu",
       "sseTablesLive": "Aggiornamenti live tavoli & ordini (SSE)",
       "ecoBon": "ECO BON (ricevuta digitale PDF)",
+      "fiscalNetIntegration": "Integrazione FiscalNet / altra stampante fiscale",
       "unlimitedDevicesPerRestaurant": "Dispositivi illimitati per ristorante"
     }
   },
@@ -1001,6 +1002,31 @@
       "printerAgentReconnectAfterNetwork": {
         "q": "La stampa del conto o Printer Agent non funziona più dopo un calo di Wi‑Fi o dell’hotspot. Devo riavviare il PC?",
         "a": "Di solito no. Prima riavvia il servizio Windows URS Printer Agent (services.msc): riavvia il processo dell’agente e si riconnette a backend e Redis. Se l’agente usa un tunnel VPN WireGuard, riavvia il servizio tunnel WireGuard del tuo tunnel, attendi che sia attivo, poi riavvia di nuovo URS Printer Agent così il tunnel è pronto prima della connessione. Riavvia l’intero PC solo se quei passaggi non bastano: azzera l’intero stack di rete e i servizi."
+      },
+      "fiscalAndEscposPrintRouting": {
+        "q": "Come vengono instradate le stampe quando ho sia una stampante fiscale sia ESC/POS?",
+        "a": "Con fiscal attivo e due stampanti: Conferma stampa solo cucina su ESC/POS; Stampa stampa l’intero carrello sulla fiscale; Scontrino fiscale stampa l’intero carrello con IVA sulla fiscale.",
+        "aIntro": "Quando la stampa fiscale è attiva (FiscalNet o un’altra stampante fiscale collegata tramite Printer Agent) e c’è anche una stampante ESC/POS separata per il conto, i pulsanti inviano lavori diversi:",
+        "tableAction": "Azione",
+        "tablePrinter": "Stampante",
+        "tablePrints": "Cosa stampa",
+        "rows": {
+          "confirm": {
+            "action": "Conferma",
+            "printer": "ESC/POS (stampante conto predefinita)",
+            "prints": "Solo cucina"
+          },
+          "print": {
+            "action": "Stampa",
+            "printer": "FiscalNet o altra stampante fiscale (se fiscal attivo)",
+            "prints": "Carrello completo"
+          },
+          "fiscalReceipt": {
+            "action": "Scontrino fiscale",
+            "printer": "FiscalNet o altra stampante fiscale",
+            "prints": "Carrello completo + IVA"
+          }
+        }
       },
       "byodStaffDevices": {
         "q": "Il personale può usare telefoni o tablet propri?",

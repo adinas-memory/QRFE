@@ -57,6 +57,28 @@
                     <li class="mb-2">{{ ('faq.items.printerAgentInstall.' + step) | transloco }}</li>
                   }
                 </ol>
+              } @else if (id === 'fiscalAndEscposPrintRouting') {
+                <p class="mb-3">{{ 'faq.items.fiscalAndEscposPrintRouting.aIntro' | transloco }}</p>
+                <div class="table-responsive">
+                  <table class="table table-sm faq-print-routing-table mb-0">
+                    <thead>
+                      <tr>
+                        <th scope="col">{{ 'faq.items.fiscalAndEscposPrintRouting.tableAction' | transloco }}</th>
+                        <th scope="col">{{ 'faq.items.fiscalAndEscposPrintRouting.tablePrinter' | transloco }}</th>
+                        <th scope="col">{{ 'faq.items.fiscalAndEscposPrintRouting.tablePrints' | transloco }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of fiscalPrintRoutingRows; track row) {
+                        <tr>
+                          <td>{{ ('faq.items.fiscalAndEscposPrintRouting.rows.' + row + '.action') | transloco }}</td>
+                          <td>{{ ('faq.items.fiscalAndEscposPrintRouting.rows.' + row + '.printer') | transloco }}</td>
+                          <td>{{ ('faq.items.fiscalAndEscposPrintRouting.rows.' + row + '.prints') | transloco }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
               } @else {
                 {{ ('faq.items.' + id + '.a') | transloco }}
               }

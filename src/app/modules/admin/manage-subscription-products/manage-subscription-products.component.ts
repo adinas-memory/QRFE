@@ -42,7 +42,7 @@ export class ManageSubscriptionProductsComponent implements OnInit, OnDestroy {
   currencies: string[] = [];
   readonly markets = SUBSCRIPTION_MARKETS;
 
-  readonly featureKeys = [
+  readonly baseFeatureKeys = [
     'pricing.features.cardPayments',
     'pricing.features.qrMenu',
     'pricing.features.callWaiter',
@@ -58,6 +58,11 @@ export class ManageSubscriptionProductsComponent implements OnInit, OnDestroy {
     'pricing.features.sseTablesLive',
     'pricing.features.ecoBon',
     'pricing.features.unlimitedDevicesPerRestaurant',
+  ] as const;
+
+  readonly roFeatureKeys = [
+    ...this.baseFeatureKeys,
+    'pricing.features.fiscalNetIntegration',
   ] as const;
 
 
@@ -233,6 +238,11 @@ export class ManageSubscriptionProductsComponent implements OnInit, OnDestroy {
 
   hasFeatureKey(key: string, form: FormGroup): boolean {
     return this.parseFeatureKeys(form.get('features')?.value).includes(key);
+  }
+
+  featureKeysForForm(form: FormGroup): readonly string[] {
+    const market = (form.get('market')?.value ?? '').toString().trim().toUpperCase();
+    return market === 'RO' ? this.roFeatureKeys : this.baseFeatureKeys;
   }
 
   addToast(title: string, message: string, color: string) {
