@@ -33,6 +33,13 @@ export interface FiscalPrintErrorDto {
   updatedAtUtc: string;
 }
 
+export interface FiscalPrintErrorsPageDto {
+  items: FiscalPrintErrorDto[];
+  total: number;
+  skip: number;
+  limit: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PrintJobsService {
   private apiUrl = environment.apiUrl;
@@ -106,9 +113,13 @@ export class PrintJobsService {
     );
   }
 
-  getRecentFiscalPrintErrors(restaurantId: string, limit = 10): Observable<FiscalPrintErrorDto[]> {
-    return this.http.get<FiscalPrintErrorDto[]>(
-      `${this.apiUrl}/api/restaurants/${restaurantId}/admin/fiscal-print-errors?limit=${limit}`,
+  getRecentFiscalPrintErrors(
+    restaurantId: string,
+    limit = 3,
+    skip = 0,
+  ): Observable<FiscalPrintErrorsPageDto> {
+    return this.http.get<FiscalPrintErrorsPageDto>(
+      `${this.apiUrl}/api/restaurants/${restaurantId}/admin/fiscal-print-errors?limit=${limit}&skip=${skip}`,
       { withCredentials: true },
     );
   }

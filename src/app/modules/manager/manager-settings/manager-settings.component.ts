@@ -126,6 +126,9 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
   savingFiscalSettings = false;
   fiscalVatRows: Array<{ percent: string; group: number }> = mappingRowsFromRecord(defaultRomanianVatMapping());
   fiscalPrintErrors: FiscalPrintErrorDto[] = [];
+  fiscalPrintErrorsTotal = 0;
+  fiscalPrintErrorsPage = 0;
+  readonly fiscalPrintErrorsPageSize = 3;
   loadingFiscalPrintErrors = false;
 
   offlinePrimaryStaff: RestaurantStaffListItem[] = [];
@@ -761,15 +764,18 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     });
   }
 
-  loadFiscalPrintErrors(): void {
+  loadFiscalPrintErrors(page = this.fiscalPrintErrorsPage): void {
     const rid = this.restaurantId;
     if (!rid || !this.isRomanianLocale) {
       return;
     }
+    this.fiscalPrintErrorsPage = Math.max(0, page);
     this.loadingFiscalPrintErrors = true;
-    this.printJobs.getRecentFiscalPrintErrors(rid, 10).subscribe({
-      next: rows => {
-        this.fiscalPrintErrors = rows ?? [];
+    const skip = this.fiscalPrintErrorsPage * this.fiscalPrintErrorsPageSize;
+    this.printJobs.getRecentFiscalPrintErrors(rid, this.fiscalPrintErrorsPageSize, skip).subscribe({
+      next: pageResult => {
+        this.fiscalPrintErrors = pageResult?.items ?? [];
+        this.fiscalPrintErrorsTotal = pageResult?.total ?? 0;
         this.loadingFiscalPrintErrors = false;
       },
       error: err => {
@@ -777,6 +783,35 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
         this.loadingFiscalPrintErrors = false;
       },
     });
+  }
+
+  get fiscalPrintErrorsPageCount(): number {
+    if (this.fiscalPrintErrorsTotal <= 0) {
+      return 0;
+    }
+    return Math.ceil(this.fiscalPrintErrorsTotal / this.fiscalPrintErrorsPageSize);
+  }
+
+  get canGoToPreviousFiscalErrorsPage(): boolean {
+    return this.fiscalPrintErrorsPage > 0;
+  }
+
+  get canGoToNextFiscalErrorsPage(): boolean {
+    return (this.fiscalPrintErrorsPage + 1) * this.fiscalPrintErrorsPageSize < this.fiscalPrintErrorsTotal;
+  }
+
+  goToPreviousFiscalErrorsPage(): void {
+    if (!this.canGoToPreviousFiscalErrorsPage) {
+      return;
+    }
+    this.loadFiscalPrintErrors(this.fiscalPrintErrorsPage - 1);
+  }
+
+  goToNextFiscalErrorsPage(): void {
+    if (!this.canGoToNextFiscalErrorsPage) {
+      return;
+    }
+    this.loadFiscalPrintErrors(this.fiscalPrintErrorsPage + 1);
   }
 
   fiscalErrorInfo(errorCode: string | null | undefined) {

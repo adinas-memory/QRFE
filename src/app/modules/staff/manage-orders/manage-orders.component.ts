@@ -1,6 +1,6 @@
 // ─── IMPORTS ──────────────────────────────────────────────────────────────────
 import { FormsModule } from '@angular/forms';
-import { Component, HostListener, OnDestroy, OnInit, computed, inject } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import Fuse from 'fuse.js';
 import { IconDirective } from '@coreui/icons-angular';
 import {
@@ -57,7 +57,7 @@ import { AppToastService } from '../../../core/services/toast-service/toast-serv
 import { KitchenService } from '../../../core/services/kitchen-service/kitchen.service';
 import { BarService } from '../../../core/services/bar-service/bar.service';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { PrintJobsService } from '../../../core/services/print-jobs/print-jobs.service';
+import { PrintJobsService, FiscalPrinterSettingsDto } from '../../../core/services/print-jobs/print-jobs.service';
 import { buildFiscalPrintItems } from '../../../core/fiscal/fiscal-print-payload.builder';
 import { DeviceFeedbackService } from '../../../core/services/device/device-feedback.service';
 import { PickupNotificationService } from '../../../core/services/pickup/pickup-notification.service';
@@ -117,6 +117,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   private readonly recentSseSequenceSet = new Set<number>();
   private readonly maxRecentSseSequences = 300;
   private restaurantId = '';
+  readonly fiscalStaffConfig = signal<FiscalPrinterSettingsDto | null>(null);
 
   waiterState: Record<string, WaiterCallState> = {};
   WaiterCallState = WaiterCallState;
@@ -514,6 +515,18 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       return true;
     }
     return this.offlinePolicy.canUseFullOffline() && this.offlinePrintContext.isReadyForOfflinePrint();
+  }
+
+  get canPrintFiscal(): boolean {
+    if (!this.isOnline && this.offlinePolicy.canUseFullOffline()) {
+      return this.offlinePrintContext.isReadyForOfflineFiscalPrint();
+    }
+    const cfg = this.fiscalStaffConfig();
+    return !!cfg?.fiscalPrintingEnabled && !!(cfg?.defaultFiscalPrinterId ?? '').trim();
+  }
+
+  get canOpenCashDrawer(): boolean {
+    return this.canPrintFiscal;
   }
 
   get shouldShowBindDeviceCta(): boolean {
@@ -1510,10 +1523,92 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   async printFiscalReceipt(paymentMethod: 'cash' | 'card' = 'cash'): Promise<void> {
+    if (!this.canPrintFiscal) {
+      this.appToast.info(
+        this.transloco.translate('manageOrders.fiscalPrintNoPrinterBody'),
+        this.transloco.translate('manageOrders.fiscalPrintNoPrinterTitle'),
+      );
+      return;
+    }
+
     const restaurantId = this.restaurantId;
     const orderId = this.currentOrderId;
     if (!restaurantId || !orderId) return;
     await this.enqueueFiscalReceiptJob({ restaurantId, orderId, paymentMethod });
+  }
+
+  async openCashDrawer(): Promise<void> {
+    if (!this.canOpenCashDrawer) {
+      this.appToast.info(
+        this.transloco.translate('manageOrders.fiscalPrintNoPrinterBody'),
+        this.transloco.translate('manageOrders.fiscalPrintNoPrinterTitle'),
+      );
+      return;
+    }
+
+    const restaurantId = this.restaurantId;
+    if (!restaurantId) return;
+
+    try {
+      const offlineFiscal = !this.isOnline && this.offlinePolicy.canUseFullOffline();
+      let printerId = '';
+
+      if (offlineFiscal && this.offlinePrintContext.isReadyForOfflineFiscalPrint()) {
+        printerId = (this.offlinePrintContext.getDefaultFiscalPrinterId() ?? '').trim();
+      } else {
+        const cfg = this.fiscalStaffConfig()
+          ?? await firstValueFrom(this.printJobs.getDefaultFiscalPrinterForStaff(restaurantId));
+        printerId = (cfg?.defaultFiscalPrinterId ?? '').trim();
+      }
+
+      if (!printerId) {
+        this.appToast.info(
+          this.transloco.translate('manageOrders.fiscalPrintNoPrinterBody'),
+          this.transloco.translate('manageOrders.fiscalPrintNoPrinterTitle'),
+        );
+        return;
+      }
+
+      const payload = {
+        type: 'fiscal-command' as const,
+        command: 'open-drawer' as const,
+      };
+
+      if (offlineFiscal && this.offlinePrintContext.isReadyForOfflineFiscalPrint()) {
+        await this.offlinePrintService.printFiscalCommandSync({
+          restaurantId,
+          printerId,
+          payload,
+        });
+      } else {
+        await firstValueFrom(this.printJobs.createBillPrintJob(restaurantId, printerId, payload));
+      }
+
+      this.appToast.success(
+        this.transloco.translate('manageOrders.openCashDrawerQueuedBody'),
+        this.transloco.translate('manageOrders.openCashDrawerQueuedTitle'),
+      );
+    } catch (err) {
+      console.error('Open cash drawer failed', err);
+      this.appToast.error(
+        this.transloco.translate('manageOrders.openCashDrawerErrorBody'),
+        this.transloco.translate('manageOrders.openCashDrawerErrorTitle'),
+      );
+    }
+  }
+
+  private async loadFiscalStaffConfig(): Promise<void> {
+    if (!this.restaurantId || !this.isOnline) {
+      return;
+    }
+
+    try {
+      const cfg = await firstValueFrom(this.printJobs.getDefaultFiscalPrinterForStaff(this.restaurantId));
+      this.fiscalStaffConfig.set(cfg);
+    } catch (err) {
+      console.warn('Failed to load fiscal printer settings for staff', err);
+      this.fiscalStaffConfig.set(null);
+    }
   }
 
   private async enqueueFiscalReceiptJob(args: {
@@ -1539,6 +1634,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       }
 
       if (!fiscalPrintingEnabled) {
+        this.appToast.info(
+          this.transloco.translate('manageOrders.fiscalPrintNoPrinterBody'),
+          this.transloco.translate('manageOrders.fiscalPrintNoPrinterTitle'),
+        );
         return;
       }
 
@@ -2139,6 +2238,18 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       .pipe(
         takeUntil(this.destroy$),
         pairwise(),
+        filter(([wasOnline, isOnline]) => !wasOnline && isOnline),
+      )
+      .subscribe(() => {
+        if (this.restaurantId) {
+          void this.loadFiscalStaffConfig();
+        }
+      });
+
+    this.onlineStateService.online$
+      .pipe(
+        takeUntil(this.destroy$),
+        pairwise(),
         filter(([wasOnline, isOnline]) => wasOnline && !isOnline),
       )
       .subscribe(() => {
@@ -2159,6 +2270,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       .subscribe(user => {
         this.restaurantId = user.restaurantId!;
         void this.offlinePrintContext.init(this.restaurantId);
+        void this.loadFiscalStaffConfig();
 
         this.loadTodayBookings();
 

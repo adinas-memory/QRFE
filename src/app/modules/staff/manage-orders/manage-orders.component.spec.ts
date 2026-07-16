@@ -932,4 +932,70 @@ describe('ManageOrdersComponent', () => {
       expect((component as unknown as { isPaymentLockedForCurrentTable: () => boolean }).isPaymentLockedForCurrentTable()).toBeFalse();
     });
   });
+
+  describe('fiscal print and cash drawer', () => {
+    it('canPrintFiscal is false without staff fiscal config', async () => {
+      const { component } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
+      component.fiscalStaffConfig.set(null);
+      expect(component.canPrintFiscal).toBeFalse();
+      expect(component.canOpenCashDrawer).toBeFalse();
+    });
+
+    it('canPrintFiscal is true when fiscal printing enabled with printer id', async () => {
+      const { component } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
+      component.fiscalStaffConfig.set({
+        fiscalPrintingEnabled: true,
+        defaultFiscalPrinterId: 'main-fiscal',
+        vatGroupMapping: {},
+      });
+      expect(component.canPrintFiscal).toBeTrue();
+      expect(component.canOpenCashDrawer).toBeTrue();
+    });
+
+    it('printFiscalReceipt shows info toast when fiscal printer not configured', async () => {
+      const { component, mocks } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
+      setRestaurantId(component);
+      component.currentOrderId = 'order-1';
+      component.fiscalStaffConfig.set(null);
+
+      await component.printFiscalReceipt('cash');
+
+      expect(mocks.appToast.info).toHaveBeenCalled();
+      expect(mocks.printJobs.createBillPrintJob).not.toHaveBeenCalled();
+    });
+
+    it('openCashDrawer queues fiscal-command payload online', async () => {
+      const { component, mocks } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
+      setRestaurantId(component);
+      component.fiscalStaffConfig.set({
+        fiscalPrintingEnabled: true,
+        defaultFiscalPrinterId: 'main-fiscal',
+        vatGroupMapping: {},
+      });
+
+      await component.openCashDrawer();
+
+      expect(mocks.printJobs.createBillPrintJob).toHaveBeenCalledWith(
+        TEST_RESTAURANT_ID,
+        'main-fiscal',
+        jasmine.objectContaining({ type: 'fiscal-command', command: 'open-drawer' }),
+      );
+      expect(mocks.appToast.success).toHaveBeenCalled();
+    });
+
+    it('openCashDrawer shows info toast when fiscal printer not configured', async () => {
+      const { component, mocks } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
+      setRestaurantId(component);
+      component.fiscalStaffConfig.set({
+        fiscalPrintingEnabled: false,
+        defaultFiscalPrinterId: null,
+        vatGroupMapping: {},
+      });
+
+      await component.openCashDrawer();
+
+      expect(mocks.appToast.info).toHaveBeenCalled();
+      expect(mocks.printJobs.createBillPrintJob).not.toHaveBeenCalled();
+    });
+  });
 });

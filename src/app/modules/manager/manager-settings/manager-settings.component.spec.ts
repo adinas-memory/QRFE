@@ -27,6 +27,7 @@ describe('ManagerSettingsComponent bill printer', () => {
       'updateDefaultBillPrinter',
       'getFiscalPrinterSettings',
       'updateFiscalPrinterSettings',
+      'getRecentFiscalPrintErrors',
     ]);
     offlinePrimary = jasmine.createSpyObj('OfflinePrimaryService', [
       'listStaff',
@@ -66,6 +67,21 @@ describe('ManagerSettingsComponent bill printer', () => {
         fiscalPrintingEnabled: true,
         defaultFiscalPrinterId: 'fiscal-1',
         vatGroupMapping: { '19': 1 },
+      }),
+    );
+    printJobs.getRecentFiscalPrintErrors.and.returnValue(
+      of({
+        items: [
+          {
+            jobId: 'job-1',
+            errorCode: 'BON_FAILED',
+            deviceErrorCode: null,
+            updatedAtUtc: '2026-01-01T10:00:00Z',
+          },
+        ],
+        total: 4,
+        skip: 0,
+        limit: 3,
       }),
     );
 
@@ -193,6 +209,27 @@ describe('ManagerSettingsComponent bill printer', () => {
 
   it('loads fiscal printer settings on init', () => {
     expect(printJobs.getFiscalPrinterSettings).toHaveBeenCalledWith('019c1a13-db50-763a-8cde-4a39922a538d');
+  });
+
+  it('loads fiscal print errors with page size 3 when locale is Romanian', () => {
+    TestBed.inject(TranslocoService).setActiveLang('ro');
+    component.loadFiscalPrintErrors();
+    expect(printJobs.getRecentFiscalPrintErrors).toHaveBeenCalledWith(
+      '019c1a13-db50-763a-8cde-4a39922a538d',
+      3,
+      0,
+    );
+  });
+
+  it('requests next fiscal errors page with skip', () => {
+    TestBed.inject(TranslocoService).setActiveLang('ro');
+    component.fiscalPrintErrorsTotal = 4;
+    component.goToNextFiscalErrorsPage();
+    expect(printJobs.getRecentFiscalPrintErrors).toHaveBeenCalledWith(
+      '019c1a13-db50-763a-8cde-4a39922a538d',
+      3,
+      3,
+    );
   });
 });
 

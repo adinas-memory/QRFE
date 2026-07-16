@@ -226,6 +226,7 @@ export interface ManageOrdersMocks {
   printJobs: {
     listAgentPrinters: jasmine.Spy;
     getDefaultBillPrinter: jasmine.Spy;
+    getDefaultFiscalPrinterForStaff: jasmine.Spy;
     createBillPrintJob: jasmine.Spy;
   };
   deviceFeedback: {
@@ -387,6 +388,13 @@ export function createManageOrdersMocks(options: SetupManageOrdersOptions = {}):
     printJobs: {
       listAgentPrinters: jasmine.createSpy('listAgentPrinters').and.returnValue(of([])),
       getDefaultBillPrinter: jasmine.createSpy('getDefaultBillPrinter').and.returnValue(of({ defaultBillPrinterId: '' })),
+      getDefaultFiscalPrinterForStaff: jasmine.createSpy('getDefaultFiscalPrinterForStaff').and.returnValue(
+        of({
+          fiscalPrintingEnabled: false,
+          defaultFiscalPrinterId: null,
+          vatGroupMapping: {},
+        }),
+      ),
       createBillPrintJob: jasmine.createSpy('createBillPrintJob').and.returnValue(of({})),
     },
     deviceFeedback: {
