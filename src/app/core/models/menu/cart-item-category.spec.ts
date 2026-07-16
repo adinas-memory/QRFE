@@ -56,4 +56,21 @@ describe('cart-item-category', () => {
     expect(isBarCartLine(line)).toBe(true);
     expect(isKitchenCartLine(line)).toBe(false);
   });
+
+  it('cartLineFromOrderRaw keeps menuItemVatPercent from menu cache', () => {
+    const byId = menuItemsByIdMap([{
+      menuItemId: 'glupers-id',
+      menuItemName: 'Glupers With Salt',
+      menuItemPriceAmount: 20,
+      category: 'Appetizer',
+      menuItemVatPercent: 19,
+    } as any]);
+    const line = cartLineFromOrderRaw({
+      menuItemId: 'glupers-id',
+      category: 'Appetizer',
+      quantity: 1,
+      orderItemName: 'Glupers With Salt',
+    }, byId);
+    expect(line.item.menuItemVatPercent).toBe(19);
+  });
 });
