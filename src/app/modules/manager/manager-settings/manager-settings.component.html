@@ -351,6 +351,32 @@
                   <div class="text-body-secondary">{{ err.updatedAtUtc | date: 'short' }}</div>
                 </div>
               }
+              @if (fiscalPrintErrorsPageCount > 1) {
+                <div class="d-flex align-items-center justify-content-between gap-2 mt-2">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    [disabled]="!canGoToPreviousFiscalErrorsPage || loadingFiscalPrintErrors"
+                    (click)="goToPreviousFiscalErrorsPage()"
+                  >
+                    {{ 'restaurantSettings.fiscalPrinter.errorsPrev' | transloco }}
+                  </button>
+                  <span class="small text-body-secondary">
+                    {{ 'restaurantSettings.fiscalPrinter.errorsPage' | transloco: {
+                      current: fiscalPrintErrorsPage + 1,
+                      total: fiscalPrintErrorsPageCount
+                    } }}
+                  </span>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    [disabled]="!canGoToNextFiscalErrorsPage || loadingFiscalPrintErrors"
+                    (click)="goToNextFiscalErrorsPage()"
+                  >
+                    {{ 'restaurantSettings.fiscalPrinter.errorsNext' | transloco }}
+                  </button>
+                </div>
+              }
             }
           }
         </c-card-body>

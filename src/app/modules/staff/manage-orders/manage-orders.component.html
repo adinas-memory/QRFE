@@ -322,16 +322,21 @@
           <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
           {{ 'manageOrders.print' | transloco }}
         </button>
-        @if (isRomanianLocale) {
-          <button
-            class="btn btn-outline-primary"
-            (click)="printFiscalReceipt('cash')"
-            [disabled]="selectedItems.length === 0 || !canPrintBill"
-          >
-            <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
-            {{ 'manageOrders.fiscalPrint' | transloco }}
-          </button>
-        }
+        <button
+          class="btn btn-outline-primary"
+          (click)="printFiscalReceipt('cash')"
+          [disabled]="selectedItems.length === 0 || !canPrintBill || !canPrintFiscal"
+        >
+          <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
+          {{ 'manageOrders.fiscalPrint' | transloco }}
+        </button>
+        <button
+          class="btn btn-outline-secondary"
+          (click)="openCashDrawer()"
+          [disabled]="!canOpenCashDrawer"
+        >
+          {{ 'manageOrders.openCashDrawer' | transloco }}
+        </button>
         <button class="btn btn-warning flex-grow-1" (click)="closeOrder()"
           [disabled]="selectedItems.length === 0 || !canBypassOfflineUiGates">
           {{ 'manageOrders.closeOrder' | transloco }} – {{ cartSubTotal | currency: cartCurrency }}

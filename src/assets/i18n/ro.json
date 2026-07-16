@@ -502,6 +502,11 @@
     "fiscalPrintNoPrinterBody": "Nu există imprimantă fiscală configurată.",
     "fiscalPrintErrorTitle": "Bon fiscal",
     "fiscalPrintErrorBody": "Nu s-a putut trimite bonul fiscal la imprimantă.",
+    "openCashDrawer": "Deschide sertar",
+    "openCashDrawerQueuedTitle": "Sertar bani",
+    "openCashDrawerQueuedBody": "Comanda de deschidere sertar a fost trimisă.",
+    "openCashDrawerErrorTitle": "Sertar bani",
+    "openCashDrawerErrorBody": "Nu s-a putut deschide sertarul.",
     "printQueuedTitle": "Notă de plată",
     "printQueuedBody": "Nota de plată a fost trimisă la imprimantă.",
     "printNoPrinterTitle": "Notă de plată",
@@ -1051,7 +1056,10 @@
       "mismatchWarning": "Imprimanta fiscală salvată ({{id}}) nu este raportată ca FiscalNet de agent.",
       "errorsTitle": "Ultimele erori bon fiscal",
       "errorsLoading": "Se încarcă erorile…",
-      "errorsEmpty": "Nu există erori recente de printare fiscală."
+      "errorsEmpty": "Nu există erori recente de printare fiscală.",
+      "errorsPrev": "Înapoi",
+      "errorsNext": "Înainte",
+      "errorsPage": "Pagina {{current}} / {{total}}"
     },
     "offlinePrimaryStaff": {
       "title": "Configurare dispozitiv offline implicit",

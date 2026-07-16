@@ -33,6 +33,11 @@ export interface LocalFiscalPrintPayload {
   }>;
 }
 
+export interface LocalFiscalCommandPayload {
+  type: 'fiscal-command';
+  command: 'open-drawer';
+}
+
 @Injectable({ providedIn: 'root' })
 export class OfflinePrintService {
   private readonly context = inject(OfflinePrintContextService);
@@ -53,10 +58,18 @@ export class OfflinePrintService {
     await this.postLocalPrintJob(args.restaurantId, args.printerId, args.payload);
   }
 
+  async printFiscalCommandSync(args: {
+    restaurantId: string;
+    printerId: string;
+    payload: LocalFiscalCommandPayload;
+  }): Promise<void> {
+    await this.postLocalPrintJob(args.restaurantId, args.printerId, args.payload);
+  }
+
   private async postLocalPrintJob(
     restaurantId: string,
     printerId: string,
-    payload: LocalBillPrintPayload | LocalFiscalPrintPayload,
+    payload: LocalBillPrintPayload | LocalFiscalPrintPayload | LocalFiscalCommandPayload,
   ): Promise<void> {
     const baseUrl = this.context.getAgentLocalBaseUrl()?.replace(/\/$/, '');
     if (!baseUrl) {
