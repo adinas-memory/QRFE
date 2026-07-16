@@ -1048,7 +1048,8 @@ describe('ManageOrdersComponent', () => {
     });
 
     it('confirmOrder prints to ESC/POS when fiscal and non-fiscal printers are configured', async () => {
-      const { component, mocks } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
+      const { component, mocks } = await setupManageOrdersComponent();
+      await new Promise(resolve => setTimeout(resolve, 0));
       setRestaurantId(component);
       component.currentTableId = TABLE_A;
       component.tableCarts[TABLE_A] = [{ item: createMenuItem({ menuItemName: 'Soup', category: MenuItemCategory.Appetizer }), quantity: 1 }];
@@ -1062,19 +1063,25 @@ describe('ManageOrdersComponent', () => {
       Object.defineProperty(document, 'hidden', { configurable: true, value: false });
 
       await component.confirmOrder();
+      expect(mocks.printJobs.createBillPrintJob).not.toHaveBeenCalled();
+
+      mocks.queueProcessor.orderConfirmed$.next({ tableId: TABLE_A, orderId: '019f6c5c-4928-7e2e-9d9a-8b2484b603b1' });
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       expect(mocks.printJobs.createBillPrintJob).toHaveBeenCalledWith(
         TEST_RESTAURANT_ID,
         'escpos-1',
         jasmine.objectContaining({
           type: 'bill',
+          orderId: '019f6c5c-4928-7e2e-9d9a-8b2484b603b1',
           items: [{ name: 'Soup', quantity: 1, unitPrice: 25 }],
         }),
       );
     });
 
     it('confirmOrder ESC/POS print includes only kitchen lines from mixed cart', async () => {
-      const { component, mocks } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
+      const { component, mocks } = await setupManageOrdersComponent();
+      await new Promise(resolve => setTimeout(resolve, 0));
       setRestaurantId(component);
       component.currentTableId = TABLE_A;
       component.tableCarts[TABLE_A] = [
@@ -1091,12 +1098,15 @@ describe('ManageOrdersComponent', () => {
       Object.defineProperty(document, 'hidden', { configurable: true, value: false });
 
       await component.confirmOrder();
+      mocks.queueProcessor.orderConfirmed$.next({ tableId: TABLE_A, orderId: '019f6c5c-4928-7e2e-9d9a-8b2484b603b1' });
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       expect(mocks.printJobs.createBillPrintJob).toHaveBeenCalledWith(
         TEST_RESTAURANT_ID,
         'escpos-1',
         jasmine.objectContaining({
           type: 'bill',
+          orderId: '019f6c5c-4928-7e2e-9d9a-8b2484b603b1',
           subTotal: 25,
           finalTotal: 25,
           items: [{ name: 'Soup', quantity: 1, unitPrice: 25 }],
@@ -1105,7 +1115,8 @@ describe('ManageOrdersComponent', () => {
     });
 
     it('confirmOrder skips ESC/POS print when cart has only bar lines', async () => {
-      const { component, mocks } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
+      const { component, mocks } = await setupManageOrdersComponent();
+      await new Promise(resolve => setTimeout(resolve, 0));
       setRestaurantId(component);
       component.currentTableId = TABLE_A;
       component.tableCarts[TABLE_A] = [
@@ -1121,6 +1132,8 @@ describe('ManageOrdersComponent', () => {
       Object.defineProperty(document, 'hidden', { configurable: true, value: false });
 
       await component.confirmOrder();
+      mocks.queueProcessor.orderConfirmed$.next({ tableId: TABLE_A, orderId: '019f6c5c-4928-7e2e-9d9a-8b2484b603b1' });
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       expect(mocks.printJobs.createBillPrintJob).not.toHaveBeenCalled();
     });

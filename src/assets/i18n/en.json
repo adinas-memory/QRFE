@@ -510,6 +510,10 @@
     "openCashDrawerErrorBody": "Could not open the cash drawer.",
     "printQueuedTitle": "Bill",
     "printQueuedBody": "Bill print job queued.",
+    "printKitchenQueuedTitle": "Kitchen",
+    "printKitchenQueuedBody": "Order ticket sent to the kitchen printer.",
+    "printKitchenOfflineSuccessTitle": "Kitchen",
+    "printKitchenOfflineSuccessBody": "Order ticket sent to the kitchen printer.",
     "printNoPrinterTitle": "Bill",
     "printNoPrinterBody": "No printer configured/reported by Printer Agent.",
     "printErrorTitle": "Bill",
@@ -1022,15 +1026,15 @@
       "toastGeneratedBody": "Copy the code now; it cannot be retrieved later."
     },
     "billPrinter": {
-      "title": "Bill (non-fiscal) — default printer",
-      "hint": "Choose the printer used for non-fiscal bills. Printers are reported by the Printer Agent via heartbeat.",
+      "title": "Non-fiscal / kitchen printer",
+      "hint": "Choose the ESC/POS printer used for kitchen order tickets (non-fiscal). Printers are reported by the Printer Agent via heartbeat.",
       "loading": "Loading printers…",
       "noPrinters": "No printers reported. Start the Printer Agent and verify heartbeat.",
       "label": "Printer",
       "save": "Save",
       "saving": "Saving…",
       "toastSavedTitle": "Settings saved",
-      "toastSavedBody": "Default bill printer updated.",
+      "toastSavedBody": "Non-fiscal / kitchen printer updated.",
       "toastErrorTitle": "Could not save printer",
       "toastErrorBody": "Please try again.",
       "pendingPrinterName": "Saved printer (pending agent heartbeat)",
@@ -1109,7 +1113,7 @@
         "step5": "Press the Windows key, search for “URS Printer Agent Configurator”, and open the app.",
         "step6": "Paste the enrollment code, confirm you understand the network will be scanned, select the printer IP found on the network, and click Next.",
         "step7": "Name the main printer (for example bill-printer), then Save and close the Configurator.",
-        "step8": "Back in Settings under Bill (non-fiscal) — default printer, wait up to about 30 seconds for the printer to appear in the list, select it, and click Save."
+        "step8": "Back in Settings under Non-fiscal / kitchen printer, wait up to about 30 seconds for the printer to appear in the list, select it, and click Save."
       },
       "printerAgentReconnectAfterNetwork": {
         "q": "Bill printing or the Printer Agent stopped working after Wi‑Fi or a hotspot dropped. Do I need to reboot the PC?",

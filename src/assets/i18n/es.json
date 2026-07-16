@@ -867,15 +867,15 @@
       "toastGeneratedBody": "Copia el código ahora; no podrá recuperarse después."
     },
     "billPrinter": {
-      "title": "Cuenta (no fiscal) — impresora predeterminada",
-      "hint": "Elige la impresora para cuentas no fiscales. Las impresoras las informa el Printer Agent mediante heartbeat.",
+      "title": "Impresora no fiscal / cocina",
+      "hint": "Elige la impresora ESC/POS para pedidos de cocina (no fiscal). Las impresoras las informa el Printer Agent mediante heartbeat.",
       "loading": "Cargando impresoras…",
       "noPrinters": "No hay impresoras informadas. Inicia el Printer Agent y verifica el heartbeat.",
       "label": "Impresora",
       "save": "Guardar",
       "saving": "Guardando…",
       "toastSavedTitle": "Ajustes guardados",
-      "toastSavedBody": "Impresora predeterminada de cuenta actualizada.",
+      "toastSavedBody": "Impresora no fiscal / cocina actualizada.",
       "toastErrorTitle": "No se pudo guardar la impresora",
       "toastErrorBody": "Inténtalo de nuevo.",
       "pendingPrinterName": "Impresora guardada (pendiente de heartbeat del agent)",
