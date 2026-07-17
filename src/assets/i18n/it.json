@@ -1006,7 +1006,7 @@
       "fiscalAndEscposPrintRouting": {
         "q": "Come vengono instradate le stampe quando ho sia una stampante fiscale sia ESC/POS?",
         "a": "Con fiscal attivo e due stampanti: Conferma stampa solo cucina su ESC/POS; Stampa stampa l’intero carrello sulla fiscale; Scontrino fiscale stampa l’intero carrello con IVA sulla fiscale.",
-        "aIntro": "Quando la stampa fiscale è attiva (FiscalNet o un’altra stampante fiscale collegata tramite Printer Agent) e c’è anche una stampante ESC/POS separata per il conto, i pulsanti inviano lavori diversi:",
+        "aIntro": "Quando la stampa fiscale è attiva (FiscalNet, Epson UPOS o un’altra stampante fiscale collegata tramite Printer Agent) e c’è anche una stampante ESC/POS separata per il conto, i pulsanti inviano lavori diversi:",
         "tableAction": "Azione",
         "tablePrinter": "Stampante",
         "tablePrints": "Cosa stampa",
@@ -1018,12 +1018,12 @@
           },
           "print": {
             "action": "Stampa",
-            "printer": "FiscalNet o altra stampante fiscale (se fiscal attivo)",
+            "printer": "FiscalNet, Epson (UPOS) o altra stampante fiscale (se fiscal attivo)",
             "prints": "Carrello completo"
           },
           "fiscalReceipt": {
             "action": "Scontrino fiscale",
-            "printer": "FiscalNet o altra stampante fiscale",
+            "printer": "FiscalNet, Epson (UPOS) o altra stampante fiscale",
             "prints": "Carrello completo + IVA"
           }
         }
