@@ -1,7 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { normalizePrinterAgentPrinter } from '../../print/printer-agent-printer.util';
 
 export interface PrinterAgentPrinterDto {
   id: string;
@@ -65,7 +66,13 @@ export class PrintJobsService {
 
   listAgentPrinters(restaurantId: string): Observable<PrinterAgentPrinterDto[]> {
     const url = `${this.apiUrl}/api/restaurants/${restaurantId}/admin/printer-agent/printers`;
-    return this.http.get<PrinterAgentPrinterDto[]>(url, { withCredentials: true });
+    return this.http.get<unknown[]>(url, { withCredentials: true }).pipe(
+      map(items =>
+        (items ?? [])
+          .map(item => normalizePrinterAgentPrinter(item))
+          .filter((printer): printer is PrinterAgentPrinterDto => printer != null),
+      ),
+    );
   }
 
   listAgentInstallations(restaurantId: string): Observable<PrinterAgentInstallationDto[]> {

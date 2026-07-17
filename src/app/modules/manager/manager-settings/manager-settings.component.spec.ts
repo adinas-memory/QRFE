@@ -200,6 +200,14 @@ describe('ManagerSettingsComponent bill printer', () => {
     expect(component.escPosBillPrinters.map(p => p.id)).toEqual(['kitchen']);
   });
 
+  it('flags agent printers that do not match Italian fiscal filter', () => {
+    TestBed.inject(TranslocoService).setActiveLang('it');
+    component.billPrinters = [
+      { id: 'kitchen', name: 'Kitchen', ipAddress: '192.168.1.21', port: 9100, type: 'escpos' },
+    ];
+    expect(component.hasAgentPrintersWithoutFiscalMatch).toBeTrue();
+  });
+
   it('loads offline primary staff list on init', () => {
     expect(offlinePrimary.listStaff).toHaveBeenCalled();
     expect(offlinePrimary.getPolicy).toHaveBeenCalled();

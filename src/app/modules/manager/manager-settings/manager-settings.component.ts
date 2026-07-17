@@ -36,6 +36,10 @@ import {
   mappingRowsFromRecord,
   recordFromMappingRows,
 } from '../../../core/fiscal/fiscal-vat-group.mapper';
+import {
+  isAnyFiscalPrinter,
+  isFiscalPrinterForLocale,
+} from '../../../core/print/printer-agent-printer.util';
 import type { FiscalPrintErrorDto } from '../../../core/services/print-jobs/print-jobs.service';
 import {
   OfflinePrimaryService,
@@ -213,42 +217,17 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
   }
 
   get fiscalPrinters(): PrinterAgentPrinterDto[] {
-    return this.billPrinters.filter(p => this.isFiscalPrinterForActiveLocale(p));
+    return this.billPrinters.filter(p =>
+      isFiscalPrinterForLocale(p, this.transloco.getActiveLang()),
+    );
   }
 
   get escPosBillPrinters(): PrinterAgentPrinterDto[] {
-    return this.billPrinters.filter(p => !this.isAnyFiscalPrinter(p));
+    return this.billPrinters.filter(p => !isAnyFiscalPrinter(p));
   }
 
-  private isFiscalPrinterForActiveLocale(printer: PrinterAgentPrinterDto): boolean {
-    const lang = this.transloco.getActiveLang();
-    if (lang === 'it') {
-      return this.isEpsonFiscalPrinter(printer);
-    }
-    if (lang === 'ro') {
-      return this.isFiscalNetPrinter(printer);
-    }
-    return false;
-  }
-
-  private isAnyFiscalPrinter(printer: PrinterAgentPrinterDto): boolean {
-    return this.isFiscalNetPrinter(printer) || this.isEpsonFiscalPrinter(printer);
-  }
-
-  private isFiscalNetPrinter(printer: PrinterAgentPrinterDto): boolean {
-    const type = (printer.type ?? 'escpos').toLowerCase();
-    if (type === 'fiscalnet') {
-      return true;
-    }
-    return printer.port === 65400;
-  }
-
-  private isEpsonFiscalPrinter(printer: PrinterAgentPrinterDto): boolean {
-    const type = (printer.type ?? 'escpos').toLowerCase();
-    if (type === 'epson-fiscal') {
-      return true;
-    }
-    return printer.port === 443 || printer.port === 9102;
+  get hasAgentPrintersWithoutFiscalMatch(): boolean {
+    return this.billPrinters.length > 0 && this.fiscalPrinters.length === 0;
   }
 
   get isDefaultFiscalPrinterMismatch(): boolean {

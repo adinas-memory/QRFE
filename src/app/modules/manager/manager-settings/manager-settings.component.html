@@ -285,13 +285,20 @@
                 {{ 'restaurantSettings.fiscalPrinter.enabledLabel' | transloco }}
               </label>
             </div>
+            <p class="text-body-secondary small mb-3">
+              {{ 'restaurantSettings.fiscalPrinter.enabledHint' | transloco }}
+            </p>
             @if (isDefaultFiscalPrinterMismatch) {
               <c-alert color="warning" class="small py-2 mb-3">
                 {{ 'restaurantSettings.fiscalPrinter.mismatchWarning' | transloco: { id: defaultFiscalPrinterId } }}
               </c-alert>
             }
             @if (fiscalPrinters.length === 0 && !defaultFiscalPrinterId) {
-              <p class="text-body-secondary small mb-3">{{ 'restaurantSettings.fiscalPrinter.noPrinters' | transloco }}</p>
+              @if (hasAgentPrintersWithoutFiscalMatch) {
+                <p class="text-warning small mb-3">{{ 'restaurantSettings.fiscalPrinter.noMatchingPrinters' | transloco }}</p>
+              } @else {
+                <p class="text-body-secondary small mb-3">{{ 'restaurantSettings.fiscalPrinter.noPrinters' | transloco }}</p>
+              }
             }
             <div class="mb-3">
               <label cLabel for="fiscalPrinter">{{ 'restaurantSettings.fiscalPrinter.label' | transloco }}</label>
