@@ -882,7 +882,35 @@
       "autoRefreshHint": "L'elenco si aggiorna automaticamente ogni 30 secondi.",
       "autoRefreshFastHint": "Controllo ogni 10 secondi finché l'agent segnala una stampante o la discrepanza dell'id è risolta.",
       "mismatchWarning": "La stampante salvata ({{id}}) non è segnalata dal Printer Agent. I conti non verranno stampati finché non selezioni una stampante dall'elenco e clicchi Salva.",
-      "refresh": "Aggiorna elenco"
+      "refresh": "Aggiorna elenco",
+      "fiscalBillHint": "Stampa fiscale attiva — il pulsante Stampa invia l'intero carrello alla stampante Epson fiscale; la stampante ESC/POS riceve alla Conferma solo gli articoli cucina."
+    },
+    "fiscalPrinter": {
+      "title": "Stampante fiscale Epson",
+      "hint": "Attiva lo scontrino fiscale e scegli la stampante Epson segnalata dal Printer Agent. Configura la stampante con tipo epson-fiscal nell'Agent Configurator (HTTPS sulla stampante, di solito porta 443).",
+      "enabledLabel": "Stampa fiscale attiva",
+      "loading": "Caricamento impostazioni fiscali…",
+      "noPrinters": "Nessuna stampante Epson fiscale segnalata. Configura una stampante epson-fiscal nell'Agent Configurator.",
+      "label": "Stampante fiscale",
+      "vatMappingTitle": "Mappatura IVA % → reparto Epson (1–5)",
+      "vatPercent": "IVA %",
+      "vatGroup": "Reparto",
+      "addVatRow": "Aggiungi riga",
+      "removeVatRow": "Rimuovi",
+      "save": "Salva",
+      "saving": "Salvataggio…",
+      "toastSavedTitle": "Impostazioni fiscali salvate",
+      "toastSavedBody": "Configurazione stampante Epson fiscale aggiornata.",
+      "toastErrorTitle": "Impossibile salvare le impostazioni fiscali",
+      "toastErrorBody": "Riprova.",
+      "pendingPrinterName": "Stampante fiscale salvata (in attesa heartbeat)",
+      "mismatchWarning": "La stampante fiscale salvata ({{id}}) non è segnalata come Epson fiscale dall'agent.",
+      "errorsTitle": "Ultimi errori scontrino fiscale",
+      "errorsLoading": "Caricamento errori…",
+      "errorsEmpty": "Nessun errore recente di stampa fiscale.",
+      "errorsPrev": "Indietro",
+      "errorsNext": "Avanti",
+      "errorsPage": "Pagina {{current}} / {{total}}"
     },
     "offlinePrimaryStaff": {
       "title": "Offline POS staff",
@@ -1006,7 +1034,7 @@
       "fiscalAndEscposPrintRouting": {
         "q": "Come vengono instradate le stampe quando ho sia una stampante fiscale sia ESC/POS?",
         "a": "Con fiscal attivo e due stampanti: Conferma stampa solo cucina su ESC/POS; Stampa stampa l’intero carrello sulla fiscale; Scontrino fiscale stampa l’intero carrello con IVA sulla fiscale.",
-        "aIntro": "Quando la stampa fiscale è attiva (FiscalNet o un’altra stampante fiscale collegata tramite Printer Agent) e c’è anche una stampante ESC/POS separata per il conto, i pulsanti inviano lavori diversi:",
+        "aIntro": "Quando la stampa fiscale è attiva (FiscalNet, Epson UPOS o un’altra stampante fiscale collegata tramite Printer Agent) e c’è anche una stampante ESC/POS separata per il conto, i pulsanti inviano lavori diversi:",
         "tableAction": "Azione",
         "tablePrinter": "Stampante",
         "tablePrints": "Cosa stampa",
@@ -1018,12 +1046,12 @@
           },
           "print": {
             "action": "Stampa",
-            "printer": "FiscalNet o altra stampante fiscale (se fiscal attivo)",
+            "printer": "FiscalNet, Epson (UPOS) o altra stampante fiscale (se fiscal attivo)",
             "prints": "Carrello completo"
           },
           "fiscalReceipt": {
             "action": "Scontrino fiscale",
-            "printer": "FiscalNet o altra stampante fiscale",
+            "printer": "FiscalNet, Epson (UPOS) o altra stampante fiscale",
             "prints": "Carrello completo + IVA"
           }
         }

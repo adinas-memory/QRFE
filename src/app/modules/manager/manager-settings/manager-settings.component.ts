@@ -32,7 +32,7 @@ import {
 } from '../../../core/services/print-jobs/print-jobs.service';
 import { resolveFiscalErrorInfo } from '../../../core/fiscal/fiscal-error-catalog';
 import {
-  defaultRomanianVatMapping,
+  defaultFiscalVatMappingForLocale,
   mappingRowsFromRecord,
   recordFromMappingRows,
 } from '../../../core/fiscal/fiscal-vat-group.mapper';
@@ -124,7 +124,7 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
   defaultFiscalPrinterId: string | null = null;
   loadingFiscalSettings = false;
   savingFiscalSettings = false;
-  fiscalVatRows: Array<{ percent: string; group: number }> = mappingRowsFromRecord(defaultRomanianVatMapping());
+  fiscalVatRows: Array<{ percent: string; group: number }> = [];
   fiscalPrintErrors: FiscalPrintErrorDto[] = [];
   fiscalPrintErrorsTotal = 0;
   fiscalPrintErrorsPage = 0;
@@ -207,16 +207,32 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     return !this.escPosBillPrinters.some(p => p.id === id);
   }
 
-  get isRomanianLocale(): boolean {
-    return this.transloco.getActiveLang() === 'ro';
+  get showFiscalPrinterSettings(): boolean {
+    const lang = this.transloco.getActiveLang();
+    return lang === 'ro' || lang === 'it';
   }
 
   get fiscalPrinters(): PrinterAgentPrinterDto[] {
-    return this.billPrinters.filter(p => this.isFiscalNetPrinter(p));
+    return this.billPrinters.filter(p => this.isFiscalPrinterForActiveLocale(p));
   }
 
   get escPosBillPrinters(): PrinterAgentPrinterDto[] {
-    return this.billPrinters.filter(p => !this.isFiscalNetPrinter(p));
+    return this.billPrinters.filter(p => !this.isAnyFiscalPrinter(p));
+  }
+
+  private isFiscalPrinterForActiveLocale(printer: PrinterAgentPrinterDto): boolean {
+    const lang = this.transloco.getActiveLang();
+    if (lang === 'it') {
+      return this.isEpsonFiscalPrinter(printer);
+    }
+    if (lang === 'ro') {
+      return this.isFiscalNetPrinter(printer);
+    }
+    return false;
+  }
+
+  private isAnyFiscalPrinter(printer: PrinterAgentPrinterDto): boolean {
+    return this.isFiscalNetPrinter(printer) || this.isEpsonFiscalPrinter(printer);
   }
 
   private isFiscalNetPrinter(printer: PrinterAgentPrinterDto): boolean {
@@ -225,6 +241,14 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
       return true;
     }
     return printer.port === 65400;
+  }
+
+  private isEpsonFiscalPrinter(printer: PrinterAgentPrinterDto): boolean {
+    const type = (printer.type ?? 'escpos').toLowerCase();
+    if (type === 'epson-fiscal') {
+      return true;
+    }
+    return printer.port === 443 || printer.port === 9102;
   }
 
   get isDefaultFiscalPrinterMismatch(): boolean {
@@ -239,12 +263,13 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     const list = [...this.fiscalPrinters];
     const id = this.defaultFiscalPrinterId;
     if (id && !list.some(p => p.id === id)) {
+      const isItalian = this.transloco.getActiveLang() === 'it';
       list.unshift({
         id,
         name: this.transloco.translate('restaurantSettings.fiscalPrinter.pendingPrinterName'),
         ipAddress: '',
-        port: 65400,
-        type: 'fiscalnet',
+        port: isItalian ? 443 : 65400,
+        type: isItalian ? 'epson-fiscal' : 'fiscalnet',
       });
     }
     return list;
@@ -766,7 +791,7 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
 
   loadFiscalPrintErrors(page = this.fiscalPrintErrorsPage): void {
     const rid = this.restaurantId;
-    if (!rid || !this.isRomanianLocale) {
+    if (!rid || !this.showFiscalPrinterSettings) {
       return;
     }
     this.fiscalPrintErrorsPage = Math.max(0, page);
@@ -823,12 +848,15 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     this.defaultFiscalPrinterId = settings.defaultFiscalPrinterId ?? null;
     const mapping = settings.vatGroupMapping ?? {};
     this.fiscalVatRows = mappingRowsFromRecord(
-      Object.keys(mapping).length > 0 ? mapping : defaultRomanianVatMapping(),
+      Object.keys(mapping).length > 0
+        ? mapping
+        : defaultFiscalVatMappingForLocale(this.transloco.getActiveLang()),
     );
   }
 
   addFiscalVatRow(): void {
-    this.fiscalVatRows = [...this.fiscalVatRows, { percent: '19', group: 1 }];
+    const defaultPercent = this.transloco.getActiveLang() === 'it' ? '22' : '19';
+    this.fiscalVatRows = [...this.fiscalVatRows, { percent: defaultPercent, group: 1 }];
   }
 
   removeFiscalVatRow(index: number): void {
