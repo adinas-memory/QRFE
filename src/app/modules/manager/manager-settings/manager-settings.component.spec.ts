@@ -124,7 +124,7 @@ describe('ManagerSettingsComponent bill printer', () => {
         { provide: OfflinePrimaryService, useValue: offlinePrimary },
         provideTransloco({
           config: {
-            availableLangs: ['en', 'ro'],
+            availableLangs: ['en', 'ro', 'it'],
             defaultLang: 'en',
             fallbackLang: 'en',
             reRenderOnLangChange: true,
@@ -162,6 +162,7 @@ describe('ManagerSettingsComponent bill printer', () => {
   });
 
   it('excludes FiscalNet printers from bill printer dropdown', () => {
+    TestBed.inject(TranslocoService).setActiveLang('ro');
     component.defaultBillPrinterId = null;
     component.billPrinters = [
       { id: 'main-fiscal', name: 'main-fiscal', ipAddress: '192.168.43.237', port: 65400, type: 'escpos' },
@@ -172,11 +173,31 @@ describe('ManagerSettingsComponent bill printer', () => {
   });
 
   it('infers fiscal printer from port 65400 when type is escpos', () => {
+    TestBed.inject(TranslocoService).setActiveLang('ro');
     component.billPrinters = [
       { id: 'main-fiscal', name: 'main-fiscal', ipAddress: '192.168.43.237', port: 65400, type: 'escpos' },
     ];
     expect(component.fiscalPrinters.length).toBe(1);
     expect(component.escPosBillPrinters.length).toBe(0);
+  });
+
+  it('infers Epson fiscal printer from type and port when locale is Italian', () => {
+    TestBed.inject(TranslocoService).setActiveLang('it');
+    component.defaultBillPrinterId = null;
+    component.billPrinters = [
+      { id: 'it-epson', name: 'Epson FP', ipAddress: '192.168.1.20', port: 443, type: 'epson-fiscal' },
+      { id: 'kitchen', name: 'Kitchen', ipAddress: '192.168.1.21', port: 9100, type: 'escpos' },
+    ];
+    expect(component.fiscalPrinters.map(p => p.id)).toEqual(['it-epson']);
+    expect(component.billPrinterOptions.map(p => p.id)).toEqual(['kitchen']);
+  });
+
+  it('excludes Epson fiscal printers from bill printer dropdown', () => {
+    component.billPrinters = [
+      { id: 'it-epson', name: 'Epson FP', ipAddress: '192.168.1.20', port: 443, type: 'epson-fiscal' },
+      { id: 'kitchen', name: 'Kitchen', ipAddress: '192.168.1.21', port: 9100, type: 'escpos' },
+    ];
+    expect(component.escPosBillPrinters.map(p => p.id)).toEqual(['kitchen']);
   });
 
   it('loads offline primary staff list on init', () => {
@@ -194,7 +215,7 @@ describe('ManagerSettingsComponent bill printer', () => {
     );
   });
 
-  it('hides fiscal printer card when locale is not Romanian', () => {
+  it('hides fiscal printer card when locale is neither Romanian nor Italian', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('#fiscal-printer')).toBeNull();
   });
@@ -207,12 +228,31 @@ describe('ManagerSettingsComponent bill printer', () => {
     expect(fixture.nativeElement.querySelector('#fiscal-printer')).not.toBeNull();
   });
 
+  it('shows fiscal printer card when locale is Italian', async () => {
+    const transloco = TestBed.inject(TranslocoService);
+    await transloco.load('it').toPromise();
+    transloco.setActiveLang('it');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#fiscal-printer')).not.toBeNull();
+  });
+
   it('loads fiscal printer settings on init', () => {
     expect(printJobs.getFiscalPrinterSettings).toHaveBeenCalledWith('019c1a13-db50-763a-8cde-4a39922a538d');
   });
 
   it('loads fiscal print errors with page size 3 when locale is Romanian', () => {
     TestBed.inject(TranslocoService).setActiveLang('ro');
+    component.loadFiscalPrintErrors();
+    expect(printJobs.getRecentFiscalPrintErrors).toHaveBeenCalledWith(
+      '019c1a13-db50-763a-8cde-4a39922a538d',
+      3,
+      0,
+    );
+  });
+
+  it('loads fiscal print errors when locale is Italian', () => {
+    printJobs.getRecentFiscalPrintErrors.calls.reset();
+    TestBed.inject(TranslocoService).setActiveLang('it');
     component.loadFiscalPrintErrors();
     expect(printJobs.getRecentFiscalPrintErrors).toHaveBeenCalledWith(
       '019c1a13-db50-763a-8cde-4a39922a538d',

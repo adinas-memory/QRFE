@@ -6,6 +6,13 @@ const DEFAULT_RO_MAPPING: FiscalVatGroupMapping = {
   '5': 3,
 };
 
+const DEFAULT_IT_MAPPING: FiscalVatGroupMapping = {
+  '22': 1,
+  '10': 2,
+  '5': 3,
+  '4': 4,
+};
+
 export function normalizeVatPercentKey(vatPercent: number): string {
   const rounded = Math.round(vatPercent * 100) / 100;
   return Number.isInteger(rounded) ? String(rounded) : rounded.toString();
@@ -25,6 +32,14 @@ export function resolveFiscalVatGroup(
 
 export function defaultRomanianVatMapping(): FiscalVatGroupMapping {
   return { ...DEFAULT_RO_MAPPING };
+}
+
+export function defaultItalianVatMapping(): FiscalVatGroupMapping {
+  return { ...DEFAULT_IT_MAPPING };
+}
+
+export function defaultFiscalVatMappingForLocale(lang: string): FiscalVatGroupMapping {
+  return lang === 'it' ? defaultItalianVatMapping() : defaultRomanianVatMapping();
 }
 
 export function mappingRowsFromRecord(mapping: FiscalVatGroupMapping): Array<{ percent: string; group: number }> {
