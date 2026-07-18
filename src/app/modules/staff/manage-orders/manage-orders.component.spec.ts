@@ -966,6 +966,34 @@ describe('ManageOrdersComponent', () => {
       expect(mocks.printJobs.createBillPrintJob).not.toHaveBeenCalled();
     });
 
+    it('printFiscalReceipt sends card paymentMethod in payload', async () => {
+      const { component, mocks } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
+      setRestaurantId(component);
+      component.currentTableId = TABLE_A;
+      component.currentOrderId = 'order-1';
+      component.tableCarts[TABLE_A] = [{ item: createMenuItem({ menuItemName: 'Pizza' }), quantity: 1 }];
+      component.fiscalStaffConfig.set({
+        fiscalPrintingEnabled: true,
+        defaultFiscalPrinterId: 'main-fiscal',
+        vatGroupMapping: {},
+      });
+      mocks.printJobs.getDefaultFiscalPrinterForStaff.and.returnValue(
+        of({
+          fiscalPrintingEnabled: true,
+          defaultFiscalPrinterId: 'main-fiscal',
+          vatGroupMapping: {},
+        }),
+      );
+
+      await component.printFiscalReceipt('card');
+
+      expect(mocks.printJobs.createBillPrintJob).toHaveBeenCalledWith(
+        TEST_RESTAURANT_ID,
+        'main-fiscal',
+        jasmine.objectContaining({ type: 'fiscal-receipt', paymentMethod: 'card' }),
+      );
+    });
+
     it('openCashDrawer queues fiscal-command payload online', async () => {
       const { component, mocks } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
       setRestaurantId(component);

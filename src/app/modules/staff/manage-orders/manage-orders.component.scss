@@ -156,8 +156,26 @@
   text-overflow: ellipsis;
 }
 
+.cart-actions__close-row {
+  display: flex;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.cart-actions__fiscal-card {
+  flex: 1 1 33.333%;
+  min-width: 0;
+  padding: 0.25rem 0.35rem;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .cart-actions__close {
-  width: 100%;
+  flex: 2 1 66.666%;
+  min-width: 0;
   font-size: 0.875rem;
 }
 

@@ -939,6 +939,7 @@
     "closeOrder": "Bestellung schließen",
     "print": "Drucken",
     "fiscalPrint": "Fiskalbeleg",
+    "fiscalPrintCard": "Karte",
     "fiscalPrintQueuedTitle": "Fiskalbeleg",
     "fiscalPrintQueuedBody": "Fiskalbeleg wurde an den Drucker gesendet.",
     "fiscalPrintNoPrinterTitle": "Fiskalbeleg",
