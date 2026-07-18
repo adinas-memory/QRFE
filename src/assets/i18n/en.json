@@ -497,6 +497,7 @@
     "closeOrder": "Close order",
     "print": "Print",
     "fiscalPrint": "Fiscal receipt",
+    "fiscalPrintCard": "Card receipt",
     "fiscalPrintQueuedTitle": "Fiscal receipt",
     "fiscalPrintQueuedBody": "Fiscal receipt sent to printer.",
     "fiscalPrintNoPrinterTitle": "Fiscal receipt",

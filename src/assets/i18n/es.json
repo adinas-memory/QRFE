@@ -939,6 +939,7 @@
     "closeOrder": "Cerrar pedido",
     "print": "Imprimir",
     "fiscalPrint": "Ticket fiscal",
+    "fiscalPrintCard": "Ticket tarjeta",
     "fiscalPrintQueuedTitle": "Ticket fiscal",
     "fiscalPrintQueuedBody": "El ticket fiscal se envió a la impresora.",
     "fiscalPrintNoPrinterTitle": "Ticket fiscal",

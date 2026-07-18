@@ -969,6 +969,7 @@
     "closeOrder": "Chiudi ordine",
     "print": "Stampa",
     "fiscalPrint": "Scontrino fiscale",
+    "fiscalPrintCard": "Scontrino carta",
     "fiscalPrintQueuedTitle": "Scontrino fiscale",
     "fiscalPrintQueuedBody": "Lo scontrino fiscale è stato inviato alla stampante.",
     "fiscalPrintNoPrinterTitle": "Scontrino fiscale",

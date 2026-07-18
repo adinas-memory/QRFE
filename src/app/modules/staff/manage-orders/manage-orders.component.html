@@ -342,13 +342,23 @@
             {{ 'manageOrders.openCashDrawer' | transloco }}
           </button>
         </div>
-        <button
-          class="btn btn-warning cart-actions__close"
-          (click)="closeOrder()"
-          [disabled]="selectedItems.length === 0 || !canBypassOfflineUiGates"
-        >
-          {{ 'manageOrders.closeOrder' | transloco }} – {{ cartSubTotal | currency: cartCurrency }}
-        </button>
+        <div class="cart-actions__close-row">
+          <button
+            class="btn btn-sm btn-outline-primary cart-actions__fiscal-card"
+            (click)="printFiscalReceipt('card')"
+            [disabled]="selectedItems.length === 0 || !canPrintBill || !canPrintFiscal"
+          >
+            <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
+            {{ 'manageOrders.fiscalPrintCard' | transloco }}
+          </button>
+          <button
+            class="btn btn-warning cart-actions__close"
+            (click)="closeOrder()"
+            [disabled]="selectedItems.length === 0 || !canBypassOfflineUiGates"
+          >
+            {{ 'manageOrders.closeOrder' | transloco }} – {{ cartSubTotal | currency: cartCurrency }}
+          </button>
+        </div>
       </div>
 
     </div>

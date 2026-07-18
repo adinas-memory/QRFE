@@ -939,6 +939,7 @@
     "closeOrder": "Stäng beställning",
     "print": "Skriv ut",
     "fiscalPrint": "Fiskalt kvitto",
+    "fiscalPrintCard": "Kortkvitto",
     "fiscalPrintQueuedTitle": "Fiskalt kvitto",
     "fiscalPrintQueuedBody": "Fiskalt kvitto skickades till skrivaren.",
     "fiscalPrintNoPrinterTitle": "Fiskalt kvitto",

@@ -497,6 +497,7 @@
     "closeOrder": "Închide comanda",
     "print": "Printează",
     "fiscalPrint": "Bon fiscal",
+    "fiscalPrintCard": "Bon card",
     "fiscalPrintQueuedTitle": "Bon fiscal",
     "fiscalPrintQueuedBody": "Bonul fiscal a fost trimis la printare.",
     "fiscalPrintNoPrinterTitle": "Bon fiscal",
