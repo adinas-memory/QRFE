@@ -51,6 +51,8 @@ export class OnlineStateService {
         navOnline: navigator.onLine,
       });
       // #endregion
+      // Bypass cooldown so recovery is not stuck after a recent failed ping.
+      this.lastForcedPingAt = 0;
       void this.confirmConnectivity(true);
     });
 
@@ -81,13 +83,23 @@ export class OnlineStateService {
       return;
     }
     this.supplementalHeartbeatTimer = setInterval(() => {
-      if (!navigator.onLine || !this._isOnline) {
+      // Truly offline (browser): do not flood DNS failures.
+      if (!navigator.onLine) {
         return;
       }
-      if (this.injector.get(SseConnectivityService).isStreamActive()) {
+      // App offline but browser online: keep probing so we can recover (ping-lite-error path).
+      if (this._isOnline && this.injector.get(SseConnectivityService).isStreamActive()) {
         return;
       }
-      void this.confirmConnectivity(false);
+      // #region agent log
+      if (!this._isOnline) {
+        agentDebugLog('E', 'online-state-service.ts:heartbeat', 'recovery probe while app offline', {
+          navOnline: navigator.onLine,
+          appIsOnline: this._isOnline,
+        }, 'post-fix');
+      }
+      // #endregion
+      void this.confirmConnectivity(!this._isOnline);
     }, this.supplementalHeartbeatMs);
   }
 
@@ -134,7 +146,7 @@ export class OnlineStateService {
 
     const now = Date.now();
 
-    if (force && now - this.lastForcedPingAt < this.forcedPingMinIntervalMs) {
+    if (force && this._isOnline && now - this.lastForcedPingAt < this.forcedPingMinIntervalMs) {
       // #region agent log
       agentDebugLog('E', 'online-state-service.ts:confirmConnectivity:cooldown', 'confirmConnectivity skipped by cooldown', {
         force,
