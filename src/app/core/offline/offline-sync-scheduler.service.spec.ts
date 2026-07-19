@@ -27,10 +27,11 @@ describe('OfflineSyncSchedulerService', () => {
   let auth: jasmine.SpyObj<AuthService>;
   let orderSync: jasmine.SpyObj<OrderSyncService>;
   let userSubject: BehaviorSubject<UserContextModel | null>;
-  const delayConfig = { seconds: 54 };
+  /** 540 × 100ms = 54s */
+  const delayConfig = { ticks: 540 };
 
   beforeEach(() => {
-    delayConfig.seconds = 54;
+    delayConfig.ticks = 540;
     online$ = new Subject<boolean>();
     pingOk$ = new Subject<void>();
     onlineState = { isOnline: true, online$: online$.asObservable(), pingOk$: pingOk$.asObservable() };
@@ -42,8 +43,12 @@ describe('OfflineSyncSchedulerService', () => {
     queueProcessor.processQueue.and.returnValue(Promise.resolve());
     queueProcessor.recoverOrphanedCartsPublic.and.returnValue(Promise.resolve());
 
-    offlineDb = jasmine.createSpyObj('OfflineDbService', ['getPendingActionsForRestaurant']);
+    offlineDb = jasmine.createSpyObj('OfflineDbService', [
+      'getPendingActionsForRestaurant',
+      'hasAnyActiveOpenOrdersLocal',
+    ]);
     offlineDb.getPendingActionsForRestaurant.and.returnValue(Promise.resolve([{ id: 'a1' } as never]));
+    offlineDb.hasAnyActiveOpenOrdersLocal.and.returnValue(Promise.resolve(false));
 
     const offlineSyncLock = jasmine.createSpyObj('OfflineSyncLockService', [
       'beginSync',
@@ -87,7 +92,7 @@ describe('OfflineSyncSchedulerService', () => {
         { provide: OfflineQueueProcessor, useValue: queueProcessor },
         { provide: OrderSyncService, useValue: orderSync },
         { provide: OfflineSyncLockService, useValue: offlineSyncLock },
-        { provide: OFFLINE_RECONNECT_DELAY_RESOLVER, useFactory: () => () => delayConfig.seconds },
+        { provide: OFFLINE_RECONNECT_DELAY_RESOLVER, useFactory: () => () => delayConfig.ticks },
       ],
     });
 
@@ -169,7 +174,7 @@ describe('OfflineSyncSchedulerService', () => {
   }));
 
   it('does not reconcile on reconnect for non-primary devices without local pending queue', fakeAsync(() => {
-    delayConfig.seconds = 0;
+    delayConfig.ticks = 0;
     const lock = TestBed.inject(OfflineSyncLockService) as jasmine.SpyObj<OfflineSyncLockService>;
     userSubject.next({
       id: 'u1',
@@ -196,8 +201,9 @@ describe('OfflineSyncSchedulerService', () => {
   }));
 
   it('acquires lock on primary reconnect even without pending queue', fakeAsync(() => {
-    delayConfig.seconds = 0;
+    delayConfig.ticks = 0;
     offlineDb.getPendingActionsForRestaurant.and.returnValue(Promise.resolve([]));
+    offlineDb.hasAnyActiveOpenOrdersLocal.and.returnValue(Promise.resolve(true));
     const lock = TestBed.inject(OfflineSyncLockService) as jasmine.SpyObj<OfflineSyncLockService>;
 
     online$.next(false);
@@ -212,6 +218,7 @@ describe('OfflineSyncSchedulerService', () => {
 
   it('shows centralized countdown on reconnect even without local pending queue', fakeAsync(() => {
     offlineDb.getPendingActionsForRestaurant.and.returnValue(Promise.resolve([]));
+    offlineDb.hasAnyActiveOpenOrdersLocal.and.returnValue(Promise.resolve(true));
     const lock = TestBed.inject(OfflineSyncLockService) as jasmine.SpyObj<OfflineSyncLockService>;
 
     online$.next(false);
@@ -229,8 +236,9 @@ describe('OfflineSyncSchedulerService', () => {
   }));
 
   it('clears sync UI after reconnect when reconcile does not call /api/sync', fakeAsync(() => {
-    delayConfig.seconds = 0;
+    delayConfig.ticks = 0;
     offlineDb.getPendingActionsForRestaurant.and.returnValue(Promise.resolve([]));
+    offlineDb.hasAnyActiveOpenOrdersLocal.and.returnValue(Promise.resolve(true));
     orderSync.reconcileAfterOfflineSync.and.returnValue(Promise.resolve(false));
 
     online$.next(false);
@@ -245,6 +253,7 @@ describe('OfflineSyncSchedulerService', () => {
 
   it('does not dismiss countdown early on ping-lite while countdown is active', fakeAsync(() => {
     offlineDb.getPendingActionsForRestaurant.and.returnValue(Promise.resolve([]));
+    offlineDb.hasAnyActiveOpenOrdersLocal.and.returnValue(Promise.resolve(true));
 
     online$.next(false);
     onlineState.isOnline = true;

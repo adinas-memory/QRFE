@@ -976,7 +976,12 @@
     "offlineSyncCountdown": "La synchronisation commence dans {{seconds}} secondes. Veuillez patienter et ne pas fermer l'application.",
     "offlineSyncInProgress": "Synchronisation des commandes hors ligne avec le serveur. Veuillez patienter…",
     "offlineSyncReconciling": "Mise à jour de l'état des tables depuis le serveur. Veuillez patienter…",
-    "nonPrimaryOfflineHint": "Hors ligne : vous ne pouvez modifier que la commande ouverte sur cet appareil."
+    "nonPrimaryOfflineHint": "Hors ligne : vous ne pouvez modifier que la commande ouverte sur cet appareil.",
+    "printKitchen": "Impression cuisine",
+    "printKitchenQueuedTitle": "Cuisine",
+    "printKitchenQueuedBody": "Commande envoyée à l'imprimante cuisine.",
+    "printKitchenOfflineSuccessTitle": "Cuisine",
+    "printKitchenOfflineSuccessBody": "Commande envoyée à l'imprimante cuisine."
   },
   "faq": {
     "navLink": "FAQ",

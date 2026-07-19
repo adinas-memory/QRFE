@@ -162,7 +162,7 @@
   min-width: 0;
 }
 
-.cart-actions__fiscal-card {
+.cart-actions__kitchen {
   flex: 1 1 33.333%;
   min-width: 0;
   padding: 0.25rem 0.35rem;
@@ -175,6 +175,12 @@
 
 .cart-actions__close {
   flex: 2 1 66.666%;
+  min-width: 0;
+  font-size: 0.875rem;
+}
+
+.cart-actions__close--full {
+  flex: 1 1 100%;
   min-width: 0;
   font-size: 0.875rem;
 }

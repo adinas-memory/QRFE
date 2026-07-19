@@ -531,7 +531,8 @@
     "offlineSyncCountdown": "Sincronizarea începe în {{seconds}} secunde. Te rugăm să aștepți și să nu închizi aplicația.",
     "offlineSyncInProgress": "Se sincronizează comenzile offline cu serverul. Te rugăm să aștepți…",
     "offlineSyncReconciling": "Se actualizează starea meselor de pe server. Te rugăm să aștepți…",
-    "nonPrimaryOfflineHint": "Offline: poți edita doar comanda deschisă pe acest dispozitiv."
+    "nonPrimaryOfflineHint": "Offline: poți edita doar comanda deschisă pe acest dispozitiv.",
+    "printKitchen": "Printează bucătărie"
   },
   "salesReports": {
     "title": "Rapoarte vânzări și contabilitate",

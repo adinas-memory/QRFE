@@ -2,7 +2,6 @@ import { Injectable, inject, Injector } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { SseConnectivityService } from './sse-connectivity.service';
-import { agentDebugLog } from '../debug/agent-debug-log';
 
 function isCapacitorNative(): boolean {
   if (typeof window === 'undefined') return false;
@@ -45,24 +44,12 @@ export class OnlineStateService {
 
   constructor() {
     window.addEventListener('online', () => {
-      // #region agent log
-      agentDebugLog('E', 'online-state-service.ts:window.online', 'browser online event', {
-        appIsOnline: this._isOnline,
-        navOnline: navigator.onLine,
-      });
-      // #endregion
       // Bypass cooldown so recovery is not stuck after a recent failed ping.
       this.lastForcedPingAt = 0;
       void this.confirmConnectivity(true);
     });
 
     window.addEventListener('offline', () => {
-      // #region agent log
-      agentDebugLog('E', 'online-state-service.ts:window.offline', 'browser offline event — immediate setOffline', {
-        appIsOnline: this._isOnline,
-        navOnline: navigator.onLine,
-      });
-      // #endregion
       // Do not ping while DNS/network is down — that floods DevTools with ERR_NAME_NOT_RESOLVED.
       this.setOffline('browser-offline');
     });
@@ -91,14 +78,6 @@ export class OnlineStateService {
       if (this._isOnline && this.injector.get(SseConnectivityService).isStreamActive()) {
         return;
       }
-      // #region agent log
-      if (!this._isOnline) {
-        agentDebugLog('E', 'online-state-service.ts:heartbeat', 'recovery probe while app offline', {
-          navOnline: navigator.onLine,
-          appIsOnline: this._isOnline,
-        }, 'post-fix');
-      }
-      // #endregion
       void this.confirmConnectivity(!this._isOnline);
     }, this.supplementalHeartbeatMs);
   }
@@ -147,14 +126,6 @@ export class OnlineStateService {
     const now = Date.now();
 
     if (force && this._isOnline && now - this.lastForcedPingAt < this.forcedPingMinIntervalMs) {
-      // #region agent log
-      agentDebugLog('E', 'online-state-service.ts:confirmConnectivity:cooldown', 'confirmConnectivity skipped by cooldown', {
-        force,
-        appIsOnline: this._isOnline,
-        navOnline: navigator.onLine,
-        msSinceLastForce: now - this.lastForcedPingAt,
-      });
-      // #endregion
       return this._isOnline;
     }
 
@@ -185,15 +156,6 @@ export class OnlineStateService {
       const ok = res.ok || res.status < 500;
       const sseConnectivity = this.injector.get(SseConnectivityService);
       const streamActive = sseConnectivity.isStreamActive();
-      // #region agent log
-      agentDebugLog('E', 'online-state-service.ts:executePing', 'ping-lite result', {
-        ok,
-        status: res.status,
-        streamActive,
-        appIsOnline: this._isOnline,
-        navOnline: navigator.onLine,
-      }, 'post-fix');
-      // #endregion
       // Recovery: successful ping must mark online even if SSE flag is stale after abort.
       if (ok && !this._isOnline) {
         this.notifyConnectivityPulse();
@@ -212,14 +174,6 @@ export class OnlineStateService {
       return ok;
     } catch (err) {
       const sseConnectivity = this.injector.get(SseConnectivityService);
-      // #region agent log
-      agentDebugLog('E', 'online-state-service.ts:executePing:catch', 'ping-lite threw', {
-        streamActive: sseConnectivity.isStreamActive(),
-        appIsOnline: this._isOnline,
-        navOnline: navigator.onLine,
-        errName: err instanceof Error ? err.name : 'unknown',
-      }, 'post-fix');
-      // #endregion
       if (!sseConnectivity.isStreamActive()) {
         sseConnectivity.reportPingFailed('ping-lite-error');
       }
@@ -245,23 +199,11 @@ export class OnlineStateService {
     if (!this._isOnline) return;
     this._isOnline = false;
     this.onlineSubject.next(false);
-    // #region agent log
-    agentDebugLog('A', 'online-state-service.ts:setOffline', 'app marked offline', {
-      reason: _reason ?? null,
-      navOnline: navigator.onLine,
-    });
-    // #endregion
   }
 
   setOnline(_reason?: string): void {
     if (this._isOnline) return;
     this._isOnline = true;
     this.onlineSubject.next(true);
-    // #region agent log
-    agentDebugLog('A', 'online-state-service.ts:setOnline', 'app marked online', {
-      reason: _reason ?? null,
-      navOnline: navigator.onLine,
-    });
-    // #endregion
   }
 }
