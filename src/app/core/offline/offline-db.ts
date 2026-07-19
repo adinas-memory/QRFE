@@ -1,7 +1,15 @@
 import { Injectable } from '@angular/core';
 import Dexie, { Table } from 'dexie';
 import { Subject } from 'rxjs';
-import { cartItemFromOrderLine, OrderDTO, OrderItemDTO, TableCart, tableHasActiveOrder } from '../../core/models/orderingModel';
+import {
+  applyOrderCurrencyToCart,
+  cartItemFromOrderLine,
+  OrderDTO,
+  OrderItemDTO,
+  resolveOrderCurrency,
+  TableCart,
+  tableHasActiveOrder,
+} from '../../core/models/orderingModel';
 import { MenuItem } from '../models/menu/menuItem';
 import { Currency, TableDTO } from '../models/restaurantTablesModel';
 export interface MenuItemEntity extends MenuItem { }
@@ -284,16 +292,20 @@ export class OfflineDbService {
         );
         const { menuItems } = await this.loadMenu();
 
-        const items = (order.orderItems ?? [])
-            .filter((o): o is OrderItemDTO => o !== null)
-            .map(o => {
-                const line = cartItemFromOrderLine(o, menuItems);
-                const preservedIcon = previousIcons.get(o.menuItemId);
-                if (preservedIcon && !line.item.menuItemIconUrl) {
-                    line.item.menuItemIconUrl = preservedIcon;
-                }
-                return line;
-            });
+        const orderCurrency = resolveOrderCurrency(order);
+        const items = applyOrderCurrencyToCart(
+            (order.orderItems ?? [])
+                .filter((o): o is OrderItemDTO => o !== null)
+                .map(o => {
+                    const line = cartItemFromOrderLine(o, menuItems, orderCurrency);
+                    const preservedIcon = previousIcons.get(o.menuItemId);
+                    if (preservedIcon && !line.item.menuItemIconUrl) {
+                        line.item.menuItemIconUrl = preservedIcon;
+                    }
+                    return line;
+                }),
+            orderCurrency,
+        );
 
         await this.saveCart(tableId, items, order.orderId);
     }

@@ -65,6 +65,25 @@ export interface FinalTotalPrice {
   // Id, OrderId, Order are ignored in JSON (so not needed here)
 }
 
+/** Same order as Domain.Enums.Currency — used when API serializes currency as a number. */
+export const CURRENCY_CODES_BY_INDEX = [
+  'USD', 'EUR', 'RON', 'GBP', 'SEK', 'NOK', 'DKK', 'JPY', 'CHF', 'AUD', 'CAD', 'CNY', 'INR', 'BRL',
+] as const;
+
+/** Normalize API/menu currency (string, camelCase like rON, or numeric enum index) to ISO code. */
+export function normalizeCurrencyCode(raw: unknown, fallback = ''): string {
+  if (typeof raw === 'string') {
+    const s = raw.trim();
+    if (!s) return fallback;
+    if (/^[A-Za-z]{3}$/.test(s)) return s.toUpperCase();
+    return s.toUpperCase();
+  }
+  if (typeof raw === 'number' && Number.isInteger(raw) && raw >= 0 && raw < CURRENCY_CODES_BY_INDEX.length) {
+    return CURRENCY_CODES_BY_INDEX[raw];
+  }
+  return fallback;
+}
+
 /** Read amount from MoneyDTO-like payloads (camelCase or PascalCase). */
 export function readMoneyAmount(money: unknown): number | undefined {
   if (!money || typeof money !== 'object') return undefined;
@@ -79,10 +98,7 @@ export function readMoneyAmount(money: unknown): number | undefined {
 export function readMoneyCurrency(money: unknown): string {
   if (!money || typeof money !== 'object') return '';
   const rec = money as Record<string, unknown>;
-  const raw = rec['currency'] ?? rec['Currency'];
-  if (typeof raw === 'string') return raw.trim();
-  if (typeof raw === 'number' && Number.isFinite(raw)) return String(raw);
-  return '';
+  return normalizeCurrencyCode(rec['currency'] ?? rec['Currency']);
 }
 
 /**
@@ -99,16 +115,31 @@ export function resolveOrderCurrency(order: OrderDTO | null | undefined): string
     || readMoneyCurrency(rec['FinalTotalPrice']);
   if (fromMoney) return fromMoney;
 
-  const orderCurrency = rec['currency'] ?? rec['Currency'];
-  if (typeof orderCurrency === 'string' && orderCurrency.trim()) return orderCurrency.trim();
+  const fromOrder = normalizeCurrencyCode(rec['currency'] ?? rec['Currency']);
+  if (fromOrder) return fromOrder;
 
   for (const item of order.orderItems ?? []) {
     if (!item) continue;
     const line = item as unknown as Record<string, unknown>;
-    const lineCurrency = line['orderItemPriceCurrency'] ?? line['OrderItemPriceCurrency'];
-    if (typeof lineCurrency === 'string' && lineCurrency.trim()) return lineCurrency.trim();
+    const lineCurrency = normalizeCurrencyCode(
+      line['orderItemPriceCurrency'] ?? line['OrderItemPriceCurrency'],
+    );
+    if (lineCurrency) return lineCurrency;
   }
   return '';
+}
+
+/** Stamp restaurant/order currency onto cart lines (POS is single-currency per order). */
+export function applyOrderCurrencyToCart(cart: CartItem[], orderCurrency: string | null | undefined): CartItem[] {
+  const currency = normalizeCurrencyCode(orderCurrency);
+  if (!currency || !cart.length) return cart;
+  return cart.map(line => ({
+    ...line,
+    item: {
+      ...line.item,
+      menuItemPriceCurrency: currency,
+    },
+  }));
 }
 
 export interface CartItem {
@@ -120,19 +151,27 @@ export interface CartItem {
 /** Build a cart line from persisted order data; optional menu merge enriches icon/availability. */
 export function cartItemFromOrderLine(
   orderItem: OrderItemDTO,
-  menuItems?: Iterable<MenuItem>
+  menuItems?: Iterable<MenuItem>,
+  orderCurrency?: string | null,
 ): CartItem {
   const menuMap = menuItems
     ? Object.fromEntries([...menuItems].map(m => [m.menuItemId.toLowerCase(), m]))
     : {};
   const fromMenu = lookupMenuItem(menuMap, orderItem.menuItemId);
+  const lineRec = orderItem as unknown as Record<string, unknown>;
+  const lineCurrency = normalizeCurrencyCode(
+    orderItem.orderItemPriceCurrency ?? lineRec['OrderItemPriceCurrency'],
+  );
+  const menuCurrency = normalizeCurrencyCode(fromMenu?.menuItemPriceCurrency);
+  const fallbackCurrency = normalizeCurrencyCode(orderCurrency);
 
   const baseItem: MenuItem = {
     menuItemId: orderItem.menuItemId,
     menuItemName: orderItem.orderItemName,
     menuItemDescription: orderItem.orderItemDescription,
     menuItemPriceAmount: orderItem.orderItemPriceAmount ?? fromMenu?.menuItemPriceAmount ?? 0,
-    menuItemPriceCurrency: orderItem.orderItemPriceCurrency ?? fromMenu?.menuItemPriceCurrency,
+    // Order currency wins: line/menu can still say EUR after the restaurant switched to RON.
+    menuItemPriceCurrency: fallbackCurrency || lineCurrency || menuCurrency || undefined,
     menuItemIconUrl: fromMenu?.menuItemIconUrl,
     category: categoryFromOrderLine(orderItem.category, fromMenu),
     isAvailable: fromMenu?.isAvailable,
@@ -225,7 +264,10 @@ function readSseLineNumber(line: OrderUpdatedSseLineItem, camel: string, pascal:
 
 /** Map one SSE order line to OrderItemDTO (PascalCase/camelCase tolerant). */
 export function orderItemDtoFromSseLine(line: OrderUpdatedSseLineItem): OrderItemDTO {
-  const currency = (readSseLineString(line, 'orderItemPriceCurrency', 'OrderItemPriceCurrency') || 'EUR') as Currency;
+  const rec = line as unknown as Record<string, unknown>;
+  const currency = normalizeCurrencyCode(
+    rec['orderItemPriceCurrency'] ?? rec['OrderItemPriceCurrency'],
+  ) as Currency;
   return {
     orderItemId: readSseLineString(line, 'orderItemId', 'OrderItemId') || undefined,
     menuItemId: readSseLineString(line, 'menuItemId', 'MenuItemId'),
@@ -242,8 +284,9 @@ export function orderItemDtoFromSseLine(line: OrderUpdatedSseLineItem): OrderIte
 export function cartItemsFromSseLines(
   lines: OrderUpdatedSseLineItem[] | null | undefined,
   menuItems?: MenuItem[],
+  orderCurrency?: string | null,
 ): CartItem[] {
-  return (lines ?? []).map(line => cartItemFromOrderLine(orderItemDtoFromSseLine(line), menuItems));
+  return (lines ?? []).map(line => cartItemFromOrderLine(orderItemDtoFromSseLine(line), menuItems, orderCurrency));
 }
 
 /** Minimal OrderDTO for local replica from SSE snapshot. */
@@ -253,8 +296,17 @@ export function orderDtoFromSsePayload(
   initiatedBy?: string,
 ): OrderDTO {
   const sub = payload.SubTotal as { Amount?: number; Currency?: string; amount?: number; currency?: string } | null;
-  const currency = (sub?.Currency ?? sub?.currency ?? payload.Items?.[0]?.OrderItemPriceCurrency ?? 'EUR') as Currency;
-  const orderItems = (payload.Items ?? []).map(orderItemDtoFromSseLine);
+  const currency = normalizeCurrencyCode(
+    sub?.Currency ?? sub?.currency ?? payload.Items?.[0]?.OrderItemPriceCurrency,
+    'EUR',
+  ) as Currency;
+  const orderItems = (payload.Items ?? []).map(line => {
+    const item = orderItemDtoFromSseLine(line);
+    if (!item.orderItemPriceCurrency) {
+      item.orderItemPriceCurrency = currency;
+    }
+    return item;
+  });
   return {
     orderId: payload.OrderId,
     tableId,
