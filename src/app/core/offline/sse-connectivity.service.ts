@@ -161,15 +161,23 @@ export class SseConnectivityService {
 
   /** Ping-lite succeeded — only when SSE is not active. */
   reportPingSuccess(): void {
-    if (this.streamOpen) {
+    // Stale streamOpen after offline abort must not block recovery.
+    if (this.streamOpen && this.onlineState.isOnline) {
       return;
     }
+    if (this.streamOpen) {
+      this.streamOpen = false;
+    }
     this.clearOfflineDebounce();
-    this.onlineState.setOnlineFromConnectivitySource();
+    this.onlineState.setOnlineFromConnectivitySource('ping-lite-ok');
   }
 
   private scheduleOffline(reason: string): void {
     if (this.onlineState.isOnline === false && reason === 'stale-watch') {
+      // Already offline: still clear zombie streamOpen so ping-lite can restore online.
+      if (this.streamOpen) {
+        this.streamOpen = false;
+      }
       return;
     }
     const debounceMs = this.offlineDebounceMsFor(reason);

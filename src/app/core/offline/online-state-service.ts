@@ -170,7 +170,7 @@ export class OnlineStateService {
     return this.heartbeatInProgress;
   }
 
-    private async executePing(): Promise<boolean> {
+  private async executePing(): Promise<boolean> {
     const pingUrl = `${this.apiUrl}/api/ping-lite`;
     try {
       const hasAbortTimeout =
@@ -184,7 +184,23 @@ export class OnlineStateService {
       });
       const ok = res.ok || res.status < 500;
       const sseConnectivity = this.injector.get(SseConnectivityService);
-      if (sseConnectivity.isStreamActive()) {
+      const streamActive = sseConnectivity.isStreamActive();
+      // #region agent log
+      agentDebugLog('E', 'online-state-service.ts:executePing', 'ping-lite result', {
+        ok,
+        status: res.status,
+        streamActive,
+        appIsOnline: this._isOnline,
+        navOnline: navigator.onLine,
+      }, 'post-fix');
+      // #endregion
+      // Recovery: successful ping must mark online even if SSE flag is stale after abort.
+      if (ok && !this._isOnline) {
+        this.notifyConnectivityPulse();
+        sseConnectivity.reportPingSuccess();
+        return true;
+      }
+      if (streamActive) {
         return ok;
       }
       if (ok) {
@@ -196,6 +212,14 @@ export class OnlineStateService {
       return ok;
     } catch (err) {
       const sseConnectivity = this.injector.get(SseConnectivityService);
+      // #region agent log
+      agentDebugLog('E', 'online-state-service.ts:executePing:catch', 'ping-lite threw', {
+        streamActive: sseConnectivity.isStreamActive(),
+        appIsOnline: this._isOnline,
+        navOnline: navigator.onLine,
+        errName: err instanceof Error ? err.name : 'unknown',
+      }, 'post-fix');
+      // #endregion
       if (!sseConnectivity.isStreamActive()) {
         sseConnectivity.reportPingFailed('ping-lite-error');
       }

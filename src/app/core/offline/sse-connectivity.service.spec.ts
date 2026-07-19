@@ -139,9 +139,18 @@ describe('SseConnectivityService', () => {
     expect(forceReconnectCount).toBe(1);
   }));
 
+  it('reportPingSuccess marks online when stream flag is stale while app offline', () => {
+    service.reportStreamOpened();
+    Object.defineProperty(onlineState, 'isOnline', { get: () => false, configurable: true });
+    onlineState.setOnlineFromConnectivitySource.calls.reset();
+    service.reportPingSuccess();
+    expect(onlineState.setOnlineFromConnectivitySource).toHaveBeenCalledWith('ping-lite-ok');
+    expect(service.isStreamActive()).toBe(false);
+  });
+
   it('reportPingSuccess marks online when stream is not open', () => {
     service.reportPingSuccess();
-    expect(onlineState.setOnlineFromConnectivitySource).toHaveBeenCalled();
+    expect(onlineState.setOnlineFromConnectivitySource).toHaveBeenCalledWith('ping-lite-ok');
   });
 
   it('reportStreamReconnecting does not mark offline', fakeAsync(() => {
