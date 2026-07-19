@@ -298,7 +298,6 @@ export function orderDtoFromSsePayload(
   const sub = payload.SubTotal as { Amount?: number; Currency?: string; amount?: number; currency?: string } | null;
   const currency = normalizeCurrencyCode(
     sub?.Currency ?? sub?.currency ?? payload.Items?.[0]?.OrderItemPriceCurrency,
-    'EUR',
   ) as Currency;
   const orderItems = (payload.Items ?? []).map(line => {
     const item = orderItemDtoFromSseLine(line);

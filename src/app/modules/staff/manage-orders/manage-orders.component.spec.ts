@@ -4,6 +4,7 @@ import { of, throwError } from 'rxjs';
 import { WaiterCallState } from '../../../core/models/callWaiter/callWaiter';
 import { MenuItemCategory } from '../../../core/models/menu/menuItem';
 import { Currency } from '../../../core/models/restaurantTablesModel';
+import { RestaurantCurrencyService } from '../../../core/offline/restaurant-currency.service';
 import { ManageOrdersComponent } from './manage-orders.component';
 import {
   TABLE_A,
@@ -166,12 +167,13 @@ describe('ManageOrdersComponent', () => {
       expect(component.cartCurrency).toBe('RON');
     });
 
-    it('cartCurrency prefers table total currency over stale EUR on cart lines', () => {
+    it('cartCurrency prefers restaurant operating currency over stale EUR on cart lines', async () => {
+      await TestBed.inject(RestaurantCurrencyService).setFromSync(TEST_RESTAURANT_ID, 'RON');
       component.tableComputed[TABLE_A] = {
         lastActionAt: '',
         lastAddedItem: 'Soup',
         total: 60,
-        currency: 'RON',
+        currency: 'EUR',
         itemCount: 3,
         cssClass: '',
         initiatedBy: '',
@@ -180,9 +182,11 @@ describe('ManageOrdersComponent', () => {
         createCartItem({ quantity: 1 }, { menuItemPriceCurrency: 'EUR' }),
       ];
       expect(component.cartCurrency).toBe('RON');
+      expect(component.operatingCurrency).toBe('RON');
     });
 
-    it('hydrateComputedFromTables keeps currency when subTotal currency is missing after refresh', () => {
+    it('hydrateComputedFromTables uses restaurant currency over stale order EUR', async () => {
+      await TestBed.inject(RestaurantCurrencyService).setFromSync(TEST_RESTAURANT_ID, 'RON');
       seedComponentTables(component, [
         createTable({
           tableId: TABLE_A,
@@ -191,13 +195,13 @@ describe('ManageOrdersComponent', () => {
             orderId: 'order-1',
             createdOn: '2026-01-01T12:00:00.000Z',
             isOrderOpen: true,
-            currency: Currency.RON,
-            subTotal: { amount: 25 } as never,
+            currency: Currency.EUR,
+            subTotal: { amount: 25, currency: Currency.EUR },
             orderItems: [{
               menuItemId: 'm1',
               orderItemName: 'Soup',
               orderItemPriceAmount: 25,
-              orderItemPriceCurrency: Currency.RON,
+              orderItemPriceCurrency: Currency.EUR,
               orderItemDescription: '',
               category: 'Main',
               quantity: 1,
@@ -276,6 +280,18 @@ describe('ManageOrdersComponent', () => {
       expect(mocks.offlineDb.saveCart).toHaveBeenCalled();
       expect(component.tableCarts[TABLE_A]?.length).toBe(1);
       expect(component.tableCarts[TABLE_A]?.[0].quantity).toBe(1);
+    });
+
+    it('addCartItem stamps restaurant currency onto menu lines that still say EUR', async () => {
+      await TestBed.inject(RestaurantCurrencyService).setFromSync(TEST_RESTAURANT_ID, 'RON');
+      mocks.offlineDb.loadCartRecord.and.resolveTo(null);
+      const item = createMenuItem({ menuItemPriceCurrency: 'EUR' });
+
+      await component.addCartItem(item);
+
+      const savedCart = mocks.offlineDb.saveCart.calls.mostRecent().args[1] as Array<{ item: { menuItemPriceCurrency?: string } }>;
+      expect(savedCart[0].item.menuItemPriceCurrency).toBe('RON');
+      expect(component.tableCarts[TABLE_A][0].item.menuItemPriceCurrency).toBe('RON');
     });
 
     it('addCartItem enqueues offline action when order is confirmed', async () => {

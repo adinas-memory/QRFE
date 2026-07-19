@@ -200,7 +200,7 @@
                 {{ displayMenuItemNameInCanvas(item) }}
               </div>
               <div class="text-muted small">
-                {{ item.menuItemPriceAmount | currency:item.menuItemPriceCurrency }}
+                {{ item.menuItemPriceAmount | currency: (operatingCurrency || item.menuItemPriceCurrency) }}
               </div>
             </div>
           </div>
@@ -233,7 +233,7 @@
                       {{ displayMenuItemNameInCanvas(item) }}
                     </div>
                     <div class="text-muted small">
-                      {{ item.menuItemPriceAmount | currency:item.menuItemPriceCurrency }}
+                      {{ item.menuItemPriceAmount | currency: (operatingCurrency || item.menuItemPriceCurrency) }}
                     </div>
                   </div>
                 </div>
@@ -277,7 +277,7 @@
                 × {{ sel.quantity }}
               </td>
               <td class="text-end cart-item-price">
-                {{ sel.item.menuItemPriceAmount * sel.quantity | currency: (cartCurrency || sel.item.menuItemPriceCurrency) }}
+                {{ sel.item.menuItemPriceAmount * sel.quantity | currency: (operatingCurrency || sel.item.menuItemPriceCurrency) }}
               </td>
               <td class="text-end cart-item-actions">
                 <button
@@ -305,7 +305,7 @@
       <div *ngIf="!orderIsConfirmed">
         <button class="btn btn-primary w-100" (click)="confirmOrder()"
           [disabled]="selectedItems.length === 0 || !canBypassOfflineUiGates">
-          {{ 'staff.confirm' | transloco }} – {{ cartSubTotal | currency: cartCurrency }}
+          {{ 'staff.confirm' | transloco }} – {{ cartSubTotal | currency: operatingCurrency }}
         </button>
       </div>
 
@@ -360,7 +360,7 @@
             (click)="closeOrder()"
             [disabled]="selectedItems.length === 0 || !canBypassOfflineUiGates"
           >
-            {{ 'manageOrders.closeOrder' | transloco }} – {{ cartSubTotal | currency: cartCurrency }}
+            {{ 'manageOrders.closeOrder' | transloco }} – {{ cartSubTotal | currency: operatingCurrency }}
           </button>
         </div>
       </div>

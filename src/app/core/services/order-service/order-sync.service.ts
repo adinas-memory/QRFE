@@ -1,5 +1,5 @@
 // order-sync.service.ts
-import { Injectable, NgZone } from '@angular/core';
+import { Injectable, NgZone, inject } from '@angular/core';
 import { BehaviorSubject, Observable, Subject, of, timer, firstValueFrom } from 'rxjs';
 import { take, catchError, filter, map } from 'rxjs/operators';
 import { fetchEventSource, EventStreamContentType } from '@microsoft/fetch-event-source';
@@ -17,6 +17,7 @@ import { OfflinePrintConfigDto } from '../../offline/offline-print-config.model'
 import { OfflinePolicyService } from '../../offline/offline-policy.service';
 import { OfflineSyncLockService } from '../../offline/offline-sync-lock.service';
 import { SseConnectivityService } from '../../offline/sse-connectivity.service';
+import { RestaurantCurrencyService } from '../../offline/restaurant-currency.service';
 import { Capacitor } from '@capacitor/core';
 
 @Injectable({
@@ -67,6 +68,7 @@ export class OrderSyncService {
   private bufferWhileReconnecting = true;
   private eventBuffer: SseEvent<any>[] = [];
   private maxBufferSize = 200;
+  private readonly restaurantCurrency = inject(RestaurantCurrencyService);
 
   private toSseHttpError(status: number, wwwAuthenticate: string | null): Error & { status: number; wwwAuthenticate?: string } {
     const e = new Error(`SSE subscribe failed: HTTP ${status}`) as Error & { status: number; wwwAuthenticate?: string };
@@ -538,6 +540,12 @@ export class OrderSyncService {
 
         const tables = (json?.Tables ?? json?.tables ?? []) as any[];
         const activeGuestWaiterCalls = this.parseActiveGuestWaiterCalls(json);
+        // Set operating currency before snapshot write so Dexie carts stamp RON/EUR correctly.
+        await this.restaurantCurrency.setFromSync(
+          restaurantId,
+          (json as Record<string, unknown>)['Currency']
+          ?? (json as Record<string, unknown>)['currency'],
+        );
         await this.offlineDB.applySyncSnapshot(tables as any);
         await this.applyOfflinePrintConfigFromSync(json, restaurantId);
         this.lastSnapshotRefreshAt = Date.now();

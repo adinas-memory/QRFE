@@ -57,6 +57,7 @@ import { OfflinePrintContextService } from '../../../core/offline/offline-print-
 import { OfflinePrintService } from '../../../core/offline/offline-print.service';
 import { OfflinePrimaryService } from '../../../core/services/offline-primary/offline-primary.service';
 import { OfflineSyncSchedulerService } from '../../../core/offline/offline-sync-scheduler.service';
+import { RestaurantCurrencyService } from '../../../core/offline/restaurant-currency.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { KitchenService } from '../../../core/services/kitchen-service/kitchen.service';
@@ -214,6 +215,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   ) {}
 
   private readonly syncScheduler = inject(OfflineSyncSchedulerService);
+  private readonly restaurantCurrency = inject(RestaurantCurrencyService);
 
   readonly offlineSyncCountdown = toSignal(this.syncScheduler.syncCountdownSeconds$, { initialValue: null });
   /** Display seconds with 0.1 precision (countdown ticks are 100ms). */
@@ -639,17 +641,35 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   get cartCurrency(): string | undefined {
+    return this.operatingCurrency;
+  }
+
+  /** Restaurant operating currency for POS totals, cart lines, and canvas menu prices. */
+  get operatingCurrency(): string | undefined {
     const tableId = this.currentTableId;
-    const fromTotal = this.tableComputed[tableId]?.currency;
-    if (fromTotal && fromTotal !== '—') {
-      return fromTotal;
-    }
     const order = this.tables.find(t => t.tableId === tableId)?.order;
-    const fromOrder = resolveOrderCurrency(order);
-    if (fromOrder) {
-      return fromOrder;
-    }
-    return this.tableCarts[tableId]?.[0]?.item.menuItemPriceCurrency;
+    const resolved = this.restaurantCurrency.resolve(
+      this.tableComputed[tableId]?.currency !== '—'
+        ? this.tableComputed[tableId]?.currency
+        : '',
+      resolveOrderCurrency(order),
+      this.tableCarts[tableId]?.[0]?.item.menuItemPriceCurrency,
+    );
+    return resolved || undefined;
+  }
+
+  /** Operating currency for stamping cart lines / table totals. */
+  private displayCurrency(...fallbacks: Array<string | null | undefined>): string {
+    return this.restaurantCurrency.resolve(...fallbacks);
+  }
+
+  private stampAllCarts(carts: TableCart): TableCart {
+    return Object.fromEntries(
+      Object.entries(carts).map(([tableId, items]) => {
+        const order = this.tables.find(t => t.tableId === tableId)?.order;
+        return [tableId, applyOrderCurrencyToCart(items, this.displayCurrency(resolveOrderCurrency(order)))];
+      }),
+    );
   }
 
   /**
@@ -748,12 +768,17 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     const orderId = record?.orderId ?? null;
     const cart = record?.items ?? [];
 
-    const existing = cart.find(x => x.item.menuItemId === item.menuItemId);
+    const currency = this.displayCurrency();
+    const pricedItem = currency
+      ? { ...item, menuItemPriceCurrency: currency }
+      : item;
+    const existing = cart.find(x => x.item.menuItemId === pricedItem.menuItemId);
     if (existing) existing.quantity++;
-    else cart.push({ item, quantity: 1, orderItemId: undefined });
+    else cart.push({ item: pricedItem, quantity: 1, orderItemId: undefined });
 
-    await this.offlineDB.saveCart(tableId, cart, orderId ?? undefined, false, this.restaurantId);
-    this.tableCarts[tableId] = [...cart];
+    const stamped = applyOrderCurrencyToCart(cart, currency);
+    await this.offlineDB.saveCart(tableId, stamped, orderId ?? undefined, false, this.restaurantId);
+    this.tableCarts[tableId] = [...stamped];
 
     if (!this.orderIsConfirmed) return;
 
@@ -790,7 +815,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       lastActionAt: new Date().toISOString(),
       lastAddedItem: cart.length ? cart[cart.length - 1].item.menuItemName : '—',
       total: cart.reduce((s, c) => s + c.item.menuItemPriceAmount * c.quantity, 0),
-      currency: cart[0]?.item.menuItemPriceCurrency ?? '',
+      currency: this.displayCurrency(cart[0]?.item.menuItemPriceCurrency),
       itemCount: cart.reduce((s, c) => s + c.quantity, 0),
       cssClass: this.miscService.getTableCss(table, this.waiterState),
       initiatedBy: this.resolveInitiatedBy(tableId)
@@ -831,11 +856,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         ?? readMoneyAmount(activeOrder.finalTotalPrice)
         ?? items.reduce((s, i) => s + ((i.orderItemPriceAmount ?? 0) * (i.quantity ?? 0)), 0);
 
-      // After /api/sync refresh, subTotal.currency can be missing while line items still have it.
-      const currency =
-        resolveOrderCurrency(activeOrder)
-        || existing?.currency
-        || '';
+      // Restaurant operating currency wins over stale order/menu EUR after a currency switch.
+      const currency = this.displayCurrency(
+        resolveOrderCurrency(activeOrder),
+        existing?.currency,
+      );
 
       const lastAddedItemFromOrder =
         items.length ? items[items.length - 1].orderItemName : null;
@@ -904,13 +929,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.tables = await this.offlineDB.loadLocalTables();
     this.reconcileTableOccupancyFlags();
     this.refreshTableLists();
-    const loadedCarts = await this.offlineDB.loadAllCarts();
-    this.tableCarts = Object.fromEntries(
-      Object.entries(loadedCarts).map(([tableId, items]) => {
-        const order = this.tables.find(t => t.tableId === tableId)?.order;
-        return [tableId, applyOrderCurrencyToCart(items, resolveOrderCurrency(order))];
-      }),
-    );
+    this.tableCarts = this.stampAllCarts(await this.offlineDB.loadAllCarts());
     this.tablesAvailable = await this.offlineDB.loadTablesStatusMap();
 
     this.applyInitiatedByFromSyncedOrders();
@@ -935,7 +954,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       } else if (record) {
         this.currentOrderId = record.orderId ?? table?.order?.orderId ?? null;
         this.orderIsConfirmed = !!this.currentOrderId || tableHasActiveOrder(table?.order);
-        this.tableCarts[this.currentTableId] = record.items;
+        this.tableCarts[this.currentTableId] = applyOrderCurrencyToCart(
+          record.items,
+          this.displayCurrency(resolveOrderCurrency(table?.order)),
+        );
         if (this.orderIsConfirmed) {
           this.claimPickupTargetForTable(this.currentTableId);
         }
@@ -1216,10 +1238,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.currentOrderId = record.orderId ?? table.order?.orderId ?? null;
       // local-* ids mean offline-confirmed; server order on table covers cross-device SSE lag.
       this.orderIsConfirmed = !!this.currentOrderId || tableHasActiveOrder(table.order);
-      const orderCurrency =
-        resolveOrderCurrency(table.order)
-        || this.tableComputed[tableId]?.currency
-        || '';
+      const orderCurrency = this.displayCurrency(
+        resolveOrderCurrency(table.order),
+        this.tableComputed[tableId]?.currency,
+      );
       this.tableCarts[tableId] = applyOrderCurrencyToCart(record.items, orderCurrency);
       if (this.orderIsConfirmed) {
         this.claimPickupTargetForTable(tableId);
@@ -1249,7 +1271,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.currentOrderId = resolvedOrder.orderId;
       this.orderIsConfirmed = true;
       this.claimPickupTargetForTable(this.currentTableId);
-      const orderCurrency = resolveOrderCurrency(resolvedOrder);
+      const orderCurrency = this.displayCurrency(resolveOrderCurrency(resolvedOrder));
       const record = await this.offlineDB.loadCartRecord(this.currentTableId);
       if (record?.items?.length) {
         const stamped = applyOrderCurrencyToCart(record.items, orderCurrency);
@@ -1376,7 +1398,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.tableName = this.tables.find(t => t.tableId === targetId)?.tableName ?? '';
       this.orderIsConfirmed = true;
       this.currentOrderId = finalOrderId ?? null;
-      this.tableCarts = await this.offlineDB.loadAllCarts();
+      this.tableCarts = this.stampAllCarts(await this.offlineDB.loadAllCarts());
 
       this.ordersService.saveComputed(this.tableComputed);
       this.appToast.success('Order moved successfully.');
@@ -2220,7 +2242,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           || isRemoteMutation
           || (!hasPendingForTable && (qtyMismatch || lineCountMismatch || compositionMismatch));
 
-        const orderCurrency = normalizeCurrencyCode(
+        const orderCurrency = this.displayCurrency(
           (payload.SubTotal as { Currency?: string; currency?: string } | null)?.Currency
           ?? (payload.SubTotal as { currency?: string } | null)?.currency,
         );
@@ -2403,6 +2425,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
             this.waiterState,
             this.resolveInitiatedBy(c.tableId, InitiatedBy) || this.tableComputed[c.tableId]?.initiatedBy?.trim() || '',
           );
+          this.tableComputed[c.tableId].currency = this.displayCurrency(
+            this.tableComputed[c.tableId].currency,
+          );
         }
 
         if (this.initialTablesLoaded) {
@@ -2444,6 +2469,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
             this.tables,
             this.waiterState,
             by
+          );
+          this.tableComputed[c.tableId].currency = this.displayCurrency(
+            this.tableComputed[c.tableId].currency,
           );
           this.rememberInitiatedBy(c.tableId, by);
         }
@@ -2522,6 +2550,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           tables: from(this.tablesService.getAllWithFallback(this.restaurantId)),
           menu: from(this.menuItemService.getAllWithFallback(this.restaurantId))
         }).subscribe(async ({ tables, menu }) => {
+          await this.restaurantCurrency.init(this.restaurantId);
           await this.ordersService.ensureInitiatedByCacheReady();
           this.capturePersistedInitiatedBy();
 
@@ -2540,7 +2569,12 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           this.ordersService.saveComputed(this.tableComputed);
 
           // Sync if SSE onopen has not refreshed recently (snapshotRefreshed$ reloads UI).
-          await this.sseService.refreshRestaurantSnapshot();
+          // Force so Currency from /api/sync is always applied (not skipped by throttle).
+          await this.sseService.refreshRestaurantSnapshot({ force: true });
+          // Re-apply totals/cart currencies now that restaurant operating currency is cached.
+          this.hydrateComputedFromTables();
+          this.applyPersistedInitiatedByToComputed();
+          this.ordersService.saveComputed(this.tableComputed);
 
           const purgedTables = await this.offlineDB.purgeCartsNotInTableIds(
             this.tables.map(t => t.tableId),
@@ -2553,7 +2587,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
             }
           });
 
-          this.tableCarts = await this.offlineDB.loadAllCarts();
+          this.tableCarts = this.stampAllCarts(await this.offlineDB.loadAllCarts());
 
           const savedTableId = localStorage.getItem('currentTableId');
           if (savedTableId) {

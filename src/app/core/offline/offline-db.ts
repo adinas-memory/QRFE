@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import Dexie, { Table } from 'dexie';
 import { Subject } from 'rxjs';
 import {
@@ -12,6 +12,7 @@ import {
 } from '../../core/models/orderingModel';
 import { MenuItem } from '../models/menu/menuItem';
 import { Currency, TableDTO } from '../models/restaurantTablesModel';
+import { RestaurantCurrencyService } from './restaurant-currency.service';
 export interface MenuItemEntity extends MenuItem { }
 
 export interface CartRecord {
@@ -65,6 +66,7 @@ class OfflineDB extends Dexie {
 })
 export class OfflineDbService {
     private db = new OfflineDB();
+    private readonly restaurantCurrency = inject(RestaurantCurrencyService);
 
     // expunem tabelele
     menuItems: Table<MenuItemEntity, string> = this.db.menuItems;
@@ -292,7 +294,7 @@ export class OfflineDbService {
         );
         const { menuItems } = await this.loadMenu();
 
-        const orderCurrency = resolveOrderCurrency(order);
+        const orderCurrency = this.restaurantCurrency.resolve(resolveOrderCurrency(order));
         const items = applyOrderCurrencyToCart(
             (order.orderItems ?? [])
                 .filter((o): o is OrderItemDTO => o !== null)
@@ -416,7 +418,7 @@ export class OfflineDbService {
             tableId,
             createdOn: new Date().toISOString(), // fallback
             isOrderOpen: true,
-            currency: (record.items[0]?.item.menuItemPriceCurrency ?? 'EUR') as Currency,
+            currency: (record.items[0]?.item.menuItemPriceCurrency ?? '') as Currency,
 
             orderItems: record.items.map(i => ({
                 orderItemId: i.orderItemId,
