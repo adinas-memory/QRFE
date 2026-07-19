@@ -95,6 +95,16 @@ export class OrderSyncService {
       if (!sse) return;
       if (msg?.sourceTabId && msg.sourceTabId === this.tabId) return; // ignore own echoes
       this.ngZone.run(() => {
+        if (sse.EventType === 'RestaurantSyncLocked') {
+          this.offlineSyncLock.setRestaurantSyncLocked(true);
+          return;
+        }
+        if (sse.EventType === 'RestaurantSyncUnlocked') {
+          this.offlineSyncLock.setRestaurantSyncLocked(false);
+          this.offlineSyncLock.setSecondaryAwaitingPrimaryReconnect(false);
+          void this.refreshRestaurantSnapshot({ force: true });
+          return;
+        }
         this.noteDispatchedSequence(sse.Sequence);
         this.eventsSubject.next(sse);
       });
@@ -406,10 +416,29 @@ export class OrderSyncService {
 
           if (EventType === 'RestaurantSyncLocked') {
             this.offlineSyncLock.setRestaurantSyncLocked(true);
-          } else if (EventType === 'RestaurantSyncUnlocked') {
+            // #region agent log
+            agentDebugLog('I', 'order-sync.service.ts:onmessage', 'RestaurantSyncLocked applied', {
+              restaurantId: RestaurantId,
+            }, 'post-fix');
+            // #endregion
+            try {
+              this.bc?.postMessage({ sourceTabId: this.tabId, sse });
+            } catch { /* ignore */ }
+            return;
+          }
+          if (EventType === 'RestaurantSyncUnlocked') {
             this.offlineSyncLock.setRestaurantSyncLocked(false);
             this.offlineSyncLock.setSecondaryAwaitingPrimaryReconnect(false);
             void this.refreshRestaurantSnapshot({ force: true });
+            // #region agent log
+            agentDebugLog('I', 'order-sync.service.ts:onmessage', 'RestaurantSyncUnlocked applied', {
+              restaurantId: RestaurantId,
+            }, 'post-fix');
+            // #endregion
+            try {
+              this.bc?.postMessage({ sourceTabId: this.tabId, sse });
+            } catch { /* ignore */ }
+            return;
           }
 
           if (Sequence && Sequence < this.watermarkSequence) {
