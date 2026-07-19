@@ -977,6 +977,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   /** Bind pickup haptics/FCM to this device while the waiter actively serves the table. */
   private readonly claimPickupInFlight = new Set<string>();
+  /** Avoid re-claim storms from multiple UI/SSE paths within a short window. */
+  private readonly claimPickupCooldownUntil = new Map<string, number>();
+  private static readonly claimPickupCooldownMs = 15_000;
 
   private claimPickupTargetForTable(tableId: string): void {
     const restaurantId = this.restaurantId;
@@ -987,12 +990,16 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       ?? null;
     const isLocalOrder = !!orderId?.startsWith('local-');
     const hasServerOpenOrder = tableHasActiveOrder(table?.order) && !table?.order?.orderId?.startsWith('local-');
+    const cooldownKey = `${tableId}|${orderId ?? ''}`;
+    const cooldownUntil = this.claimPickupCooldownUntil.get(cooldownKey) ?? 0;
+    const inCooldown = Date.now() < cooldownUntil;
     const willSkip =
       !this.onlineStateService.isOnline
       || !tableId
       || !restaurantId
       || isLocalOrder
-      || this.claimPickupInFlight.has(tableId);
+      || this.claimPickupInFlight.has(tableId)
+      || inCooldown;
 
     // #region agent log
     agentDebugLog('A', 'manage-orders.component.ts:claimPickupTargetForTable', 'claimPickup entry', {
@@ -1005,6 +1012,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       navOnline: typeof navigator !== 'undefined' ? navigator.onLine : null,
       willSkip,
       inFlight: this.claimPickupInFlight.has(tableId),
+      inCooldown,
     });
     // #endregion
 
@@ -1018,10 +1026,12 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.claimPickupInFlight.delete(tableId);
+          this.claimPickupCooldownUntil.set(cooldownKey, Date.now() + ManageOrdersComponent.claimPickupCooldownMs);
           // #region agent log
           agentDebugLog('B', 'manage-orders.component.ts:claimPickupTargetForTable:next', 'claimPickup HTTP success', {
             tableId,
             orderId,
+            cooldownMs: ManageOrdersComponent.claimPickupCooldownMs,
           }, 'post-fix');
           // #endregion
         },
