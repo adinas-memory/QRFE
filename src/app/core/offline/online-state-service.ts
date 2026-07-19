@@ -56,12 +56,13 @@ export class OnlineStateService {
 
     window.addEventListener('offline', () => {
       // #region agent log
-      agentDebugLog('E', 'online-state-service.ts:window.offline', 'browser offline event', {
+      agentDebugLog('E', 'online-state-service.ts:window.offline', 'browser offline event — immediate setOffline', {
         appIsOnline: this._isOnline,
         navOnline: navigator.onLine,
       });
       // #endregion
-      void this.confirmConnectivity(true);
+      // Do not ping while DNS/network is down — that floods DevTools with ERR_NAME_NOT_RESOLVED.
+      this.setOffline('browser-offline');
     });
 
     if (!isCapacitorNative()) {
@@ -80,6 +81,9 @@ export class OnlineStateService {
       return;
     }
     this.supplementalHeartbeatTimer = setInterval(() => {
+      if (!navigator.onLine || !this._isOnline) {
+        return;
+      }
       if (this.injector.get(SseConnectivityService).isStreamActive()) {
         return;
       }
@@ -123,6 +127,11 @@ export class OnlineStateService {
 
   /** Bootstrap ping-lite before SSE is connected. Returns true when server responds OK. */
   async confirmConnectivity(force = false): Promise<boolean> {
+    if (!navigator.onLine) {
+      this.setOffline('navigator-offline');
+      return false;
+    }
+
     const now = Date.now();
 
     if (force && now - this.lastForcedPingAt < this.forcedPingMinIntervalMs) {

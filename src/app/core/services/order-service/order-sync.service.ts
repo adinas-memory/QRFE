@@ -18,6 +18,7 @@ import { OfflinePolicyService } from '../../offline/offline-policy.service';
 import { OfflineSyncLockService } from '../../offline/offline-sync-lock.service';
 import { SseConnectivityService } from '../../offline/sse-connectivity.service';
 import { Capacitor } from '@capacitor/core';
+import { agentDebugLog } from '../../debug/agent-debug-log';
 
 @Injectable({
   providedIn: 'root'
@@ -130,6 +131,28 @@ export class OrderSyncService {
           this.reconnectAttempts = 0;
           this.openConnection(rid);
         }
+      });
+
+    // Abort SSE immediately when app goes offline — stops fetchEventSource retry flood.
+    this.onlineStateService.online$
+      .pipe(filter(isOnline => !isOnline))
+      .subscribe(() => {
+        // #region agent log
+        agentDebugLog('H', 'order-sync.service.ts:online$:offline', 'abort SSE on offline', {
+          hadController: !!this.controller,
+          restaurantId: this.connectedRestaurantId ?? this.lastRestaurantId,
+        });
+        // #endregion
+        this.pendingOpenRestaurantId = this.connectedRestaurantId ?? this.lastRestaurantId;
+        this.isRefreshing = false;
+        this.reconnectAttempts = 0;
+        try {
+          this.controller?.abort();
+        } catch {
+          /* ignore */
+        }
+        this.controller = null;
+        this.connectedRestaurantId = null;
       });
 
     // Stale-watch detected a zombie stream — abort and reopen SSE.
@@ -423,6 +446,28 @@ export class OrderSyncService {
         });
       },
       onerror: (err) => {
+        // fetchEventSource retries forever unless onerror throws — stop hard while offline.
+        if (!navigator.onLine || !this.onlineStateService.isOnline) {
+          // #region agent log
+          agentDebugLog('H', 'order-sync.service.ts:onerror', 'SSE error while offline — stop retries', {
+            restaurantId,
+            navOnline: navigator.onLine,
+            appIsOnline: this.onlineStateService.isOnline,
+          });
+          // #endregion
+          this.pendingOpenRestaurantId = restaurantId;
+          this.ngZone.run(() => {
+            try {
+              this.controller?.abort();
+            } catch {
+              /* ignore */
+            }
+            this.controller = null;
+            this.connectedRestaurantId = null;
+          });
+          throw err instanceof Error ? err : new Error(String(err ?? 'SSE offline'));
+        }
+
         // fetchEventSource calls onerror on network/auth issues
         console.error('[SSE][internal] error', err);
         const status = (err as { status?: number })?.status;
@@ -597,8 +642,16 @@ export class OrderSyncService {
     }
     if (this.isRefreshing) return;
 
-    if (!this.onlineStateService.isOnline) {
-      this.scheduleSseReconnect(restaurantId);
+    // Offline: wait for online$ — do not refresh-token or schedule reconnect loops.
+    if (!this.onlineStateService.isOnline || !navigator.onLine) {
+      // #region agent log
+      agentDebugLog('H', 'order-sync.service.ts:handleSseError', 'skip refresh/reconnect while offline', {
+        restaurantId,
+        navOnline: navigator.onLine,
+        appIsOnline: this.onlineStateService.isOnline,
+      });
+      // #endregion
+      this.pendingOpenRestaurantId = restaurantId;
       return;
     }
 
