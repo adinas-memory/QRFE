@@ -1,6 +1,8 @@
 import { Currency } from './restaurantTablesModel';
 import {
+  applyOrderCurrencyToCart,
   cartItemsFromSseLines,
+  normalizeCurrencyCode,
   orderDtoFromSsePayload,
   orderItemDtoFromSseLine,
   OrderDTO,
@@ -92,5 +94,36 @@ describe('orderingModel SSE helpers', () => {
       }],
     };
     expect(resolveOrderCurrency(order)).toBe('EUR');
+  });
+
+  it('normalizeCurrencyCode maps numeric API enums and camelCase codes', () => {
+    expect(normalizeCurrencyCode(2)).toBe('RON');
+    expect(normalizeCurrencyCode('rON')).toBe('RON');
+    expect(normalizeCurrencyCode('eur')).toBe('EUR');
+  });
+
+  it('orderItemDtoFromSseLine maps numeric OrderItemPriceCurrency to RON', () => {
+    const dto = orderItemDtoFromSseLine({
+      ...line,
+      OrderItemPriceCurrency: 2 as unknown as string,
+    });
+    expect(dto.orderItemPriceCurrency).toBe('RON');
+  });
+
+  it('applyOrderCurrencyToCart overwrites stale EUR line currencies', () => {
+    const stamped = applyOrderCurrencyToCart(
+      [{
+        item: {
+          menuItemId: 'm1',
+          menuItemName: 'Soup',
+          menuItemPriceAmount: 10,
+          menuItemPriceCurrency: 'EUR',
+          category: 'Main',
+        },
+        quantity: 1,
+      }],
+      'RON',
+    );
+    expect(stamped[0].item.menuItemPriceCurrency).toBe('RON');
   });
 });

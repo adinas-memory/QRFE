@@ -166,6 +166,22 @@ describe('ManageOrdersComponent', () => {
       expect(component.cartCurrency).toBe('RON');
     });
 
+    it('cartCurrency prefers table total currency over stale EUR on cart lines', () => {
+      component.tableComputed[TABLE_A] = {
+        lastActionAt: '',
+        lastAddedItem: 'Soup',
+        total: 60,
+        currency: 'RON',
+        itemCount: 3,
+        cssClass: '',
+        initiatedBy: '',
+      };
+      component.tableCarts[TABLE_A] = [
+        createCartItem({ quantity: 1 }, { menuItemPriceCurrency: 'EUR' }),
+      ];
+      expect(component.cartCurrency).toBe('RON');
+    });
+
     it('hydrateComputedFromTables keeps currency when subTotal currency is missing after refresh', () => {
       seedComponentTables(component, [
         createTable({

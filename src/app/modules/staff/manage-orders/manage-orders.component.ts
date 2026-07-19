@@ -36,8 +36,10 @@ import {
   TableComputedDTO,
   OrderDTO,
   OrderItemDTO,
+  applyOrderCurrencyToCart,
   cartItemFromOrderLine,
   cartItemsFromSseLines,
+  normalizeCurrencyCode,
   orderDtoFromSsePayload,
   readMoneyAmount,
   readOrderLastInitiatedBy,
@@ -637,7 +639,17 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   get cartCurrency(): string | undefined {
-    return this.tableCarts[this.currentTableId]?.[0]?.item.menuItemPriceCurrency;
+    const tableId = this.currentTableId;
+    const fromTotal = this.tableComputed[tableId]?.currency;
+    if (fromTotal && fromTotal !== '—') {
+      return fromTotal;
+    }
+    const order = this.tables.find(t => t.tableId === tableId)?.order;
+    const fromOrder = resolveOrderCurrency(order);
+    if (fromOrder) {
+      return fromOrder;
+    }
+    return this.tableCarts[tableId]?.[0]?.item.menuItemPriceCurrency;
   }
 
   /**
@@ -892,7 +904,13 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.tables = await this.offlineDB.loadLocalTables();
     this.reconcileTableOccupancyFlags();
     this.refreshTableLists();
-    this.tableCarts = await this.offlineDB.loadAllCarts();
+    const loadedCarts = await this.offlineDB.loadAllCarts();
+    this.tableCarts = Object.fromEntries(
+      Object.entries(loadedCarts).map(([tableId, items]) => {
+        const order = this.tables.find(t => t.tableId === tableId)?.order;
+        return [tableId, applyOrderCurrencyToCart(items, resolveOrderCurrency(order))];
+      }),
+    );
     this.tablesAvailable = await this.offlineDB.loadTablesStatusMap();
 
     this.applyInitiatedByFromSyncedOrders();
@@ -1198,7 +1216,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.currentOrderId = record.orderId ?? table.order?.orderId ?? null;
       // local-* ids mean offline-confirmed; server order on table covers cross-device SSE lag.
       this.orderIsConfirmed = !!this.currentOrderId || tableHasActiveOrder(table.order);
-      this.tableCarts[tableId] = record.items;
+      const orderCurrency =
+        resolveOrderCurrency(table.order)
+        || this.tableComputed[tableId]?.currency
+        || '';
+      this.tableCarts[tableId] = applyOrderCurrencyToCart(record.items, orderCurrency);
       if (this.orderIsConfirmed) {
         this.claimPickupTargetForTable(tableId);
       }
@@ -1227,13 +1249,21 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       this.currentOrderId = resolvedOrder.orderId;
       this.orderIsConfirmed = true;
       this.claimPickupTargetForTable(this.currentTableId);
+      const orderCurrency = resolveOrderCurrency(resolvedOrder);
       const record = await this.offlineDB.loadCartRecord(this.currentTableId);
       if (record?.items?.length) {
-        this.tableCarts[this.currentTableId] = record.items;
+        const stamped = applyOrderCurrencyToCart(record.items, orderCurrency);
+        this.tableCarts[this.currentTableId] = stamped;
+        if (orderCurrency && stamped.some((line, i) => line.item.menuItemPriceCurrency !== record.items[i]?.item.menuItemPriceCurrency)) {
+          await this.offlineDB.saveCart(this.currentTableId, stamped, resolvedOrder.orderId);
+        }
       } else {
-        const hydrated = (resolvedOrder.orderItems ?? [])
-          .filter((o): o is OrderItemDTO => !!o)
-          .map(o => cartItemFromOrderLine(o, this.menuItems));
+        const hydrated = applyOrderCurrencyToCart(
+          (resolvedOrder.orderItems ?? [])
+            .filter((o): o is OrderItemDTO => !!o)
+            .map(o => cartItemFromOrderLine(o, this.menuItems, orderCurrency)),
+          orderCurrency,
+        );
         this.tableCarts[this.currentTableId] = hydrated;
         if (hydrated.length) {
           await this.offlineDB.saveCart(this.currentTableId, hydrated, resolvedOrder.orderId);
@@ -2190,15 +2220,22 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           || isRemoteMutation
           || (!hasPendingForTable && (qtyMismatch || lineCountMismatch || compositionMismatch));
 
+        const orderCurrency = normalizeCurrencyCode(
+          (payload.SubTotal as { Currency?: string; currency?: string } | null)?.Currency
+          ?? (payload.SubTotal as { currency?: string } | null)?.currency,
+        );
         let cart: CartItem[];
         if (shouldFullHydrate) {
           const { menuItems } = await this.offlineDB.loadMenu();
-          cart = cartItemsFromSseLines(payload.Items, menuItems);
+          cart = cartItemsFromSseLines(payload.Items, menuItems, orderCurrency);
         } else {
-          cart = localItems.map(line => ({
-            ...line,
-            item: { ...line.item },
-          }));
+          cart = applyOrderCurrencyToCart(
+            localItems.map(line => ({
+              ...line,
+              item: { ...line.item },
+            })),
+            orderCurrency,
+          );
           for (const sseItem of payload.Items ?? []) {
             const rec = sseItem as unknown as Record<string, unknown>;
             const menuItemId = String(rec['MenuItemId'] ?? rec['menuItemId'] ?? '');

@@ -76,7 +76,7 @@ export function cartLineFromOrderRaw(
       menuItemName: orderName || '—',
       menuItemDescription: String(raw['OrderItemDescription'] ?? raw['orderItemDescription'] ?? ''),
       menuItemPriceAmount: Number(raw['OrderItemPriceAmount'] ?? raw['orderItemPriceAmount'] ?? 0),
-      menuItemPriceCurrency: String(raw['OrderItemPriceCurrency'] ?? raw['orderItemPriceCurrency'] ?? 'EUR'),
+      menuItemPriceCurrency: String(raw['OrderItemPriceCurrency'] ?? raw['orderItemPriceCurrency'] ?? '').trim().toUpperCase() || 'EUR',
       menuItemIconUrl: undefined,
       category: resolvedCategory,
     },

@@ -277,7 +277,7 @@
                 × {{ sel.quantity }}
               </td>
               <td class="text-end cart-item-price">
-                {{ sel.item.menuItemPriceAmount * sel.quantity | currency: sel.item.menuItemPriceCurrency }}
+                {{ sel.item.menuItemPriceAmount * sel.quantity | currency: (cartCurrency || sel.item.menuItemPriceCurrency) }}
               </td>
               <td class="text-end cart-item-actions">
                 <button
