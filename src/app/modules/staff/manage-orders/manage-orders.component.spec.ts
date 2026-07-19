@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { TranslocoService } from '@jsverse/transloco';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { WaiterCallState } from '../../../core/models/callWaiter/callWaiter';
 import { MenuItemCategory } from '../../../core/models/menu/menuItem';
 import { Currency } from '../../../core/models/restaurantTablesModel';
@@ -835,6 +835,82 @@ describe('ManageOrdersComponent', () => {
       expect(component.tableComputed[TABLE_A]?.initiatedBy).toBe('Popescu A.');
       expect(component.tableComputed[TABLE_A]?.itemCount).toBe(0);
       expect(component.canvasVisible).toBeFalse();
+    });
+
+    it('confirmCloseOrder network failures then failed ping queues close and marks offline', async () => {
+      const { component, mocks } = await setupManageOrdersComponent({
+        isOnline: true,
+        isOfflinePrimaryDevice: true,
+        skipNgOnInit: true,
+      });
+      seedComponentTables(component, createDefaultTables());
+      component.currentTableId = TABLE_A;
+      component.currentOrderId = '019f-server-order';
+      component.orderIsConfirmed = true;
+      component.tableCarts[TABLE_A] = [createCartItem()];
+      Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+
+      mocks.ordersService.closeOrder.and.returnValue(throwError(() => ({ status: 0 })));
+      mocks.onlineState.confirmConnectivity.and.resolveTo(false);
+
+      await component.confirmCloseOrder();
+
+      expect(mocks.ordersService.closeOrder).toHaveBeenCalledTimes(3);
+      expect(mocks.onlineState.confirmConnectivity).toHaveBeenCalled();
+      expect(mocks.onlineState.setOffline).toHaveBeenCalled();
+      expect(mocks.offlineDb.addOfflineAction).toHaveBeenCalledWith(
+        jasmine.objectContaining({ type: 'CLOSE_ORDER', tableId: TABLE_A, orderId: '019f-server-order' }),
+      );
+      expect(component.tables.find(t => t.tableId === TABLE_A)?.isTableOpen).toBeTrue();
+      expect(component.canvasVisible).toBeFalse();
+      expect(mocks.queueProcessor.triggerProcessing).not.toHaveBeenCalled();
+    });
+
+    it('confirmCloseOrder does not free table when retries fail but ping succeeds', async () => {
+      const { component, mocks } = await setupManageOrdersComponent({
+        isOnline: true,
+        skipNgOnInit: true,
+      });
+      seedComponentTables(component, [
+        createTable({ tableId: TABLE_A, tableName: 'Table A', isTableOpen: false }),
+        createTable({ tableId: TABLE_B, tableName: 'Table B', isTableOpen: true }),
+      ]);
+      component.currentTableId = TABLE_A;
+      component.currentOrderId = '019f-server-order';
+      component.orderIsConfirmed = true;
+      component.canvasVisible = true;
+      Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+
+      mocks.ordersService.closeOrder.and.returnValue(throwError(() => ({ status: 0 })));
+      mocks.onlineState.confirmConnectivity.and.resolveTo(true);
+
+      await component.confirmCloseOrder();
+
+      expect(mocks.ordersService.closeOrder).toHaveBeenCalledTimes(3);
+      expect(mocks.onlineState.setOffline).not.toHaveBeenCalled();
+      expect(mocks.offlineDb.addOfflineAction).not.toHaveBeenCalled();
+      expect(component.tables.find(t => t.tableId === TABLE_A)?.isTableOpen).toBeFalse();
+      expect(component.canvasVisible).toBeTrue();
+    });
+
+    it('confirmCloseOrder HTTP 500 does not mark offline or queue', async () => {
+      const { component, mocks } = await setupManageOrdersComponent({
+        isOnline: true,
+        skipNgOnInit: true,
+      });
+      seedComponentTables(component, createDefaultTables());
+      component.currentTableId = TABLE_A;
+      component.currentOrderId = '019f-server-order';
+      Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+
+      mocks.ordersService.closeOrder.and.returnValue(throwError(() => ({ status: 500 })));
+
+      await component.confirmCloseOrder();
+
+      expect(mocks.ordersService.closeOrder).toHaveBeenCalledTimes(1);
+      expect(mocks.onlineState.confirmConnectivity).not.toHaveBeenCalled();
+      expect(mocks.onlineState.setOffline).not.toHaveBeenCalled();
+      expect(mocks.offlineDb.addOfflineAction).not.toHaveBeenCalled();
     });
 
     it('isSetMenuActionDisabled blocks semi-offline device while offline', async () => {

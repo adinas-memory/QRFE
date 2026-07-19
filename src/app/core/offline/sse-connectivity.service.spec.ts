@@ -113,7 +113,7 @@ describe('SseConnectivityService', () => {
     expect(onlineState.setOnlineFromConnectivitySource).not.toHaveBeenCalled();
   });
 
-  it('stale-watch on zombie stream reconnects without marking offline', fakeAsync(() => {
+  it('stale-watch on zombie stream forces reconnect without marking offline', fakeAsync(() => {
     TestBed.resetTestingModule();
     const pingOk$ = new Subject<void>();
     const localOnlineState = jasmine.createSpyObj('OnlineStateService', [
@@ -135,8 +135,10 @@ describe('SseConnectivityService', () => {
     localService.forceReconnect$.subscribe(() => forceReconnectCount++);
     localService.reportStreamOpened();
     tick(14_001);
+    // Primary offline detection is mutation-driven; zombie only clears stream + asks for reconnect.
     expect(localOnlineState.setOfflineFromConnectivitySource).not.toHaveBeenCalled();
     expect(forceReconnectCount).toBe(1);
+    expect(localService.isStreamActive()).toBe(false);
   }));
 
   it('reportPingSuccess marks online when stream flag is stale while app offline', () => {

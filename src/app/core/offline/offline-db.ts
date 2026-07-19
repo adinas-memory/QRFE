@@ -484,7 +484,8 @@ export class OfflineDbService {
      * True when Dexie indicates any table has an active open order (from /api/sync snapshot
      * or from locally-merged pending/offline state).
      *
-     * This is intentionally conservative: when in doubt, returns true (so we do not skip sync).
+     * Carts count only when they still have line items — a leftover orderId on an empty cart
+     * is treated as stale and does not block (PWA update / sync gating).
      */
     async hasAnyActiveOpenOrdersLocal(restaurantId: string): Promise<boolean> {
         if (!restaurantId) return true;
@@ -506,16 +507,13 @@ export class OfflineDbService {
             return true;
         }
 
-        // 2) Carts: any non-empty cart or stored orderId means "open work".
-        // Older records may not have restaurantId populated; treat those as relevant (conservative).
+        // 2) Carts with actual items = open work. Ignore orphan orderId on empty carts.
         try {
             const carts = await this.db.carts.toArray();
             for (const c of carts ?? []) {
                 const rid = c?.restaurantId;
                 if (rid && rid !== restaurantId) continue;
-                const hasItems = (c?.items?.length ?? 0) > 0;
-                const hasOrderId = !!(c?.orderId?.trim?.() ?? '');
-                if (hasItems || hasOrderId) {
+                if ((c?.items?.length ?? 0) > 0) {
                     return true;
                 }
             }

@@ -18,7 +18,7 @@ import { TablesService } from '../../../core/services/tables-service/tables.serv
 import { AuthService } from '../../../core/auth/auth.service';
 import { formatStaffDisplayName } from '../../../core/auth/user-display-name';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
-import { filter, Subject, take, takeUntil, debounceTime, forkJoin, from, firstValueFrom, pairwise } from 'rxjs';
+import { filter, Subject, take, takeUntil, debounceTime, forkJoin, from, firstValueFrom, pairwise, timeout, TimeoutError } from 'rxjs';
 import { NgFor, NgIf, NgStyle, CurrencyPipe, DecimalPipe, JsonPipe, NgClass, DatePipe, NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { cilBellExclamation } from '@coreui/icons';
@@ -1422,6 +1422,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   // ─── CLOSE ORDER ──────────────────────────────────────────────────────────────
 
+  private static readonly CLOSE_ORDER_ATTEMPT_TIMEOUT_MS = 2_000;
+  /** Initial attempt + up to 2 retries on network-class failures. */
+  private static readonly CLOSE_ORDER_MAX_ATTEMPTS = 3;
+
   closeOrder() { this.showCloseConfirm = true; }
   cancelCloseOrder() { this.showCloseConfirm = false; }
 
@@ -1449,82 +1453,135 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     }
 
     if (orderId.startsWith('local-') || !this.onlineStateService.isOnline) {
-      await this.offlineDB.addOfflineAction({
-        type: 'CLOSE_ORDER',
-        restaurantId: this.restaurantId,
-        tableId,
-        orderId,
-        payload: {}
-      });
-      const closedBy = this.currentStaffDisplayName();
-      if (closedBy) {
-        this.rememberInitiatedBy(tableId, closedBy);
-      }
-      await this.offlineDB.deleteCart(tableId);
-      this.tableCarts[tableId] = [];
-      this.markTableAsOpen(tableId);
-      await this.offlineDB.upsertTableStatus(tableId, true);
-      this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
-      const freedTable = this.tables.find(t => t.tableId === tableId);
-      this.tableComputed[tableId] = {
-        lastActionAt: new Date().toISOString(),
-        lastAddedItem: '—',
-        total: 0,
-        currency: this.tableComputed[tableId]?.currency ?? '',
-        itemCount: 0,
-        cssClass: this.miscService.getTableCss(freedTable ?? { tableId, isTableOpen: true } as TableDTO, this.waiterState),
-        initiatedBy: closedBy,
-      };
-      this.ordersService.saveComputed(this.tableComputed);
-      void this.offlineDB.saveTables(this.tables);
-      void this.offlineDB.saveTablesStatus(this.tablesAvailable);
-      this.resetCanvasState();
+      await this.applyLocalQueuedClose(tableId, orderId);
       this.closeInFlight = false;
-      await this.refreshLocalSessionTableIds();
-      if (this.onlineStateService.isOnline) {
-        this.queueProcessor.triggerProcessing();
-      }
       return;
     }
 
-    this.ordersService.closeOrder(this.restaurantId, tableId, orderId).subscribe({
-      next: async () => {
-        await this.offlineDB.deleteCart(tableId);
-        delete this.tableComputed[tableId];
-        this.ordersService.saveComputed(this.tableComputed);
-        this.tableCarts[tableId] = [];
-        // If SSE is down, we still need to reflect close immediately (avoid stale red table).
-        this.markTableAsOpen(tableId);
-        await this.offlineDB.upsertTableStatus(tableId, true);
-        this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
-        this.resetCanvasState();
-        this.closeInFlight = false;
-      },
-      error: async (err: { status?: number; message?: string }) => {
-        const status = err?.status ?? null;
-        if (status === 404) {
-          await this.offlineDB.deleteCart(tableId);
-          delete this.tableComputed[tableId];
-          this.ordersService.saveComputed(this.tableComputed);
-          this.tableCarts[tableId] = [];
-          this.markTableAsOpen(tableId);
-          await this.offlineDB.markTableFreedLocally(tableId);
-          this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
-          this.resetCanvasState();
-        } else {
-          await this.offlineDB.addOfflineAction({
-            type: 'CLOSE_ORDER',
-            restaurantId: this.restaurantId,
-            tableId,
-            orderId,
-            payload: {},
-          });
-          this.queueProcessor.triggerProcessing();
+    try {
+      let lastErr: unknown;
+      for (let attempt = 1; attempt <= ManageOrdersComponent.CLOSE_ORDER_MAX_ATTEMPTS; attempt++) {
+        try {
+          await firstValueFrom(
+            this.ordersService.closeOrder(this.restaurantId, tableId, orderId).pipe(
+              timeout(ManageOrdersComponent.CLOSE_ORDER_ATTEMPT_TIMEOUT_MS),
+            ),
+          );
+          await this.applyOnlineCloseSuccess(tableId);
+          return;
+        } catch (err) {
+          lastErr = err;
+          if (!this.isNetworkClassCloseError(err)) {
+            await this.handleNonNetworkCloseError(tableId, orderId, err);
+            return;
+          }
         }
-        console.error('Error closing order:', err);
-        this.closeInFlight = false;
       }
+
+      // Network-class failures exhausted → probe server, then offline queue if unreachable.
+      const reachable = await this.onlineStateService.confirmConnectivity(true);
+      if (!reachable || !this.onlineStateService.isOnline) {
+        if (this.onlineStateService.isOnline) {
+          this.onlineStateService.setOffline('close-order-unreachable');
+        }
+        await this.applyLocalQueuedClose(tableId, orderId);
+        return;
+      }
+
+      console.error('Error closing order after retries; server still reachable', lastErr);
+    } finally {
+      this.closeInFlight = false;
+    }
+  }
+
+  private isNetworkClassCloseError(err: unknown): boolean {
+    if (err instanceof TimeoutError) {
+      return true;
+    }
+    if (err && typeof err === 'object') {
+      const e = err as { status?: number; name?: string; message?: string };
+      if (e.name === 'TimeoutError') {
+        return true;
+      }
+      if (typeof e.status === 'number' && e.status === 0) {
+        return true;
+      }
+      if (typeof e.message === 'string' && /timeout/i.test(e.message)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private async applyOnlineCloseSuccess(tableId: string): Promise<void> {
+    await this.offlineDB.deleteCart(tableId);
+    delete this.tableComputed[tableId];
+    this.ordersService.saveComputed(this.tableComputed);
+    this.tableCarts[tableId] = [];
+    this.markTableAsOpen(tableId);
+    await this.offlineDB.upsertTableStatus(tableId, true);
+    this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+    this.resetCanvasState();
+  }
+
+  /** Queue CLOSE_ORDER in Dexie and free the table immediately (online or offline). */
+  private async applyLocalQueuedClose(tableId: string, orderId: string): Promise<void> {
+    await this.offlineDB.addOfflineAction({
+      type: 'CLOSE_ORDER',
+      restaurantId: this.restaurantId,
+      tableId,
+      orderId,
+      payload: {},
     });
+    const closedBy = this.currentStaffDisplayName();
+    if (closedBy) {
+      this.rememberInitiatedBy(tableId, closedBy);
+    }
+    await this.offlineDB.deleteCart(tableId);
+    this.tableCarts[tableId] = [];
+    this.markTableAsOpen(tableId);
+    await this.offlineDB.upsertTableStatus(tableId, true);
+    this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+    const freedTable = this.tables.find(t => t.tableId === tableId);
+    this.tableComputed[tableId] = {
+      lastActionAt: new Date().toISOString(),
+      lastAddedItem: '—',
+      total: 0,
+      currency: this.tableComputed[tableId]?.currency ?? '',
+      itemCount: 0,
+      cssClass: this.miscService.getTableCss(freedTable ?? { tableId, isTableOpen: true } as TableDTO, this.waiterState),
+      initiatedBy: closedBy,
+    };
+    this.ordersService.saveComputed(this.tableComputed);
+    void this.offlineDB.saveTables(this.tables);
+    void this.offlineDB.saveTablesStatus(this.tablesAvailable);
+    this.resetCanvasState();
+    await this.refreshLocalSessionTableIds();
+    if (this.onlineStateService.isOnline) {
+      this.queueProcessor.triggerProcessing();
+    }
+  }
+
+  private async handleNonNetworkCloseError(
+    tableId: string,
+    orderId: string,
+    err: unknown,
+  ): Promise<void> {
+    const status = err && typeof err === 'object' && 'status' in err
+      ? Number((err as { status?: number }).status)
+      : null;
+    if (status === 404) {
+      // Defensive: unexpected if close is well-formed; treat as already gone.
+      await this.offlineDB.deleteCart(tableId);
+      delete this.tableComputed[tableId];
+      this.ordersService.saveComputed(this.tableComputed);
+      this.tableCarts[tableId] = [];
+      this.markTableAsOpen(tableId);
+      await this.offlineDB.markTableFreedLocally(tableId);
+      this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
+      this.resetCanvasState();
+    }
+    console.error('Error closing order:', err);
   }
 
   private resetCanvasState() {

@@ -190,6 +190,8 @@ export class SseConnectivityService {
       const zombieStream = pulseStale && this.streamOpen;
       const stale = !this.streamOpen || pulseStale;
       if (zombieStream) {
+        // Abort zombie stream without marking offline (mutation-driven offline).
+        // Consumer must not blindly reopen — ping/online first (see forceReconnect$ handler).
         this.streamOpen = false;
         this.forceReconnectSubject.next();
         return;

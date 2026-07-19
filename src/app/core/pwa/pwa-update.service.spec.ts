@@ -55,6 +55,14 @@ describe('PwaUpdateService', () => {
     versionUpdates$.complete();
   });
 
+  function emitVersionReady(): void {
+    versionUpdates$.next({
+      type: 'VERSION_READY',
+      currentVersion: { hash: 'a' },
+      latestVersion: { hash: 'b' },
+    });
+  }
+
   it('start no-ops when SwUpdate is disabled', () => {
     const disabled = TestBed.inject(SwUpdate) as { isEnabled: boolean };
     disabled.isEnabled = false;
@@ -62,31 +70,26 @@ describe('PwaUpdateService', () => {
     expect(checkForUpdate).not.toHaveBeenCalled();
   });
 
-  it('shows modal on VERSION_READY', () => {
-    service.start();
-    versionUpdates$.next({
-      type: 'VERSION_READY',
-      currentVersion: { hash: 'a' },
-      latestVersion: { hash: 'b' },
+  it('silently activates on VERSION_READY when no open orders', async () => {
+    getUserSnapshot.and.returnValue({
+      id: 'u1',
+      role: 'staff',
+      restaurantId: '019f0262-bc46-7efe-ba2c-06af2ee96ff4',
     });
-    expect(service.updateAvailable()).toBeTrue();
-    expect(service.modalVisible()).toBeTrue();
-    expect(service.updateBlocked()).toBeFalse();
-  });
+    hasAnyActiveOpenOrdersLocal.and.resolveTo(false);
 
-  it('dismiss keeps updateAvailable but hides modal', () => {
     service.start();
-    versionUpdates$.next({
-      type: 'VERSION_READY',
-      currentVersion: { hash: 'a' },
-      latestVersion: { hash: 'b' },
-    });
-    service.dismiss();
+    emitVersionReady();
+    await Promise.resolve();
+    await Promise.resolve();
+
     expect(service.updateAvailable()).toBeTrue();
     expect(service.modalVisible()).toBeFalse();
+    expect(activateUpdate).toHaveBeenCalled();
+    expect(reloadSpy).toHaveBeenCalled();
   });
 
-  it('confirmUpdate is blocked when restaurant has open orders', async () => {
+  it('defers silently when restaurant has open orders', async () => {
     getUserSnapshot.and.returnValue({
       id: 'u1',
       role: 'staff',
@@ -95,13 +98,15 @@ describe('PwaUpdateService', () => {
     hasAnyActiveOpenOrdersLocal.and.resolveTo(true);
 
     service.start();
-    await service.confirmUpdate();
+    emitVersionReady();
+    await Promise.resolve();
+    await Promise.resolve();
 
     expect(hasAnyActiveOpenOrdersLocal).toHaveBeenCalledWith(
       '019f0262-bc46-7efe-ba2c-06af2ee96ff4',
     );
     expect(service.updateBlocked()).toBeTrue();
-    expect(service.modalVisible()).toBeTrue();
+    expect(service.modalVisible()).toBeFalse();
     expect(activateUpdate).not.toHaveBeenCalled();
     expect(reloadSpy).not.toHaveBeenCalled();
   });
@@ -113,8 +118,9 @@ describe('PwaUpdateService', () => {
       restaurantId: '019f0262-bc46-7efe-ba2c-06af2ee96ff4',
     });
     hasAnyActiveOpenOrdersLocal.and.resolveTo(false);
-
     service.start();
+    service.updateAvailable.set(true);
+
     await service.confirmUpdate();
 
     expect(activateUpdate).toHaveBeenCalled();
@@ -124,12 +130,22 @@ describe('PwaUpdateService', () => {
 
   it('confirmUpdate allows update when there is no assigned restaurantId', async () => {
     getUserSnapshot.and.returnValue({ id: 'admin', role: 'gadmin', restaurantId: null });
-
     service.start();
+    service.updateAvailable.set(true);
+
     await service.confirmUpdate();
 
     expect(hasAnyActiveOpenOrdersLocal).not.toHaveBeenCalled();
     expect(activateUpdate).toHaveBeenCalled();
     expect(reloadSpy).toHaveBeenCalled();
+  });
+
+  it('dismiss keeps updateAvailable but does not show modal', () => {
+    service.start();
+    service.updateAvailable.set(true);
+    service.modalVisible.set(true);
+    service.dismiss();
+    expect(service.updateAvailable()).toBeTrue();
+    expect(service.modalVisible()).toBeFalse();
   });
 });

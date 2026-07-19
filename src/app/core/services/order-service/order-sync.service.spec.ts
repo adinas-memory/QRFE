@@ -21,6 +21,7 @@ describe('OrderSyncService', () => {
     isOnline: boolean;
     setOffline: jasmine.Spy;
     setOnline: jasmine.Spy;
+    confirmConnectivity: jasmine.Spy;
     online$: Observable<boolean>;
     resumeConnectivityOk$: Observable<void>;
     pingOk$: Observable<void>;
@@ -41,10 +42,12 @@ describe('OrderSyncService', () => {
       'clearUser',
       'isAuthenticated',
       'getUserRestaurantId',
+      'getUserRole',
     ]);
     auth.isAuthenticated.and.returnValue(true);
     auth.refreshUserContext.and.returnValue(of(null));
     auth.getUserRestaurantId.and.returnValue(null);
+    auth.getUserRole.and.returnValue('staff');
 
     syncSchedulerSpy = jasmine.createSpyObj('OfflineSyncSchedulerService', [
       'runWhenAllowed',
@@ -88,6 +91,7 @@ describe('OrderSyncService', () => {
       isOnline: true,
       setOffline: jasmine.createSpy('setOffline'),
       setOnline: jasmine.createSpy('setOnline'),
+      confirmConnectivity: jasmine.createSpy('confirmConnectivity').and.resolveTo(true),
       online$: of(true),
       resumeConnectivityOk$: resumeConnectivityOk$.asObservable(),
       pingOk$: pingOk$.asObservable(),
