@@ -976,38 +976,76 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   /** Bind pickup haptics/FCM to this device while the waiter actively serves the table. */
+  private readonly claimPickupInFlight = new Set<string>();
+
   private claimPickupTargetForTable(tableId: string): void {
+    const restaurantId = this.restaurantId;
+    const table = this.tables.find(t => t.tableId === tableId);
+    const orderId =
+      (this.currentTableId === tableId ? this.currentOrderId : null)
+      ?? table?.order?.orderId
+      ?? null;
+    const isLocalOrder = !!orderId?.startsWith('local-');
+    const hasServerOpenOrder = tableHasActiveOrder(table?.order) && !table?.order?.orderId?.startsWith('local-');
+    const willSkip =
+      !this.onlineStateService.isOnline
+      || !tableId
+      || !restaurantId
+      || isLocalOrder
+      || this.claimPickupInFlight.has(tableId);
+
     // #region agent log
     agentDebugLog('A', 'manage-orders.component.ts:claimPickupTargetForTable', 'claimPickup entry', {
       tableId,
-      restaurantId: this.restaurantId,
+      restaurantId,
+      orderId,
+      isLocalOrder,
+      hasServerOpenOrder,
       appIsOnline: this.onlineStateService.isOnline,
       navOnline: typeof navigator !== 'undefined' ? navigator.onLine : null,
-      willSkip: !this.onlineStateService.isOnline || !tableId || !this.restaurantId,
+      willSkip,
+      inFlight: this.claimPickupInFlight.has(tableId),
     });
     // #endregion
-    if (!this.onlineStateService.isOnline || !tableId || !this.restaurantId) {
+
+    if (willSkip || !restaurantId) {
       return;
     }
-    this.ordersService.claimPickupTarget(this.restaurantId, tableId)
+
+    this.claimPickupInFlight.add(tableId);
+    this.ordersService.claimPickupTarget(restaurantId, tableId)
       .pipe(take(1))
       .subscribe({
+        next: () => {
+          this.claimPickupInFlight.delete(tableId);
+          // #region agent log
+          agentDebugLog('B', 'manage-orders.component.ts:claimPickupTargetForTable:next', 'claimPickup HTTP success', {
+            tableId,
+            orderId,
+          }, 'post-fix');
+          // #endregion
+        },
         error: (err: unknown) => {
+          this.claimPickupInFlight.delete(tableId);
           const status = (err as { status?: number })?.status ?? null;
           const statusText = (err as { statusText?: string })?.statusText ?? null;
           const url = (err as { url?: string })?.url ?? null;
           // #region agent log
           agentDebugLog('B', 'manage-orders.component.ts:claimPickupTargetForTable:error', 'claimPickup HTTP error', {
             tableId,
+            orderId,
+            isLocalOrder,
+            hasServerOpenOrder,
             status,
             statusText,
             url,
             appIsOnline: this.onlineStateService.isOnline,
             navOnline: typeof navigator !== 'undefined' ? navigator.onLine : null,
             willReconcile: status === 404,
-          });
+          }, 'post-fix');
           // #endregion
           if (status === 404) {
+            // Expected when UI is stale / no open order on server — not an ngsw failure.
             void this.reconcileStaleTableWithoutServerOrder(tableId);
           } else {
             console.warn('[ManageOrders] claim pickup target failed', err);
