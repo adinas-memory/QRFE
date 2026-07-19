@@ -160,7 +160,11 @@ export class OrderSyncService {
       const rid = this.connectedRestaurantId ?? this.resolveRestaurantId();
       this.close(false);
       this.reconnectAttempts = 0;
-      if (rid && this.onlineStateService.isOnline) {
+      if (!navigator.onLine || !this.onlineStateService.isOnline) {
+        this.pendingOpenRestaurantId = rid;
+        return;
+      }
+      if (rid) {
         this.openConnection(rid);
       }
     });
