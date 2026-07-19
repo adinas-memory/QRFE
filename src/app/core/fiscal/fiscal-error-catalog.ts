@@ -91,17 +91,37 @@ const CATALOG: Record<string, FiscalErrorInfo> = {
   },
 };
 
-export function resolveFiscalErrorInfo(errorCode: string | null | undefined): FiscalErrorInfo {
+/** i18n-backed Epson / unknown codes (DATECS/FiscalNet stay in CATALOG as RO-specific). */
+const I18N_ERROR_CODES = new Set(['FPMATE_UNREACHABLE']);
+
+export type FiscalErrorTranslate = (key: string, params?: Record<string, unknown>) => string;
+
+export function resolveFiscalErrorInfo(
+  errorCode: string | null | undefined,
+  t: FiscalErrorTranslate,
+): FiscalErrorInfo {
   if (!errorCode?.trim()) {
     return {
-      title: 'Eroare necunoscută la imprimarea bonului fiscal',
-      steps: ['Contactați suportul tehnic cu ora și ID-ul jobului.'],
+      title: t('restaurantSettings.fiscalPrinter.errors.unknownGeneric.title'),
+      steps: [t('restaurantSettings.fiscalPrinter.errors.unknownGeneric.step1')],
     };
   }
 
   const key = errorCode.trim();
-  return CATALOG[key] ?? {
-    title: `Eroare fiscală: ${key}`,
-    steps: ['Consultați documentația producătorului casei de marcat sau contactați service-ul.'],
+  const fromCatalog = CATALOG[key];
+  if (fromCatalog) {
+    return fromCatalog;
+  }
+
+  if (I18N_ERROR_CODES.has(key)) {
+    return {
+      title: t(`restaurantSettings.fiscalPrinter.errors.${key}.title`),
+      steps: [t(`restaurantSettings.fiscalPrinter.errors.${key}.step1`)],
+    };
+  }
+
+  return {
+    title: t('restaurantSettings.fiscalPrinter.errors.unknown.title', { code: key }),
+    steps: [t('restaurantSettings.fiscalPrinter.errors.unknown.step1')],
   };
 }

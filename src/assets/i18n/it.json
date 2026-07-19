@@ -718,6 +718,14 @@
     "bannerPrimary": "OFFLINE — full POS mode (syncs when you reconnect)",
     "bannerLimited": "OFFLINE! Passa al dispositivo configurato per il lavoro offline."
   },
+  "pwa": {
+    "updateTitle": "Aggiornamento disponibile",
+    "updateBody": "È pronta una nuova versione dell'app. Chiudi tutti gli ordini aperti prima di aggiornare, poi tocca Aggiorna ora. La pagina verrà ricaricata.",
+    "updateBlockedOpenOrders": "Aggiornamento bloccato: ci sono ancora ordini aperti. Chiudili prima, poi riprova.",
+    "updateNow": "Aggiorna ora",
+    "later": "Più tardi",
+    "updating": "Aggiornamento…"
+  },
   "kitchen": {
     "title": "Cucina",
     "enableSound": "Attiva audio",
@@ -864,7 +872,12 @@
       "revokeConfirm": "Revocare questo codice? Gli agent già registrati continuano a funzionare.",
       "noCodes": "Nessun codice di registrazione ancora.",
       "toastGeneratedTitle": "Codice creato",
-      "toastGeneratedBody": "Copia il codice ora; non potrà essere recuperato in seguito."
+      "toastGeneratedBody": "Copia il codice ora; non potrà essere recuperato in seguito.",
+      "copy": "Copia",
+      "toastCopiedTitle": "Codice copiato",
+      "toastCopiedBody": "Codice di registrazione copiato negli appunti.",
+      "toastCopyFailedTitle": "Copia non riuscita",
+      "toastCopyFailedBody": "Impossibile copiare il codice. Selezionalo e copialo manualmente."
     },
     "billPrinter": {
       "title": "Stampante non fiscale / cucina",
@@ -912,7 +925,21 @@
       "errorsEmpty": "Nessun errore recente di stampa fiscale.",
       "errorsPrev": "Indietro",
       "errorsNext": "Avanti",
-      "errorsPage": "Pagina {{current}} / {{total}}"
+      "errorsPage": "Pagina {{current}} / {{total}}",
+      "errors": {
+        "FPMATE_UNREACHABLE": {
+          "title": "Stampante fiscale Epson non raggiungibile",
+          "step1": "Verifica che la stampante sia accesa e in rete, che IP/porta in Configurator siano corretti (di solito HTTPS porta 443), poi attendi un nuovo heartbeat dell'agent."
+        },
+        "unknown": {
+          "title": "Errore fiscale: {{code}}",
+          "step1": "Consulta la documentazione del produttore della stampante fiscale o contatta l'assistenza."
+        },
+        "unknownGeneric": {
+          "title": "Errore sconosciuto durante la stampa dello scontrino fiscale",
+          "step1": "Contatta il supporto tecnico indicando ora e ID del job."
+        }
+      }
     },
     "offlinePrimaryStaff": {
       "title": "Offline POS staff",

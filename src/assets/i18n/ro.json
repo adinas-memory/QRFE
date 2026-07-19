@@ -870,6 +870,14 @@
     "bannerLimited": "OFFLINE! Mutați-vă pe dispozitivul configurat pentru lucru OFFLINE.",
     "bannerRestaurantSyncLocked": "SINCRONIZARE OFFLINE ÎN CURS — așteptați până când dispozitivul principal termină sincronizarea comenzilor."
   },
+  "pwa": {
+    "updateTitle": "Actualizare disponibilă",
+    "updateBody": "O versiune nouă a aplicației este gata. Închideți toate comenzile deschise înainte de actualizare, apoi apăsați Actualizează acum. Pagina se va reîncărca.",
+    "updateBlockedOpenOrders": "Actualizare blocată: există încă comenzi deschise. Închideți-le mai întâi, apoi încercați din nou.",
+    "updateNow": "Actualizează acum",
+    "later": "Mai târziu",
+    "updating": "Se actualizează…"
+  },
   "kitchen": {
     "title": "Bucătărie",
     "enableSound": "Activează sunetul",
@@ -1020,7 +1028,12 @@
       "revokeConfirm": "Revoci acest cod? Agenții deja înrolați continuă să funcționeze.",
       "noCodes": "Încă nu există coduri de înrolare.",
       "toastGeneratedTitle": "Cod creat",
-      "toastGeneratedBody": "Copiază codul acum; nu poate fi recuperat ulterior."
+      "toastGeneratedBody": "Copiază codul acum; nu poate fi recuperat ulterior.",
+      "copy": "Copiază",
+      "toastCopiedTitle": "Cod copiat",
+      "toastCopiedBody": "Codul de enrollment a fost copiat în clipboard.",
+      "toastCopyFailedTitle": "Copiere eșuată",
+      "toastCopyFailedBody": "Nu s-a putut copia codul. Selectează-l și copiază-l manual."
     },
     "billPrinter": {
       "title": "Imprimantă non-fiscală / bucătărie",
@@ -1068,7 +1081,21 @@
       "errorsEmpty": "Nu există erori recente de printare fiscală.",
       "errorsPrev": "Înapoi",
       "errorsNext": "Înainte",
-      "errorsPage": "Pagina {{current}} / {{total}}"
+      "errorsPage": "Pagina {{current}} / {{total}}",
+      "errors": {
+        "FPMATE_UNREACHABLE": {
+          "title": "Imprimanta fiscală Epson nu răspunde",
+          "step1": "Verificați că imprimanta este pornită și în rețea, că IP/portul din Configurator sunt corecte (de obicei HTTPS port 443), apoi așteptați un nou heartbeat al agentului."
+        },
+        "unknown": {
+          "title": "Eroare fiscală: {{code}}",
+          "step1": "Consultați documentația producătorului casei de marcat sau contactați service-ul."
+        },
+        "unknownGeneric": {
+          "title": "Eroare necunoscută la imprimarea bonului fiscal",
+          "step1": "Contactați suportul tehnic cu ora și ID-ul jobului."
+        }
+      }
     },
     "offlinePrimaryStaff": {
       "title": "Configurare dispozitiv offline implicit",

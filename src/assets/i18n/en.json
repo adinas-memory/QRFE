@@ -874,6 +874,14 @@
     "bannerLimited": "OFFLINE! Move to the device configured for offline work.",
     "bannerRestaurantSyncLocked": "OFFLINE SYNC IN PROGRESS — please wait until the primary device finishes syncing orders."
   },
+  "pwa": {
+    "updateTitle": "Update available",
+    "updateBody": "A new version of the app is ready. Close all open orders before updating, then tap Update now. The page will reload.",
+    "updateBlockedOpenOrders": "Update blocked: there are still open orders. Close them first, then try again.",
+    "updateNow": "Update now",
+    "later": "Later",
+    "updating": "Updating…"
+  },
   "kitchen": {
     "title": "Kitchen",
     "enableSound": "Enable sound",
@@ -1024,7 +1032,28 @@
       "revokeConfirm": "Revoke this enrollment code? Already enrolled agents keep working.",
       "noCodes": "No enrollment codes yet.",
       "toastGeneratedTitle": "Code created",
-      "toastGeneratedBody": "Copy the code now; it cannot be retrieved later."
+      "toastGeneratedBody": "Copy the code now; it cannot be retrieved later.",
+      "copy": "Copy",
+      "toastCopiedTitle": "Code copied",
+      "toastCopiedBody": "Enrollment code copied to clipboard.",
+      "toastCopyFailedTitle": "Copy failed",
+      "toastCopyFailedBody": "Could not copy the code. Select it and copy manually."
+    },
+    "fiscalPrinter": {
+      "errors": {
+        "FPMATE_UNREACHABLE": {
+          "title": "Epson fiscal printer unreachable",
+          "step1": "Check that the printer is powered on and on the network, that IP/port in Configurator are correct (usually HTTPS port 443), then wait for a new agent heartbeat."
+        },
+        "unknown": {
+          "title": "Fiscal error: {{code}}",
+          "step1": "See the fiscal printer manufacturer's documentation or contact service support."
+        },
+        "unknownGeneric": {
+          "title": "Unknown fiscal print error",
+          "step1": "Contact technical support with the time and job ID."
+        }
+      }
     },
     "billPrinter": {
       "title": "Non-fiscal / kitchen printer",

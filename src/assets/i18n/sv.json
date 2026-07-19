@@ -718,6 +718,14 @@
     "bannerPrimary": "OFFLINE — full POS mode (syncs when you reconnect)",
     "bannerLimited": "OFFLINE! Byt till enheten som är konfigurerad för offlinearbete."
   },
+  "pwa": {
+    "updateTitle": "Uppdatering tillgänglig",
+    "updateBody": "En ny version av appen är klar. Stäng alla öppna ordrar innan du uppdaterar och tryck sedan på Uppdatera nu. Sidan laddas om.",
+    "updateBlockedOpenOrders": "Uppdatering blockerad: det finns fortfarande öppna ordrar. Stäng dem först och försök igen.",
+    "updateNow": "Uppdatera nu",
+    "later": "Senare",
+    "updating": "Uppdaterar…"
+  },
   "kitchen": {
     "title": "Kök",
     "enableSound": "Aktivera ljud",
@@ -864,7 +872,12 @@
       "revokeConfirm": "Återkalla denna kod? Redan registrerade agenter fortsätter fungera.",
       "noCodes": "Inga registreringskoder ännu.",
       "toastGeneratedTitle": "Kod skapad",
-      "toastGeneratedBody": "Kopiera koden nu; den kan inte hämtas senare."
+      "toastGeneratedBody": "Kopiera koden nu; den kan inte hämtas senare.",
+      "copy": "Kopiera",
+      "toastCopiedTitle": "Kod kopierad",
+      "toastCopiedBody": "Registreringskoden kopierades till urklipp.",
+      "toastCopyFailedTitle": "Kopiering misslyckades",
+      "toastCopyFailedBody": "Kunde inte kopiera koden. Markera den och kopiera manuellt."
     },
     "billPrinter": {
       "title": "Icke-fiskal / köksskrivare",

@@ -32,6 +32,8 @@ function shouldSkipGlobalLoading(req: Parameters<HttpInterceptorFn>[0]): boolean
     url.includes('/staff/dashboard/metrics') ||
     url.includes('/staff/tables/get-tables-status') ||
     (url.includes('/staff/menu') && req.method === 'GET') ||
+    (url.includes('/admin/printer-agent/printers') && req.method === 'GET') ||
+    (url.includes('/admin/default-bill-printer') && req.method === 'GET') ||
     url.includes('/assets/i18n/')
   );
 }

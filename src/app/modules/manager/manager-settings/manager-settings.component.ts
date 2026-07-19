@@ -819,7 +819,26 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
   }
 
   fiscalErrorInfo(errorCode: string | null | undefined) {
-    return resolveFiscalErrorInfo(errorCode);
+    return resolveFiscalErrorInfo(errorCode, (key, params) => this.transloco.translate(key, params));
+  }
+
+  async copyEnrollmentCode(): Promise<void> {
+    const code = this.lastGeneratedCode?.trim();
+    if (!code) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(code);
+      this.toast.success(
+        this.transloco.translate('restaurantSettings.printerAgentEnrollment.toastCopiedBody'),
+        this.transloco.translate('restaurantSettings.printerAgentEnrollment.toastCopiedTitle'),
+      );
+    } catch {
+      this.toast.error(
+        this.transloco.translate('restaurantSettings.printerAgentEnrollment.toastCopyFailedBody'),
+        this.transloco.translate('restaurantSettings.printerAgentEnrollment.toastCopyFailedTitle'),
+      );
+    }
   }
 
   private applyFiscalSettings(settings: FiscalPrinterSettingsDto): void {

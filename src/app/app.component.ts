@@ -27,6 +27,9 @@ import { OfflineDbService } from './core/offline/offline-db';
 import { NetworkMonitorService } from './core/platform/network-monitor.service';
 import { navigateToRoleHome } from './core/auth/auth-redirect.util';
 import { isAssignedRestaurantId, shouldRunRestaurantRealtimeSync } from './core/auth/restaurant-id.util';
+import { PwaUpdateService } from './core/pwa/pwa-update.service';
+import { PwaUpdatePromptComponent } from './shared/components/pwa-update-prompt/pwa-update-prompt.component';
+import './core/debug/agent-debug-log';
 
 @Component({
   selector: 'app-root',
@@ -49,10 +52,11 @@ import { isAssignedRestaurantId, shouldRunRestaurantRealtimeSync } from './core/
 
   <app-spinner></app-spinner>
   <app-toasts></app-toasts>
+  <app-pwa-update-prompt></app-pwa-update-prompt>
   <router-outlet></router-outlet>
 
 </div>`,
-  imports: [RouterOutlet, SpinnerComponent, AppToastsComponent, TranslocoPipe],
+  imports: [RouterOutlet, SpinnerComponent, AppToastsComponent, PwaUpdatePromptComponent, TranslocoPipe],
 })
 export class AppComponent implements OnInit {
   title = 'U.R.S.';
@@ -81,6 +85,7 @@ export class AppComponent implements OnInit {
   readonly #offlineDb = inject(OfflineDbService);
   readonly #location = inject(Location);
   readonly #subscriptionService = inject(SubscriptionService);
+  readonly #pwaUpdate = inject(PwaUpdateService);
 
   constructor() {
     this.#titleService.setTitle(this.title);
@@ -117,6 +122,7 @@ export class AppComponent implements OnInit {
     if (Capacitor.isNativePlatform()) {
       void this.#onlineStateService.confirmConnectivity(true);
     }
+    this.#pwaUpdate.start();
     this.#pushRegistration.init();
     this.#pickupNotification.initGlobalAlerts();
     this.initNativeBackButton();

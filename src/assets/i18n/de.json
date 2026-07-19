@@ -718,6 +718,14 @@
     "bannerPrimary": "OFFLINE — full POS mode (syncs when you reconnect)",
     "bannerLimited": "OFFLINE! Wechseln Sie zum für Offline-Betrieb konfigurierten Gerät."
   },
+  "pwa": {
+    "updateTitle": "Update verfügbar",
+    "updateBody": "Eine neue Version der App ist bereit. Schließen Sie alle offenen Bestellungen, bevor Sie aktualisieren, und tippen Sie dann auf Jetzt aktualisieren. Die Seite wird neu geladen.",
+    "updateBlockedOpenOrders": "Update blockiert: Es gibt noch offene Bestellungen. Schließen Sie diese zuerst und versuchen Sie es erneut.",
+    "updateNow": "Jetzt aktualisieren",
+    "later": "Später",
+    "updating": "Wird aktualisiert…"
+  },
   "kitchen": {
     "title": "Küche",
     "enableSound": "Ton aktivieren",
@@ -864,7 +872,12 @@
       "revokeConfirm": "Diesen Code widerrufen? Bereits registrierte Agents arbeiten weiter.",
       "noCodes": "Noch keine Registrierungscodes.",
       "toastGeneratedTitle": "Code erstellt",
-      "toastGeneratedBody": "Kopiere den Code jetzt; er kann später nicht abgerufen werden."
+      "toastGeneratedBody": "Kopiere den Code jetzt; er kann später nicht abgerufen werden.",
+      "copy": "Kopieren",
+      "toastCopiedTitle": "Code kopiert",
+      "toastCopiedBody": "Registrierungscode in die Zwischenablage kopiert.",
+      "toastCopyFailedTitle": "Kopieren fehlgeschlagen",
+      "toastCopyFailedBody": "Code konnte nicht kopiert werden. Markiere ihn und kopiere manuell."
     },
     "billPrinter": {
       "title": "Nicht-Fiskal- / Küchendrucker",

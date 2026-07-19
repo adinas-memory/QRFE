@@ -2,6 +2,7 @@ import { Injectable, inject, Injector } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { SseConnectivityService } from './sse-connectivity.service';
+import { agentDebugLog } from '../debug/agent-debug-log';
 
 function isCapacitorNative(): boolean {
   if (typeof window === 'undefined') return false;
@@ -44,10 +45,22 @@ export class OnlineStateService {
 
   constructor() {
     window.addEventListener('online', () => {
+      // #region agent log
+      agentDebugLog('E', 'online-state-service.ts:window.online', 'browser online event', {
+        appIsOnline: this._isOnline,
+        navOnline: navigator.onLine,
+      });
+      // #endregion
       void this.confirmConnectivity(true);
     });
 
     window.addEventListener('offline', () => {
+      // #region agent log
+      agentDebugLog('E', 'online-state-service.ts:window.offline', 'browser offline event', {
+        appIsOnline: this._isOnline,
+        navOnline: navigator.onLine,
+      });
+      // #endregion
       void this.confirmConnectivity(true);
     });
 
@@ -113,6 +126,14 @@ export class OnlineStateService {
     const now = Date.now();
 
     if (force && now - this.lastForcedPingAt < this.forcedPingMinIntervalMs) {
+      // #region agent log
+      agentDebugLog('E', 'online-state-service.ts:confirmConnectivity:cooldown', 'confirmConnectivity skipped by cooldown', {
+        force,
+        appIsOnline: this._isOnline,
+        navOnline: navigator.onLine,
+        msSinceLastForce: now - this.lastForcedPingAt,
+      });
+      // #endregion
       return this._isOnline;
     }
 
@@ -179,11 +200,23 @@ export class OnlineStateService {
     if (!this._isOnline) return;
     this._isOnline = false;
     this.onlineSubject.next(false);
+    // #region agent log
+    agentDebugLog('A', 'online-state-service.ts:setOffline', 'app marked offline', {
+      reason: _reason ?? null,
+      navOnline: navigator.onLine,
+    });
+    // #endregion
   }
 
   setOnline(_reason?: string): void {
     if (this._isOnline) return;
     this._isOnline = true;
     this.onlineSubject.next(true);
+    // #region agent log
+    agentDebugLog('A', 'online-state-service.ts:setOnline', 'app marked online', {
+      reason: _reason ?? null,
+      navOnline: navigator.onLine,
+    });
+    // #endregion
   }
 }

@@ -1,3 +1,8 @@
 :host {
   display: block;
 }
+
+/* alert-warning stays light; body-secondary becomes light in dark theme — force readable ink */
+:host-context([data-coreui-theme='dark']) .enrollment-code-hint {
+  color: #212529 !important;
+}
