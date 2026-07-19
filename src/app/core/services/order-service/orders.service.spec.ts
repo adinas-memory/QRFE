@@ -34,4 +34,25 @@ describe('OrdersService', () => {
   it('should be created', () => {
     expect(service).toBeTruthy();
   });
+
+  it('mapComputedDtoToComputed reads PascalCase SubTotal currency', () => {
+    const misc = TestBed.inject(MiscellaneousService) as jasmine.SpyObj<MiscellaneousService>;
+    misc.getTableCss.and.returnValue('table-occupied');
+
+    const mapped = service.mapComputedDtoToComputed(
+      {
+        tableId: 't1',
+        isTableOpen: false,
+        itemCount: 2,
+        SubTotal: { Amount: 40, Currency: 'RON' },
+      } as never,
+      [{ tableId: 't1' } as never],
+      {},
+      'waiter',
+    );
+
+    expect(mapped.total).toBe(40);
+    expect(mapped.currency).toBe('RON');
+    expect(mapped.itemCount).toBe(2);
+  });
 });

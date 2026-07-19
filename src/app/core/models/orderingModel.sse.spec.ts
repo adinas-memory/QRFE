@@ -3,7 +3,9 @@ import {
   cartItemsFromSseLines,
   orderDtoFromSsePayload,
   orderItemDtoFromSseLine,
+  OrderDTO,
   OrderUpdatedSSEPayload,
+  resolveOrderCurrency,
 } from './orderingModel';
 
 describe('orderingModel SSE helpers', () => {
@@ -60,5 +62,35 @@ describe('orderingModel SSE helpers', () => {
     expect(order.isOrderOpen).toBeTrue();
     expect(order.orderItems?.length).toBe(1);
     expect(order.lastInitiatedBy).toBe('Maria');
+  });
+
+  it('resolveOrderCurrency falls back to order.currency when subTotal currency is missing', () => {
+    const order: OrderDTO = {
+      orderId: 'o1',
+      createdOn: '2026-01-01T12:00:00.000Z',
+      isOrderOpen: true,
+      currency: Currency.RON,
+      subTotal: { amount: 25 } as OrderDTO['subTotal'],
+    };
+    expect(resolveOrderCurrency(order)).toBe('RON');
+  });
+
+  it('resolveOrderCurrency falls back to line item currency after sync-shaped order', () => {
+    const order: OrderDTO = {
+      orderId: 'o1',
+      createdOn: '2026-01-01T12:00:00.000Z',
+      isOrderOpen: true,
+      currency: '' as Currency,
+      orderItems: [{
+        menuItemId: 'm1',
+        orderItemName: 'Soup',
+        orderItemPriceAmount: 10,
+        orderItemPriceCurrency: Currency.EUR,
+        orderItemDescription: '',
+        category: 'Main',
+        quantity: 1,
+      }],
+    };
+    expect(resolveOrderCurrency(order)).toBe('EUR');
   });
 });
