@@ -718,6 +718,14 @@
     "bannerPrimary": "OFFLINE — full POS mode (syncs when you reconnect)",
     "bannerLimited": "OFFLINE! Cambia al dispositivo configurado para trabajo sin conexión."
   },
+  "pwa": {
+    "updateTitle": "Actualización disponible",
+    "updateBody": "Hay una nueva versión de la aplicación lista. Cierra todos los pedidos abiertos antes de actualizar y pulsa Actualizar ahora. La página se recargará.",
+    "updateBlockedOpenOrders": "Actualización bloqueada: aún hay pedidos abiertos. Ciérralos primero e inténtalo de nuevo.",
+    "updateNow": "Actualizar ahora",
+    "later": "Más tarde",
+    "updating": "Actualizando…"
+  },
   "kitchen": {
     "title": "Cocina",
     "enableSound": "Activar sonido",
@@ -864,7 +872,12 @@
       "revokeConfirm": "¿Revocar este código? Los agents ya registrados siguen funcionando.",
       "noCodes": "Aún no hay códigos de registro.",
       "toastGeneratedTitle": "Código creado",
-      "toastGeneratedBody": "Copia el código ahora; no podrá recuperarse después."
+      "toastGeneratedBody": "Copia el código ahora; no podrá recuperarse después.",
+      "copy": "Copiar",
+      "toastCopiedTitle": "Código copiado",
+      "toastCopiedBody": "Código de registro copiado al portapapeles.",
+      "toastCopyFailedTitle": "Error al copiar",
+      "toastCopyFailedBody": "No se pudo copiar el código. Selecciónalo y cópialo manualmente."
     },
     "billPrinter": {
       "title": "Impresora no fiscal / cocina",

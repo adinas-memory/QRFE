@@ -74,8 +74,20 @@
               <div class="fw-semibold mb-1">
                 {{ 'restaurantSettings.printerAgentEnrollment.lastCodeLabel' | transloco }}
               </div>
-              <code class="fs-5 user-select-all">{{ lastGeneratedCode }}</code>
-              <div class="mt-1 text-body-secondary">
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <code class="fs-5 user-select-all mb-0">{{ lastGeneratedCode }}</code>
+                <button
+                  cButton
+                  color="secondary"
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  (click)="copyEnrollmentCode()"
+                >
+                  {{ 'restaurantSettings.printerAgentEnrollment.copy' | transloco }}
+                </button>
+              </div>
+              <div class="mt-1 text-body-secondary enrollment-code-hint">
                 {{ 'restaurantSettings.printerAgentEnrollment.copyHint' | transloco }}
               </div>
             </div>

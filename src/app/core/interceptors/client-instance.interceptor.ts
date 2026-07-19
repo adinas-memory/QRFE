@@ -2,6 +2,7 @@ import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { from, switchMap } from 'rxjs';
 import { ClientInstanceService } from '../services/device/client-instance.service';
+import { agentDebugLog } from '../debug/agent-debug-log';
 
 export const CLIENT_INSTANCE_HEADER = 'X-Client-Instance-Id';
 
@@ -42,6 +43,18 @@ export const clientInstanceInterceptor: HttpInterceptorFn = (req, next) => {
   return from(clientInstance.whenReady()).pipe(
     switchMap((id) => {
       const trimmed = id?.trim();
+      const isClaimPickup = path.includes('/claim-pickup-target');
+      // #region agent log
+      if (isClaimPickup) {
+        agentDebugLog('F', 'client-instance.interceptor.ts', 'claim-pickup header attach', {
+          path,
+          hasClientInstanceId: !!trimmed,
+          idLen: trimmed?.length ?? 0,
+          method: req.method,
+          appOnline: typeof navigator !== 'undefined' ? navigator.onLine : null,
+        });
+      }
+      // #endregion
       if (!trimmed) {
         return next(req);
       }

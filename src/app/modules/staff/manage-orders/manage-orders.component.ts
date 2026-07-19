@@ -66,6 +66,7 @@ import {
   ReservationItem,
   ReservationService,
 } from '../../../core/services/reservation-service/reservation.service';
+import { agentDebugLog } from '../../../core/debug/agent-debug-log';
 
 /** RFC3339 with browser local timezone offset. */
 function toRfc3339WithOffset(d: Date): string {
@@ -976,6 +977,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   /** Bind pickup haptics/FCM to this device while the waiter actively serves the table. */
   private claimPickupTargetForTable(tableId: string): void {
+    // #region agent log
+    agentDebugLog('A', 'manage-orders.component.ts:claimPickupTargetForTable', 'claimPickup entry', {
+      tableId,
+      restaurantId: this.restaurantId,
+      appIsOnline: this.onlineStateService.isOnline,
+      navOnline: typeof navigator !== 'undefined' ? navigator.onLine : null,
+      willSkip: !this.onlineStateService.isOnline || !tableId || !this.restaurantId,
+    });
+    // #endregion
     if (!this.onlineStateService.isOnline || !tableId || !this.restaurantId) {
       return;
     }
@@ -984,6 +994,19 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       .subscribe({
         error: (err: unknown) => {
           const status = (err as { status?: number })?.status ?? null;
+          const statusText = (err as { statusText?: string })?.statusText ?? null;
+          const url = (err as { url?: string })?.url ?? null;
+          // #region agent log
+          agentDebugLog('B', 'manage-orders.component.ts:claimPickupTargetForTable:error', 'claimPickup HTTP error', {
+            tableId,
+            status,
+            statusText,
+            url,
+            appIsOnline: this.onlineStateService.isOnline,
+            navOnline: typeof navigator !== 'undefined' ? navigator.onLine : null,
+            willReconcile: status === 404,
+          });
+          // #endregion
           if (status === 404) {
             void this.reconcileStaleTableWithoutServerOrder(tableId);
           } else {
@@ -1746,6 +1769,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }): Promise<void> {
     try {
       const offlineFiscal = !this.isOnline && this.offlinePolicy.canUseFullOffline();
+      // #region agent log
+      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6b7cb8'},body:JSON.stringify({sessionId:'6b7cb8',runId:'pre-fix',hypothesisId:'H4',location:'manage-orders.component.ts:enqueueFiscalReceiptJob',message:'fiscal print route decision',data:{isOnline:this.isOnline,offlineFiscal,readyOffline:this.offlinePrintContext.isReadyForOfflineFiscalPrint(),agentUrl:this.offlinePrintContext.getAgentLocalBaseUrl()},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       let fiscalPrintingEnabled = false;
       let printerId = '';
       let vatMapping: Record<string, number> = {};

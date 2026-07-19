@@ -1,0 +1,44 @@
+<c-modal
+  [visible]="pwa.modalVisible()"
+  (visibleChange)="pwa.setModalVisible($event)"
+  alignment="center"
+  [backdrop]="'static'"
+  [keyboard]="false"
+>
+  <c-modal-header>
+    <h5 cModalTitle>{{ 'pwa.updateTitle' | transloco }}</h5>
+  </c-modal-header>
+  <c-modal-body>
+    <p class="mb-0">{{ 'pwa.updateBody' | transloco }}</p>
+    @if (pwa.updateBlocked()) {
+      <c-alert color="warning" class="small py-2 mt-3 mb-0">
+        {{ 'pwa.updateBlockedOpenOrders' | transloco }}
+      </c-alert>
+    }
+  </c-modal-body>
+  <c-modal-footer>
+    <button
+      cButton
+      color="secondary"
+      variant="outline"
+      type="button"
+      [disabled]="pwa.updating()"
+      (click)="pwa.dismiss()"
+    >
+      {{ 'pwa.later' | transloco }}
+    </button>
+    <button
+      cButton
+      color="primary"
+      type="button"
+      [disabled]="pwa.updating()"
+      (click)="pwa.confirmUpdate()"
+    >
+      @if (pwa.updating()) {
+        {{ 'pwa.updating' | transloco }}
+      } @else {
+        {{ 'pwa.updateNow' | transloco }}
+      }
+    </button>
+  </c-modal-footer>
+</c-modal>

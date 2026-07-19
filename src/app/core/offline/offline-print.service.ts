@@ -72,6 +72,9 @@ export class OfflinePrintService {
     payload: LocalBillPrintPayload | LocalFiscalPrintPayload | LocalFiscalCommandPayload,
   ): Promise<void> {
     const baseUrl = this.context.getAgentLocalBaseUrl()?.replace(/\/$/, '');
+    // #region agent log
+    fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6b7cb8'},body:JSON.stringify({sessionId:'6b7cb8',runId:'pre-fix',hypothesisId:'H1',location:'offline-print.service.ts:postLocalPrintJob',message:'offline local print attempt',data:{baseUrl:baseUrl??null,printerId,payloadType:payload.type,ready:this.context.isReadyForOfflineFiscalPrint()},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     if (!baseUrl) {
       throw new Error('Offline print agent URL not configured.');
     }
@@ -96,6 +99,9 @@ export class OfflinePrintService {
       });
 
       if (!res.ok) {
+        // #region agent log
+        fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6b7cb8'},body:JSON.stringify({sessionId:'6b7cb8',runId:'pre-fix',hypothesisId:'H5',location:'offline-print.service.ts:postLocalPrintJob:failed',message:'local print http error',data:{status:res.status,baseUrl,printerId},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         throw new Error(`Local print failed: HTTP ${res.status}`);
       }
     } finally {
