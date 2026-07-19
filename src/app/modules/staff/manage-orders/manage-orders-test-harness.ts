@@ -243,6 +243,7 @@ interface OnlineStateMock {
   online$: Observable<boolean>;
   setOffline: jasmine.Spy;
   setOnline: jasmine.Spy;
+  confirmConnectivity: jasmine.Spy;
 }
 
 export interface SetupManageOrdersOptions {
@@ -364,12 +365,23 @@ export function createManageOrdersMocks(options: SetupManageOrdersOptions = {}):
       syncBlocked$: of(false),
       batchSyncDraining$: of(false),
     },
-    onlineState: {
-      isOnline: options.isOnline ?? true,
-      online$: of(options.isOnline ?? true),
-      setOffline: jasmine.createSpy('setOffline'),
-      setOnline: jasmine.createSpy('setOnline'),
-    },
+    onlineState: (() => {
+      const state = {
+        isOnline: options.isOnline ?? true,
+        online$: of(options.isOnline ?? true),
+        setOffline: jasmine.createSpy('setOffline'),
+        setOnline: jasmine.createSpy('setOnline'),
+        confirmConnectivity: jasmine.createSpy('confirmConnectivity'),
+      };
+      state.setOffline.and.callFake(() => {
+        state.isOnline = false;
+      });
+      state.setOnline.and.callFake(() => {
+        state.isOnline = true;
+      });
+      state.confirmConnectivity.and.callFake(async () => state.isOnline);
+      return state;
+    })(),
     appToast: {
       success: jasmine.createSpy('success'),
       error: jasmine.createSpy('error'),

@@ -161,18 +161,21 @@ export class OrderSyncService {
         this.close(false);
       });
 
-    // Stale-watch detected a zombie stream — abort and reopen SSE.
+    // Stale-watch zombie (or similar): abort stream; only reopen after connectivity probe.
     this.sseConnectivity.forceReconnect$.subscribe(() => {
       const rid = this.connectedRestaurantId ?? this.resolveRestaurantId();
       this.close(false);
       this.reconnectAttempts = 0;
+      this.pendingOpenRestaurantId = rid;
       if (!navigator.onLine || !this.onlineStateService.isOnline) {
-        this.pendingOpenRestaurantId = rid;
         return;
       }
-      if (rid) {
+      void this.onlineStateService.confirmConnectivity(true).then(ok => {
+        if (!ok || !this.onlineStateService.isOnline || !rid || this.controller) {
+          return;
+        }
         this.openConnection(rid);
-      }
+      });
     });
 
     this.queueProcessor.queueDrained$
@@ -619,7 +622,9 @@ export class OrderSyncService {
         map(u => u ?? null),
       ),
     );
-    return user != null || this.auth.isAuthenticated();
+    // Only treat an actual refreshed user as success. Still-authenticated + null user means
+    // refresh failed transiently — callers schedule reconnect / skip useless 401 retries.
+    return user != null;
   }
 
   private noteDispatchedSequence(sequence: number | undefined): void {
