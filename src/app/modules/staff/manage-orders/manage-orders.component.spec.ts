@@ -166,6 +166,36 @@ describe('ManageOrdersComponent', () => {
       expect(component.cartCurrency).toBe('RON');
     });
 
+    it('hydrateComputedFromTables keeps currency when subTotal currency is missing after refresh', () => {
+      seedComponentTables(component, [
+        createTable({
+          tableId: TABLE_A,
+          isTableOpen: false,
+          order: {
+            orderId: 'order-1',
+            createdOn: '2026-01-01T12:00:00.000Z',
+            isOrderOpen: true,
+            currency: Currency.RON,
+            subTotal: { amount: 25 } as never,
+            orderItems: [{
+              menuItemId: 'm1',
+              orderItemName: 'Soup',
+              orderItemPriceAmount: 25,
+              orderItemPriceCurrency: Currency.RON,
+              orderItemDescription: '',
+              category: 'Main',
+              quantity: 1,
+            }],
+          },
+        }),
+      ]);
+
+      (component as unknown as { hydrateComputedFromTables: () => void }).hydrateComputedFromTables();
+
+      expect(component.tableComputed[TABLE_A]?.total).toBe(25);
+      expect(component.tableComputed[TABLE_A]?.currency).toBe('RON');
+    });
+
     it('filteredMenuItems filters by searchTerm', () => {
       component.searchTerm = 'pizza';
       expect(component.filteredMenuItems.length).toBe(1);

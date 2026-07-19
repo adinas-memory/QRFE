@@ -65,6 +65,52 @@ export interface FinalTotalPrice {
   // Id, OrderId, Order are ignored in JSON (so not needed here)
 }
 
+/** Read amount from MoneyDTO-like payloads (camelCase or PascalCase). */
+export function readMoneyAmount(money: unknown): number | undefined {
+  if (!money || typeof money !== 'object') return undefined;
+  const rec = money as Record<string, unknown>;
+  const raw = rec['amount'] ?? rec['Amount'];
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+  if (typeof raw === 'string' && raw.trim() !== '' && Number.isFinite(Number(raw))) return Number(raw);
+  return undefined;
+}
+
+/** Read currency code from MoneyDTO-like payloads (camelCase or PascalCase). */
+export function readMoneyCurrency(money: unknown): string {
+  if (!money || typeof money !== 'object') return '';
+  const rec = money as Record<string, unknown>;
+  const raw = rec['currency'] ?? rec['Currency'];
+  if (typeof raw === 'string') return raw.trim();
+  if (typeof raw === 'number' && Number.isFinite(raw)) return String(raw);
+  return '';
+}
+
+/**
+ * Resolve display currency for a table total after sync/refresh.
+ * Prefer subTotal / finalTotal, then order.currency, then first line item.
+ */
+export function resolveOrderCurrency(order: OrderDTO | null | undefined): string {
+  if (!order) return '';
+  const rec = order as unknown as Record<string, unknown>;
+  const fromMoney =
+    readMoneyCurrency(order.subTotal)
+    || readMoneyCurrency(order.finalTotalPrice)
+    || readMoneyCurrency(rec['SubTotal'])
+    || readMoneyCurrency(rec['FinalTotalPrice']);
+  if (fromMoney) return fromMoney;
+
+  const orderCurrency = rec['currency'] ?? rec['Currency'];
+  if (typeof orderCurrency === 'string' && orderCurrency.trim()) return orderCurrency.trim();
+
+  for (const item of order.orderItems ?? []) {
+    if (!item) continue;
+    const line = item as unknown as Record<string, unknown>;
+    const lineCurrency = line['orderItemPriceCurrency'] ?? line['OrderItemPriceCurrency'];
+    if (typeof lineCurrency === 'string' && lineCurrency.trim()) return lineCurrency.trim();
+  }
+  return '';
+}
+
 export interface CartItem {
   item: MenuItem;
   quantity: number;

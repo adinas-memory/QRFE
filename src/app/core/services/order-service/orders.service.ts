@@ -2,7 +2,17 @@ import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment';
 import { firstValueFrom, Observable } from 'rxjs';
-import { AddOrderItemResponse, CartItem, InitAddOrderResponse, OrderDTO, OrderUpdatedSSEPayload, TableComputedDTO, UpdateOrderItemQuantityResponse } from '../../models/orderingModel';
+import {
+  AddOrderItemResponse,
+  CartItem,
+  InitAddOrderResponse,
+  OrderDTO,
+  OrderUpdatedSSEPayload,
+  readMoneyAmount,
+  readMoneyCurrency,
+  TableComputedDTO,
+  UpdateOrderItemQuantityResponse,
+} from '../../models/orderingModel';
 import { MenuItem } from '../../models/menu/menuItem';
 import { TableDTO } from '../../models/restaurantTablesModel';
 import { WaiterCallState } from '../../models/callWaiter/callWaiter';
@@ -262,9 +272,8 @@ export class OrdersService {
     initiatedBy?: string
   ) {    
     const table = tables.find(t => t.tableId === payload.TableId);    
-    const anySubTotal = payload.SubTotal as unknown as { Amount?: number; Currency?: string; amount?: number; currency?: string } | null | undefined;
-    const amount = anySubTotal?.Amount ?? anySubTotal?.amount ?? 0;
-    const currency = anySubTotal?.Currency ?? anySubTotal?.currency ?? '';
+    const amount = readMoneyAmount(payload.SubTotal) ?? 0;
+    const currency = readMoneyCurrency(payload.SubTotal);
     return {
       lastActionAt: payload.LastActionAt,
       lastAddedItem: payload.LastAddedItem ?? '—',
@@ -283,12 +292,14 @@ export class OrdersService {
     initiatedBy?: string
   ) {    
     const table = tables.find(t => t.tableId === dto.tableId);
+    const subTotal = (dto as { subTotal?: unknown; SubTotal?: unknown }).subTotal
+      ?? (dto as { SubTotal?: unknown }).SubTotal;
 
     return {
       lastActionAt: dto.lastActionAt ?? '',
       lastAddedItem: dto.lastAddedItem ?? '—',
-      total: dto.subTotal?.amount ?? 0,
-      currency: dto.subTotal?.currency ?? '',
+      total: readMoneyAmount(subTotal) ?? 0,
+      currency: readMoneyCurrency(subTotal),
       itemCount: dto.itemCount ?? 0,
       cssClass: this.miscService.getTableCss(table!, waiterState),
       initiatedBy: initiatedBy ?? ''

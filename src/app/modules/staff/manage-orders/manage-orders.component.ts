@@ -39,7 +39,9 @@ import {
   cartItemFromOrderLine,
   cartItemsFromSseLines,
   orderDtoFromSsePayload,
+  readMoneyAmount,
   readOrderLastInitiatedBy,
+  resolveOrderCurrency,
   tableHasActiveOrder,
 } from '../../../core/models/orderingModel';
 import { OrderSyncService } from '../../../core/services/order-service/order-sync.service';
@@ -813,12 +815,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           : (existing?.itemCount ?? 0);
 
       const subtotalAmount =
-        activeOrder.subTotal?.amount ??
-        activeOrder.finalTotalPrice?.amount ??
-        items.reduce((s, i) => s + ((i.orderItemPriceAmount ?? 0) * (i.quantity ?? 0)), 0);
+        readMoneyAmount(activeOrder.subTotal)
+        ?? readMoneyAmount(activeOrder.finalTotalPrice)
+        ?? items.reduce((s, i) => s + ((i.orderItemPriceAmount ?? 0) * (i.quantity ?? 0)), 0);
 
+      // After /api/sync refresh, subTotal.currency can be missing while line items still have it.
       const currency =
-        (activeOrder.subTotal?.currency ?? activeOrder.finalTotalPrice?.currency)?.toString?.() ?? '';
+        resolveOrderCurrency(activeOrder)
+        || existing?.currency
+        || '';
 
       const lastAddedItemFromOrder =
         items.length ? items[items.length - 1].orderItemName : null;
@@ -829,7 +834,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         lastActionAt: this.tableComputed[t.tableId]?.lastActionAt ?? '',
         lastAddedItem,
         total: subtotalAmount ?? 0,
-        currency,
+        currency: currency !== '—' ? currency : '',
         itemCount,
         cssClass: this.miscService.getTableCss(t, this.waiterState),
         initiatedBy: this.resolveInitiatedBy(t.tableId)
