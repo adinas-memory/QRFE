@@ -976,7 +976,12 @@
     "offlineSyncCountdown": "La sincronización comienza en {{seconds}} segundos. Espera y no cierres la aplicación.",
     "offlineSyncInProgress": "Sincronizando pedidos sin conexión con el servidor. Espera…",
     "offlineSyncReconciling": "Actualizando el estado de las mesas desde el servidor. Espera…",
-    "nonPrimaryOfflineHint": "Sin conexión: solo puedes editar el pedido abierto en este dispositivo."
+    "nonPrimaryOfflineHint": "Sin conexión: solo puedes editar el pedido abierto en este dispositivo.",
+    "printKitchen": "Imprimir cocina",
+    "printKitchenQueuedTitle": "Cocina",
+    "printKitchenQueuedBody": "Pedido enviado a la impresora de cocina.",
+    "printKitchenOfflineSuccessTitle": "Cocina",
+    "printKitchenOfflineSuccessBody": "Pedido enviado a la impresora de cocina."
   },
   "faq": {
     "navLink": "FAQ",

@@ -29,7 +29,6 @@ import { navigateToRoleHome } from './core/auth/auth-redirect.util';
 import { isAssignedRestaurantId, shouldRunRestaurantRealtimeSync } from './core/auth/restaurant-id.util';
 import { PwaUpdateService } from './core/pwa/pwa-update.service';
 import { PwaUpdatePromptComponent } from './shared/components/pwa-update-prompt/pwa-update-prompt.component';
-import './core/debug/agent-debug-log';
 
 @Component({
   selector: 'app-root',

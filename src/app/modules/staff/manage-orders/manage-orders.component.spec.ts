@@ -1105,53 +1105,61 @@ describe('ManageOrdersComponent', () => {
     });
   });
 
-  describe('bill print routing', () => {
-    it('printOrder uses fiscal printer when fiscal printing is enabled', async () => {
-      const { component, mocks } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
-      setRestaurantId(component);
-      component.currentTableId = TABLE_A;
-      component.currentOrderId = 'order-1';
-      component.tableCarts[TABLE_A] = [{ item: createMenuItem({ menuItemName: 'Soup' }), quantity: 1 }];
+  describe('kitchen print', () => {
+    it('canPrintKitchen is true when a distinct non-fiscal printer is configured', async () => {
+      const { component } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
       component.fiscalStaffConfig.set({
         fiscalPrintingEnabled: true,
         defaultFiscalPrinterId: 'fiscal-6',
         vatGroupMapping: {},
       });
       component.billStaffConfig.set({ defaultBillPrinterId: 'escpos-1' });
-      mocks.printJobs.getDefaultBillPrinterForStaff.and.returnValue(of({ defaultBillPrinterId: 'escpos-1' }));
-
-      await component.printOrder();
-
-      expect(mocks.printJobs.createBillPrintJob).toHaveBeenCalledWith(
-        TEST_RESTAURANT_ID,
-        'fiscal-6',
-        jasmine.objectContaining({ type: 'bill', orderId: 'order-1' }),
-      );
+      expect(component.canPrintKitchen).toBeTrue();
     });
 
-    it('printOrder uses bill printer when fiscal printing is disabled', async () => {
-      const { component, mocks } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
-      setRestaurantId(component);
-      component.currentTableId = TABLE_A;
-      component.currentOrderId = 'order-2';
-      component.tableCarts[TABLE_A] = [{ item: createMenuItem(), quantity: 1 }];
+    it('canPrintKitchen is false when only fiscal printer id is set as bill printer', async () => {
+      const { component } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
       component.fiscalStaffConfig.set({
-        fiscalPrintingEnabled: false,
+        fiscalPrintingEnabled: true,
         defaultFiscalPrinterId: 'fiscal-6',
         vatGroupMapping: {},
       });
-      mocks.printJobs.getDefaultBillPrinterForStaff.and.returnValue(of({ defaultBillPrinterId: 'escpos-1' }));
+      component.billStaffConfig.set({ defaultBillPrinterId: 'fiscal-6' });
+      expect(component.canPrintKitchen).toBeFalse();
+    });
 
-      await component.printOrder();
+    it('printKitchen sends kitchen lines to the non-fiscal printer', async () => {
+      const { component, mocks } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
+      setRestaurantId(component);
+      component.currentTableId = TABLE_A;
+      component.currentOrderId = '019f6c5c-4928-7e2e-9d9a-8b2484b603b1';
+      component.tableCarts[TABLE_A] = [
+        { item: createMenuItem({ menuItemName: 'Soup', category: MenuItemCategory.Appetizer }), quantity: 1 },
+        { item: createMenuItem({ menuItemId: 'wine-1', menuItemName: 'Merlot', category: MenuItemCategory.RedWine, menuItemPriceAmount: 30 }), quantity: 2 },
+      ];
+      component.fiscalStaffConfig.set({
+        fiscalPrintingEnabled: true,
+        defaultFiscalPrinterId: 'fiscal-6',
+        vatGroupMapping: {},
+      });
+      component.billStaffConfig.set({ defaultBillPrinterId: 'escpos-1' });
+
+      await component.printKitchen();
 
       expect(mocks.printJobs.createBillPrintJob).toHaveBeenCalledWith(
         TEST_RESTAURANT_ID,
         'escpos-1',
-        jasmine.objectContaining({ type: 'bill', orderId: 'order-2' }),
+        jasmine.objectContaining({
+          type: 'bill',
+          orderId: '019f6c5c-4928-7e2e-9d9a-8b2484b603b1',
+          subTotal: 25,
+          finalTotal: 25,
+          items: [{ name: 'Soup', quantity: 1, unitPrice: 25 }],
+        }),
       );
     });
 
-    it('confirmOrder prints to ESC/POS when fiscal and non-fiscal printers are configured', async () => {
+    it('confirmOrder does not auto-print to kitchen', async () => {
       const { component, mocks } = await setupManageOrdersComponent();
       await new Promise(resolve => setTimeout(resolve, 0));
       setRestaurantId(component);
@@ -1167,77 +1175,23 @@ describe('ManageOrdersComponent', () => {
       Object.defineProperty(document, 'hidden', { configurable: true, value: false });
 
       await component.confirmOrder();
+      mocks.queueProcessor.orderConfirmed$.next({ tableId: TABLE_A, orderId: '019f6c5c-4928-7e2e-9d9a-8b2484b603b1' });
+      await new Promise(resolve => setTimeout(resolve, 0));
+
       expect(mocks.printJobs.createBillPrintJob).not.toHaveBeenCalled();
-
-      mocks.queueProcessor.orderConfirmed$.next({ tableId: TABLE_A, orderId: '019f6c5c-4928-7e2e-9d9a-8b2484b603b1' });
-      await new Promise(resolve => setTimeout(resolve, 0));
-
-      expect(mocks.printJobs.createBillPrintJob).toHaveBeenCalledWith(
-        TEST_RESTAURANT_ID,
-        'escpos-1',
-        jasmine.objectContaining({
-          type: 'bill',
-          orderId: '019f6c5c-4928-7e2e-9d9a-8b2484b603b1',
-          items: [{ name: 'Soup', quantity: 1, unitPrice: 25 }],
-        }),
-      );
     });
 
-    it('confirmOrder ESC/POS print includes only kitchen lines from mixed cart', async () => {
-      const { component, mocks } = await setupManageOrdersComponent();
-      await new Promise(resolve => setTimeout(resolve, 0));
+    it('printKitchen skips when cart has only bar lines', async () => {
+      const { component, mocks } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
       setRestaurantId(component);
       component.currentTableId = TABLE_A;
-      component.tableCarts[TABLE_A] = [
-        { item: createMenuItem({ menuItemName: 'Soup', category: MenuItemCategory.Appetizer }), quantity: 1 },
-        { item: createMenuItem({ menuItemId: 'wine-1', menuItemName: 'Merlot', category: MenuItemCategory.RedWine, menuItemPriceAmount: 30 }), quantity: 2 },
-      ];
-      component.fiscalStaffConfig.set({
-        fiscalPrintingEnabled: true,
-        defaultFiscalPrinterId: 'fiscal-6',
-        vatGroupMapping: {},
-      });
-      component.billStaffConfig.set({ defaultBillPrinterId: 'escpos-1' });
-      mocks.offlineDb.loadCart.and.resolveTo(component.tableCarts[TABLE_A]);
-      Object.defineProperty(document, 'hidden', { configurable: true, value: false });
-
-      await component.confirmOrder();
-      mocks.queueProcessor.orderConfirmed$.next({ tableId: TABLE_A, orderId: '019f6c5c-4928-7e2e-9d9a-8b2484b603b1' });
-      await new Promise(resolve => setTimeout(resolve, 0));
-
-      expect(mocks.printJobs.createBillPrintJob).toHaveBeenCalledWith(
-        TEST_RESTAURANT_ID,
-        'escpos-1',
-        jasmine.objectContaining({
-          type: 'bill',
-          orderId: '019f6c5c-4928-7e2e-9d9a-8b2484b603b1',
-          subTotal: 25,
-          finalTotal: 25,
-          items: [{ name: 'Soup', quantity: 1, unitPrice: 25 }],
-        }),
-      );
-    });
-
-    it('confirmOrder skips ESC/POS print when cart has only bar lines', async () => {
-      const { component, mocks } = await setupManageOrdersComponent();
-      await new Promise(resolve => setTimeout(resolve, 0));
-      setRestaurantId(component);
-      component.currentTableId = TABLE_A;
+      component.currentOrderId = 'order-bar';
       component.tableCarts[TABLE_A] = [
         { item: createMenuItem({ menuItemName: 'Merlot', category: MenuItemCategory.RedWine }), quantity: 1 },
       ];
-      component.fiscalStaffConfig.set({
-        fiscalPrintingEnabled: true,
-        defaultFiscalPrinterId: 'fiscal-6',
-        vatGroupMapping: {},
-      });
       component.billStaffConfig.set({ defaultBillPrinterId: 'escpos-1' });
-      mocks.offlineDb.loadCart.and.resolveTo(component.tableCarts[TABLE_A]);
-      Object.defineProperty(document, 'hidden', { configurable: true, value: false });
 
-      await component.confirmOrder();
-      mocks.queueProcessor.orderConfirmed$.next({ tableId: TABLE_A, orderId: '019f6c5c-4928-7e2e-9d9a-8b2484b603b1' });
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await component.printKitchen();
 
       expect(mocks.printJobs.createBillPrintJob).not.toHaveBeenCalled();
     });

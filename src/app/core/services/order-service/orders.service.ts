@@ -11,7 +11,6 @@ import { OfflineDbService } from '../../offline/offline-db';
 import { OnlineStateService } from '../../offline/online-state-service';
 import { PlatformStorageService } from '../../platform/platform-storage.service';
 import { SKIP_HTTP_ERROR_TOAST } from '../../interceptors/logging.interceptor';
-import { agentDebugLog } from '../../debug/agent-debug-log';
 
 export interface OrderRequestOptions {
   suppressErrorToast?: boolean;
@@ -88,14 +87,6 @@ export class OrdersService {
 
   claimPickupTarget(restaurantId: string, tableId: string): Observable<void> {
     const url = `${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/${tableId}/claim-pickup-target`;
-    // #region agent log
-    agentDebugLog('B', 'orders.service.ts:claimPickupTarget', 'claimPickup HTTP POST start', {
-      restaurantId,
-      tableId,
-      url,
-      navOnline: typeof navigator !== 'undefined' ? navigator.onLine : null,
-    });
-    // #endregion
     return this.http.post<void>(url, {}, { withCredentials: true });
   }
 

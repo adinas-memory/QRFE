@@ -976,7 +976,12 @@
     "offlineSyncCountdown": "Synchronisierung beginnt in {{seconds}} Sekunden. Bitte warten Sie und schließen Sie die App nicht.",
     "offlineSyncInProgress": "Offline-Bestellungen werden mit dem Server synchronisiert. Bitte warten…",
     "offlineSyncReconciling": "Tischstatus wird vom Server aktualisiert. Bitte warten…",
-    "nonPrimaryOfflineHint": "Offline: Sie können nur die auf diesem Gerät geöffnete Bestellung bearbeiten."
+    "nonPrimaryOfflineHint": "Offline: Sie können nur die auf diesem Gerät geöffnete Bestellung bearbeiten.",
+    "printKitchen": "Küche drucken",
+    "printKitchenQueuedTitle": "Küche",
+    "printKitchenQueuedBody": "Bestellung an den Küchendrucker gesendet.",
+    "printKitchenOfflineSuccessTitle": "Küche",
+    "printKitchenOfflineSuccessBody": "Bestellung an den Küchendrucker gesendet."
   },
   "faq": {
     "navLink": "FAQ",

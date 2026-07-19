@@ -66,7 +66,6 @@ import {
   ReservationItem,
   ReservationService,
 } from '../../../core/services/reservation-service/reservation.service';
-import { agentDebugLog } from '../../../core/debug/agent-debug-log';
 
 /** RFC3339 with browser local timezone offset. */
 function toRfc3339WithOffset(d: Date): string {
@@ -121,11 +120,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   private restaurantId = '';
   readonly fiscalStaffConfig = signal<FiscalPrinterSettingsDto | null>(null);
   readonly billStaffConfig = signal<{ defaultBillPrinterId: string | null } | null>(null);
-  private pendingKitchenPrintOnConfirm: {
-    tableId: string;
-    restaurantId: string;
-    escPosPrinterId: string;
-  } | null = null;
 
   waiterState: Record<string, WaiterCallState> = {};
   WaiterCallState = WaiterCallState;
@@ -218,6 +212,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   private readonly syncScheduler = inject(OfflineSyncSchedulerService);
 
   readonly offlineSyncCountdown = toSignal(this.syncScheduler.syncCountdownSeconds$, { initialValue: null });
+  /** Display seconds with 0.1 precision (countdown ticks are 100ms). */
+  readonly offlineSyncCountdownSeconds = computed(() => {
+    const ticks = this.offlineSyncCountdown();
+    return ticks === null ? null : (ticks / 10).toFixed(1);
+  });
   readonly offlineSyncBlocked = toSignal(this.syncScheduler.syncBlocked$, { initialValue: false });
   readonly offlineSyncBatchDraining = toSignal(this.syncScheduler.batchSyncDraining$, { initialValue: false });
   readonly offlineSyncReconciling = toSignal(this.sseService.isReconciling$, { initialValue: false });
@@ -525,6 +524,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     return this.offlinePolicy.canUseFullOffline() && this.offlinePrintContext.isReadyForOfflinePrint();
   }
 
+  /** Kitchen ESC/POS button: only when a non-fiscal bill printer is registered. */
+  get canPrintKitchen(): boolean {
+    return !!this.resolveNonFiscalPrinterId();
+  }
+
   get canPrintFiscal(): boolean {
     if (!this.isOnline && this.offlinePolicy.canUseFullOffline()) {
       return this.offlinePrintContext.isReadyForOfflineFiscalPrint();
@@ -711,19 +715,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     await this.refreshLocalSessionTableIds();
 
     if (this.onlineStateService.isOnline) this.queueProcessor.triggerProcessing();
-
-    const escPosPrinterId = this.resolveEscPosBillPrinterIdForConfirm();
-    if (escPosPrinterId && this.restaurantId) {
-      if (this.isOnline) {
-        this.pendingKitchenPrintOnConfirm = {
-          tableId: this.currentTableId,
-          restaurantId: this.restaurantId,
-          escPosPrinterId,
-        };
-      } else {
-        void this.maybeEnqueueEscPosBillOnConfirm(localOrderId);
-      }
-    }
   }
 
   async addCartItem(item: MenuItem) {
@@ -989,7 +980,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       ?? table?.order?.orderId
       ?? null;
     const isLocalOrder = !!orderId?.startsWith('local-');
-    const hasServerOpenOrder = tableHasActiveOrder(table?.order) && !table?.order?.orderId?.startsWith('local-');
     const cooldownKey = `${tableId}|${orderId ?? ''}`;
     const cooldownUntil = this.claimPickupCooldownUntil.get(cooldownKey) ?? 0;
     const inCooldown = Date.now() < cooldownUntil;
@@ -1000,21 +990,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       || isLocalOrder
       || this.claimPickupInFlight.has(tableId)
       || inCooldown;
-
-    // #region agent log
-    agentDebugLog('A', 'manage-orders.component.ts:claimPickupTargetForTable', 'claimPickup entry', {
-      tableId,
-      restaurantId,
-      orderId,
-      isLocalOrder,
-      hasServerOpenOrder,
-      appIsOnline: this.onlineStateService.isOnline,
-      navOnline: typeof navigator !== 'undefined' ? navigator.onLine : null,
-      willSkip,
-      inFlight: this.claimPickupInFlight.has(tableId),
-      inCooldown,
-    });
-    // #endregion
 
     if (willSkip || !restaurantId) {
       return;
@@ -1027,33 +1002,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         next: () => {
           this.claimPickupInFlight.delete(tableId);
           this.claimPickupCooldownUntil.set(cooldownKey, Date.now() + ManageOrdersComponent.claimPickupCooldownMs);
-          // #region agent log
-          agentDebugLog('B', 'manage-orders.component.ts:claimPickupTargetForTable:next', 'claimPickup HTTP success', {
-            tableId,
-            orderId,
-            cooldownMs: ManageOrdersComponent.claimPickupCooldownMs,
-          }, 'post-fix');
-          // #endregion
         },
         error: (err: unknown) => {
           this.claimPickupInFlight.delete(tableId);
           const status = (err as { status?: number })?.status ?? null;
-          const statusText = (err as { statusText?: string })?.statusText ?? null;
-          const url = (err as { url?: string })?.url ?? null;
-          // #region agent log
-          agentDebugLog('B', 'manage-orders.component.ts:claimPickupTargetForTable:error', 'claimPickup HTTP error', {
-            tableId,
-            orderId,
-            isLocalOrder,
-            hasServerOpenOrder,
-            status,
-            statusText,
-            url,
-            appIsOnline: this.onlineStateService.isOnline,
-            navOnline: typeof navigator !== 'undefined' ? navigator.onLine : null,
-            willReconcile: status === 404,
-          }, 'post-fix');
-          // #endregion
           if (status === 404) {
             // Expected when UI is stale / no open order on server — not an ngsw failure.
             void this.reconcileStaleTableWithoutServerOrder(tableId);
@@ -1592,11 +1544,19 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     this.canvasVisible = false;
   }
 
-  async printOrder() {
+  async printKitchen(): Promise<void> {
     const restaurantId = this.restaurantId;
     const orderId = this.currentOrderId;
-    if (!restaurantId || !orderId) return;
-    await this.enqueueBillPrintJob({ restaurantId, orderId });
+    const printerId = this.resolveNonFiscalPrinterId();
+    if (!restaurantId || !orderId || !printerId) {
+      return;
+    }
+    await this.enqueueBillPrintJob({
+      restaurantId,
+      orderId,
+      forcePrinterId: printerId,
+      kitchenItemsOnly: true,
+    });
   }
 
   private async enqueueBillPrintJob(args: {
@@ -1730,12 +1690,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     return (args.defaultBillPrinterId ?? '').trim();
   }
 
-  /** ESC/POS bill printer (port 9100): print only on canvas Confirm when fiscal is also enabled. */
-  private resolveEscPosBillPrinterIdForConfirm(): string | null {
+  /** Non-fiscal ESC/POS printer id when distinct from the fiscal printer. */
+  private resolveNonFiscalPrinterId(): string | null {
     if (!this.isOnline && this.offlinePolicy.canUseFullOffline()) {
-      if (!this.offlinePrintContext.isFiscalPrintingEnabledOffline()) {
-        return null;
-      }
       const escPosId = (this.offlinePrintContext.getDefaultBillPrinterId() ?? '').trim();
       const fiscalId = (this.offlinePrintContext.getDefaultFiscalPrinterId() ?? '').trim();
       if (!escPosId || escPosId === fiscalId) {
@@ -1744,33 +1701,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       return escPosId;
     }
 
-    const fiscalCfg = this.fiscalStaffConfig();
-    if (!fiscalCfg?.fiscalPrintingEnabled) {
+    const escPosId = (this.billStaffConfig()?.defaultBillPrinterId ?? '').trim();
+    if (!escPosId) {
       return null;
     }
-    const escPosId = (this.billStaffConfig()?.defaultBillPrinterId ?? '').trim();
-    const fiscalId = (fiscalCfg.defaultFiscalPrinterId ?? '').trim();
-    if (!escPosId || escPosId === fiscalId) {
+    const fiscalId = (this.fiscalStaffConfig()?.defaultFiscalPrinterId ?? '').trim();
+    if (fiscalId && escPosId === fiscalId) {
       return null;
     }
     return escPosId;
-  }
-
-  private async maybeEnqueueEscPosBillOnConfirm(orderId: string): Promise<void> {
-    const restaurantId = this.restaurantId;
-    if (!restaurantId || !orderId) {
-      return;
-    }
-    const escPosPrinterId = this.resolveEscPosBillPrinterIdForConfirm();
-    if (!escPosPrinterId) {
-      return;
-    }
-    await this.enqueueBillPrintJob({
-      restaurantId,
-      orderId,
-      forcePrinterId: escPosPrinterId,
-      kitchenItemsOnly: true,
-    });
   }
 
   async printFiscalReceipt(paymentMethod: 'cash' | 'card' = 'cash'): Promise<void> {
@@ -1874,9 +1813,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }): Promise<void> {
     try {
       const offlineFiscal = !this.isOnline && this.offlinePolicy.canUseFullOffline();
-      // #region agent log
-      fetch('http://127.0.0.1:7341/ingest/5b84ace2-df1e-4f3a-9af6-330c89f47519',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6b7cb8'},body:JSON.stringify({sessionId:'6b7cb8',runId:'pre-fix',hypothesisId:'H4',location:'manage-orders.component.ts:enqueueFiscalReceiptJob',message:'fiscal print route decision',data:{isOnline:this.isOnline,offlineFiscal,readyOffline:this.offlinePrintContext.isReadyForOfflineFiscalPrint(),agentUrl:this.offlinePrintContext.getAgentLocalBaseUrl()},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       let fiscalPrintingEnabled = false;
       let printerId = '';
       let vatMapping: Record<string, number> = {};
@@ -2595,17 +2531,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
             }
             this.markTableAsClosed(tableId);
             this.updateComputedLocal(tableId);
-
-            const pendingKitchenPrint = this.pendingKitchenPrintOnConfirm;
-            if (pendingKitchenPrint?.tableId === tableId) {
-              this.pendingKitchenPrintOnConfirm = null;
-              await this.enqueueBillPrintJob({
-                restaurantId: pendingKitchenPrint.restaurantId,
-                orderId,
-                forcePrinterId: pendingKitchenPrint.escPosPrinterId,
-                kitchenItemsOnly: true,
-              });
-            }
           });
 
         this.search$

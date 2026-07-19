@@ -319,20 +319,20 @@
       <div class="cart-actions" *ngIf="orderIsConfirmed">
         <div class="cart-actions__print-row">
           <button
-            class="btn btn-sm btn-outline-secondary cart-actions__btn"
-            (click)="printOrder()"
-            [disabled]="selectedItems.length === 0 || !canPrintBill"
-          >
-            <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
-            {{ 'manageOrders.print' | transloco }}
-          </button>
-          <button
             class="btn btn-sm btn-outline-primary cart-actions__btn"
             (click)="printFiscalReceipt('cash')"
             [disabled]="selectedItems.length === 0 || !canPrintBill || !canPrintFiscal"
           >
             <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
             {{ 'manageOrders.fiscalPrint' | transloco }}
+          </button>
+          <button
+            class="btn btn-sm btn-outline-primary cart-actions__btn"
+            (click)="printFiscalReceipt('card')"
+            [disabled]="selectedItems.length === 0 || !canPrintBill || !canPrintFiscal"
+          >
+            <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
+            {{ 'manageOrders.fiscalPrintCard' | transloco }}
           </button>
           <button
             class="btn btn-sm btn-outline-secondary cart-actions__btn"
@@ -343,16 +343,20 @@
           </button>
         </div>
         <div class="cart-actions__close-row">
+          @if (canPrintKitchen) {
+            <button
+              class="btn btn-sm btn-outline-secondary cart-actions__kitchen"
+              (click)="printKitchen()"
+              [disabled]="selectedItems.length === 0 || !canPrintBill"
+            >
+              <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
+              {{ 'manageOrders.printKitchen' | transloco }}
+            </button>
+          }
           <button
-            class="btn btn-sm btn-outline-primary cart-actions__fiscal-card"
-            (click)="printFiscalReceipt('card')"
-            [disabled]="selectedItems.length === 0 || !canPrintBill || !canPrintFiscal"
-          >
-            <svg cIcon name="cilPrint" size="sm" class="me-1"></svg>
-            {{ 'manageOrders.fiscalPrintCard' | transloco }}
-          </button>
-          <button
-            class="btn btn-warning cart-actions__close"
+            class="btn btn-warning"
+            [class.cart-actions__close]="canPrintKitchen"
+            [class.cart-actions__close--full]="!canPrintKitchen"
             (click)="closeOrder()"
             [disabled]="selectedItems.length === 0 || !canBypassOfflineUiGates"
           >
@@ -377,9 +381,9 @@
     <h5 cModalTitle>{{ 'manageOrders.offlineSyncModalTitle' | transloco }}</h5>
   </c-modal-header>
   <c-modal-body class="text-center py-4" role="status" aria-live="polite">
-    @if (offlineSyncCountdown() !== null) {
-      <div class="display-3 fw-bold tabular-nums mb-3">{{ offlineSyncCountdown() }}</div>
-      <p class="mb-0 text-body-secondary">{{ 'manageOrders.offlineSyncCountdown' | transloco: { seconds: offlineSyncCountdown() } }}</p>
+    @if (offlineSyncCountdownSeconds() !== null) {
+      <div class="display-3 fw-bold tabular-nums mb-3">{{ offlineSyncCountdownSeconds() }}</div>
+      <p class="mb-0 text-body-secondary">{{ 'manageOrders.offlineSyncCountdown' | transloco: { seconds: offlineSyncCountdownSeconds() } }}</p>
     } @else {
       <div class="spinner-border text-warning mb-3" role="status">
         <span class="visually-hidden">{{ 'manageOrders.offlineSyncInProgress' | transloco }}</span>

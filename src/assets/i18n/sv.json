@@ -976,7 +976,12 @@
     "offlineSyncCountdown": "Synkronisering startar om {{seconds}} sekunder. Vänta och stäng inte appen.",
     "offlineSyncInProgress": "Synkroniserar offlinebeställningar med servern. Vänta…",
     "offlineSyncReconciling": "Uppdaterar bordsstatus från servern. Vänta…",
-    "nonPrimaryOfflineHint": "Offline: du kan bara redigera beställningen som redan är öppen på den här enheten."
+    "nonPrimaryOfflineHint": "Offline: du kan bara redigera beställningen som redan är öppen på den här enheten.",
+    "printKitchen": "Skriv ut kök",
+    "printKitchenQueuedTitle": "Kök",
+    "printKitchenQueuedBody": "Order skickades till köksskrivaren.",
+    "printKitchenOfflineSuccessTitle": "Kök",
+    "printKitchenOfflineSuccessBody": "Order skickades till köksskrivaren."
   },
   "faq": {
     "navLink": "FAQ",

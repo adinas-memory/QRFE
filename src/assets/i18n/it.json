@@ -1020,7 +1020,12 @@
     "offlineSyncCountdown": "La sincronizzazione inizia tra {{seconds}} secondi. Attendi e non chiudere l'app.",
     "offlineSyncInProgress": "Sincronizzazione degli ordini offline con il server. Attendi…",
     "offlineSyncReconciling": "Aggiornamento dello stato dei tavoli dal server. Attendi…",
-    "nonPrimaryOfflineHint": "Offline: puoi modificare solo l'ordine già aperto su questo dispositivo."
+    "nonPrimaryOfflineHint": "Offline: puoi modificare solo l'ordine già aperto su questo dispositivo.",
+    "printKitchen": "Stampa cucina",
+    "printKitchenQueuedTitle": "Cucina",
+    "printKitchenQueuedBody": "Comanda inviata alla stampante di cucina.",
+    "printKitchenOfflineSuccessTitle": "Cucina",
+    "printKitchenOfflineSuccessBody": "Comanda inviata alla stampante di cucina."
   },
   "faq": {
     "navLink": "FAQ",

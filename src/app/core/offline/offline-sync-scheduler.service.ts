@@ -8,23 +8,26 @@ import { OrderSyncService } from '../services/order-service/order-sync.service';
 import { OfflinePolicyService } from './offline-policy.service';
 import { OfflineSyncLockService } from './offline-sync-lock.service';
 import {
-  computeCentralizedReconnectDelaySeconds,
-  OFFLINE_SYNC_JITTER_MAX_SECONDS,
+  computeCentralizedReconnectDelayTicks,
+  OFFLINE_SYNC_JITTER_MAX_TICKS,
+  OFFLINE_SYNC_JITTER_TICK_MS,
 } from './offline-sync.util';
 
-export { OFFLINE_SYNC_JITTER_MAX_SECONDS };
+export { OFFLINE_SYNC_JITTER_MAX_TICKS, OFFLINE_SYNC_JITTER_TICK_MS };
 
 export type OfflineReconnectDelayResolver = (restaurantId: string, nowMs?: number) => number;
 
 export const OFFLINE_RECONNECT_DELAY_RESOLVER = new InjectionToken<OfflineReconnectDelayResolver>(
   'OFFLINE_RECONNECT_DELAY_RESOLVER',
-  { factory: () => computeCentralizedReconnectDelaySeconds },
+  { factory: () => computeCentralizedReconnectDelayTicks },
 );
 
 @Injectable({ providedIn: 'root' })
 export class OfflineSyncSchedulerService {
   private readonly countdownSubject = new BehaviorSubject<number | null>(null);
-  /** Seconds remaining until sync starts; null when idle. */
+  /**
+   * Remaining 100ms ticks until sync starts (display as ticks/10 seconds); null when idle.
+   */
   readonly syncCountdownSeconds$ = this.countdownSubject.asObservable();
 
   private countdownIntervalId: ReturnType<typeof setInterval> | null = null;
@@ -218,18 +221,18 @@ export class OfflineSyncSchedulerService {
         }
       }
 
-      const delaySeconds = restaurantId
+      const delayTicks = restaurantId
         ? this.resolveReconnectDelay(restaurantId)
         : 0;
 
-      if (delaySeconds <= 0) {
+      if (delayTicks <= 0) {
         await this.finishReconnectSync();
         return;
       }
 
       this.drainScheduled = true;
       this.schedulingInProgress = false;
-      this.countdownSubject.next(delaySeconds);
+      this.countdownSubject.next(delayTicks);
       this.refreshSyncBlocked();
 
       this.countdownIntervalId = setInterval(() => {
@@ -246,7 +249,7 @@ export class OfflineSyncSchedulerService {
           return;
         }
         this.countdownSubject.next(current - 1);
-      }, 1000);
+      }, OFFLINE_SYNC_JITTER_TICK_MS);
     } finally {
       if (!this.isCountdownActive() && !this.drainScheduled) {
         this.schedulingInProgress = false;
