@@ -2420,6 +2420,11 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         break;
       }
 
+      // Handled centrally in OrderSyncService → OfflineSyncLockService (banner via OfflinePolicy).
+      case 'RestaurantSyncLocked':
+      case 'RestaurantSyncUnlocked':
+        break;
+
       default:
         console.warn('Unknown SSE event:', EventType);
     }
