@@ -106,7 +106,7 @@ describe('OnlineStateService', () => {
     expect(fetchSpy).toHaveBeenCalled();
   }));
 
-  it('runs supplemental ping-lite heartbeat every 10 seconds when SSE inactive', fakeAsync(() => {
+  it('runs supplemental ping-lite heartbeat every 5 seconds when SSE inactive', fakeAsync(() => {
     fetchSpy.calls.reset();
     TestBed.resetTestingModule();
     const sse = jasmine.createSpyObj('SseConnectivityService', [
@@ -123,9 +123,9 @@ describe('OnlineStateService', () => {
     });
     TestBed.inject(OnlineStateService);
 
-    tick(10_000);
+    tick(5_000);
     expect(pingLiteFetchCalls()).toBe(1);
-    tick(10_000);
+    tick(5_000);
     expect(pingLiteFetchCalls()).toBe(2);
     discardPeriodicTasks();
   }));
@@ -133,7 +133,7 @@ describe('OnlineStateService', () => {
   it('skips supplemental ping-lite when SSE stream is active', fakeAsync(() => {
     fetchSpy.calls.reset();
     sseConnectivity.isStreamActive.and.returnValue(true);
-    tick(10_000);
+    tick(5_000);
     expect(pingLiteFetchCalls()).toBe(0);
     discardPeriodicTasks();
   }));

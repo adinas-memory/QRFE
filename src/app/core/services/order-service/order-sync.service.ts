@@ -146,13 +146,9 @@ export class OrderSyncService {
         this.pendingOpenRestaurantId = this.connectedRestaurantId ?? this.lastRestaurantId;
         this.isRefreshing = false;
         this.reconnectAttempts = 0;
-        try {
-          this.controller?.abort();
-        } catch {
-          /* ignore */
-        }
-        this.controller = null;
-        this.connectedRestaurantId = null;
+        // close(false) clears streamOpen via reportStreamReconnecting — otherwise ping-lite
+        // recovery is ignored forever (isStreamActive stays true while app is offline).
+        this.close(false);
       });
 
     // Stale-watch detected a zombie stream — abort and reopen SSE.
