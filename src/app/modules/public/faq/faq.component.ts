@@ -15,6 +15,7 @@ import { SeoService } from '../../../core/services/seo/seo.service';
 
 /** FAQ entries must match `faq.items.<id>` in i18n JSON. */
 const FAQ_ITEM_IDS = [
+  'posApkDownload',
   'pwaSupportedBrowsers',
   'settingsCurrencyBeforeUse',
   'printerAgentDownload',
@@ -68,6 +69,7 @@ export class FaqComponent implements OnInit, OnDestroy {
   private faqJsonLdScript: HTMLScriptElement | null = null;
 
   protected readonly printerAgentDownloadUrl = environment.printerAgentDownloadUrl?.trim() ?? '';
+  protected readonly posApkDownloadUrl = environment.posApkDownloadUrl?.trim() ?? '';
 
   ngOnInit(): void {
     if (!this.embedded()) {

@@ -992,6 +992,13 @@
     "pageTitle": "Questions fréquentes",
     "pageIntro": "Ces réponses reflètent la conception d’U.R.S. : événements SSE temps réel, file hors ligne Dexie, rôles JWT et menu public invité.",
     "items": {
+      "posApkDownload": {
+        "q": "Où télécharger l’application POS Android (APK) ?",
+        "a": "Téléchargez la dernière APK de production depuis GitHub Releases. Installez-la sur la tablette avec les sources inconnues activées ; le build n’est pas signé. Chaque push sur production publie une nouvelle APK latest.",
+        "aIntro": "Les tablettes du personnel peuvent utiliser l’APK Capacitor POS à la place (ou en plus) de la PWA navigateur. Le lien ci-dessous pointe toujours vers le dernier build de production sur GitHub Releases.",
+        "linkLabel": "Télécharger la dernière APK URS-POS (Android)",
+        "linkUnset": "L’URL de téléchargement n’est pas configurée pour cet environnement — ouvrez la page QRFE GitHub Releases et téléchargez URS-POS-prod.apk."
+      },
       "pwaSupportedBrowsers": {
         "q": "Quels navigateurs conviennent le mieux à U.R.S. ?",
         "a": "Le produit est une PWA (Progressive Web App) et fonctionne de façon fiable surtout avec Google Chrome et Microsoft Edge. Firefox n’est pas pris en charge. Safari n’a pas été testé. Certaines fonctions dépendent de capacités du navigateur disponibles de façon cohérente uniquement sur Chrome et Edge."

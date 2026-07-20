@@ -30,7 +30,18 @@
           </ng-template>
           <ng-template cTemplateId="accordionBodyTemplate">
             <div class="accordion-body faq-answer">
-              @if (id === 'printerAgentDownload') {
+              @if (id === 'posApkDownload') {
+                <p class="mb-2">{{ 'faq.items.posApkDownload.aIntro' | transloco }}</p>
+                @if (posApkDownloadUrl) {
+                  <p class="mb-0">
+                    <a [href]="posApkDownloadUrl" target="_blank" rel="noopener noreferrer">
+                      {{ 'faq.items.posApkDownload.linkLabel' | transloco }}
+                    </a>
+                  </p>
+                } @else {
+                  <p class="mb-0 text-muted">{{ 'faq.items.posApkDownload.linkUnset' | transloco }}</p>
+                }
+              } @else if (id === 'printerAgentDownload') {
                 <p class="mb-2">{{ 'faq.items.printerAgentDownload.aIntro' | transloco }}</p>
                 @if (printerAgentDownloadUrl) {
                   <p class="mb-0">

@@ -6,5 +6,10 @@ export interface Environment {
   publicSiteUrl: string;
   poweredBy: string;
   printerAgentDownloadUrl?: string;
+  /**
+   * Stable GitHub Releases URL for the latest production POS APK
+   * (`…/releases/latest/download/URS-POS-prod.apk`).
+   */
+  posApkDownloadUrl?: string;
   serviceWorker?: boolean;
 }

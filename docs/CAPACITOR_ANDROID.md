@@ -25,7 +25,9 @@ Workflow [`.github/workflows/android-apk.yaml`](../.github/workflows/android-apk
 | `main` | `android:lan-apk` + `assembleRelease` | `http://192.168.43.142` | [Releases](https://github.com/adrian-badulescu/QRFE/releases) tag `apk-lan-r*` (prerelease) |
 | `production` | `android:prod` + `assembleRelease` | prod HTTPS | [Releases](https://github.com/adrian-badulescu/QRFE/releases) tag `apk-prod-r*` |
 
-APK-urile sunt **unsigned** (fără keystore). Link direct: `https://github.com/adrian-badulescu/QRFE/releases/download/<tag>/URS-POS-*.apk`. Artifact-ul pe run Actions e reținut 14 zile.
+APK-urile sunt **unsigned** (fără keystore). Link stabil (mereu ultima producție):  
+`https://github.com/adrian-badulescu/QRFE/releases/latest/download/URS-POS-prod.apk`  
+(afișat și în FAQ → primul item). Artifact-ul pe run Actions e reținut 14 zile.
 
 ## Release APK intern (semnat)
 
