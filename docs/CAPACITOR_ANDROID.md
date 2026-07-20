@@ -11,9 +11,21 @@ Același codebase Angular servește **browser**, **PWA instalată** și **APK Ca
 | **APK release (prod)** | `npm run android:prod` | prod HTTPS | **nu** | **nu** (bundle local) |
 | APK LAN tabletă (live reload) | `npm run android:lan` | IP LAN | **nu** | da (live reload LAN) |
 | **APK LAN standalone** | `npm run android:lan-apk` | IP LAN | **nu** | **nu** (`androidScheme: http`) |
+| **APK LAN headless** | `npm run android:lan-release` | IP LAN (`192.168.43.142`) | **nu** | **nu** |
 | Test PWA local | `npm run build:pwa` + `serve:localhost` | `localhost:7051` | dezactivat pe :8080 | — |
 
-**Nu folosi `capacitor-lan` / `android:lan` pentru APK release.** Release-ul folosește assets bundled + HTTPS prod.
+**Nu folosi `capacitor-lan` / `android:lan` pentru APK release de producție.** Release-ul prod folosește assets bundled + HTTPS.
+
+## CI (GitHub Actions)
+
+Workflow [`.github/workflows/android-apk.yaml`](../.github/workflows/android-apk.yaml) rulează la push pe `main` / `production` (și `workflow_dispatch`):
+
+| Branch | Build | API în APK | Download |
+|--------|-------|------------|----------|
+| `main` | `android:lan-apk` + `assembleRelease` | `http://192.168.43.142` | [Releases](https://github.com/adrian-badulescu/QRFE/releases) tag `apk-lan-r*` (prerelease) |
+| `production` | `android:prod` + `assembleRelease` | prod HTTPS | [Releases](https://github.com/adrian-badulescu/QRFE/releases) tag `apk-prod-r*` |
+
+APK-urile sunt **unsigned** (fără keystore). Link direct: `https://github.com/adrian-badulescu/QRFE/releases/download/<tag>/URS-POS-*.apk`. Artifact-ul pe run Actions e reținut 14 zile.
 
 ## Release APK intern (semnat)
 

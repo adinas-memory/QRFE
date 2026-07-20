@@ -47,6 +47,8 @@ import {
   RestaurantStaffListItem,
 } from '../../../core/services/offline-primary/offline-primary.service';
 import { ManagerSubscriptionStatusModel } from '../../../core/models/manager-subscription-status.model';
+import { RestaurantCurrencyService } from '../../../core/offline/restaurant-currency.service';
+import { normalizeCurrencyCode } from '../../../core/models/orderingModel';
 
 export interface PrinterAgentEnrollmentCodeRow {
   id: string;
@@ -92,7 +94,7 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
   currencyOptions: string[] = [...this.fallbackCurrencies];
 
   form = this.fb.nonNullable.group({
-    currency: ['EUR', Validators.required]
+    currency: ['RON', Validators.required]
   });
 
   saving = false;
@@ -155,6 +157,7 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     private transloco: TranslocoService,
     private printJobs: PrintJobsService,
     private offlinePrimary: OfflinePrimaryService,
+    private restaurantCurrency: RestaurantCurrencyService,
   ) {
     this.routeRestaurantId = this.route.snapshot.paramMap.get('restaurantId');
   }
@@ -170,6 +173,7 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
         /* keep fallback */
       }
     });
+    this.loadRestaurantCurrency();
     this.loadEnrollmentCodes();
     this.loadAgentInstallations();
     this.loadStripeConnectStatus();
@@ -180,6 +184,28 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     if (this.isManager) {
       this.loadManagerSubscriptionStatus();
     }
+  }
+
+  private loadRestaurantCurrency(): void {
+    const rid = this.restaurantId;
+    if (!rid) return;
+    this.http
+      .get<{ currency?: string; Currency?: string }>(
+        `${this.apiUrl}/api/restaurants/${rid}/admin/currency`,
+        { withCredentials: true },
+      )
+      .subscribe({
+        next: res => {
+          const code = normalizeCurrencyCode(res.currency ?? res.Currency);
+          if (code) {
+            this.form.patchValue({ currency: code });
+            void this.restaurantCurrency.setFromSync(rid, code);
+          }
+        },
+        error: () => {
+          /* keep form default until save */
+        },
+      });
   }
 
   ngOnDestroy(): void {
@@ -459,6 +485,7 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.saving = false;
+          void this.restaurantCurrency.setFromSync(rid, currency);
           this.toast.success(
             this.transloco.translate('restaurantSettings.toastSavedBody'),
             this.transloco.translate('restaurantSettings.toastSavedTitle')
