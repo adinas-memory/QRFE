@@ -46,8 +46,8 @@
           <h4 class="mb-0">
             {{ 'manageOrders.total' | transloco }}
             {{ (tableComputed[table.tableId]?.total ?? 0) | number:'1.2-2' }}
-            @if ((tableComputed[table.tableId]?.total ?? 0) > 0 && tableComputed[table.tableId]?.currency && tableComputed[table.tableId]?.currency !== '—') {
-              <span class="text-muted ms-1">{{ tableComputed[table.tableId].currency }}</span>
+            @if ((tableComputed[table.tableId]?.total ?? 0) > 0 && tableDisplayCurrency(table.tableId)) {
+              <span class="text-muted ms-1">{{ tableDisplayCurrency(table.tableId) }}</span>
             }
           </h4>
           @if (waiterState[table.tableId] === 'active') {

@@ -75,7 +75,7 @@ export class RestaurantSetupComponent implements OnInit {
   ) {
     this.restaurantSetupForm = this.fb.group({
       restaurantName: this.fb.control('', { nonNullable: true }),
-      restaurantCurrency: this.fb.control('EUR', { nonNullable: true }),
+      restaurantCurrency: this.fb.control('RON', { nonNullable: true }),
       address: this.fb.control('', { nonNullable: true }),
       city: this.fb.control('', { nonNullable: true }),
       country: this.fb.control('', { nonNullable: true }),

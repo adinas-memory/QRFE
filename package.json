@@ -26,6 +26,7 @@
     "android:release": "npm run android:prod && cd android && gradlew assembleRelease",
     "android:lan": "npm run build:capacitor-lan && node scripts/cap-sync-lan.mjs && npm run cap:android",
     "android:lan-apk": "npm run build:capacitor-lan && node scripts/cap-sync-lan-apk.mjs",
+    "android:lan-release": "npm run android:lan-apk && cd android && gradlew assembleRelease",
     "serve:pwa": "npx http-server -p 8080 -c-1 ./dist-pwa/browser",
     "serve:devhost": "node scripts/static-with-proxy.mjs",
     "serve:devhost:static": "npx http-server -p 8080 -c-1 ./dist/browser",

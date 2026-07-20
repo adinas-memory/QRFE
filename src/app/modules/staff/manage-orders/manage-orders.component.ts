@@ -658,6 +658,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     return resolved || undefined;
   }
 
+  /** Table-card currency label (always prefer restaurant operating currency). */
+  tableDisplayCurrency(tableId: string): string {
+    const computed = this.tableComputed[tableId]?.currency;
+    return this.displayCurrency(
+      computed && computed !== '—' ? computed : '',
+      resolveOrderCurrency(this.tables.find(t => t.tableId === tableId)?.order),
+    );
+  }
+
   /** Operating currency for stamping cart lines / table totals. */
   private displayCurrency(...fallbacks: Array<string | null | undefined>): string {
     return this.restaurantCurrency.resolve(...fallbacks);
@@ -2272,6 +2281,9 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
         await this.offlineDB.saveCart(tableId, cart, payload.OrderId);
         this.tableComputed[tableId] = this.ordersService.mapPayloadToComputed(
           payload, this.tables, this.waiterState, InitiatedBy
+        );
+        this.tableComputed[tableId].currency = this.displayCurrency(
+          this.tableComputed[tableId].currency,
         );
         this.rememberInitiatedBy(tableId, InitiatedBy);
         this.tableCarts[tableId] = cart;
