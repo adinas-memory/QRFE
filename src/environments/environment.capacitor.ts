@@ -7,4 +7,6 @@ export const environment: Environment = {
   poweredBy: 'QRFE Capacitor',
   printerAgentDownloadUrl:
     'https://github.com/adrian-badulescu/Printer-Agent/releases/download/v1.4.2/URSPrinterAgentSetup.exe',
+  posApkDownloadUrl:
+    'https://github.com/adrian-badulescu/QRFE/releases/latest/download/URS-POS-prod.apk',
 };

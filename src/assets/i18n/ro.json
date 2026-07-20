@@ -1143,6 +1143,13 @@
     "pageTitle": "Întrebări frecvente",
     "pageIntro": "Răspunsurile reflectă cum e construit U.R.S.: evenimente SSE live, coadă offline Dexie, roluri JWT și meniul public pentru oaspeți.",
     "items": {
+      "posApkDownload": {
+        "q": "De unde descarc aplicația POS Android (APK)?",
+        "a": "Descarcă ultima versiune de producție a APK-ului Android de pe GitHub Releases. Instaleaz-o pe tabletă cu surse necunoscute activate; build-ul este nesemnat. Fiecare push pe production publică un APK nou ca latest.",
+        "aIntro": "Tabletele staff pot rula APK-ul Capacitor POS în locul (sau pe lângă) PWA din browser. Linkul de mai jos duce mereu la ultimul build de producție de pe GitHub Releases.",
+        "linkLabel": "Descarcă ultima versiune URS-POS APK (Android)",
+        "linkUnset": "Linkul de descărcare nu este configurat pentru acest mediu — deschide pagina QRFE GitHub Releases și descarcă URS-POS-prod.apk."
+      },
       "pwaSupportedBrowsers": {
         "q": "Ce browsere funcționează cel mai bine cu U.R.S.?",
         "a": "Aplicația este o PWA (Progressive Web App) și este stabilă în Google Chrome și Microsoft Edge. Firefox nu este suportat. Safari nu a fost testat. Unele funcții depind de capabilități de browser prezente în mod consecvent doar în Chrome și Edge."
