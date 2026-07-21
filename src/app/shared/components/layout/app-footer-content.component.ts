@@ -88,15 +88,23 @@ import { COMPANY_EMAIL, COMPANY_WHATSAPP_URL } from '@app/core/constants/company
 
     @media (min-width: 768px) {
       .app-footer-grid {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         align-items: start;
+        width: 100%;
+      }
+
+      .app-footer-brand {
+        justify-self: start;
+        text-align: left;
       }
 
       .app-footer-contact {
-        text-align: center;
+        justify-self: stretch;
+        text-align: left;
       }
 
       .app-footer-powered {
+        justify-self: end;
         text-align: right;
       }
     }

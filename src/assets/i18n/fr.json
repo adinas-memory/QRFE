@@ -541,7 +541,28 @@
     "passwordMismatch": "Les mots de passe ne correspondent pas.",
     "successTitle": "Employé créé",
     "successBody": "Le nouvel employé peut se connecter avec l’e-mail et le mot de passe que vous avez définis.",
-    "errorGeneric": "Impossible de créer l’utilisateur employé. Vérifiez les informations ou réessayez."
+    "errorGeneric": "Impossible de créer l’utilisateur employé. Vérifiez les informations ou réessayez.",
+    "listTitle": "Comptes employés",
+    "listSubtitle": "Désactivez l’accès pour bloquer la connexion sans supprimer le compte.",
+    "listLoading": "Chargement des employés…",
+    "listEmpty": "Aucun compte employé pour l’instant.",
+    "listLoadError": "Impossible de charger la liste des employés.",
+    "refresh": "Actualiser",
+    "colName": "Nom",
+    "colEmail": "E-mail",
+    "colStatus": "Statut",
+    "colActions": "Actions",
+    "statusActive": "Actif",
+    "statusDisabled": "Désactivé",
+    "statusManager": "Manager",
+    "disable": "Désactiver l’accès",
+    "enable": "Réactiver l’accès",
+    "disableSuccessTitle": "Accès désactivé",
+    "disableSuccessBody": "Cet employé ne peut plus se connecter.",
+    "disableError": "Impossible de désactiver l’accès.",
+    "enableSuccessTitle": "Accès rétabli",
+    "enableSuccessBody": "Cet employé peut se reconnecter.",
+    "enableError": "Impossible de réactiver l’accès."
   },
   "resellerDashboard": {
     "title": "Vos restaurants",
@@ -874,6 +895,7 @@
       "toastGeneratedTitle": "Code créé",
       "toastGeneratedBody": "Copiez le code maintenant ; il ne pourra pas être récupéré plus tard.",
       "copy": "Copier",
+      "copied": "Copié",
       "toastCopiedTitle": "Code copié",
       "toastCopiedBody": "Code d'enregistrement copié dans le presse-papiers.",
       "toastCopyFailedTitle": "Échec de la copie",
@@ -1011,7 +1033,7 @@
         "q": "Où télécharger Printer Agent pour Windows ?",
         "aIntro": "Printer Agent s’exécute sur un PC Windows x64 sur site, parle au backend et remonte les imprimantes via heartbeat. Après installation, générez un code d’enrôlement dans Manager → Paramètres (section Printer agent) et terminez la configuration sur cette machine.",
         "linkLabel": "Télécharger URSPrinterAgentSetup.exe (Windows x64)",
-        "linkUnset": "L’URL de téléchargement n’est pas configurée — demandez à votre administrateur ou ouvrez la page GitHub Releases de Printer Agent."
+        "linkUnset": "L’URL de téléchargement n’est pas configurée — ouvrez https://github.com/adrian-badulescu/Printer-Agent/releases et téléchargez URSPrinterAgentSetup.exe."
       },
       "printerAgentInstall": {
         "q": "Comment installer l’imprimante pour l’addition ?",

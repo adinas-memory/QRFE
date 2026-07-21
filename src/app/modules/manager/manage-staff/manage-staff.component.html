@@ -1,6 +1,88 @@
 <c-container class="px-4 py-3">
   <c-row class="justify-content-center">
-    <c-col lg="8" md="10">
+    <c-col lg="10" md="12">
+      <c-card class="mb-4">
+        <c-card-body>
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div>
+              <h2 class="h5 mb-1">{{ 'manageStaff.listTitle' | transloco }}</h2>
+              <p class="text-body-secondary small mb-0">{{ 'manageStaff.listSubtitle' | transloco }}</p>
+            </div>
+            <button cButton color="primary" variant="outline" size="sm" type="button" (click)="loadStaffList()" [disabled]="listLoading">
+              {{ 'manageStaff.refresh' | transloco }}
+            </button>
+          </div>
+
+          @if (listLoading) {
+            <p class="text-body-secondary mb-0">{{ 'manageStaff.listLoading' | transloco }}</p>
+          } @else if (staffList.length === 0) {
+            <p class="text-body-secondary mb-0">{{ 'manageStaff.listEmpty' | transloco }}</p>
+          } @else {
+            <div class="table-responsive">
+              <table cTable [hover]="true" class="mb-0 align-middle">
+                <thead>
+                  <tr>
+                    <th>{{ 'manageStaff.colName' | transloco }}</th>
+                    <th>{{ 'manageStaff.colEmail' | transloco }}</th>
+                    <th>{{ 'manageStaff.colStatus' | transloco }}</th>
+                    <th class="text-end">{{ 'manageStaff.colActions' | transloco }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of staffList; track item.userId) {
+                    <tr>
+                      <td>{{ item.displayName }}</td>
+                      <td>{{ item.email }}</td>
+                      <td>
+                        <span
+                          class="badge rounded-pill"
+                          [class.text-bg-success]="!isStaffDisabled(item) && !isManagerAccount(item)"
+                          [class.text-bg-secondary]="isStaffDisabled(item)"
+                          [class.text-bg-info]="isManagerAccount(item)"
+                        >
+                          {{ statusLabelKey(item) | transloco }}
+                        </span>
+                      </td>
+                      <td class="text-end">
+                        @if (canToggleAccess(item)) {
+                          @if (isStaffDisabled(item)) {
+                            <button
+                              cButton
+                              color="success"
+                              variant="outline"
+                              size="sm"
+                              type="button"
+                              (click)="onEnableStaff(item)"
+                              [disabled]="actionEmployeeId === item.userId"
+                            >
+                              {{ 'manageStaff.enable' | transloco }}
+                            </button>
+                          } @else {
+                            <button
+                              cButton
+                              color="danger"
+                              variant="outline"
+                              size="sm"
+                              type="button"
+                              (click)="onDisableStaff(item)"
+                              [disabled]="actionEmployeeId === item.userId"
+                            >
+                              {{ 'manageStaff.disable' | transloco }}
+                            </button>
+                          }
+                        } @else {
+                          <span class="text-body-secondary small">—</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </c-card-body>
+      </c-card>
+
       <c-card-group>
         <c-card class="p-4">
           <c-card-body>

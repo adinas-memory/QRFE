@@ -616,7 +616,28 @@
     "passwordMismatch": "Passwords do not match.",
     "successTitle": "Staff created",
     "successBody": "The new staff member can sign in with the email and password you set.",
-    "errorGeneric": "Could not create the staff user. Check the details or try again."
+    "errorGeneric": "Could not create the staff user. Check the details or try again.",
+    "listTitle": "Staff accounts",
+    "listSubtitle": "Disable access to block sign-in without deleting the account.",
+    "listLoading": "Loading staff…",
+    "listEmpty": "No staff accounts yet.",
+    "listLoadError": "Could not load the staff list.",
+    "refresh": "Refresh",
+    "colName": "Name",
+    "colEmail": "Email",
+    "colStatus": "Status",
+    "colActions": "Actions",
+    "statusActive": "Active",
+    "statusDisabled": "Disabled",
+    "statusManager": "Manager",
+    "disable": "Disable access",
+    "enable": "Re-enable access",
+    "disableSuccessTitle": "Access disabled",
+    "disableSuccessBody": "This staff member can no longer sign in.",
+    "disableError": "Could not disable staff access.",
+    "enableSuccessTitle": "Access restored",
+    "enableSuccessBody": "This staff member can sign in again.",
+    "enableError": "Could not re-enable staff access."
   },
   "manageResellers": {
     "title": "Create reseller account",
@@ -1035,6 +1056,7 @@
       "toastGeneratedTitle": "Code created",
       "toastGeneratedBody": "Copy the code now; it cannot be retrieved later.",
       "copy": "Copy",
+      "copied": "Copied",
       "toastCopiedTitle": "Code copied",
       "toastCopiedBody": "Enrollment code copied to clipboard.",
       "toastCopyFailedTitle": "Copy failed",
@@ -1139,7 +1161,7 @@
         "q": "Where do I download the Printer Agent for Windows?",
         "aIntro": "Printer Agent runs on a Windows x64 PC at the restaurant, talks to the backend, and reports printers via heartbeat. After installing, generate an enrollment code in Manager → Settings (Printer agent section) and finish setup on that machine.",
         "linkLabel": "Download URSPrinterAgentSetup.exe (Windows x64)",
-        "linkUnset": "Download URL is not configured for this deployment — ask your administrator or open your organisation’s Printer Agent GitHub Releases page."
+        "linkUnset": "Download URL is not configured for this deployment — open https://github.com/adrian-badulescu/Printer-Agent/releases and download URSPrinterAgentSetup.exe."
       },
       "printerAgentInstall": {
         "q": "How do I set up the bill printer?",

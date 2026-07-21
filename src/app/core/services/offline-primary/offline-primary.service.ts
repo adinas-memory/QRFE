@@ -2,12 +2,9 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { RestaurantStaffListItem } from '../../models/restaurant-staff-list-item.model';
 
-export interface RestaurantStaffListItem {
-  userId: string;
-  email: string;
-  displayName: string;
-}
+export type { RestaurantStaffListItem };
 
 export interface OfflinePrimaryStaffPolicy {
   offlinePrimaryStaffUserId: string | null;

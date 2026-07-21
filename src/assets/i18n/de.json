@@ -541,7 +541,28 @@
     "passwordMismatch": "Die Passwörter stimmen nicht überein.",
     "successTitle": "Mitarbeiter erstellt",
     "successBody": "Der neue Mitarbeiter kann sich mit der von Ihnen festgelegten E-Mail und dem Passwort anmelden.",
-    "errorGeneric": "Mitarbeiter konnte nicht erstellt werden. Prüfen Sie die Angaben oder versuchen Sie es erneut."
+    "errorGeneric": "Mitarbeiter konnte nicht erstellt werden. Prüfen Sie die Angaben oder versuchen Sie es erneut.",
+    "listTitle": "Mitarbeiterkonten",
+    "listSubtitle": "Zugriff deaktivieren, um die Anmeldung zu sperren, ohne das Konto zu löschen.",
+    "listLoading": "Mitarbeiter werden geladen…",
+    "listEmpty": "Noch keine Mitarbeiterkonten.",
+    "listLoadError": "Mitarbeiterliste konnte nicht geladen werden.",
+    "refresh": "Aktualisieren",
+    "colName": "Name",
+    "colEmail": "E-Mail",
+    "colStatus": "Status",
+    "colActions": "Aktionen",
+    "statusActive": "Aktiv",
+    "statusDisabled": "Deaktiviert",
+    "statusManager": "Manager",
+    "disable": "Zugriff deaktivieren",
+    "enable": "Zugriff wieder aktivieren",
+    "disableSuccessTitle": "Zugriff deaktiviert",
+    "disableSuccessBody": "Dieser Mitarbeiter kann sich nicht mehr anmelden.",
+    "disableError": "Zugriff konnte nicht deaktiviert werden.",
+    "enableSuccessTitle": "Zugriff wiederhergestellt",
+    "enableSuccessBody": "Dieser Mitarbeiter kann sich wieder anmelden.",
+    "enableError": "Zugriff konnte nicht wieder aktiviert werden."
   },
   "resellerDashboard": {
     "title": "Ihre Restaurants",
@@ -874,6 +895,7 @@
       "toastGeneratedTitle": "Code erstellt",
       "toastGeneratedBody": "Kopiere den Code jetzt; er kann später nicht abgerufen werden.",
       "copy": "Kopieren",
+      "copied": "Kopiert",
       "toastCopiedTitle": "Code kopiert",
       "toastCopiedBody": "Registrierungscode in die Zwischenablage kopiert.",
       "toastCopyFailedTitle": "Kopieren fehlgeschlagen",
@@ -1011,7 +1033,7 @@
         "q": "Wo lade ich den Printer Agent für Windows herunter?",
         "aIntro": "Printer Agent läuft auf einem Windows-x64-PC im Restaurant, spricht mit dem Backend und meldet Drucker per Heartbeat. Nach der Installation: Registrierungscode unter Manager → Einstellungen (Bereich Printer agent) erzeugen und die Einrichtung auf diesem PC abschließen.",
         "linkLabel": "URSPrinterAgentSetup.exe herunterladen (Windows x64)",
-        "linkUnset": "Download-URL ist nicht konfiguriert — wenden Sie sich an den Administrator oder öffnen Sie die GitHub-Releases-Seite von Printer Agent."
+        "linkUnset": "Download-URL ist nicht konfiguriert — öffne https://github.com/adrian-badulescu/Printer-Agent/releases und lade URSPrinterAgentSetup.exe herunter."
       },
       "printerAgentInstall": {
         "q": "Wie richte ich den Rechnungsdrucker ein?",

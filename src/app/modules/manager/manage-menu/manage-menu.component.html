@@ -156,7 +156,11 @@
               />
             </div>
             <div class="col-3 col-md-2">
+              <label class="form-label small mb-1" [attr.for]="'setMenuVat-' + i">
+                {{ 'menu.manageMenu.vatLabel' | transloco }}
+              </label>
               <input
+                [id]="'setMenuVat-' + i"
                 formControlName="vatPercent"
                 class="form-control"
                 type="number"
@@ -164,7 +168,6 @@
                 min="0"
                 max="100"
                 [placeholder]="'menu.manageMenu.vatPlaceholder' | transloco"
-                [attr.aria-label]="'menu.manageMenu.vatLabel' | transloco"
               />
             </div>
             <div class="col-1 d-flex justify-content-end">

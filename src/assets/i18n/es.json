@@ -541,7 +541,28 @@
     "passwordMismatch": "Las contraseñas no coinciden.",
     "successTitle": "Personal creado",
     "successBody": "El nuevo empleado puede iniciar sesión con el email y la contraseña que configuraste.",
-    "errorGeneric": "No se pudo crear el usuario de personal. Revisa los datos o inténtalo de nuevo."
+    "errorGeneric": "No se pudo crear el usuario de personal. Revisa los datos o inténtalo de nuevo.",
+    "listTitle": "Cuentas de personal",
+    "listSubtitle": "Desactiva el acceso para bloquear el inicio de sesión sin eliminar la cuenta.",
+    "listLoading": "Cargando personal…",
+    "listEmpty": "Aún no hay cuentas de personal.",
+    "listLoadError": "No se pudo cargar la lista de personal.",
+    "refresh": "Actualizar",
+    "colName": "Nombre",
+    "colEmail": "Email",
+    "colStatus": "Estado",
+    "colActions": "Acciones",
+    "statusActive": "Activo",
+    "statusDisabled": "Desactivado",
+    "statusManager": "Manager",
+    "disable": "Desactivar acceso",
+    "enable": "Reactivar acceso",
+    "disableSuccessTitle": "Acceso desactivado",
+    "disableSuccessBody": "Este empleado ya no puede iniciar sesión.",
+    "disableError": "No se pudo desactivar el acceso.",
+    "enableSuccessTitle": "Acceso restaurado",
+    "enableSuccessBody": "Este empleado puede iniciar sesión de nuevo.",
+    "enableError": "No se pudo reactivar el acceso."
   },
   "resellerDashboard": {
     "title": "Sus restaurantes",
@@ -874,6 +895,7 @@
       "toastGeneratedTitle": "Código creado",
       "toastGeneratedBody": "Copia el código ahora; no podrá recuperarse después.",
       "copy": "Copiar",
+      "copied": "Copiado",
       "toastCopiedTitle": "Código copiado",
       "toastCopiedBody": "Código de registro copiado al portapapeles.",
       "toastCopyFailedTitle": "Error al copiar",
@@ -1011,7 +1033,7 @@
         "q": "¿Dónde descargo Printer Agent para Windows?",
         "aIntro": "Printer Agent se ejecuta en un PC Windows x64 del restaurante, se conecta al backend e informa las impresoras mediante heartbeat. Tras instalarlo, genera un código de registro en Manager → Ajustes (sección Printer agent) y completa la configuración en ese equipo.",
         "linkLabel": "Descargar URSPrinterAgentSetup.exe (Windows x64)",
-        "linkUnset": "La URL de descarga no está configurada — consulta al administrador o abre la página de GitHub Releases de Printer Agent."
+        "linkUnset": "La URL de descarga no está configurada — abre https://github.com/adrian-badulescu/Printer-Agent/releases y descarga URSPrinterAgentSetup.exe."
       },
       "printerAgentInstall": {
         "q": "¿Cómo instalo la impresora para la cuenta?",

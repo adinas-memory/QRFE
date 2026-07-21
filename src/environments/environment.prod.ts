@@ -5,12 +5,8 @@ export const environment: Environment = {
   apiUrl: 'https://universalrestaurant.systems',
   publicSiteUrl: 'https://universalrestaurant.systems',
   poweredBy: 'QRFE Prod Server',
-  /**
-   * Stable "latest" asset URL — keep the same filename on every GitHub Release.
-   * Replace OWNER/REPO with your Printer-Agent repository after the first release.
-   */
   printerAgentDownloadUrl:
-    'https://github.com/adrian-badulescu/Printer-Agent/releases/download/v1.4.2/URSPrinterAgentSetup.exe',
+    'https://github.com/adrian-badulescu/Printer-Agent/releases/latest/download/URSPrinterAgentSetup.exe',
   posApkDownloadUrl:
     'https://github.com/adrian-badulescu/URS-android/releases/latest/download/URS-POS-prod.apk',
 };

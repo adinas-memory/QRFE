@@ -6,7 +6,7 @@ export const environment: Environment = {
   publicSiteUrl: 'https://universalrestaurant.systems',
   poweredBy: 'QRFE Capacitor',
   printerAgentDownloadUrl:
-    'https://github.com/adrian-badulescu/Printer-Agent/releases/download/v1.4.2/URSPrinterAgentSetup.exe',
+    'https://github.com/adrian-badulescu/Printer-Agent/releases/latest/download/URSPrinterAgentSetup.exe',
   posApkDownloadUrl:
     'https://github.com/adrian-badulescu/URS-android/releases/latest/download/URS-POS-prod.apk',
 };

@@ -10,6 +10,7 @@ import {
   FormDirective,
   FormLabelDirective,
   RowComponent,
+  TableDirective,
   ToasterComponent,
   ToasterPlacement
 } from '@coreui/angular';
@@ -24,6 +25,7 @@ import {
 import { filter, Subject, take, takeUntil, tap } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import { UserContextModel } from '../../../core/models/userContextModel';
+import { RestaurantStaffListItem } from '../../../core/models/restaurant-staff-list-item.model';
 import { StaffAdminService } from '../../../core/services/staff-admin-service/staff-admin.service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
@@ -32,6 +34,8 @@ import { emailFieldValidators } from '../../../core/validators/email.validator';
 /** Aligned with backend `RegisterRequestModel` password rules. */
 const STAFF_PASSWORD_PATTERN =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+const DISABLED_STAFF_ROLE = 'soft_deleted_staff_user';
 
 @Component({
   selector: 'app-manage-staff',
@@ -47,6 +51,7 @@ const STAFF_PASSWORD_PATTERN =
     FormLabelDirective,
     FormControlDirective,
     ButtonDirective,
+    TableDirective,
     ReactiveFormsModule,
     TranslocoPipe,
     ToasterComponent
@@ -60,6 +65,9 @@ export class ManageStaffComponent implements OnInit, OnDestroy {
 
   staffForm: FormGroup;
   submitting = false;
+  staffList: RestaurantStaffListItem[] = [];
+  listLoading = false;
+  actionEmployeeId: string | null = null;
   readonly placement = ToasterPlacement.TopEnd;
 
   constructor(
@@ -88,6 +96,100 @@ export class ManageStaffComponent implements OnInit, OnDestroy {
     const c = g.get('confirmPassword')?.value as string | undefined;
     if (p === undefined || c === undefined) return null;
     return p === c ? null : { mismatch: true };
+  }
+
+  isStaffDisabled(item: RestaurantStaffListItem): boolean {
+    return item.role.toLowerCase() === DISABLED_STAFF_ROLE;
+  }
+
+  isManagerAccount(item: RestaurantStaffListItem): boolean {
+    return item.role.toLowerCase() === 'manager';
+  }
+
+  canToggleAccess(item: RestaurantStaffListItem): boolean {
+    const role = item.role.toLowerCase();
+    return role === 'staff' || role === DISABLED_STAFF_ROLE;
+  }
+
+  statusLabelKey(item: RestaurantStaffListItem): string {
+    if (this.isManagerAccount(item)) {
+      return 'manageStaff.statusManager';
+    }
+    if (this.isStaffDisabled(item)) {
+      return 'manageStaff.statusDisabled';
+    }
+    return 'manageStaff.statusActive';
+  }
+
+  loadStaffList(): void {
+    if (!this.restaurantId) {
+      return;
+    }
+
+    this.listLoading = true;
+    this.staffAdmin
+      .listStaff(this.restaurantId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: staff => {
+          this.staffList = staff ?? [];
+          this.listLoading = false;
+        },
+        error: () => {
+          this.listLoading = false;
+          this.appToast.error(this.transloco.translate('manageStaff.listLoadError'));
+        }
+      });
+  }
+
+  onDisableStaff(item: RestaurantStaffListItem): void {
+    if (!this.restaurantId || this.actionEmployeeId) {
+      return;
+    }
+
+    this.actionEmployeeId = item.userId;
+    this.staffAdmin
+      .disableStaff(this.restaurantId, item.userId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.actionEmployeeId = null;
+          this.appToast.success(
+            this.transloco.translate('manageStaff.disableSuccessBody'),
+            this.transloco.translate('manageStaff.disableSuccessTitle')
+          );
+          this.loadStaffList();
+        },
+        error: () => {
+          this.actionEmployeeId = null;
+          this.appToast.error(this.transloco.translate('manageStaff.disableError'));
+        }
+      });
+  }
+
+  onEnableStaff(item: RestaurantStaffListItem): void {
+    if (!this.restaurantId || this.actionEmployeeId) {
+      return;
+    }
+
+    this.actionEmployeeId = item.userId;
+    this.staffAdmin
+      .enableStaff(this.restaurantId, item.userId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.actionEmployeeId = null;
+          this.appToast.success(
+            this.transloco.translate('manageStaff.enableSuccessBody'),
+            this.transloco.translate('manageStaff.enableSuccessTitle')
+          );
+          this.loadStaffList();
+        },
+        error: () => {
+          this.actionEmployeeId = null;
+          this.appToast.error(this.transloco.translate('manageStaff.enableError'));
+        }
+      });
   }
 
   onSubmit(): void {
@@ -125,6 +227,7 @@ export class ManageStaffComponent implements OnInit, OnDestroy {
               this.transloco.translate('manageStaff.successTitle')
             );
             this.staffForm.reset();
+            this.loadStaffList();
           } else {
             this.appToast.error(this.transloco.translate('manageStaff.errorGeneric'));
           }
@@ -145,6 +248,7 @@ export class ManageStaffComponent implements OnInit, OnDestroy {
         take(1),
         tap(user => {
           this.restaurantId = user.restaurantId ?? '';
+          this.loadStaffList();
         })
       )
       .subscribe();

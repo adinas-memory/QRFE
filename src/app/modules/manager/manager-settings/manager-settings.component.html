@@ -78,13 +78,21 @@
                 <code class="fs-5 user-select-all mb-0">{{ lastGeneratedCode }}</code>
                 <button
                   cButton
-                  color="secondary"
+                  [color]="enrollmentCodeCopied ? 'success' : 'secondary'"
                   variant="outline"
                   size="sm"
                   type="button"
                   (click)="copyEnrollmentCode()"
+                  [attr.aria-label]="enrollmentCodeCopied
+                    ? ('restaurantSettings.printerAgentEnrollment.copied' | transloco)
+                    : ('restaurantSettings.printerAgentEnrollment.copy' | transloco)"
                 >
-                  {{ 'restaurantSettings.printerAgentEnrollment.copy' | transloco }}
+                  @if (enrollmentCodeCopied) {
+                    <span aria-hidden="true">✓</span>
+                    {{ 'restaurantSettings.printerAgentEnrollment.copied' | transloco }}
+                  } @else {
+                    {{ 'restaurantSettings.printerAgentEnrollment.copy' | transloco }}
+                  }
                 </button>
               </div>
               <div class="mt-1 text-body-secondary enrollment-code-hint">

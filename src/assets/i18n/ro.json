@@ -242,7 +242,7 @@
     "whatsappPurpose": "Doar suport tehnic",
     "phoneTelPurpose": "Suport telefonic",
     "phoneTelAria": "Sună-ne la telefon",
-    "contact": "Contact"
+    "contact": "Contatti"
   },
   "dashboard": {
     "kpiUsers": "Utilizatori",
@@ -612,7 +612,28 @@
     "passwordMismatch": "Parolele nu coincid.",
     "successTitle": "Staff creat",
     "successBody": "Noul membru staff se poate autentifica cu emailul și parola setate.",
-    "errorGeneric": "Nu s-a putut crea utilizatorul staff. Verifică datele sau încearcă din nou."
+    "errorGeneric": "Nu s-a putut crea utilizatorul staff. Verifică datele sau încearcă din nou.",
+    "listTitle": "Conturi staff",
+    "listSubtitle": "Dezactivează accesul pentru a bloca autentificarea fără a șterge contul.",
+    "listLoading": "Se încarcă staff…",
+    "listEmpty": "Niciun cont staff încă.",
+    "listLoadError": "Nu s-a putut încărca lista de staff.",
+    "refresh": "Reîmprospătează",
+    "colName": "Nume",
+    "colEmail": "Email",
+    "colStatus": "Status",
+    "colActions": "Acțiuni",
+    "statusActive": "Activ",
+    "statusDisabled": "Dezactivat",
+    "statusManager": "Manager",
+    "disable": "Dezactivează acces",
+    "enable": "Reactivează acces",
+    "disableSuccessTitle": "Acces dezactivat",
+    "disableSuccessBody": "Acest membru staff nu se mai poate autentifica.",
+    "disableError": "Nu s-a putut dezactiva accesul staff.",
+    "enableSuccessTitle": "Acces restaurat",
+    "enableSuccessBody": "Acest membru staff se poate autentifica din nou.",
+    "enableError": "Nu s-a putut reactiva accesul staff."
   },
   "manageResellers": {
     "title": "Creează cont reseller",
@@ -1031,6 +1052,7 @@
       "toastGeneratedTitle": "Cod creat",
       "toastGeneratedBody": "Copiază codul acum; nu poate fi recuperat ulterior.",
       "copy": "Copiază",
+      "copied": "Copiat",
       "toastCopiedTitle": "Cod copiat",
       "toastCopiedBody": "Codul de enrollment a fost copiat în clipboard.",
       "toastCopyFailedTitle": "Copiere eșuată",
@@ -1162,7 +1184,7 @@
         "q": "De unde descarc Printer Agent pentru Windows?",
         "aIntro": "Printer Agent rulează pe un PC Windows x64 la restaurant, comunică cu backend-ul și raportează imprimantele prin heartbeat. După instalare, generează un cod de înrolare din Manager → Setări (secțiunea Printer agent) și finalizează configurarea pe acel calculator.",
         "linkLabel": "Descarcă URSPrinterAgentSetup.exe (Windows x64)",
-        "linkUnset": "Linkul de descărcare nu este configurat pentru acest mediu — întreabă administratorul sau deschide pagina de Releases GitHub a Printer Agent."
+        "linkUnset": "Linkul de descărcare nu este configurat — deschide https://github.com/adrian-badulescu/Printer-Agent/releases și descarcă URSPrinterAgentSetup.exe."
       },
       "printerAgentInstall": {
         "q": "Cum instalez imprimanta pentru nota de plată?",

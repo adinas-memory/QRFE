@@ -541,7 +541,28 @@
     "passwordMismatch": "Lösenorden matchar inte.",
     "successTitle": "Personal skapad",
     "successBody": "Den nya medarbetaren kan logga in med e-posten och lösenordet som du angav.",
-    "errorGeneric": "Kunde inte skapa personalanvändaren. Kontrollera uppgifterna eller försök igen."
+    "errorGeneric": "Kunde inte skapa personalanvändaren. Kontrollera uppgifterna eller försök igen.",
+    "listTitle": "Personalkonton",
+    "listSubtitle": "Inaktivera åtkomst för att blockera inloggning utan att ta bort kontot.",
+    "listLoading": "Laddar personal…",
+    "listEmpty": "Inga personalkonton ännu.",
+    "listLoadError": "Kunde inte ladda personallistan.",
+    "refresh": "Uppdatera",
+    "colName": "Namn",
+    "colEmail": "E-post",
+    "colStatus": "Status",
+    "colActions": "Åtgärder",
+    "statusActive": "Aktiv",
+    "statusDisabled": "Inaktiverad",
+    "statusManager": "Manager",
+    "disable": "Inaktivera åtkomst",
+    "enable": "Återaktivera åtkomst",
+    "disableSuccessTitle": "Åtkomst inaktiverad",
+    "disableSuccessBody": "Den här medarbetaren kan inte logga in längre.",
+    "disableError": "Kunde inte inaktivera åtkomst.",
+    "enableSuccessTitle": "Åtkomst återställd",
+    "enableSuccessBody": "Den här medarbetaren kan logga in igen.",
+    "enableError": "Kunde inte återaktivera åtkomst."
   },
   "resellerDashboard": {
     "title": "Dina restauranger",
@@ -874,6 +895,7 @@
       "toastGeneratedTitle": "Kod skapad",
       "toastGeneratedBody": "Kopiera koden nu; den kan inte hämtas senare.",
       "copy": "Kopiera",
+      "copied": "Kopierad",
       "toastCopiedTitle": "Kod kopierad",
       "toastCopiedBody": "Registreringskoden kopierades till urklipp.",
       "toastCopyFailedTitle": "Kopiering misslyckades",
@@ -1011,7 +1033,7 @@
         "q": "Var laddar jag ner Printer Agent för Windows?",
         "aIntro": "Printer Agent körs på en Windows x64-dator i restaurangen, pratar med backend och rapporterar skrivare via heartbeat. Efter installation: skapa en registreringskod under Manager → Inställningar (Printer agent) och slutför konfigurationen på den datorn.",
         "linkLabel": "Ladda ner URSPrinterAgentSetup.exe (Windows x64)",
-        "linkUnset": "Nedladdnings-URL är inte konfigurerad — fråga administratören eller öppna organisationens Printer Agent GitHub Releases."
+        "linkUnset": "Nedladdnings-URL är inte konfigurerad — öppna https://github.com/adrian-badulescu/Printer-Agent/releases och ladda ner URSPrinterAgentSetup.exe."
       },
       "printerAgentInstall": {
         "q": "Hur installerar jag skrivaren för notan?",

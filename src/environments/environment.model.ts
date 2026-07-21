@@ -5,6 +5,10 @@ export interface Environment {
   /** Canonical public site origin (no trailing slash), used for SEO canonical URLs. */
   publicSiteUrl: string;
   poweredBy: string;
+  /**
+   * Stable GitHub Releases URL for the latest Printer Agent installer
+   * (`…/releases/latest/download/URSPrinterAgentSetup.exe`).
+   */
   printerAgentDownloadUrl?: string;
   /**
    * Stable GitHub Releases URL for the latest production POS APK
