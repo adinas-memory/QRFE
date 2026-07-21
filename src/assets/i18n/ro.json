@@ -242,7 +242,7 @@
     "whatsappPurpose": "Doar suport tehnic",
     "phoneTelPurpose": "Suport telefonic",
     "phoneTelAria": "Sună-ne la telefon",
-    "contact": "Contact"
+    "contact": "Contatti"
   },
   "dashboard": {
     "kpiUsers": "Utilizatori",
@@ -1052,6 +1052,7 @@
       "toastGeneratedTitle": "Cod creat",
       "toastGeneratedBody": "Copiază codul acum; nu poate fi recuperat ulterior.",
       "copy": "Copiază",
+      "copied": "Copiat",
       "toastCopiedTitle": "Cod copiat",
       "toastCopiedBody": "Codul de enrollment a fost copiat în clipboard.",
       "toastCopyFailedTitle": "Copiere eșuată",

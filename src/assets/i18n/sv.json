@@ -895,6 +895,7 @@
       "toastGeneratedTitle": "Kod skapad",
       "toastGeneratedBody": "Kopiera koden nu; den kan inte hämtas senare.",
       "copy": "Kopiera",
+      "copied": "Kopierad",
       "toastCopiedTitle": "Kod kopierad",
       "toastCopiedBody": "Registreringskoden kopierades till urklipp.",
       "toastCopyFailedTitle": "Kopiering misslyckades",

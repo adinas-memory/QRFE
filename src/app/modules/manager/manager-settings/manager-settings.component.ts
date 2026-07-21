@@ -107,6 +107,8 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
   loadingEnrollmentCodes = false;
   generatingEnrollmentCode = false;
   lastGeneratedCode: string | null = null;
+  enrollmentCodeCopied = false;
+  private enrollmentCodeCopiedTimer: ReturnType<typeof setTimeout> | null = null;
 
   agentInstallations: PrinterAgentInstallationDto[] = [];
   loadingAgentInstallations = false;
@@ -210,6 +212,7 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopBillPrinterPolling();
+    this.clearEnrollmentCodeCopiedTimer();
   }
 
   get isManager(): boolean {
@@ -536,6 +539,8 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     }
     this.generatingEnrollmentCode = true;
     this.lastGeneratedCode = null;
+    this.enrollmentCodeCopied = false;
+    this.clearEnrollmentCodeCopiedTimer();
     this.http
       .post<{ code: string; id: string; expiresAtUtc: string }>(
         `${this.apiUrl}/api/restaurants/${rid}/admin/printer-agent/enrollment-codes`,
@@ -856,15 +861,29 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     }
     try {
       await navigator.clipboard.writeText(code);
+      this.enrollmentCodeCopied = true;
+      this.clearEnrollmentCodeCopiedTimer();
+      this.enrollmentCodeCopiedTimer = setTimeout(() => {
+        this.enrollmentCodeCopied = false;
+        this.enrollmentCodeCopiedTimer = null;
+      }, 2500);
       this.toast.success(
         this.transloco.translate('restaurantSettings.printerAgentEnrollment.toastCopiedBody'),
         this.transloco.translate('restaurantSettings.printerAgentEnrollment.toastCopiedTitle'),
       );
     } catch {
+      this.enrollmentCodeCopied = false;
       this.toast.error(
         this.transloco.translate('restaurantSettings.printerAgentEnrollment.toastCopyFailedBody'),
         this.transloco.translate('restaurantSettings.printerAgentEnrollment.toastCopyFailedTitle'),
       );
+    }
+  }
+
+  private clearEnrollmentCodeCopiedTimer(): void {
+    if (this.enrollmentCodeCopiedTimer) {
+      clearTimeout(this.enrollmentCodeCopiedTimer);
+      this.enrollmentCodeCopiedTimer = null;
     }
   }
 

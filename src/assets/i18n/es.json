@@ -895,6 +895,7 @@
       "toastGeneratedTitle": "Código creado",
       "toastGeneratedBody": "Copia el código ahora; no podrá recuperarse después.",
       "copy": "Copiar",
+      "copied": "Copiado",
       "toastCopiedTitle": "Código copiado",
       "toastCopiedBody": "Código de registro copiado al portapapeles.",
       "toastCopyFailedTitle": "Error al copiar",

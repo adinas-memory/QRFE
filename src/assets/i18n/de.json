@@ -895,6 +895,7 @@
       "toastGeneratedTitle": "Code erstellt",
       "toastGeneratedBody": "Kopiere den Code jetzt; er kann später nicht abgerufen werden.",
       "copy": "Kopieren",
+      "copied": "Kopiert",
       "toastCopiedTitle": "Code kopiert",
       "toastCopiedBody": "Registrierungscode in die Zwischenablage kopiert.",
       "toastCopyFailedTitle": "Kopieren fehlgeschlagen",

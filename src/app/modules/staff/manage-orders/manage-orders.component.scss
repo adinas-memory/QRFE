@@ -1,3 +1,24 @@
+$pos-scrollbar-size: 11px;
+
+@mixin pos-scrollbar {
+  scrollbar-width: auto;
+  scrollbar-color: rgba(255, 255, 255, 0.38) transparent;
+
+  &::-webkit-scrollbar {
+    width: $pos-scrollbar-size;
+    height: $pos-scrollbar-size;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.38);
+    border-radius: 999px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
 :host ::ng-deep {
   .c-tabs-custom { height: 6rem !important; }
   c-offcanvas.order-offcanvas {
@@ -11,7 +32,12 @@
       min-height: 0;
     }
   }
-  .offcanvas-body { flex: 1; min-height: 0; overflow-y: auto; }
+  .offcanvas-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    @include pos-scrollbar;
+  }
 }
 
 .offcanvas-body .row.g-3 > [class*='col-'] { min-width: 0; }
@@ -54,6 +80,10 @@
 
   ::ng-deep .nav-tabs, ::ng-deep .nav { overflow-y: hidden; }
   ::ng-deep .nav-link { white-space: nowrap; }
+
+  ::ng-deep .categories-scroll {
+    @include pos-scrollbar;
+  }
 }
 
 .cart {
@@ -68,6 +98,7 @@
   max-height: 25vh;
   overflow-y: auto;
   overflow-x: hidden;
+  @include pos-scrollbar;
 
   .cart-table {
     table-layout: fixed;

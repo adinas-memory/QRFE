@@ -211,7 +211,7 @@
       <ng-template #tabsView>
         <c-tabs [activeItemKey]="0">
           <div class="categories-sticky">
-            <c-tabs-list variant="tabs" class="d-flex flex-row flex-nowrap overflow-x-auto">
+            <c-tabs-list variant="tabs" class="d-flex flex-row flex-nowrap overflow-x-auto categories-scroll">
               <button *ngFor="let cat of nonEmptyCategories; let i = index" cTab [itemKey]="i">
                 {{ cat }}
               </button>
