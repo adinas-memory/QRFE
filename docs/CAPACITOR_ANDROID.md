@@ -27,33 +27,24 @@ APK-urile se publică pe repo-ul public **[`adrian-badulescu/URS-android`](https
 | `main` | `android:lan-apk` + `assembleRelease` | `http://192.168.43.142` | [Releases](https://github.com/adrian-badulescu/URS-android/releases) tag `apk-lan-r*` (prerelease) |
 | `production` | `android:prod` + `assembleRelease` | prod HTTPS | [Releases](https://github.com/adrian-badulescu/URS-android/releases) tag `apk-prod-r*` |
 
-APK-urile sunt **unsigned** (fără keystore). Link stabil (mereu ultima producție):  
+APK-urile din CI sunt semnate cu **debug keystore** partajat `android/app/urs-pos-debug.keystore` (ca Run din Studio — instalabil sideload, nu pentru Play Store). Link stabil (mereu ultima producție):  
 `https://github.com/adrian-badulescu/URS-android/releases/latest/download/URS-POS-prod.apk`  
 (afișat și în FAQ → primul item). Artifact-ul pe run Actions e reținut 14 zile.
 
-## Release APK intern (semnat)
+Dacă pe dispozitiv e un build vechi semnat cu alt debug keystore (cel default din `~/.android`), dezinstalează o dată, apoi update-urile CI vor merge peste.
+
+## Release APK intern (semnat debug)
 
 ```bash
 npm install
 npm run android:prod
-npm run cap:android   # Android Studio
-```
-
-În Android Studio: **Build → Generate Signed Bundle / APK → APK**
-
-1. Creează sau selectează keystore local (nu se commită în git).
-2. Alege **release** build variant.
-3. Instalează APK-ul pe tabletă (sideload / MDM).
-
-Alternativ, build headless (necesită signing configurat în `android/app/build.gradle`):
-
-```bash
 npm run android:release
-# APK: android/app/build/outputs/apk/release/app-release-unsigned.apk
-# Semnează în Studio sau adaugă signingConfigs release.
+# sau: npm run cap:android → Run / Build APK în Android Studio (același keystore)
 ```
 
-**Versioning:** la fiecare release, incrementează `versionCode` și `versionName` în `android/app/build.gradle`.
+APK: `android/app/build/outputs/apk/release/app-release.apk`
+
+**Versioning:** CI setează `versionCode` / `versionName` din `github.run_number`.
 
 ## Debug LAN pe tabletă
 

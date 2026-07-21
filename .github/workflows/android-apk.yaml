@@ -85,13 +85,26 @@ jobs:
 
       - name: Stage APK for publish
         run: |
-          SRC="android/app/build/outputs/apk/release/app-release-unsigned.apk"
-          if [[ ! -f "$SRC" ]]; then
-            SRC="$(find android/app/build/outputs/apk/release -name '*.apk' | head -n 1)"
+          # Prefer signed outputs; unsigned must never be published for sideload.
+          SRC=""
+          for candidate in \
+            android/app/build/outputs/apk/release/app-release.apk \
+            android/app/build/outputs/apk/release/app-release-unsigned.apk; do
+            if [[ -f "$candidate" ]]; then
+              SRC="$candidate"
+              break
+            fi
+          done
+          if [[ -z "$SRC" ]]; then
+            SRC="$(find android/app/build/outputs/apk/release -name '*.apk' ! -name '*-unsigned.apk' | head -n 1)"
           fi
           if [[ -z "$SRC" || ! -f "$SRC" ]]; then
             echo "::error::No release APK found under android/app/build/outputs/apk/release"
             ls -laR android/app/build/outputs/apk || true
+            exit 1
+          fi
+          if [[ "$SRC" == *unsigned* ]]; then
+            echo "::error::Refusing to publish unsigned APK ($SRC). Debug signing must produce app-release.apk."
             exit 1
           fi
           mkdir -p dist-apk
@@ -101,7 +114,7 @@ jobs:
           if [[ "${{ steps.flavor.outputs.kind }}" == "prod" ]]; then
             cp "$SRC" "dist-apk/URS-POS-prod.apk"
           fi
-          echo "Built APK: $DEST ($(du -h "$DEST" | cut -f1))"
+          echo "Built APK: $DEST ($(du -h "$DEST" | cut -f1)) signing=debug"
           ls -la dist-apk
 
       - name: Upload APK artifact
@@ -130,13 +143,14 @@ jobs:
           make_latest: ${{ steps.flavor.outputs.kind == 'prod' && 'true' || 'false' }}
           files: dist-apk/*
           body: |
-            Capacitor POS APK (unsigned — install via unknown sources).
+            Capacitor POS APK (debug-signed — enable Unknown sources / Install unknown apps).
 
             Built from **QRFE** `${{ github.repository }}` @ `${{ github.sha }}`
             (`${{ github.ref_name }}`).
 
             - **API:** `${{ steps.flavor.outputs.api_url }}`
             - **versionCode:** `${{ github.run_number }}`
+            - **Signing:** debug (`urs-pos-debug.keystore`)
 
             Latest production download:
             `https://github.com/adrian-badulescu/URS-android/releases/latest/download/URS-POS-prod.apk`
