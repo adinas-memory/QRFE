@@ -35,7 +35,7 @@ describe('ManagerSettingsComponent bill printer', () => {
       'updatePolicy',
     ]);
     offlinePrimary.listStaff.and.returnValue(
-      of([{ userId: 'staff-1', email: 'waiter@example.com', displayName: 'Waiter One' }]),
+      of([{ userId: 'staff-1', email: 'waiter@example.com', displayName: 'Waiter One', role: 'staff' }]),
     );
     offlinePrimary.getPolicy.and.returnValue(
       of({
