@@ -13,6 +13,7 @@ import {
 import { MenuItem } from '../models/menu/menuItem';
 import { Currency, TableDTO } from '../models/restaurantTablesModel';
 import { RestaurantCurrencyService } from './restaurant-currency.service';
+import { sortTablesByName } from '../utils/table-sort.util';
 export interface MenuItemEntity extends MenuItem { }
 
 export interface CartRecord {
@@ -491,7 +492,7 @@ export class OfflineDbService {
     // loadLocalTables
     async loadLocalTables(): Promise<TableDTO[]> {
         const rows = await this.db.tablesStore.toArray();
-        return rows as TableDTO[];
+        return sortTablesByName(rows as TableDTO[]);
     }
 
     /**

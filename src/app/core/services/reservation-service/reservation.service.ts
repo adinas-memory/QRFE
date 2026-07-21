@@ -1,6 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { sortByTableLabel } from '../../utils/table-sort.util';
+import { map, Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
 export interface CreateReservationRequest {
@@ -76,7 +77,7 @@ export class ReservationService {
     return this.http.get<ReservationTableOption[]>(
       `${this.apiUrl}/api/public/${restaurantId}/reservations/tables`,
       { withCredentials: true }
-    );
+    ).pipe(map((options) => sortByTableLabel(options ?? [], (option) => option.label)));
   }
 
   getAvailability(restaurantId: string, tableId: string, start: string): Observable<AvailabilityResponse> {

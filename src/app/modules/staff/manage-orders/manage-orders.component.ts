@@ -18,6 +18,7 @@ import { TablesService } from '../../../core/services/tables-service/tables.serv
 import { AuthService } from '../../../core/auth/auth.service';
 import { formatStaffDisplayName } from '../../../core/auth/user-display-name';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
+import { sortTablesByName } from '../../../core/utils/table-sort.util';
 import { filter, Subject, take, takeUntil, debounceTime, forkJoin, from, firstValueFrom, pairwise, timeout, TimeoutError } from 'rxjs';
 import { NgFor, NgIf, NgStyle, CurrencyPipe, DecimalPipe, JsonPipe, NgClass, DatePipe, NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -905,7 +906,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   /** Apply authoritative table list from GET /api/sync or get-tables-status. */
   private applyAuthoritativeTables(tables: TableDTO[]): void {
-    this.tables = tables;
+    this.tables = sortTablesByName(tables);
     this.reconcileTableOccupancyFlags();
     this.refreshTableLists();
     this.tablesAvailable = this.tablesService.buildAvailabilityMap(this.tables);
@@ -2050,8 +2051,8 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   }
 
   refreshTableLists() {
-    this.openTables = this.tables.filter(t => t.isTableOpen);
-    this.closedTables = this.tables.filter(t => !t.isTableOpen);
+    this.openTables = sortTablesByName(this.tables.filter(t => t.isTableOpen));
+    this.closedTables = sortTablesByName(this.tables.filter(t => !t.isTableOpen));
   }
 
   getTableCss(table: TableDTO, waiterState: Record<string, WaiterCallState>): string {
