@@ -1125,7 +1125,7 @@
         "a": "Download the latest production Android APK from GitHub Releases. Install it on the tablet with unknown sources enabled; the build is unsigned. Each production push publishes a new latest APK.",
         "aIntro": "Staff tablets can run the Capacitor POS APK instead of (or alongside) the browser PWA. The link below always points to the latest production build from GitHub Releases.",
         "linkLabel": "Download latest URS-POS Android APK",
-        "linkUnset": "Download URL is not configured for this deployment — open the QRFE GitHub Releases page and download URS-POS-prod.apk."
+        "linkUnset": "Download URL is not configured for this deployment — open https://github.com/adrian-badulescu/URS-android/releases and download URS-POS-prod.apk."
       },
       "pwaSupportedBrowsers": {
         "q": "Which browsers work best with U.R.S.?",

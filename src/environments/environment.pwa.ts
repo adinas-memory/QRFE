@@ -7,6 +7,6 @@ export const environment: Environment = {
   publicSiteUrl: 'http://localhost:8080',
   poweredBy: 'QRFE PWA Test',
   posApkDownloadUrl:
-    'https://github.com/adrian-badulescu/QRFE/releases/latest/download/URS-POS-prod.apk',
+    'https://github.com/adrian-badulescu/URS-android/releases/latest/download/URS-POS-prod.apk',
 };
 
