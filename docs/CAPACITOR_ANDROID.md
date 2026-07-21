@@ -18,15 +18,17 @@ Același codebase Angular servește **browser**, **PWA instalată** și **APK Ca
 
 ## CI (GitHub Actions)
 
-Workflow [`.github/workflows/android-apk.yaml`](../.github/workflows/android-apk.yaml) rulează la push pe `main` / `production` (și `workflow_dispatch`):
+Workflow [`.github/workflows/android-apk.yaml`](../.github/workflows/android-apk.yaml) rulează la push pe `main` / `production` (și `workflow_dispatch`).
+
+APK-urile se publică pe repo-ul public **[`adrian-badulescu/URS-android`](https://github.com/adrian-badulescu/URS-android)** (nu pe QRFE). Necesită secretul `URS_ANDROID_RELEASE_TOKEN` pe QRFE.
 
 | Branch | Build | API în APK | Download |
 |--------|-------|------------|----------|
-| `main` | `android:lan-apk` + `assembleRelease` | `http://192.168.43.142` | [Releases](https://github.com/adrian-badulescu/QRFE/releases) tag `apk-lan-r*` (prerelease) |
-| `production` | `android:prod` + `assembleRelease` | prod HTTPS | [Releases](https://github.com/adrian-badulescu/QRFE/releases) tag `apk-prod-r*` |
+| `main` | `android:lan-apk` + `assembleRelease` | `http://192.168.43.142` | [Releases](https://github.com/adrian-badulescu/URS-android/releases) tag `apk-lan-r*` (prerelease) |
+| `production` | `android:prod` + `assembleRelease` | prod HTTPS | [Releases](https://github.com/adrian-badulescu/URS-android/releases) tag `apk-prod-r*` |
 
 APK-urile sunt **unsigned** (fără keystore). Link stabil (mereu ultima producție):  
-`https://github.com/adrian-badulescu/QRFE/releases/latest/download/URS-POS-prod.apk`  
+`https://github.com/adrian-badulescu/URS-android/releases/latest/download/URS-POS-prod.apk`  
 (afișat și în FAQ → primul item). Artifact-ul pe run Actions e reținut 14 zile.
 
 ## Release APK intern (semnat)

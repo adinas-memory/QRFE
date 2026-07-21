@@ -1148,7 +1148,7 @@
         "a": "Descarcă ultima versiune de producție a APK-ului Android de pe GitHub Releases. Instaleaz-o pe tabletă cu surse necunoscute activate; build-ul este nesemnat. Fiecare push pe production publică un APK nou ca latest.",
         "aIntro": "Tabletele staff pot rula APK-ul Capacitor POS în locul (sau pe lângă) PWA din browser. Linkul de mai jos duce mereu la ultimul build de producție de pe GitHub Releases.",
         "linkLabel": "Descarcă ultima versiune URS-POS APK (Android)",
-        "linkUnset": "Linkul de descărcare nu este configurat pentru acest mediu — deschide pagina QRFE GitHub Releases și descarcă URS-POS-prod.apk."
+        "linkUnset": "Linkul de descărcare nu este configurat pentru acest mediu — deschide https://github.com/adrian-badulescu/URS-android/releases și descarcă URS-POS-prod.apk."
       },
       "pwaSupportedBrowsers": {
         "q": "Ce browsere funcționează cel mai bine cu U.R.S.?",
