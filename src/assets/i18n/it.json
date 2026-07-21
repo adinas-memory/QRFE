@@ -1077,7 +1077,7 @@
         "q": "Dove scarico Printer Agent per Windows?",
         "aIntro": "Printer Agent gira su un PC Windows x64 in sede, parla con il backend e segnala le stampanti tramite heartbeat. Dopo l’installazione genera un codice di enrollment in Manager → Impostazioni (sezione Printer agent) e completa la configurazione su quel PC.",
         "linkLabel": "Scarica URSPrinterAgentSetup.exe (Windows x64)",
-        "linkUnset": "URL di download non configurato — chiedi all’amministratore o apri la pagina GitHub Releases di Printer Agent."
+        "linkUnset": "URL di download non configurato — apri https://github.com/adrian-badulescu/Printer-Agent/releases e scarica URSPrinterAgentSetup.exe."
       },
       "printerAgentInstall": {
         "q": "Come installo la stampante per il conto?",

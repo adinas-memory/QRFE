@@ -1033,7 +1033,7 @@
         "q": "¿Dónde descargo Printer Agent para Windows?",
         "aIntro": "Printer Agent se ejecuta en un PC Windows x64 del restaurante, se conecta al backend e informa las impresoras mediante heartbeat. Tras instalarlo, genera un código de registro en Manager → Ajustes (sección Printer agent) y completa la configuración en ese equipo.",
         "linkLabel": "Descargar URSPrinterAgentSetup.exe (Windows x64)",
-        "linkUnset": "La URL de descarga no está configurada — consulta al administrador o abre la página de GitHub Releases de Printer Agent."
+        "linkUnset": "La URL de descarga no está configurada — abre https://github.com/adrian-badulescu/Printer-Agent/releases y descarga URSPrinterAgentSetup.exe."
       },
       "printerAgentInstall": {
         "q": "¿Cómo instalo la impresora para la cuenta?",

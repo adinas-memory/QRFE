@@ -1161,7 +1161,7 @@
         "q": "Where do I download the Printer Agent for Windows?",
         "aIntro": "Printer Agent runs on a Windows x64 PC at the restaurant, talks to the backend, and reports printers via heartbeat. After installing, generate an enrollment code in Manager → Settings (Printer agent section) and finish setup on that machine.",
         "linkLabel": "Download URSPrinterAgentSetup.exe (Windows x64)",
-        "linkUnset": "Download URL is not configured for this deployment — ask your administrator or open your organisation’s Printer Agent GitHub Releases page."
+        "linkUnset": "Download URL is not configured for this deployment — open https://github.com/adrian-badulescu/Printer-Agent/releases and download URSPrinterAgentSetup.exe."
       },
       "printerAgentInstall": {
         "q": "How do I set up the bill printer?",

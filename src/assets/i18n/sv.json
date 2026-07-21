@@ -1033,7 +1033,7 @@
         "q": "Var laddar jag ner Printer Agent för Windows?",
         "aIntro": "Printer Agent körs på en Windows x64-dator i restaurangen, pratar med backend och rapporterar skrivare via heartbeat. Efter installation: skapa en registreringskod under Manager → Inställningar (Printer agent) och slutför konfigurationen på den datorn.",
         "linkLabel": "Ladda ner URSPrinterAgentSetup.exe (Windows x64)",
-        "linkUnset": "Nedladdnings-URL är inte konfigurerad — fråga administratören eller öppna organisationens Printer Agent GitHub Releases."
+        "linkUnset": "Nedladdnings-URL är inte konfigurerad — öppna https://github.com/adrian-badulescu/Printer-Agent/releases och ladda ner URSPrinterAgentSetup.exe."
       },
       "printerAgentInstall": {
         "q": "Hur installerar jag skrivaren för notan?",

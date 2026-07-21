@@ -1033,7 +1033,7 @@
         "q": "Où télécharger Printer Agent pour Windows ?",
         "aIntro": "Printer Agent s’exécute sur un PC Windows x64 sur site, parle au backend et remonte les imprimantes via heartbeat. Après installation, générez un code d’enrôlement dans Manager → Paramètres (section Printer agent) et terminez la configuration sur cette machine.",
         "linkLabel": "Télécharger URSPrinterAgentSetup.exe (Windows x64)",
-        "linkUnset": "L’URL de téléchargement n’est pas configurée — demandez à votre administrateur ou ouvrez la page GitHub Releases de Printer Agent."
+        "linkUnset": "L’URL de téléchargement n’est pas configurée — ouvrez https://github.com/adrian-badulescu/Printer-Agent/releases et téléchargez URSPrinterAgentSetup.exe."
       },
       "printerAgentInstall": {
         "q": "Comment installer l’imprimante pour l’addition ?",

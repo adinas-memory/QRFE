@@ -1184,7 +1184,7 @@
         "q": "De unde descarc Printer Agent pentru Windows?",
         "aIntro": "Printer Agent rulează pe un PC Windows x64 la restaurant, comunică cu backend-ul și raportează imprimantele prin heartbeat. După instalare, generează un cod de înrolare din Manager → Setări (secțiunea Printer agent) și finalizează configurarea pe acel calculator.",
         "linkLabel": "Descarcă URSPrinterAgentSetup.exe (Windows x64)",
-        "linkUnset": "Linkul de descărcare nu este configurat pentru acest mediu — întreabă administratorul sau deschide pagina de Releases GitHub a Printer Agent."
+        "linkUnset": "Linkul de descărcare nu este configurat — deschide https://github.com/adrian-badulescu/Printer-Agent/releases și descarcă URSPrinterAgentSetup.exe."
       },
       "printerAgentInstall": {
         "q": "Cum instalez imprimanta pentru nota de plată?",
