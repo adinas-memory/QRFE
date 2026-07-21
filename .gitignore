@@ -51,3 +51,9 @@ debug-*.log
 
 # Capacitor LAN sync script backup
 capacitor.config.prod.backup.ts
+
+# Android signing
+android/keystore.properties
+*.jks
+*.keystore
+!android/app/urs-pos-debug.keystore

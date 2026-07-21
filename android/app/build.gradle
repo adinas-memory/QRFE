@@ -16,10 +16,22 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Shared debug keystore (committed) so CI + Studio sideload use the same signature.
+    // Not for Play Store — internal POS distribution only.
+    signingConfigs {
+        debug {
+            storeFile file('urs-pos-debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // Same as local Studio debug installs — required for sideload (unsigned APKs fail).
+            signingConfig signingConfigs.debug
         }
     }
 }
