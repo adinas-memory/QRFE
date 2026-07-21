@@ -125,13 +125,7 @@ export class TableOrdersByDateComponent implements OnInit {
 
     const tables$ = this.tables.length
       ? of(this.tables)
-      : this.tablesService.getAll(this.restaurantId).pipe(
-          map(tables =>
-            (tables ?? []).slice().sort((a, b) =>
-              (a.tableName ?? '').localeCompare(b.tableName ?? '', undefined, { numeric: true })
-            )
-          )
-        );
+      : this.tablesService.getAll(this.restaurantId);
 
     tables$
       .pipe(

@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { TableDTO } from '../../models/restaurantTablesModel';
+import { sortTablesByName } from '../../utils/table-sort.util';
 import { NgZone } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { OnlineStateService } from '../../offline/online-state-service';
@@ -27,7 +28,7 @@ export class TablesService {
     return this.http.get<TableDTO[]>(
       `${this.apiUrl}/api/restaurants/${restaurantId}/staff/tables/get-tables-status`,
       { withCredentials: true }
-    );
+    ).pipe(map((tables) => sortTablesByName(tables ?? [])));
   }
 
   create(restaurantId: string, payload: { numberOfTables: number }): Observable<TableDTO[]> {
@@ -35,7 +36,7 @@ export class TablesService {
       `${this.apiUrl}/api/restaurants/${restaurantId}/admin/tables`,
       payload,
       { withCredentials: true }
-    );
+    ).pipe(map((tables) => sortTablesByName(tables ?? [])));
   }
 
   update(restaurantId: string, tableId: string, payload: { tableName: string }): Observable<TableDTO> {
@@ -50,7 +51,7 @@ export class TablesService {
     return this.http.delete<TableDTO[]>(
       `${this.apiUrl}/api/restaurants/${restaurantId}/admin/tables/${tableId}`,
       { withCredentials: true }
-    );
+    ).pipe(map((tables) => sortTablesByName(tables ?? [])));
   }
 
   listenForWaiterCall(restaurantId: string): Observable<any> {
@@ -88,11 +89,11 @@ export class TablesService {
       } catch (err) {
         console.warn('[TablesService] Online fetch failed, using local snapshot');
         this.sseConnectivity.reportHttpNetworkFailure();
-        return this.offlineDB.loadLocalTables();
+        return sortTablesByName(await this.offlineDB.loadLocalTables());
       }
     }
 
-    return this.offlineDB.loadLocalTables();
+    return sortTablesByName(await this.offlineDB.loadLocalTables());
   }
 
   /**
