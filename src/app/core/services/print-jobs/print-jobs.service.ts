@@ -138,4 +138,20 @@ export class PrintJobsService {
       { withCredentials: true },
     );
   }
+
+  createFiscalInvoiceJob(
+    restaurantId: string,
+    printerId: string,
+    payload: Record<string, unknown>,
+  ): Observable<{ jobId: string } | { JobId: string }> {
+    return this.createBillPrintJob(restaurantId, printerId, payload);
+  }
+
+  createFiscalStornoResoJob(
+    restaurantId: string,
+    printerId: string,
+    payload: Record<string, unknown>,
+  ): Observable<{ jobId: string } | { JobId: string }> {
+    return this.createBillPrintJob(restaurantId, printerId, payload);
+  }
 }

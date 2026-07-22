@@ -114,6 +114,9 @@
                 <th scope="col">{{ 'orderHistory.colItems' | transloco }}</th>
                 <th scope="col">{{ 'orderHistory.colOrderTotal' | transloco }}</th>
                 <th scope="col">{{ 'orderHistory.colStaff' | transloco }}</th>
+                @if (showFiscalActions) {
+                  <th scope="col">{{ 'orderHistory.colFiscalActions' | transloco }}</th>
+                }
                 <th scope="col"></th>
               </tr>
             </thead>
@@ -135,6 +138,40 @@
                     {{ orderCurrency(row.order) }}
                   </td>
                   <td>{{ row.order.lastInitiatedBy || '—' }}</td>
+                  @if (showFiscalActions) {
+                    <td>
+                      @if (!row.order.isOrderOpen) {
+                        <div class="d-flex flex-wrap gap-1">
+                          @if (canIssueInvoice(row)) {
+                            <button
+                              cButton
+                              color="primary"
+                              variant="outline"
+                              size="sm"
+                              type="button"
+                              (click)="openInvoiceModal(row)"
+                            >
+                              {{ 'orderHistory.issueInvoice' | transloco }}
+                            </button>
+                          }
+                          @if (canIssueStorno(row)) {
+                            <button
+                              cButton
+                              color="danger"
+                              variant="outline"
+                              size="sm"
+                              type="button"
+                              (click)="openStornoModal(row)"
+                            >
+                              {{ 'orderHistory.issueStorno' | transloco }}
+                            </button>
+                          }
+                        </div>
+                      } @else {
+                        <span class="text-body-secondary small">—</span>
+                      }
+                    </td>
+                  }
                   <td class="text-end">
                     <button
                       cButton
@@ -154,11 +191,11 @@
                 </tr>
                 @if (expandedRowKey === rowKey(row)) {
                   <tr>
-                    <td colspan="7" class="bg-body-tertiary">
+                    <td [attr.colspan]="showFiscalActions ? 8 : 7" class="bg-body-tertiary">
                       @if (!(row.order.orderItems?.length)) {
                         <p class="mb-0 small text-body-secondary">{{ 'orderHistory.noItems' | transloco }}</p>
                       } @else {
-                        <ul class="mb-0 ps-3">
+                        <ul class="mb-3 ps-3">
                           @for (item of row.order.orderItems; track item?.orderItemId ?? $index) {
                             @if (item) {
                               <li>
@@ -172,6 +209,23 @@
                           }
                         </ul>
                       }
+
+                      @if (showFiscalActions && documentsForOrder(row.order.orderId).length) {
+                        <div>
+                          <strong class="small">{{ 'orderHistory.fiscalDocumentsTitle' | transloco }}</strong>
+                          <ul class="mb-0 ps-3 small">
+                            @for (doc of documentsForOrder(row.order.orderId); track doc.id) {
+                              <li>
+                                {{ documentTypeLabel(doc.documentType) }}
+                                — {{ doc.status }}
+                                @if (doc.fiscalNumber) {
+                                  — #{{ doc.fiscalNumber }}
+                                }
+                              </li>
+                            }
+                          </ul>
+                        </div>
+                      }
                     </td>
                   </tr>
                 }
@@ -183,3 +237,76 @@
     </c-card-body>
   </c-card>
 </c-container>
+
+<c-modal [(visible)]="invoiceModalVisible" alignment="center">
+  <c-modal-header>
+    <h5 cModalTitle>{{ 'orderHistory.invoiceModalTitle' | transloco }}</h5>
+  </c-modal-header>
+  <c-modal-body>
+    <div class="mb-3">
+      <label cLabel for="invoiceCustomerName">{{ 'orderHistory.customerName' | transloco }}</label>
+      <input cFormControl id="invoiceCustomerName" [(ngModel)]="invoiceCustomerName" name="invoiceCustomerName" />
+    </div>
+    <div class="mb-3">
+      <label cLabel for="invoiceCustomerFiscalCode">{{ 'orderHistory.customerFiscalCode' | transloco }}</label>
+      <input cFormControl id="invoiceCustomerFiscalCode" [(ngModel)]="invoiceCustomerFiscalCode" name="invoiceCustomerFiscalCode" />
+    </div>
+    <div class="mb-3">
+      <label cLabel for="invoiceCustomerAddressLine1">{{ 'orderHistory.customerAddressLine1' | transloco }}</label>
+      <input cFormControl id="invoiceCustomerAddressLine1" [(ngModel)]="invoiceCustomerAddressLine1" name="invoiceCustomerAddressLine1" />
+    </div>
+    <div class="mb-3">
+      <label cLabel for="invoiceCustomerAddressLine2">{{ 'orderHistory.customerAddressLine2' | transloco }}</label>
+      <input cFormControl id="invoiceCustomerAddressLine2" [(ngModel)]="invoiceCustomerAddressLine2" name="invoiceCustomerAddressLine2" />
+    </div>
+    <div class="mb-0">
+      <label cLabel for="invoicePaymentMethod">{{ 'orderHistory.paymentMethod' | transloco }}</label>
+      <select cFormControl id="invoicePaymentMethod" [(ngModel)]="invoicePaymentMethod" name="invoicePaymentMethod">
+        <option value="cash">{{ 'orderHistory.paymentCash' | transloco }}</option>
+        <option value="card">{{ 'orderHistory.paymentCard' | transloco }}</option>
+      </select>
+    </div>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" type="button" (click)="invoiceModalVisible = false">
+      {{ 'orderHistory.cancel' | transloco }}
+    </button>
+    <button cButton color="primary" type="button" [disabled]="fiscalSubmitting" (click)="submitInvoice()">
+      {{ 'orderHistory.issueInvoice' | transloco }}
+    </button>
+  </c-modal-footer>
+</c-modal>
+
+<c-modal [(visible)]="stornoModalVisible" alignment="center">
+  <c-modal-header>
+    <h5 cModalTitle>{{ 'orderHistory.stornoModalTitle' | transloco }}</h5>
+  </c-modal-header>
+  <c-modal-body>
+    <p class="small text-body-secondary">{{ 'orderHistory.stornoModalHint' | transloco }}</p>
+    <div class="mb-3">
+      <label cLabel for="stornoReference">{{ 'orderHistory.stornoReference' | transloco }}</label>
+      <select cFormControl id="stornoReference" [(ngModel)]="selectedReferencedDocumentId" name="stornoReference">
+        @for (doc of stornoEligibleDocuments(activeRow); track doc.id) {
+          <option [value]="doc.id">
+            {{ documentTypeLabel(doc.documentType) }} #{{ doc.fiscalNumber ?? doc.id }}
+          </option>
+        }
+      </select>
+    </div>
+    <div class="mb-0">
+      <label cLabel for="stornoPaymentMethod">{{ 'orderHistory.paymentMethod' | transloco }}</label>
+      <select cFormControl id="stornoPaymentMethod" [(ngModel)]="stornoPaymentMethod" name="stornoPaymentMethod">
+        <option value="cash">{{ 'orderHistory.paymentCash' | transloco }}</option>
+        <option value="card">{{ 'orderHistory.paymentCard' | transloco }}</option>
+      </select>
+    </div>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" type="button" (click)="stornoModalVisible = false">
+      {{ 'orderHistory.cancel' | transloco }}
+    </button>
+    <button cButton color="danger" type="button" [disabled]="fiscalSubmitting || !selectedReferencedDocumentId" (click)="submitStorno()">
+      {{ 'orderHistory.issueStorno' | transloco }}
+    </button>
+  </c-modal-footer>
+</c-modal>
