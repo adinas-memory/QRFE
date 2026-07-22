@@ -2,7 +2,7 @@ import { Component, DestroyRef, effect, HostListener, inject, OnInit } from '@an
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, ActivatedRouteSnapshot, NavigationEnd, NavigationStart, Router, RouterOutlet } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { filter, take } from 'rxjs/operators';
+import { filter, firstValueFrom, take } from 'rxjs';
 
 import { ColorModeService } from '@coreui/angular';
 import { IconSetService, } from '@coreui/icons-angular';
@@ -153,26 +153,7 @@ export class AppComponent implements OnInit {
       });
 
     this.#authService.loggedIn$.subscribe(() => {
-      const user = this.#authService.getUserSnapshot();
-      if (!user || !shouldRunRestaurantRealtimeSync(user.role)) {
-        this.#orderSyncService.close(false);
-        this.#offlineSyncLock.stopRestaurantLockWatch();
-        this.sseStarted = false;
-        void this.#networkMonitor.syncWithAuthState();
-        return;
-      }
-
-      const restaurantId = user.restaurantId;
-      if (isAssignedRestaurantId(restaurantId ?? null) && restaurantId) {
-        void (async () => {
-          await this.#offlineDb.prepareForRestaurantSwitch(restaurantId);
-          this.#orderSyncService.listenToRestaurantEvents(restaurantId);
-          this.sseStarted = true;
-          this.#offlineSyncLock.startRestaurantLockWatch();
-          await this.#orderSyncService.refreshRestaurantSnapshot({ force: true });
-        })();
-      }
-      void this.#networkMonitor.syncWithAuthState();
+      void this.startRestaurantRealtimeAfterNavigation();
     });
 
     this.#router.events
@@ -205,6 +186,36 @@ export class AppComponent implements OnInit {
           });
         }
       });
+  }
+
+  /** Defer sync/SSE until post-login navigation finishes (avoids guard races in PWA). */
+  private async startRestaurantRealtimeAfterNavigation(): Promise<void> {
+    await firstValueFrom(
+      this.#router.events.pipe(
+        filter((evt): evt is NavigationEnd => evt instanceof NavigationEnd),
+        filter(evt => !evt.urlAfterRedirects.startsWith('/login')),
+        take(1),
+      ),
+    );
+
+    const user = this.#authService.getUserSnapshot();
+    if (!user || !shouldRunRestaurantRealtimeSync(user.role)) {
+      this.#orderSyncService.close(false);
+      this.#offlineSyncLock.stopRestaurantLockWatch();
+      this.sseStarted = false;
+      void this.#networkMonitor.syncWithAuthState();
+      return;
+    }
+
+    const restaurantId = user.restaurantId;
+    if (isAssignedRestaurantId(restaurantId ?? null) && restaurantId) {
+      await this.#offlineDb.prepareForRestaurantSwitch(restaurantId);
+      this.#orderSyncService.listenToRestaurantEvents(restaurantId);
+      this.sseStarted = true;
+      this.#offlineSyncLock.startRestaurantLockWatch();
+      await this.#orderSyncService.refreshRestaurantSnapshot({ force: true });
+    }
+    void this.#networkMonitor.syncWithAuthState();
   }
 
   private initNativeBackButton(): void {
