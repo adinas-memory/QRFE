@@ -68,6 +68,13 @@
                     <li class="mb-2">{{ ('faq.items.printerAgentInstall.' + step) | transloco }}</li>
                   }
                 </ol>
+              } @else if (videoUrl(id)) {
+                <p class="mb-2">{{ ('faq.items.' + id + '.aIntro') | transloco }}</p>
+                <p class="mb-0">
+                  <a [href]="videoUrl(id)" target="_blank" rel="noopener noreferrer">
+                    {{ ('faq.items.' + id + '.linkLabel') | transloco }}
+                  </a>
+                </p>
               } @else if (id === 'fiscalAndEscposPrintRouting') {
                 <p class="mb-3">{{ 'faq.items.fiscalAndEscposPrintRouting.aIntro' | transloco }}</p>
                 <div class="table-responsive">

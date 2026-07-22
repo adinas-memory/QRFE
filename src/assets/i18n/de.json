@@ -1076,6 +1076,24 @@
           }
         }
       },
+      "epsonFiscalPrinterInstall": {
+        "q": "Wie installiere ich einen Epson-Fiskaldrucker?",
+        "a": "Schritt-für-Schritt-Videoanleitung zum Anschließen und Einrichten eines Epson-Fiskaldruckers mit U.R.S.",
+        "aIntro": "Sehen Sie sich das Tutorial unten für die vollständige Installation und Einrichtung an.",
+        "linkLabel": "Video: Epson-Fiskaldrucker installieren"
+      },
+      "managerTablesQrCodes": {
+        "q": "Wie lege ich als Restaurantmanager Tische und QR-Codes an?",
+        "a": "Videoanleitung für Manager: Tische im Saalplan und druckbare QR-Codes für Gäste.",
+        "aIntro": "Das Video zeigt, wie Sie in Manager Tische hinzufügen und QR-Codes für Ihr Restaurant exportieren.",
+        "linkLabel": "Video: Tische und QR-Codes erstellen"
+      },
+      "resellerCreateRestaurant": {
+        "q": "Wie legt ein Reseller ein Restaurant an?",
+        "a": "Video-Walkthrough für Reseller beim Onboarding eines neuen Restaurants in U.R.S.",
+        "aIntro": "Folgen Sie den Schritten im Video, um als Reseller ein Restaurantkonto anzulegen.",
+        "linkLabel": "Video: Restaurant als Reseller anlegen"
+      },
       "byodStaffDevices": {
         "q": "Darf das Personal eigene Telefone oder Tablets nutzen?",
         "a": "Ja. Teams können BYOD (Bring Your Own Device) nutzen und private Geräte für Staff- oder Manager-Workflows einsetzen – im Rahmen Ihrer Sicherheits- und Nutzungsrichtlinien."

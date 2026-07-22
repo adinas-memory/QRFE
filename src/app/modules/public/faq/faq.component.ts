@@ -22,6 +22,9 @@ const FAQ_ITEM_IDS = [
   'printerAgentInstall',
   'printerAgentReconnectAfterNetwork',
   'fiscalAndEscposPrintRouting',
+  'epsonFiscalPrinterInstall',
+  'managerTablesQrCodes',
+  'resellerCreateRestaurant',
   'byodStaffDevices',
   'qrSignedSecurity',
   'bookingsSlotDuration',
@@ -45,6 +48,12 @@ const FAQ_ITEM_IDS = [
 ] as const;
 
 export type FaqItemId = (typeof FAQ_ITEM_IDS)[number];
+
+const FAQ_VIDEO_URLS: Partial<Record<FaqItemId, string>> = {
+  epsonFiscalPrinterInstall: 'https://youtu.be/TrKjoFBn6W4',
+  managerTablesQrCodes: 'https://youtu.be/W4lfn0_UPf0',
+  resellerCreateRestaurant: 'https://youtu.be/7XpJDz4PTS0',
+};
 
 @Component({
   selector: 'app-faq',
@@ -115,6 +124,10 @@ export class FaqComponent implements OnInit, OnDestroy {
     const ids = [...this.allItemIds];
     return this.compact() ? ids.slice(0, 6) : ids;
   });
+
+  protected videoUrl(id: FaqItemId): string | undefined {
+    return FAQ_VIDEO_URLS[id];
+  }
 
   private setFaqJsonLd(): void {
     const mainEntity = FAQ_ITEM_IDS.map((id) => ({

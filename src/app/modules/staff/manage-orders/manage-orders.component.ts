@@ -56,7 +56,6 @@ import { OnlineStateService } from '../../../core/offline/online-state-service';
 import { OfflinePolicyService } from '../../../core/offline/offline-policy.service';
 import { OfflinePrintContextService } from '../../../core/offline/offline-print-context.service';
 import { OfflinePrintService } from '../../../core/offline/offline-print.service';
-import { emitDebugSessionLog } from '../../../core/debug/debug-session-log';
 import { OfflinePrimaryService } from '../../../core/services/offline-primary/offline-primary.service';
 import { OfflineSyncSchedulerService } from '../../../core/offline/offline-sync-scheduler.service';
 import { RestaurantCurrencyService } from '../../../core/offline/restaurant-currency.service';
@@ -549,32 +548,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
     return this.canPrintFiscal;
   }
 
-  // #region agent log
-  private logPrintGateState(trigger: string, hypothesisId: string): void {
-    emitDebugSessionLog({
-      location: 'manage-orders.component.ts:logPrintGateState',
-      message: 'print gate state',
-      hypothesisId,
-      data: {
-        trigger,
-        restaurantId: this.restaurantId,
-        isOnline: this.isOnline,
-        orderIsConfirmed: this.orderIsConfirmed,
-        currentTableId: this.currentTableId,
-        selectedItemsCount: this.selectedItems.length,
-        canPrintBill: this.canPrintBill,
-        canPrintFiscal: this.canPrintFiscal,
-        canPrintKitchen: this.canPrintKitchen,
-        canOpenCashDrawer: this.canOpenCashDrawer,
-        fiscalCfg: this.fiscalStaffConfig(),
-        billCfg: this.billStaffConfig(),
-        fiscalButtonsDisabled:
-          this.selectedItems.length === 0 || !this.canPrintBill || !this.canPrintFiscal,
-      },
-    });
-  }
-  // #endregion
-
   get shouldShowBindDeviceCta(): boolean {
     return this.offlinePolicy.shouldShowBindDeviceCta();
   }
@@ -752,9 +725,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       'local-' + (crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2));
     this.currentOrderId = localOrderId;
     this.orderIsConfirmed = true;
-    // #region agent log
-    this.logPrintGateState('confirmOrder', 'B');
-    // #endregion
 
     const inMemoryCart = this.tableCarts[this.currentTableId] ?? [];
     const persistedCart = await this.offlineDB.loadCart(this.currentTableId);
@@ -1286,11 +1256,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       if (this.orderIsConfirmed) {
         this.claimPickupTargetForTable(tableId);
       }
-      // #region agent log
-      if (this.orderIsConfirmed) {
-        this.logPrintGateState('openTable-confirmed', 'B');
-      }
-      // #endregion
       return;
     }
 
@@ -1336,9 +1301,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
           await this.offlineDB.saveCart(this.currentTableId, hydrated, resolvedOrder.orderId);
         }
       }
-      // #region agent log
-      this.logPrintGateState('seeOrder-confirmed', 'B');
-      // #endregion
     } else {
       this.orderIsConfirmed = false;
       this.currentOrderId = null;
@@ -1894,9 +1856,6 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
 
   private async loadFiscalStaffConfig(): Promise<void> {
     if (!this.restaurantId || !this.isOnline) {
-      // #region agent log
-      this.logPrintGateState('loadFiscalStaffConfig-skipped', 'C');
-      // #endregion
       return;
     }
 
@@ -1907,27 +1866,10 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
       ]);
       this.fiscalStaffConfig.set(fiscalCfg);
       this.billStaffConfig.set({ defaultBillPrinterId: billCfg?.defaultBillPrinterId ?? null });
-      // #region agent log
-      emitDebugSessionLog({
-        location: 'manage-orders.component.ts:loadFiscalStaffConfig',
-        message: 'fiscal staff config loaded',
-        hypothesisId: 'A',
-        data: { restaurantId: this.restaurantId, fiscalCfg, billCfg },
-      });
-      this.logPrintGateState('loadFiscalStaffConfig-success', 'A');
-      // #endregion
     } catch (err) {
       console.warn('Failed to load printer settings for staff', err);
       this.fiscalStaffConfig.set(null);
       this.billStaffConfig.set(null);
-      // #region agent log
-      emitDebugSessionLog({
-        location: 'manage-orders.component.ts:loadFiscalStaffConfig',
-        message: 'fiscal staff config load failed',
-        hypothesisId: 'D',
-        data: { restaurantId: this.restaurantId, error: String(err) },
-      });
-      // #endregion
     }
   }
 
