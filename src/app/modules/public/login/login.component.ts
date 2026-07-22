@@ -70,7 +70,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     return true;
   }
 
-  onSubmit() {
+  onSubmit(): void {
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
       return;
@@ -78,31 +78,42 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     const formValue = this.loginForm.value;
 
-      this.authService.loginUser(formValue).subscribe({
-        next: (response: unknown) => {
-          const user = normalizeUserContext(response);
-          if (!user) {
-            this.toast.error(this.transloco.translate('common.loginFailed'));
-            return;
-          }
-          if (!user.email && formValue.email) {
-            user.email = String(formValue.email).trim();
-          }
-          if (!user.displayName) {
-            user.displayName = user.name && user.surname
-              ? `${user.surname} ${user.name.charAt(0).toUpperCase()}.`
-              : user.email?.split('@')[0] ?? null;
-          }
-          this.authService.setUser(user);
-          this.authService.setRestaurantCtx();
-          const returnUrl = this.route.snapshot.queryParams['returnUrl'];
-          void navigateToRoleHome(this.router, this.subscriptionService, user.role, returnUrl);
-        },
-        error: (error: unknown) => {
-          console.error('Login failed:', error);
-          this.toast.error(this.misc.getFirstErrorMessage(error), this.transloco.translate('common.loginFailed'));
-        }
-      });
+    this.authService.loginUser(formValue).subscribe({
+      next: (response: unknown) => {
+        void this.completeLogin(response, formValue.email);
+      },
+      error: (error: unknown) => {
+        console.error('Login failed:', error);
+        this.toast.error(this.misc.getFirstErrorMessage(error), this.transloco.translate('common.loginFailed'));
+      },
+    });
+  }
+
+  private async completeLogin(response: unknown, loginEmail: unknown): Promise<void> {
+    const user = normalizeUserContext(response);
+    if (!user) {
+      this.toast.error(this.transloco.translate('common.loginFailed'));
+      return;
+    }
+    if (!user.email && loginEmail) {
+      user.email = String(loginEmail).trim();
+    }
+    if (!user.displayName) {
+      user.displayName = user.name && user.surname
+        ? `${user.surname} ${user.name.charAt(0).toUpperCase()}.`
+        : user.email?.split('@')[0] ?? null;
+    }
+    this.authService.setUser(user);
+    this.authService.setRestaurantCtx();
+
+    const confirmed = await firstValueFrom(this.authService.pingSession(false));
+    if (!confirmed) {
+      this.toast.error(this.transloco.translate('common.loginFailed'));
+      return;
+    }
+
+    const returnUrl = this.route.snapshot.queryParams['returnUrl'];
+    await navigateToRoleHome(this.router, this.subscriptionService, user.role, returnUrl);
   }
 
   async ngOnInit(): Promise<void> {

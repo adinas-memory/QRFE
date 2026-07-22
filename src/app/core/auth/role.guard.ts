@@ -1,10 +1,13 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from './auth.service';
+import { SubscriptionService } from '../services/subscription-service/subscription.service';
+import { getRoleHomeUrl } from './auth-redirect.util';
 
 export const RoleGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
+  const subscriptionService = inject(SubscriptionService);
 
   const requiredRoles = normalizeRoles(route.data?.['roles']);
   const userRole = authService.getUserRole(); // single string or null
@@ -14,6 +17,10 @@ export const RoleGuard: CanActivateFn = (route, state) => {
   if (requiredRoles.length > 0) {
     if (!userRole || !requiredRoles.includes(userRole)) {
       console.warn(`RoleGuard: Unauthorized role '${userRole}', expected one of: ${requiredRoles.join(', ')}`);
+      if (userRole) {
+        const pendingPlan = !!subscriptionService.getPendingPlan();
+        return router.parseUrl(getRoleHomeUrl(userRole, pendingPlan));
+      }
       return router.createUrlTree(['/register']);
     }
   }
