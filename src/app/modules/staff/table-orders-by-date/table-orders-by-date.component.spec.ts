@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
 import { TranslocoTestingModule } from '@jsverse/transloco';
 import { TableOrdersByDateComponent } from './table-orders-by-date.component';
@@ -7,6 +8,8 @@ import { OrdersService } from '../../../core/services/order-service/orders.servi
 import { TablesService } from '../../../core/services/tables-service/tables.service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
+import { PrintJobsService } from '../../../core/services/print-jobs/print-jobs.service';
+import { FiscalDocumentsService } from '../../../core/services/fiscal-documents/fiscal-documents.service';
 import { Currency } from '../../../core/models/restaurantTablesModel';
 
 describe('TableOrdersByDateComponent', () => {
@@ -53,6 +56,18 @@ describe('TableOrdersByDateComponent', () => {
       )
     );
 
+    const printJobs = jasmine.createSpyObj('PrintJobsService', [
+      'getDefaultFiscalPrinterForStaff',
+      'createFiscalInvoiceJob',
+      'createFiscalStornoResoJob',
+    ]);
+    printJobs.getDefaultFiscalPrinterForStaff.and.returnValue(
+      of({ fiscalPrintingEnabled: false, defaultFiscalPrinterId: null, vatGroupMapping: {} }),
+    );
+
+    const fiscalDocuments = jasmine.createSpyObj('FiscalDocumentsService', ['listByOrder']);
+    fiscalDocuments.listByOrder.and.returnValue(of([]));
+
     await TestBed.configureTestingModule({
       imports: [
         TableOrdersByDateComponent,
@@ -62,6 +77,7 @@ describe('TableOrdersByDateComponent', () => {
         })
       ],
       providers: [
+        provideNoopAnimations(),
         {
           provide: AuthService,
           useValue: {
@@ -70,7 +86,18 @@ describe('TableOrdersByDateComponent', () => {
         },
         { provide: OrdersService, useValue: ordersService },
         { provide: TablesService, useValue: tablesService },
-        { provide: AppToastService, useValue: jasmine.createSpyObj('AppToastService', ['error']) },
+        {
+          provide: AppToastService,
+          useValue: jasmine.createSpyObj('AppToastService', ['error', 'success', 'info'])
+        },
+        {
+          provide: PrintJobsService,
+          useValue: printJobs,
+        },
+        {
+          provide: FiscalDocumentsService,
+          useValue: fiscalDocuments,
+        },
         {
           provide: MiscellaneousService,
           useValue: jasmine.createSpyObj('MiscellaneousService', ['getFirstErrorMessage'])
