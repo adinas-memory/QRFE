@@ -1076,6 +1076,24 @@
           }
         }
       },
+      "epsonFiscalPrinterInstall": {
+        "q": "Hur installerar jag en Epson fiskal skrivare?",
+        "a": "Steg-för-steg-videoguide för att ansluta och konfigurera en Epson fiskal skrivare med U.R.S.",
+        "aIntro": "Titta på guiden nedan för full installation och konfiguration.",
+        "linkLabel": "Video: installera Epson fiskal skrivare"
+      },
+      "managerTablesQrCodes": {
+        "q": "Hur skapar jag bord och QR-koder som restaurangchef?",
+        "a": "Videoguide för chefer: bord i salongsplanen och utskrivbara QR-koder för gäster.",
+        "aIntro": "Videon visar hur du lägger till bord i Manager och exporterar QR-koder för din restaurang.",
+        "linkLabel": "Video: skapa bord och QR-koder"
+      },
+      "resellerCreateRestaurant": {
+        "q": "Hur skapar en återförsäljare en restaurang?",
+        "a": "Videogenomgång för återförsäljare som onboardar en ny restaurang i U.R.S.",
+        "aIntro": "Följ stegen i videon för att skapa ett restaurangkonto som återförsäljare.",
+        "linkLabel": "Video: skapa restaurang (återförsäljare)"
+      },
       "byodStaffDevices": {
         "q": "Kan personal använda egna telefoner eller surfplattor?",
         "a": "Ja. Team kan använda BYOD (Bring Your Own Device) och privata enheter för personal- eller chef-flöden, i enlighet med er säkerhets- och användarpolicy."

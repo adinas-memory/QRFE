@@ -1076,6 +1076,24 @@
           }
         }
       },
+      "epsonFiscalPrinterInstall": {
+        "q": "¿Cómo instalo una impresora fiscal Epson?",
+        "a": "Guía en vídeo paso a paso para conectar y configurar una impresora fiscal Epson con U.R.S.",
+        "aIntro": "Mira el tutorial de abajo para la instalación y configuración completas.",
+        "linkLabel": "Vídeo: instalar impresora fiscal Epson"
+      },
+      "managerTablesQrCodes": {
+        "q": "¿Cómo creo mesas y códigos QR como manager del restaurante?",
+        "a": "Guía en vídeo para managers: mesas en el plano de sala y códigos QR imprimibles para clientes.",
+        "aIntro": "El vídeo muestra cómo añadir mesas en Manager y exportar códigos QR para tu restaurante.",
+        "linkLabel": "Vídeo: crear mesas y códigos QR"
+      },
+      "resellerCreateRestaurant": {
+        "q": "¿Cómo crea un restaurante un reseller?",
+        "a": "Tutorial en vídeo para resellers al dar de alta un nuevo restaurante en U.R.S.",
+        "aIntro": "Sigue los pasos del vídeo para crear una cuenta de restaurante como reseller.",
+        "linkLabel": "Vídeo: alta de restaurante (reseller)"
+      },
       "byodStaffDevices": {
         "q": "¿El personal puede usar sus propios teléfonos o tabletas?",
         "a": "Sí. Los equipos pueden adoptar BYOD (Bring Your Own Device) y usar hardware personal para flujos de staff o manager, según las políticas de seguridad y uso de tu organización."

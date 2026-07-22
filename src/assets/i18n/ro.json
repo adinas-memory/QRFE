@@ -1227,6 +1227,24 @@
           }
         }
       },
+      "epsonFiscalPrinterInstall": {
+        "q": "Cum instalez imprimanta fiscală Epson?",
+        "a": "Ghid video pas cu pas pentru conectarea și configurarea imprimantei fiscale Epson în U.R.S.",
+        "aIntro": "Urmărește tutorialul de mai jos pentru instalare și configurare completă.",
+        "linkLabel": "Vizionează: Cum instalezi imprimanta fiscală Epson"
+      },
+      "managerTablesQrCodes": {
+        "q": "Cum creez mese și coduri QR ca manager de restaurant?",
+        "a": "Ghid video pentru manageri: mese în planul sălii și generarea codurilor QR imprimabile pentru oaspeți.",
+        "aIntro": "Videoclipul arată cum adaugi mese în Manager și exporti coduri QR pentru restaurant.",
+        "linkLabel": "Vizionează: Creare mese și coduri QR"
+      },
+      "resellerCreateRestaurant": {
+        "q": "Cum creează un reseller un restaurant?",
+        "a": "Tutorial video pentru resellers: onboarding restaurant nou în U.R.S.",
+        "aIntro": "Urmează pașii din video pentru a crea un cont de restaurant ca reseller.",
+        "linkLabel": "Vizionează: Creare restaurant (reseller)"
+      },
       "byodStaffDevices": {
         "q": "Personalul poate folosi propriile telefoane sau tablete?",
         "a": "Da. Echipele pot adopta BYOD (Bring Your Own Device) și pot folosi dispozitive personale pentru fluxurile staff sau manager, respectând politicile organizației privind securitatea și utilizarea acceptabilă."
