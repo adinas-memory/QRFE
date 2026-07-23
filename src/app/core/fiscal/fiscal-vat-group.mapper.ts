@@ -1,3 +1,5 @@
+import { fiscalProfileForCountry, normalizeFiscalCountryCode } from './fiscal-profile';
+
 export type FiscalVatGroupMapping = Record<string, number>;
 
 const DEFAULT_RO_MAPPING: FiscalVatGroupMapping = {
@@ -38,6 +40,13 @@ export function defaultItalianVatMapping(): FiscalVatGroupMapping {
   return { ...DEFAULT_IT_MAPPING };
 }
 
+export function defaultFiscalVatMappingForCountry(countryCode: string | null | undefined): FiscalVatGroupMapping {
+  return normalizeFiscalCountryCode(countryCode) === 'IT'
+    ? defaultItalianVatMapping()
+    : defaultRomanianVatMapping();
+}
+
+/** @deprecated Use defaultFiscalVatMappingForCountry with restaurant fiscal country. */
 export function defaultFiscalVatMappingForLocale(lang: string): FiscalVatGroupMapping {
   return lang === 'it' ? defaultItalianVatMapping() : defaultRomanianVatMapping();
 }

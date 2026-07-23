@@ -6,6 +6,7 @@ import { MenuItemCategory } from '../../../core/models/menu/menuItem';
 import { Currency } from '../../../core/models/restaurantTablesModel';
 import { RestaurantCurrencyService } from '../../../core/offline/restaurant-currency.service';
 import { ManageOrdersComponent } from './manage-orders.component';
+import { createDefaultFiscalPrinterSettings } from '../../../core/services/print-jobs/print-jobs.service';
 import {
   TABLE_A,
   TABLE_B,
@@ -1083,11 +1084,10 @@ describe('ManageOrdersComponent', () => {
 
     it('canPrintFiscal is true when fiscal printing enabled with printer id', async () => {
       const { component } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
-      component.fiscalStaffConfig.set({
+      component.fiscalStaffConfig.set(createDefaultFiscalPrinterSettings({
         fiscalPrintingEnabled: true,
         defaultFiscalPrinterId: 'main-fiscal',
-        vatGroupMapping: {},
-      });
+      }));
       expect(component.canPrintFiscal).toBeTrue();
       expect(component.canOpenCashDrawer).toBeTrue();
     });
@@ -1110,17 +1110,15 @@ describe('ManageOrdersComponent', () => {
       component.currentTableId = TABLE_A;
       component.currentOrderId = 'order-1';
       component.tableCarts[TABLE_A] = [{ item: createMenuItem({ menuItemName: 'Pizza' }), quantity: 1 }];
-      component.fiscalStaffConfig.set({
+      component.fiscalStaffConfig.set(createDefaultFiscalPrinterSettings({
         fiscalPrintingEnabled: true,
         defaultFiscalPrinterId: 'main-fiscal',
-        vatGroupMapping: {},
-      });
+      }));
       mocks.printJobs.getDefaultFiscalPrinterForStaff.and.returnValue(
-        of({
+        of(createDefaultFiscalPrinterSettings({
           fiscalPrintingEnabled: true,
           defaultFiscalPrinterId: 'main-fiscal',
-          vatGroupMapping: {},
-        }),
+        })),
       );
 
       await component.printFiscalReceipt('card');
@@ -1135,11 +1133,10 @@ describe('ManageOrdersComponent', () => {
     it('openCashDrawer queues fiscal-command payload online', async () => {
       const { component, mocks } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
       setRestaurantId(component);
-      component.fiscalStaffConfig.set({
+      component.fiscalStaffConfig.set(createDefaultFiscalPrinterSettings({
         fiscalPrintingEnabled: true,
         defaultFiscalPrinterId: 'main-fiscal',
-        vatGroupMapping: {},
-      });
+      }));
 
       await component.openCashDrawer();
 
@@ -1154,11 +1151,10 @@ describe('ManageOrdersComponent', () => {
     it('openCashDrawer shows info toast when fiscal printer not configured', async () => {
       const { component, mocks } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
       setRestaurantId(component);
-      component.fiscalStaffConfig.set({
+      component.fiscalStaffConfig.set(createDefaultFiscalPrinterSettings({
         fiscalPrintingEnabled: false,
         defaultFiscalPrinterId: null,
-        vatGroupMapping: {},
-      });
+      }));
 
       await component.openCashDrawer();
 
@@ -1170,22 +1166,20 @@ describe('ManageOrdersComponent', () => {
   describe('kitchen print', () => {
     it('canPrintKitchen is true when a distinct non-fiscal printer is configured', async () => {
       const { component } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
-      component.fiscalStaffConfig.set({
+      component.fiscalStaffConfig.set(createDefaultFiscalPrinterSettings({
         fiscalPrintingEnabled: true,
         defaultFiscalPrinterId: 'fiscal-6',
-        vatGroupMapping: {},
-      });
+      }));
       component.billStaffConfig.set({ defaultBillPrinterId: 'escpos-1' });
       expect(component.canPrintKitchen).toBeTrue();
     });
 
     it('canPrintKitchen is false when only fiscal printer id is set as bill printer', async () => {
       const { component } = await setupManageOrdersComponent({ skipNgOnInit: true, isOnline: true });
-      component.fiscalStaffConfig.set({
+      component.fiscalStaffConfig.set(createDefaultFiscalPrinterSettings({
         fiscalPrintingEnabled: true,
         defaultFiscalPrinterId: 'fiscal-6',
-        vatGroupMapping: {},
-      });
+      }));
       component.billStaffConfig.set({ defaultBillPrinterId: 'fiscal-6' });
       expect(component.canPrintKitchen).toBeFalse();
     });
@@ -1199,11 +1193,10 @@ describe('ManageOrdersComponent', () => {
         { item: createMenuItem({ menuItemName: 'Soup', category: MenuItemCategory.Appetizer }), quantity: 1 },
         { item: createMenuItem({ menuItemId: 'wine-1', menuItemName: 'Merlot', category: MenuItemCategory.RedWine, menuItemPriceAmount: 30 }), quantity: 2 },
       ];
-      component.fiscalStaffConfig.set({
+      component.fiscalStaffConfig.set(createDefaultFiscalPrinterSettings({
         fiscalPrintingEnabled: true,
         defaultFiscalPrinterId: 'fiscal-6',
-        vatGroupMapping: {},
-      });
+      }));
       component.billStaffConfig.set({ defaultBillPrinterId: 'escpos-1' });
 
       await component.printKitchen();
@@ -1227,11 +1220,10 @@ describe('ManageOrdersComponent', () => {
       setRestaurantId(component);
       component.currentTableId = TABLE_A;
       component.tableCarts[TABLE_A] = [{ item: createMenuItem({ menuItemName: 'Soup', category: MenuItemCategory.Appetizer }), quantity: 1 }];
-      component.fiscalStaffConfig.set({
+      component.fiscalStaffConfig.set(createDefaultFiscalPrinterSettings({
         fiscalPrintingEnabled: true,
         defaultFiscalPrinterId: 'fiscal-6',
-        vatGroupMapping: {},
-      });
+      }));
       component.billStaffConfig.set({ defaultBillPrinterId: 'escpos-1' });
       mocks.offlineDb.loadCart.and.resolveTo(component.tableCarts[TABLE_A]);
       Object.defineProperty(document, 'hidden', { configurable: true, value: false });

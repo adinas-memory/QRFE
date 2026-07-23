@@ -596,6 +596,8 @@
     "colStaff": "Last staff",
     "statusOpen": "Open",
     "statusClosed": "Closed",
+    "statusStornoFull": "Reversed",
+    "statusStornoPartial": "Partially reversed",
     "showItems": "Items",
     "hideItems": "Hide",
     "noItems": "No line items on this order."

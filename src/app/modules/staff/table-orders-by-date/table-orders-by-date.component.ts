@@ -23,11 +23,16 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { firstValueFrom, forkJoin, map, of, switchMap, catchError } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
+import { isFiscalCountrySupported } from '../../../core/fiscal/fiscal-profile';
+import type { FiscalCountryCode } from '../../../core/fiscal/fiscal-profile';
 import {
   buildFiscalInvoicePayload,
   buildFiscalStornoResoPayload,
+  getOrderFiscalStornoState,
   hasIssuedInvoice,
+  isFiscalDocumentStorned,
   listStornoEligibleDocuments,
+  type OrderFiscalStornoState,
 } from '../../../core/fiscal/fiscal-order-print.builder';
 import { OrderDTO, readIsOrderOpen, readOrderId } from '../../../core/models/orderingModel';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
@@ -95,6 +100,9 @@ export class TableOrdersByDateComponent implements OnInit {
 
   fiscalPrintingEnabled = false;
   defaultFiscalPrinterId: string | null = null;
+  fiscalCountryCode: FiscalCountryCode = 'RO';
+  supportsInvoice = false;
+  supportsStornoReso = false;
   fiscalVatMapping: Record<string, number> = {};
   fiscalDocumentsByOrder = new Map<string, FiscalDocumentDto[]>();
 
@@ -149,8 +157,7 @@ export class TableOrdersByDateComponent implements OnInit {
   }
 
   get showFiscalActions(): boolean {
-    const lang = this.transloco.getActiveLang();
-    return (lang === 'ro' || lang === 'it') && this.fiscalPrintingEnabled;
+    return isFiscalCountrySupported(this.fiscalCountryCode) && this.fiscalPrintingEnabled;
   }
 
   private static formatLocalDateOnly(d: Date): string {
@@ -169,16 +176,22 @@ export class TableOrdersByDateComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: cfg => {
+          this.fiscalCountryCode = cfg?.fiscalCountryCode ?? 'RO';
           this.fiscalPrintingEnabled = !!cfg?.fiscalPrintingEnabled;
           this.defaultFiscalPrinterId = cfg?.defaultFiscalPrinterId ?? null;
+          this.supportsInvoice = !!cfg?.supportsInvoice;
+          this.supportsStornoReso = !!cfg?.supportsStornoReso;
           this.fiscalVatMapping = cfg?.vatGroupMapping ?? {};
           if (this.reportLoaded) {
             this.prefetchFiscalDocuments(this.orderRows);
           }
         },
         error: () => {
+          this.fiscalCountryCode = 'RO';
           this.fiscalPrintingEnabled = false;
           this.defaultFiscalPrinterId = null;
+          this.supportsInvoice = false;
+          this.supportsStornoReso = false;
           this.fiscalVatMapping = {};
         },
       });
@@ -299,14 +312,14 @@ export class TableOrdersByDateComponent implements OnInit {
   }
 
   canIssueInvoice(row: OrderHistoryRow): boolean {
-    if (!this.showFiscalActions || !this.isClosedOrder(row)) {
+    if (!this.showFiscalActions || !this.supportsInvoice || !this.isClosedOrder(row)) {
       return false;
     }
     return !hasIssuedInvoice(this.documentsForOrder(this.orderIdForRow(row)));
   }
 
   canIssueStorno(row: OrderHistoryRow): boolean {
-    if (!this.showFiscalActions || !this.isClosedOrder(row)) {
+    if (!this.showFiscalActions || !this.supportsStornoReso || !this.isClosedOrder(row)) {
       return false;
     }
     return listStornoEligibleDocuments(this.documentsForOrder(this.orderIdForRow(row))).length > 0;
@@ -332,6 +345,28 @@ export class TableOrdersByDateComponent implements OnInit {
       return [];
     }
     return listStornoEligibleDocuments(this.documentsForOrder(this.orderIdForRow(row)));
+  }
+
+  fiscalStornoStateForRow(row: OrderHistoryRow): OrderFiscalStornoState {
+    return getOrderFiscalStornoState(this.documentsForOrder(this.orderIdForRow(row)));
+  }
+
+  documentIsStorned(document: FiscalDocumentDto, orderId: string): boolean {
+    return isFiscalDocumentStorned(document, this.documentsForOrder(orderId));
+  }
+
+  documentStatusLabel(status: string): string {
+    switch (status.trim().toLowerCase()) {
+      case 'issued':
+      case 'success':
+        return this.transloco.translate('orderHistory.fiscalStatusIssued');
+      case 'pending':
+        return this.transloco.translate('orderHistory.fiscalStatusPending');
+      case 'failed':
+        return this.transloco.translate('orderHistory.fiscalStatusFailed');
+      default:
+        return status;
+    }
   }
 
   documentTypeLabel(documentType: string): string {

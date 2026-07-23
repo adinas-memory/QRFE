@@ -1,5 +1,7 @@
 import type { PrinterAgentPrinterDto } from '../services/print-jobs/print-jobs.service';
 
+import { fiscalProfileForCountry } from '../fiscal/fiscal-profile';
+
 export type ResolvedPrinterType = 'escpos' | 'fiscalnet' | 'epson-fiscal';
 
 export function normalizePrinterAgentPrinter(raw: unknown): PrinterAgentPrinterDto | null {
@@ -71,15 +73,22 @@ export function isAnyFiscalPrinter(printer: PrinterAgentPrinterDto): boolean {
   return type === 'fiscalnet' || type === 'epson-fiscal';
 }
 
+export function isFiscalPrinterForCountry(
+  printer: PrinterAgentPrinterDto,
+  countryCode: string | null | undefined,
+): boolean {
+  const profile = fiscalProfileForCountry(countryCode);
+  return resolvePrinterType(printer) === profile.expectedPrinterType;
+}
+
+/** @deprecated Use isFiscalPrinterForCountry with restaurant fiscal country. */
 export function isFiscalPrinterForLocale(
   printer: PrinterAgentPrinterDto,
   lang: string,
 ): boolean {
-  if (lang === 'it') {
-    return isEpsonFiscalPrinter(printer);
+  const countryCode = lang === 'it' ? 'IT' : lang === 'ro' ? 'RO' : '';
+  if (!countryCode) {
+    return false;
   }
-  if (lang === 'ro') {
-    return isFiscalNetPrinter(printer);
-  }
-  return false;
+  return isFiscalPrinterForCountry(printer, countryCode);
 }

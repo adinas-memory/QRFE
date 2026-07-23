@@ -1,0 +1,36 @@
+import {
+  fiscalProfileForCountry,
+  isFiscalCountrySupported,
+  normalizeFiscalCountryCode,
+} from './fiscal-profile';
+
+describe('fiscal-profile', () => {
+  it('normalizeFiscalCountryCode defaults to RO', () => {
+    expect(normalizeFiscalCountryCode(undefined)).toBe('RO');
+    expect(normalizeFiscalCountryCode('it')).toBe('IT');
+  });
+
+  it('fiscalProfileForCountry exposes IT invoice and storno capabilities', () => {
+    expect(fiscalProfileForCountry('IT')).toEqual({
+      supportsFiscalPrinting: true,
+      supportsInvoice: true,
+      supportsStornoReso: true,
+      expectedPrinterType: 'epson-fiscal',
+    });
+  });
+
+  it('fiscalProfileForCountry keeps RO on receipt-only flow', () => {
+    expect(fiscalProfileForCountry('RO')).toEqual({
+      supportsFiscalPrinting: true,
+      supportsInvoice: false,
+      supportsStornoReso: false,
+      expectedPrinterType: 'fiscalnet',
+    });
+  });
+
+  it('isFiscalCountrySupported accepts RO and IT only', () => {
+    expect(isFiscalCountrySupported('RO')).toBeTrue();
+    expect(isFiscalCountrySupported('IT')).toBeTrue();
+    expect(isFiscalCountrySupported('US')).toBeFalse();
+  });
+});

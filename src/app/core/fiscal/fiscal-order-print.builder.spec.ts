@@ -1,7 +1,9 @@
 import {
   buildFiscalInvoicePayload,
   buildFiscalStornoResoPayload,
+  getOrderFiscalStornoState,
   hasIssuedInvoice,
+  isFiscalDocumentStorned,
   listStornoEligibleDocuments,
 } from './fiscal-order-print.builder';
 import { Currency } from '../models/restaurantTablesModel';
@@ -162,5 +164,121 @@ describe('fiscal-order-print.builder', () => {
     ]);
 
     expect(docs.map(d => d.id)).toEqual(['a']);
+  });
+
+  it('getOrderFiscalStornoState returns full when all issued originals are storned', () => {
+    expect(getOrderFiscalStornoState([
+      {
+        id: 'r1',
+        orderId: 'order-1',
+        printJobId: 'job-1',
+        documentType: 'Receipt',
+        status: 'Issued',
+        fiscalNumber: '1',
+        zReportNumber: '1',
+        fiscalDate: null,
+        referencedFiscalDocumentId: null,
+        provider: 'Epson',
+        createdAtUtc: '2026-07-06T10:00:00Z',
+        issuedAtUtc: '2026-07-06T10:00:00Z',
+      },
+      {
+        id: 's1',
+        orderId: 'order-1',
+        printJobId: 'job-2',
+        documentType: 'StornoReso',
+        status: 'Issued',
+        fiscalNumber: '2',
+        zReportNumber: '1',
+        fiscalDate: null,
+        referencedFiscalDocumentId: 'r1',
+        provider: 'Epson',
+        createdAtUtc: '2026-07-06T10:05:00Z',
+        issuedAtUtc: '2026-07-06T10:05:00Z',
+      },
+    ])).toBe('full');
+  });
+
+  it('getOrderFiscalStornoState returns partial when only some originals are storned', () => {
+    expect(getOrderFiscalStornoState([
+      {
+        id: 'r1',
+        orderId: 'order-1',
+        printJobId: 'job-1',
+        documentType: 'Receipt',
+        status: 'Issued',
+        fiscalNumber: '1',
+        zReportNumber: '1',
+        fiscalDate: null,
+        referencedFiscalDocumentId: null,
+        provider: 'Epson',
+        createdAtUtc: '2026-07-06T10:00:00Z',
+        issuedAtUtc: '2026-07-06T10:00:00Z',
+      },
+      {
+        id: 'r2',
+        orderId: 'order-1',
+        printJobId: 'job-2',
+        documentType: 'Receipt',
+        status: 'Issued',
+        fiscalNumber: '2',
+        zReportNumber: '1',
+        fiscalDate: null,
+        referencedFiscalDocumentId: null,
+        provider: 'Epson',
+        createdAtUtc: '2026-07-06T10:01:00Z',
+        issuedAtUtc: '2026-07-06T10:01:00Z',
+      },
+      {
+        id: 's1',
+        orderId: 'order-1',
+        printJobId: 'job-3',
+        documentType: 'StornoReso',
+        status: 'Issued',
+        fiscalNumber: '3',
+        zReportNumber: '1',
+        fiscalDate: null,
+        referencedFiscalDocumentId: 'r1',
+        provider: 'Epson',
+        createdAtUtc: '2026-07-06T10:05:00Z',
+        issuedAtUtc: '2026-07-06T10:05:00Z',
+      },
+    ])).toBe('partial');
+  });
+
+  it('isFiscalDocumentStorned detects issued storno reference', () => {
+    const docs = [
+      {
+        id: 'r1',
+        orderId: 'order-1',
+        printJobId: 'job-1',
+        documentType: 'Receipt',
+        status: 'Issued',
+        fiscalNumber: '1',
+        zReportNumber: '1',
+        fiscalDate: null,
+        referencedFiscalDocumentId: null,
+        provider: 'Epson',
+        createdAtUtc: '2026-07-06T10:00:00Z',
+        issuedAtUtc: '2026-07-06T10:00:00Z',
+      },
+      {
+        id: 's1',
+        orderId: 'order-1',
+        printJobId: 'job-2',
+        documentType: 'StornoReso',
+        status: 'Issued',
+        fiscalNumber: '2',
+        zReportNumber: '1',
+        fiscalDate: null,
+        referencedFiscalDocumentId: 'r1',
+        provider: 'Epson',
+        createdAtUtc: '2026-07-06T10:05:00Z',
+        issuedAtUtc: '2026-07-06T10:05:00Z',
+      },
+    ] as const;
+
+    expect(isFiscalDocumentStorned(docs[0], [...docs])).toBeTrue();
+    expect(isFiscalDocumentStorned(docs[1], [...docs])).toBeFalse();
   });
 });
