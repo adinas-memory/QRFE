@@ -91,22 +91,41 @@ export function buildFiscalStornoResoPayload(args: {
   };
 }
 
+function normalizeFiscalDocumentType(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function isIssuedFiscalStatus(status: string): boolean {
+  return normalizeFiscalDocumentType(status) === 'issued';
+}
+
+function sameFiscalDocumentId(left: string | null | undefined, right: string | null | undefined): boolean {
+  if (!left || !right) {
+    return false;
+  }
+  return left.trim().toLowerCase() === right.trim().toLowerCase();
+}
+
 export function hasIssuedInvoice(documents: Array<{ documentType: string; status: string }>): boolean {
   return documents.some(
-    doc => doc.documentType === 'Invoice' && doc.status === 'Issued',
+    doc =>
+      normalizeFiscalDocumentType(doc.documentType) === 'invoice'
+      && isIssuedFiscalStatus(doc.status),
   );
 }
 
 export function listStornoEligibleDocuments(documents: FiscalDocumentDto[]): FiscalDocumentDto[] {
   return documents.filter(
-    doc =>
-      doc.status === 'Issued'
-      && (doc.documentType === 'Receipt' || doc.documentType === 'Invoice')
-      && !documents.some(
-        storno =>
-          storno.documentType === 'StornoReso'
-          && storno.status === 'Issued'
-          && storno.referencedFiscalDocumentId === doc.id,
-      ),
+    doc => {
+      const documentType = normalizeFiscalDocumentType(doc.documentType);
+      return isIssuedFiscalStatus(doc.status)
+        && (documentType === 'receipt' || documentType === 'invoice')
+        && !documents.some(
+          storno =>
+            normalizeFiscalDocumentType(storno.documentType) === 'stornoreso'
+            && isIssuedFiscalStatus(storno.status)
+            && sameFiscalDocumentId(storno.referencedFiscalDocumentId, doc.id),
+        );
+    },
   );
 }

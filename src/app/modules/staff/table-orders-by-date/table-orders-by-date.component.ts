@@ -1,5 +1,5 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   BadgeComponent,
@@ -21,7 +21,7 @@ import {
 } from '@coreui/angular';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { firstValueFrom, forkJoin, map, of, switchMap } from 'rxjs';
+import { firstValueFrom, forkJoin, map, of, switchMap, catchError } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import {
   buildFiscalInvoicePayload,
@@ -80,6 +80,7 @@ export interface OrderHistoryPeriodTotal {
 })
 export class TableOrdersByDateComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   restaurantId = '';
   apiScope: 'staff' | 'admin' = 'staff';
@@ -139,7 +140,8 @@ export class TableOrdersByDateComponent implements OnInit {
   }
 
   get showFiscalActions(): boolean {
-    return this.transloco.getActiveLang() === 'it' && this.fiscalPrintingEnabled;
+    const lang = this.transloco.getActiveLang();
+    return (lang === 'ro' || lang === 'it') && this.fiscalPrintingEnabled;
   }
 
   private static formatLocalDateOnly(d: Date): string {
@@ -150,13 +152,20 @@ export class TableOrdersByDateComponent implements OnInit {
   }
 
   private loadFiscalSettings(): void {
-    this.printJobs.getDefaultFiscalPrinterForStaff(this.restaurantId)
+    const settings$ = this.apiScope === 'admin'
+      ? this.printJobs.getFiscalPrinterSettings(this.restaurantId)
+      : this.printJobs.getDefaultFiscalPrinterForStaff(this.restaurantId);
+
+    settings$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: cfg => {
           this.fiscalPrintingEnabled = !!cfg?.fiscalPrintingEnabled;
           this.defaultFiscalPrinterId = cfg?.defaultFiscalPrinterId ?? null;
           this.fiscalVatMapping = cfg?.vatGroupMapping ?? {};
+          if (this.reportLoaded) {
+            this.prefetchFiscalDocuments(this.orderRows);
+          }
         },
         error: () => {
           this.fiscalPrintingEnabled = false;
@@ -224,6 +233,7 @@ export class TableOrdersByDateComponent implements OnInit {
           this.periodTotals = this.buildPeriodTotals(this.orderRows);
           this.reportLoaded = true;
           this.loading = false;
+          this.prefetchFiscalDocuments(this.orderRows);
         },
         error: err => {
           this.loading = false;
@@ -305,6 +315,51 @@ export class TableOrdersByDateComponent implements OnInit {
     }
   }
 
+  private prefetchFiscalDocuments(rows: OrderHistoryRow[]): void {
+    if (!this.showFiscalActions || !this.restaurantId) {
+      return;
+    }
+
+    const orderIds = [...new Set(
+      rows
+        .filter(row => !row.order.isOrderOpen)
+        .map(row => row.order.orderId)
+        .filter((orderId): orderId is string => !!orderId?.trim()),
+    )];
+
+    if (!orderIds.length) {
+      return;
+    }
+
+    forkJoin(
+      orderIds.map(orderId =>
+        this.fiscalDocuments.listByOrder(this.restaurantId, orderId, this.apiScope).pipe(
+          map(docs => ({ orderId, docs: docs ?? [] })),
+          catchError(err => {
+            console.warn('Failed to load fiscal documents', orderId, err);
+            return of({ orderId, docs: [] as FiscalDocumentDto[] });
+          }),
+        ),
+      ),
+    )
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(results => {
+        const next = new Map(this.fiscalDocumentsByOrder);
+        for (const { orderId, docs } of results) {
+          next.set(orderId, docs);
+        }
+        this.fiscalDocumentsByOrder = next;
+        this.cdr.markForCheck();
+      });
+  }
+
+  private setFiscalDocuments(orderId: string, docs: FiscalDocumentDto[]): void {
+    const next = new Map(this.fiscalDocumentsByOrder);
+    next.set(orderId, docs);
+    this.fiscalDocumentsByOrder = next;
+    this.cdr.markForCheck();
+  }
+
   async loadFiscalDocuments(orderId: string): Promise<void> {
     if (!this.restaurantId) {
       return;
@@ -313,10 +368,10 @@ export class TableOrdersByDateComponent implements OnInit {
       const docs = await firstValueFrom(
         this.fiscalDocuments.listByOrder(this.restaurantId, orderId, this.apiScope),
       );
-      this.fiscalDocumentsByOrder.set(orderId, docs ?? []);
+      this.setFiscalDocuments(orderId, docs ?? []);
     } catch (err) {
       console.warn('Failed to load fiscal documents', err);
-      this.fiscalDocumentsByOrder.set(orderId, []);
+      this.setFiscalDocuments(orderId, []);
     }
   }
 

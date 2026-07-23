@@ -100,4 +100,25 @@ describe('fiscal-order-print.builder', () => {
 
     expect(docs.map(d => d.id)).toEqual([]);
   });
+
+  it('listStornoEligibleDocuments accepts PascalCase API values', () => {
+    const docs = listStornoEligibleDocuments([
+      {
+        id: 'a',
+        orderId: 'order-1',
+        printJobId: 'job-1',
+        documentType: 'Receipt',
+        status: 'Issued',
+        fiscalNumber: '1',
+        zReportNumber: '1',
+        fiscalDate: null,
+        referencedFiscalDocumentId: null,
+        provider: 'FiscalNet',
+        createdAtUtc: '2026-07-06T10:00:00Z',
+        issuedAtUtc: '2026-07-06T10:00:00Z',
+      },
+    ]);
+
+    expect(docs.map(d => d.id)).toEqual(['a']);
+  });
 });

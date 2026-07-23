@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
-import { TranslocoTestingModule } from '@jsverse/transloco';
+import { TranslocoTestingModule, TranslocoService } from '@jsverse/transloco';
 import { TableOrdersByDateComponent } from './table-orders-by-date.component';
 import { AuthService } from '../../../core/auth/auth.service';
 import { OrdersService } from '../../../core/services/order-service/orders.service';
@@ -17,6 +17,9 @@ describe('TableOrdersByDateComponent', () => {
   let fixture: ComponentFixture<TableOrdersByDateComponent>;
   let ordersService: jasmine.SpyObj<OrdersService>;
   let tablesService: jasmine.SpyObj<TablesService>;
+  let printJobs: jasmine.SpyObj<PrintJobsService>;
+  let fiscalDocuments: jasmine.SpyObj<FiscalDocumentsService>;
+  let transloco: TranslocoService;
 
   beforeEach(async () => {
     ordersService = jasmine.createSpyObj('OrdersService', ['listOrdersForTableByDate']);
@@ -56,24 +59,31 @@ describe('TableOrdersByDateComponent', () => {
       )
     );
 
-    const printJobs = jasmine.createSpyObj('PrintJobsService', [
+    printJobs = jasmine.createSpyObj('PrintJobsService', [
       'getDefaultFiscalPrinterForStaff',
+      'getFiscalPrinterSettings',
       'createFiscalInvoiceJob',
       'createFiscalStornoResoJob',
     ]);
     printJobs.getDefaultFiscalPrinterForStaff.and.returnValue(
       of({ fiscalPrintingEnabled: false, defaultFiscalPrinterId: null, vatGroupMapping: {} }),
     );
+    printJobs.getFiscalPrinterSettings.and.returnValue(
+      of({ fiscalPrintingEnabled: false, defaultFiscalPrinterId: null, vatGroupMapping: {} }),
+    );
 
-    const fiscalDocuments = jasmine.createSpyObj('FiscalDocumentsService', ['listByOrder']);
+    fiscalDocuments = jasmine.createSpyObj('FiscalDocumentsService', ['listByOrder']);
     fiscalDocuments.listByOrder.and.returnValue(of([]));
 
     await TestBed.configureTestingModule({
       imports: [
         TableOrdersByDateComponent,
         TranslocoTestingModule.forRoot({
-          langs: { en: { orderHistory: { error: 'err', noRestaurant: 'no rest' } } },
-          translocoConfig: { availableLangs: ['en'], defaultLang: 'en' }
+          langs: {
+            en: { orderHistory: { error: 'err', noRestaurant: 'no rest' } },
+            ro: { orderHistory: { error: 'err', noRestaurant: 'no rest' } },
+          },
+          translocoConfig: { availableLangs: ['en', 'ro'], defaultLang: 'en' }
         })
       ],
       providers: [
@@ -107,6 +117,7 @@ describe('TableOrdersByDateComponent', () => {
 
     fixture = TestBed.createComponent(TableOrdersByDateComponent);
     component = fixture.componentInstance;
+    transloco = TestBed.inject(TranslocoService);
     fixture.detectChanges();
   });
 
@@ -140,6 +151,7 @@ describe('TableOrdersByDateComponent', () => {
       jasmine.any(String),
       'admin'
     );
+    expect(printJobs.getFiscalPrinterSettings).toHaveBeenCalledWith('r1');
   });
 
   it('should show toast on load error', () => {
@@ -147,5 +159,49 @@ describe('TableOrdersByDateComponent', () => {
     ordersService.listOrdersForTableByDate.and.returnValue(throwError(() => new Error('fail')));
     component.loadReport();
     expect(toast.error).toHaveBeenCalled();
+  });
+
+  it('should show fiscal actions for Romanian locale when fiscal printing is enabled', () => {
+    transloco.setActiveLang('ro');
+    component.fiscalPrintingEnabled = true;
+    expect(component.showFiscalActions).toBeTrue();
+  });
+
+  it('should hide fiscal actions for unsupported locales', () => {
+    transloco.setActiveLang('en');
+    component.fiscalPrintingEnabled = true;
+    expect(component.showFiscalActions).toBeFalse();
+  });
+
+  it('should prefetch fiscal documents for closed orders when fiscal actions are enabled', async () => {
+    transloco.setActiveLang('ro');
+    printJobs.getDefaultFiscalPrinterForStaff.and.returnValue(
+      of({ fiscalPrintingEnabled: true, defaultFiscalPrinterId: 'printer-1', vatGroupMapping: {} }),
+    );
+    fiscalDocuments.listByOrder.and.returnValue(
+      of([
+        {
+          id: 'doc-1',
+          orderId: 'o1',
+          printJobId: 'job-1',
+          documentType: 'Receipt',
+          status: 'Issued',
+          fiscalNumber: '100',
+          zReportNumber: '1',
+          fiscalDate: null,
+          referencedFiscalDocumentId: null,
+          provider: 'fiscalnet',
+          createdAtUtc: '2026-07-06T10:00:00Z',
+          issuedAtUtc: '2026-07-06T10:01:00Z',
+        },
+      ]),
+    );
+
+    component.ngOnInit();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fiscalDocuments.listByOrder).toHaveBeenCalledWith('r1', 'o1', 'staff');
+    expect(component.canIssueStorno(component.orderRows[0])).toBeTrue();
   });
 });
