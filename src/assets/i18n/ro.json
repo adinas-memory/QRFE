@@ -620,7 +620,10 @@
     "fiscalStornoQueuedBody": "Documentul de retur a fost trimis la imprimantă.",
     "fiscalActionErrorTitle": "Eroare fiscală",
     "fiscalActionErrorBody": "Nu s-a putut trimite documentul fiscal.",
-    "fiscalInvoiceValidation": "Completează numele, CUI/CIF și adresa clientului."
+    "fiscalInvoiceValidation": "Completează numele, CUI/CIF și adresa clientului.",
+    "fiscalHintNoDocuments": "Niciun document fiscal înregistrat online pentru această comandă.",
+    "fiscalHintPending": "Document fiscal în așteptare (agentul nu a confirmat încă emiterea).",
+    "fiscalHintNotEligible": "Documentele fiscale existente nu permit stornarea."
   },
   "manageStaff": {
     "title": "Adaugă cont staff",

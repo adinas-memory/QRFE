@@ -96,7 +96,8 @@ function normalizeFiscalDocumentType(value: string): string {
 }
 
 function isIssuedFiscalStatus(status: string): boolean {
-  return normalizeFiscalDocumentType(status) === 'issued';
+  const normalized = normalizeFiscalDocumentType(status);
+  return normalized === 'issued' || normalized === 'success';
 }
 
 function sameFiscalDocumentId(left: string | null | undefined, right: string | null | undefined): boolean {

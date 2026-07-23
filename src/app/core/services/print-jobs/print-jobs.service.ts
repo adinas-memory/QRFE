@@ -27,6 +27,34 @@ export interface FiscalPrinterSettingsDto {
   vatGroupMapping: Record<string, number>;
 }
 
+export function normalizeFiscalPrinterSettings(raw: unknown): FiscalPrinterSettingsDto {
+  if (!raw || typeof raw !== 'object') {
+    return { fiscalPrintingEnabled: false, defaultFiscalPrinterId: null, vatGroupMapping: {} };
+  }
+
+  const record = raw as Record<string, unknown>;
+  const nullableString = (value: unknown): string | null => {
+    if (value == null) {
+      return null;
+    }
+    const text = String(value).trim();
+    return text || null;
+  };
+  const mappingRaw = record['vatGroupMapping'] ?? record['VatGroupMapping'];
+  const vatGroupMapping =
+    mappingRaw && typeof mappingRaw === 'object' && !Array.isArray(mappingRaw)
+      ? (mappingRaw as Record<string, number>)
+      : {};
+
+  return {
+    fiscalPrintingEnabled: !!(record['fiscalPrintingEnabled'] ?? record['FiscalPrintingEnabled']),
+    defaultFiscalPrinterId: nullableString(
+      record['defaultFiscalPrinterId'] ?? record['DefaultFiscalPrinterId'],
+    ),
+    vatGroupMapping,
+  };
+}
+
 export interface FiscalPrintErrorDto {
   jobId: string;
   errorCode: string | null;
@@ -58,10 +86,10 @@ export class PrintJobsService {
   }
 
   getDefaultFiscalPrinterForStaff(restaurantId: string): Observable<FiscalPrinterSettingsDto> {
-    return this.http.get<FiscalPrinterSettingsDto>(
+    return this.http.get<unknown>(
       `${this.apiUrl}/api/restaurants/${restaurantId}/staff/default-fiscal-printer`,
       { withCredentials: true },
-    );
+    ).pipe(map(normalizeFiscalPrinterSettings));
   }
 
   listAgentPrinters(restaurantId: string): Observable<PrinterAgentPrinterDto[]> {
@@ -103,10 +131,10 @@ export class PrintJobsService {
   }
 
   getFiscalPrinterSettings(restaurantId: string): Observable<FiscalPrinterSettingsDto> {
-    return this.http.get<FiscalPrinterSettingsDto>(
+    return this.http.get<unknown>(
       `${this.apiUrl}/api/restaurants/${restaurantId}/admin/fiscal-printer-settings`,
       { withCredentials: true },
-    );
+    ).pipe(map(normalizeFiscalPrinterSettings));
   }
 
   updateFiscalPrinterSettings(
