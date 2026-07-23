@@ -121,4 +121,46 @@ describe('fiscal-order-print.builder', () => {
 
     expect(docs.map(d => d.id)).toEqual(['a']);
   });
+
+  it('listStornoEligibleDocuments accepts issued Epson invoice documents', () => {
+    const docs = listStornoEligibleDocuments([
+      {
+        id: 'inv-1',
+        orderId: 'order-1',
+        printJobId: 'job-2',
+        documentType: 'Invoice',
+        status: 'Issued',
+        fiscalNumber: '1001',
+        zReportNumber: '1',
+        fiscalDate: '2026-07-22',
+        referencedFiscalDocumentId: null,
+        provider: 'Epson',
+        createdAtUtc: '2026-07-06T10:00:00Z',
+        issuedAtUtc: '2026-07-06T10:00:00Z',
+      },
+    ]);
+
+    expect(docs.map(d => d.id)).toEqual(['inv-1']);
+  });
+
+  it('listStornoEligibleDocuments treats Success status as issued', () => {
+    const docs = listStornoEligibleDocuments([
+      {
+        id: 'a',
+        orderId: 'order-1',
+        printJobId: 'job-1',
+        documentType: 'Receipt',
+        status: 'Success',
+        fiscalNumber: '1',
+        zReportNumber: '1',
+        fiscalDate: null,
+        referencedFiscalDocumentId: null,
+        provider: 'Epson',
+        createdAtUtc: '2026-07-06T10:00:00Z',
+        issuedAtUtc: '2026-07-06T10:00:00Z',
+      },
+    ]);
+
+    expect(docs.map(d => d.id)).toEqual(['a']);
+  });
 });

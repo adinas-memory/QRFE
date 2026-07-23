@@ -37,6 +37,30 @@ export interface OrderDTO {
 }
 
 /** Read LastInitiatedBy from API/Dexie (camelCase or PascalCase). */
+export function readOrderId(order: OrderDTO | null | undefined): string {
+  if (!order) {
+    return '';
+  }
+  const rec = order as unknown as Record<string, unknown>;
+  const id = rec['orderId'] ?? rec['OrderId'];
+  return typeof id === 'string' ? id.trim() : '';
+}
+
+export function readIsOrderOpen(order: OrderDTO | null | undefined): boolean {
+  if (!order) {
+    return false;
+  }
+  const rec = order as unknown as Record<string, unknown>;
+  const open = rec['isOrderOpen'] ?? rec['IsOrderOpen'];
+  if (open === false || open === 'false' || open === 0) {
+    return false;
+  }
+  if (open === true || open === 'true' || open === 1) {
+    return true;
+  }
+  return false;
+}
+
 export function readOrderLastInitiatedBy(order: OrderDTO | null | undefined): string {
   if (!order) return '';
   const rec = order as unknown as Record<string, unknown>;

@@ -204,4 +204,74 @@ describe('TableOrdersByDateComponent', () => {
     expect(fiscalDocuments.listByOrder).toHaveBeenCalledWith('r1', 'o1', 'staff');
     expect(component.canIssueStorno(component.orderRows[0])).toBeTrue();
   });
+
+  it('should enable storno for issued Epson invoice documents', async () => {
+    transloco.setActiveLang('it');
+    printJobs.getDefaultFiscalPrinterForStaff.and.returnValue(
+      of({ fiscalPrintingEnabled: true, defaultFiscalPrinterId: 'printer-1', vatGroupMapping: {} }),
+    );
+    fiscalDocuments.listByOrder.and.returnValue(
+      of([
+        {
+          id: 'inv-1',
+          orderId: 'o1',
+          printJobId: 'job-2',
+          documentType: 'Invoice',
+          status: 'Issued',
+          fiscalNumber: '1001',
+          zReportNumber: '1',
+          fiscalDate: '2026-07-22',
+          referencedFiscalDocumentId: null,
+          provider: 'Epson',
+          createdAtUtc: '2026-07-06T10:00:00Z',
+          issuedAtUtc: '2026-07-06T10:01:00Z',
+        },
+      ]),
+    );
+
+    component.ngOnInit();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.canIssueStorno(component.orderRows[0])).toBeTrue();
+    expect(component.canIssueInvoice(component.orderRows[0])).toBeFalse();
+  });
+
+  it('should prefetch fiscal documents after switching to a supported locale', async () => {
+    fiscalDocuments.listByOrder.calls.reset();
+    printJobs.getDefaultFiscalPrinterForStaff.and.returnValue(
+      of({ fiscalPrintingEnabled: true, defaultFiscalPrinterId: 'printer-1', vatGroupMapping: {} }),
+    );
+
+    transloco.setActiveLang('en');
+    component.fiscalPrintingEnabled = true;
+    component.reportLoaded = true;
+    component.orderRows = [
+      {
+        order: {
+          orderId: 'o1',
+          createdOn: '2026-07-06T10:00:00Z',
+          currency: Currency.RON,
+          isOrderOpen: false,
+          subTotal: { amount: 50, currency: Currency.RON },
+          orderItems: [],
+        },
+        tableId: 't1',
+        tableName: 'Table 1',
+      },
+    ];
+
+    transloco.setActiveLang('ro');
+    await fixture.whenStable();
+
+    expect(fiscalDocuments.listByOrder).toHaveBeenCalledWith('r1', 'o1', 'staff');
+  });
+
+  it('should show hint when no fiscal documents are registered for the order', () => {
+    transloco.setActiveLang('ro');
+    component.fiscalPrintingEnabled = true;
+    component.fiscalDocumentsByOrder = new Map();
+
+    expect(component.fiscalActionsHint(component.orderRows[0])).toBe('orderHistory.fiscalHintNoDocuments');
+  });
 });

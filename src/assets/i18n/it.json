@@ -549,7 +549,10 @@
     "fiscalStornoQueuedBody": "Il documento di reso è stato inviato alla stampante.",
     "fiscalActionErrorTitle": "Errore fiscale",
     "fiscalActionErrorBody": "Impossibile inviare il documento fiscale.",
-    "fiscalInvoiceValidation": "Compila nome, codice fiscale e indirizzo del cliente."
+    "fiscalInvoiceValidation": "Compila nome, codice fiscale e indirizzo del cliente.",
+    "fiscalHintNoDocuments": "Nessun documento fiscale registrato online per questo ordine.",
+    "fiscalHintPending": "Documento fiscale in attesa (l'agente non ha ancora confermato l'emissione).",
+    "fiscalHintNotEligible": "I documenti fiscali presenti non consentono lo storno."
   },
   "manageStaff": {
     "title": "Aggiungi account staff",

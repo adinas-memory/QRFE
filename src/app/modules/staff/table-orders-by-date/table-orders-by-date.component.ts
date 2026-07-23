@@ -29,7 +29,7 @@ import {
   hasIssuedInvoice,
   listStornoEligibleDocuments,
 } from '../../../core/fiscal/fiscal-order-print.builder';
-import { OrderDTO } from '../../../core/models/orderingModel';
+import { OrderDTO, readIsOrderOpen, readOrderId } from '../../../core/models/orderingModel';
 import { TableDTO } from '../../../core/models/restaurantTablesModel';
 import { FiscalDocumentsService, type FiscalDocumentDto } from '../../../core/services/fiscal-documents/fiscal-documents.service';
 import { OrdersService } from '../../../core/services/order-service/orders.service';
@@ -137,6 +137,15 @@ export class TableOrdersByDateComponent implements OnInit {
       this.loadFiscalSettings();
       this.loadReport();
     }
+
+    this.transloco.langChanges$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        if (this.reportLoaded) {
+          this.prefetchFiscalDocuments(this.orderRows);
+        }
+        this.cdr.markForCheck();
+      });
   }
 
   get showFiscalActions(): boolean {
@@ -265,15 +274,23 @@ export class TableOrdersByDateComponent implements OnInit {
   }
 
   rowKey(row: OrderHistoryRow): string {
-    return `${row.tableId}:${row.order.orderId}`;
+    return `${row.tableId}:${readOrderId(row.order)}`;
+  }
+
+  orderIdForRow(row: OrderHistoryRow): string {
+    return readOrderId(row.order);
+  }
+
+  isClosedOrder(row: OrderHistoryRow): boolean {
+    return !readIsOrderOpen(row.order);
   }
 
   toggleOrderDetails(row: OrderHistoryRow): void {
     const key = this.rowKey(row);
     const next = this.expandedRowKey === key ? null : key;
     this.expandedRowKey = next;
-    if (next && this.showFiscalActions && !row.order.isOrderOpen) {
-      void this.loadFiscalDocuments(row.order.orderId);
+    if (next && this.showFiscalActions && this.isClosedOrder(row)) {
+      void this.loadFiscalDocuments(this.orderIdForRow(row));
     }
   }
 
@@ -282,24 +299,39 @@ export class TableOrdersByDateComponent implements OnInit {
   }
 
   canIssueInvoice(row: OrderHistoryRow): boolean {
-    if (!this.showFiscalActions || row.order.isOrderOpen) {
+    if (!this.showFiscalActions || !this.isClosedOrder(row)) {
       return false;
     }
-    return !hasIssuedInvoice(this.documentsForOrder(row.order.orderId));
+    return !hasIssuedInvoice(this.documentsForOrder(this.orderIdForRow(row)));
   }
 
   canIssueStorno(row: OrderHistoryRow): boolean {
-    if (!this.showFiscalActions || row.order.isOrderOpen) {
+    if (!this.showFiscalActions || !this.isClosedOrder(row)) {
       return false;
     }
-    return listStornoEligibleDocuments(this.documentsForOrder(row.order.orderId)).length > 0;
+    return listStornoEligibleDocuments(this.documentsForOrder(this.orderIdForRow(row))).length > 0;
+  }
+
+  fiscalActionsHint(row: OrderHistoryRow): string | null {
+    if (!this.showFiscalActions || !this.isClosedOrder(row) || this.canIssueStorno(row)) {
+      return null;
+    }
+
+    const docs = this.documentsForOrder(this.orderIdForRow(row));
+    if (!docs.length) {
+      return 'orderHistory.fiscalHintNoDocuments';
+    }
+    if (docs.some(doc => doc.status.trim().toLowerCase() === 'pending')) {
+      return 'orderHistory.fiscalHintPending';
+    }
+    return 'orderHistory.fiscalHintNotEligible';
   }
 
   stornoEligibleDocuments(row: OrderHistoryRow | null): FiscalDocumentDto[] {
     if (!row) {
       return [];
     }
-    return listStornoEligibleDocuments(this.documentsForOrder(row.order.orderId));
+    return listStornoEligibleDocuments(this.documentsForOrder(this.orderIdForRow(row)));
   }
 
   documentTypeLabel(documentType: string): string {
@@ -322,8 +354,8 @@ export class TableOrdersByDateComponent implements OnInit {
 
     const orderIds = [...new Set(
       rows
-        .filter(row => !row.order.isOrderOpen)
-        .map(row => row.order.orderId)
+        .filter(row => this.isClosedOrder(row))
+        .map(row => this.orderIdForRow(row))
         .filter((orderId): orderId is string => !!orderId?.trim()),
     )];
 
@@ -430,7 +462,7 @@ export class TableOrdersByDateComponent implements OnInit {
         this.transloco.translate('orderHistory.fiscalInvoiceQueuedBody'),
         this.transloco.translate('orderHistory.fiscalInvoiceQueuedTitle'),
       );
-      await this.loadFiscalDocuments(this.activeRow.order.orderId);
+      await this.loadFiscalDocuments(this.orderIdForRow(this.activeRow));
     } catch (err) {
       console.error('Fiscal invoice failed', err);
       this.toast.error(
@@ -467,7 +499,7 @@ export class TableOrdersByDateComponent implements OnInit {
         this.transloco.translate('orderHistory.fiscalStornoQueuedBody'),
         this.transloco.translate('orderHistory.fiscalStornoQueuedTitle'),
       );
-      await this.loadFiscalDocuments(this.activeRow.order.orderId);
+      await this.loadFiscalDocuments(this.orderIdForRow(this.activeRow));
     } catch (err) {
       console.error('Fiscal storno failed', err);
       this.toast.error(
