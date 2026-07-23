@@ -32,13 +32,14 @@ import {
 } from '../../../core/services/print-jobs/print-jobs.service';
 import { resolveFiscalErrorInfo } from '../../../core/fiscal/fiscal-error-catalog';
 import {
-  defaultFiscalVatMappingForLocale,
+  defaultFiscalVatMappingForCountry,
   mappingRowsFromRecord,
   recordFromMappingRows,
 } from '../../../core/fiscal/fiscal-vat-group.mapper';
+import { isFiscalCountrySupported } from '../../../core/fiscal/fiscal-profile';
 import {
   isAnyFiscalPrinter,
-  isFiscalPrinterForLocale,
+  isFiscalPrinterForCountry,
 } from '../../../core/print/printer-agent-printer.util';
 import type { FiscalPrintErrorDto } from '../../../core/services/print-jobs/print-jobs.service';
 import {
@@ -130,6 +131,7 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
 
   fiscalPrintingEnabled = false;
   defaultFiscalPrinterId: string | null = null;
+  fiscalCountryCode: 'RO' | 'IT' = 'RO';
   loadingFiscalSettings = false;
   savingFiscalSettings = false;
   fiscalVatRows: Array<{ percent: string; group: number }> = [];
@@ -241,13 +243,12 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
   }
 
   get showFiscalPrinterSettings(): boolean {
-    const lang = this.transloco.getActiveLang();
-    return lang === 'ro' || lang === 'it';
+    return isFiscalCountrySupported(this.fiscalCountryCode);
   }
 
   get fiscalPrinters(): PrinterAgentPrinterDto[] {
     return this.billPrinters.filter(p =>
-      isFiscalPrinterForLocale(p, this.transloco.getActiveLang()),
+      isFiscalPrinterForCountry(p, this.fiscalCountryCode),
     );
   }
 
@@ -271,13 +272,13 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
     const list = [...this.fiscalPrinters];
     const id = this.defaultFiscalPrinterId;
     if (id && !list.some(p => p.id === id)) {
-      const isItalian = this.transloco.getActiveLang() === 'it';
+      const profileCountry = this.fiscalCountryCode;
       list.unshift({
         id,
         name: this.transloco.translate('restaurantSettings.fiscalPrinter.pendingPrinterName'),
         ipAddress: '',
-        port: isItalian ? 443 : 65400,
-        type: isItalian ? 'epson-fiscal' : 'fiscalnet',
+        port: profileCountry === 'IT' ? 443 : 65400,
+        type: profileCountry === 'IT' ? 'epson-fiscal' : 'fiscalnet',
       });
     }
     return list;
@@ -888,18 +889,19 @@ export class ManagerSettingsComponent implements OnInit, OnDestroy {
   }
 
   private applyFiscalSettings(settings: FiscalPrinterSettingsDto): void {
+    this.fiscalCountryCode = settings.fiscalCountryCode ?? 'RO';
     this.fiscalPrintingEnabled = !!settings.fiscalPrintingEnabled;
     this.defaultFiscalPrinterId = settings.defaultFiscalPrinterId ?? null;
     const mapping = settings.vatGroupMapping ?? {};
     this.fiscalVatRows = mappingRowsFromRecord(
       Object.keys(mapping).length > 0
         ? mapping
-        : defaultFiscalVatMappingForLocale(this.transloco.getActiveLang()),
+        : defaultFiscalVatMappingForCountry(this.fiscalCountryCode),
     );
   }
 
   addFiscalVatRow(): void {
-    const defaultPercent = this.transloco.getActiveLang() === 'it' ? '22' : '19';
+    const defaultPercent = this.fiscalCountryCode === 'IT' ? '22' : '21';
     this.fiscalVatRows = [...this.fiscalVatRows, { percent: defaultPercent, group: 1 }];
   }
 

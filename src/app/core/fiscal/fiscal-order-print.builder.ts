@@ -121,12 +121,47 @@ export function listStornoEligibleDocuments(documents: FiscalDocumentDto[]): Fis
       const documentType = normalizeFiscalDocumentType(doc.documentType);
       return isIssuedFiscalStatus(doc.status)
         && (documentType === 'receipt' || documentType === 'invoice')
-        && !documents.some(
-          storno =>
-            normalizeFiscalDocumentType(storno.documentType) === 'stornoreso'
-            && isIssuedFiscalStatus(storno.status)
-            && sameFiscalDocumentId(storno.referencedFiscalDocumentId, doc.id),
-        );
+        && !hasIssuedStornoForReference(documents, doc.id);
     },
+  );
+}
+
+export type OrderFiscalStornoState = 'none' | 'partial' | 'full';
+
+export function getOrderFiscalStornoState(documents: FiscalDocumentDto[]): OrderFiscalStornoState {
+  const issuedOriginals = documents.filter(doc => {
+    const documentType = normalizeFiscalDocumentType(doc.documentType);
+    return isIssuedFiscalStatus(doc.status)
+      && (documentType === 'receipt' || documentType === 'invoice');
+  });
+
+  if (!issuedOriginals.length) {
+    return 'none';
+  }
+
+  const stornedCount = issuedOriginals.filter(doc => hasIssuedStornoForReference(documents, doc.id)).length;
+  if (stornedCount === 0) {
+    return 'none';
+  }
+  return stornedCount === issuedOriginals.length ? 'full' : 'partial';
+}
+
+export function isFiscalDocumentStorned(document: FiscalDocumentDto, documents: FiscalDocumentDto[]): boolean {
+  const documentType = normalizeFiscalDocumentType(document.documentType);
+  if (documentType !== 'receipt' && documentType !== 'invoice') {
+    return false;
+  }
+  if (!isIssuedFiscalStatus(document.status)) {
+    return false;
+  }
+  return hasIssuedStornoForReference(documents, document.id);
+}
+
+function hasIssuedStornoForReference(documents: FiscalDocumentDto[], referencedDocumentId: string): boolean {
+  return documents.some(
+    storno =>
+      normalizeFiscalDocumentType(storno.documentType) === 'stornoreso'
+      && isIssuedFiscalStatus(storno.status)
+      && sameFiscalDocumentId(storno.referencedFiscalDocumentId, referencedDocumentId),
   );
 }

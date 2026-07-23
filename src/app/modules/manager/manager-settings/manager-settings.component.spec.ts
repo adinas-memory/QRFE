@@ -5,7 +5,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
 import { SubscriptionService } from '../../../core/services/subscription-service/subscription.service';
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
-import { PrintJobsService } from '../../../core/services/print-jobs/print-jobs.service';
+import { PrintJobsService, createDefaultFiscalPrinterSettings } from '../../../core/services/print-jobs/print-jobs.service';
 import { OfflinePrimaryService } from '../../../core/services/offline-primary/offline-primary.service';
 import { provideTransloco, TranslocoService } from '@jsverse/transloco';
 import { provideHttpClient } from '@angular/common/http';
@@ -56,18 +56,16 @@ describe('ManagerSettingsComponent bill printer', () => {
     printJobs.listAgentInstallations.and.returnValue(of([]));
     printJobs.getDefaultBillPrinter.and.returnValue(of({ defaultBillPrinterId: 'main-printer' }));
     printJobs.getFiscalPrinterSettings.and.returnValue(
-      of({
-        fiscalPrintingEnabled: false,
-        defaultFiscalPrinterId: null,
-        vatGroupMapping: { '19': 1, '9': 2, '5': 3 },
-      }),
+      of(createDefaultFiscalPrinterSettings({
+        vatGroupMapping: { '21': 1, '11': 2, '5': 3 },
+      })),
     );
     printJobs.updateFiscalPrinterSettings.and.returnValue(
-      of({
+      of(createDefaultFiscalPrinterSettings({
         fiscalPrintingEnabled: true,
         defaultFiscalPrinterId: 'fiscal-1',
-        vatGroupMapping: { '19': 1 },
-      }),
+        vatGroupMapping: { '21': 1 },
+      })),
     );
     printJobs.getRecentFiscalPrintErrors.and.returnValue(
       of({
@@ -181,8 +179,8 @@ describe('ManagerSettingsComponent bill printer', () => {
     expect(component.escPosBillPrinters.length).toBe(0);
   });
 
-  it('infers Epson fiscal printer from type and port when locale is Italian', () => {
-    TestBed.inject(TranslocoService).setActiveLang('it');
+  it('infers Epson fiscal printer from type when fiscal country is IT', () => {
+    component.fiscalCountryCode = 'IT';
     component.defaultBillPrinterId = null;
     component.billPrinters = [
       { id: 'it-epson', name: 'Epson FP', ipAddress: '192.168.1.20', port: 443, type: 'epson-fiscal' },
@@ -200,8 +198,8 @@ describe('ManagerSettingsComponent bill printer', () => {
     expect(component.escPosBillPrinters.map(p => p.id)).toEqual(['kitchen']);
   });
 
-  it('flags agent printers that do not match Italian fiscal filter', () => {
-    TestBed.inject(TranslocoService).setActiveLang('it');
+  it('flags agent printers that do not match IT fiscal profile', () => {
+    component.fiscalCountryCode = 'IT';
     component.billPrinters = [
       { id: 'kitchen', name: 'Kitchen', ipAddress: '192.168.1.21', port: 9100, type: 'escpos' },
     ];
@@ -223,23 +221,21 @@ describe('ManagerSettingsComponent bill printer', () => {
     );
   });
 
-  it('hides fiscal printer card when locale is neither Romanian nor Italian', () => {
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('#fiscal-printer')).toBeNull();
-  });
-
-  it('shows fiscal printer card when locale is Romanian', async () => {
-    const transloco = TestBed.inject(TranslocoService);
-    await transloco.load('ro').toPromise();
-    transloco.setActiveLang('ro');
+  it('shows fiscal printer card for RO fiscal country regardless of UI locale', () => {
+    TestBed.inject(TranslocoService).setActiveLang('en');
+    component.fiscalCountryCode = 'RO';
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('#fiscal-printer')).not.toBeNull();
   });
 
-  it('shows fiscal printer card when locale is Italian', async () => {
-    const transloco = TestBed.inject(TranslocoService);
-    await transloco.load('it').toPromise();
-    transloco.setActiveLang('it');
+  it('shows fiscal printer card when fiscal country is RO', async () => {
+    component.fiscalCountryCode = 'RO';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#fiscal-printer')).not.toBeNull();
+  });
+
+  it('shows fiscal printer card when fiscal country is IT', async () => {
+    component.fiscalCountryCode = 'IT';
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('#fiscal-printer')).not.toBeNull();
   });
@@ -248,8 +244,8 @@ describe('ManagerSettingsComponent bill printer', () => {
     expect(printJobs.getFiscalPrinterSettings).toHaveBeenCalledWith('019c1a13-db50-763a-8cde-4a39922a538d');
   });
 
-  it('loads fiscal print errors with page size 3 when locale is Romanian', () => {
-    TestBed.inject(TranslocoService).setActiveLang('ro');
+  it('loads fiscal print errors when fiscal country is RO', () => {
+    component.fiscalCountryCode = 'RO';
     component.loadFiscalPrintErrors();
     expect(printJobs.getRecentFiscalPrintErrors).toHaveBeenCalledWith(
       '019c1a13-db50-763a-8cde-4a39922a538d',
@@ -258,9 +254,9 @@ describe('ManagerSettingsComponent bill printer', () => {
     );
   });
 
-  it('loads fiscal print errors when locale is Italian', () => {
+  it('loads fiscal print errors when fiscal country is IT', () => {
     printJobs.getRecentFiscalPrintErrors.calls.reset();
-    TestBed.inject(TranslocoService).setActiveLang('it');
+    component.fiscalCountryCode = 'IT';
     component.loadFiscalPrintErrors();
     expect(printJobs.getRecentFiscalPrintErrors).toHaveBeenCalledWith(
       '019c1a13-db50-763a-8cde-4a39922a538d',
@@ -310,17 +306,9 @@ describe('ManagerSettingsComponent reseller context', () => {
             listAgentInstallations: () => of([]),
             getDefaultBillPrinter: () => of({ defaultBillPrinterId: null }),
             getFiscalPrinterSettings: () =>
-              of({
-                fiscalPrintingEnabled: false,
-                defaultFiscalPrinterId: null,
-                vatGroupMapping: {},
-              }),
+              of(createDefaultFiscalPrinterSettings()),
             updateFiscalPrinterSettings: () =>
-              of({
-                fiscalPrintingEnabled: false,
-                defaultFiscalPrinterId: null,
-                vatGroupMapping: {},
-              }),
+              of(createDefaultFiscalPrinterSettings()),
           },
         },
         {

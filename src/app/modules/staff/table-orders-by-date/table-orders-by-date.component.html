@@ -126,11 +126,23 @@
                   <td>{{ row.tableName }}</td>
                   <td>{{ row.order.createdOn | date: 'short' }}</td>
                   <td>
-                    @if (row.order.isOrderOpen) {
-                      <c-badge color="warning">{{ 'orderHistory.statusOpen' | transloco }}</c-badge>
-                    } @else {
-                      <c-badge color="success">{{ 'orderHistory.statusClosed' | transloco }}</c-badge>
-                    }
+                    <div class="d-flex flex-wrap gap-1">
+                      @if (row.order.isOrderOpen) {
+                        <c-badge color="warning">{{ 'orderHistory.statusOpen' | transloco }}</c-badge>
+                      } @else {
+                        <c-badge color="success">{{ 'orderHistory.statusClosed' | transloco }}</c-badge>
+                      }
+                      @if (showFiscalActions && isClosedOrder(row)) {
+                        @switch (fiscalStornoStateForRow(row)) {
+                          @case ('full') {
+                            <c-badge color="secondary">{{ 'orderHistory.statusStornoFull' | transloco }}</c-badge>
+                          }
+                          @case ('partial') {
+                            <c-badge color="info">{{ 'orderHistory.statusStornoPartial' | transloco }}</c-badge>
+                          }
+                        }
+                      }
+                    </div>
                   </td>
                   <td>{{ itemCount(row.order) }}</td>
                   <td>
@@ -220,9 +232,12 @@
                             @for (doc of documentsForOrder(orderIdForRow(row)); track doc.id) {
                               <li>
                                 {{ documentTypeLabel(doc.documentType) }}
-                                — {{ doc.status }}
+                                — {{ documentStatusLabel(doc.status) }}
                                 @if (doc.fiscalNumber) {
                                   — #{{ doc.fiscalNumber }}
+                                }
+                                @if (documentIsStorned(doc, orderIdForRow(row))) {
+                                  — {{ 'orderHistory.fiscalDocStorned' | transloco }}
                                 }
                               </li>
                             }

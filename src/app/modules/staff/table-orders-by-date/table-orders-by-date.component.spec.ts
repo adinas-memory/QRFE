@@ -9,6 +9,20 @@ import { TablesService } from '../../../core/services/tables-service/tables.serv
 import { AppToastService } from '../../../core/services/toast-service/toast-service.service';
 import { MiscellaneousService } from '../../../core/services/misc/miscellaneous.service';
 import { PrintJobsService } from '../../../core/services/print-jobs/print-jobs.service';
+import type { FiscalPrinterSettingsDto } from '../../../core/services/print-jobs/print-jobs.service';
+
+function fiscalSettings(overrides: Partial<FiscalPrinterSettingsDto> = {}): FiscalPrinterSettingsDto {
+  return {
+    fiscalCountryCode: 'RO',
+    fiscalPrintingEnabled: false,
+    defaultFiscalPrinterId: null,
+    vatGroupMapping: {},
+    fiscalProvider: null,
+    supportsInvoice: false,
+    supportsStornoReso: false,
+    ...overrides,
+  };
+}
 import { FiscalDocumentsService } from '../../../core/services/fiscal-documents/fiscal-documents.service';
 import { Currency } from '../../../core/models/restaurantTablesModel';
 
@@ -65,12 +79,8 @@ describe('TableOrdersByDateComponent', () => {
       'createFiscalInvoiceJob',
       'createFiscalStornoResoJob',
     ]);
-    printJobs.getDefaultFiscalPrinterForStaff.and.returnValue(
-      of({ fiscalPrintingEnabled: false, defaultFiscalPrinterId: null, vatGroupMapping: {} }),
-    );
-    printJobs.getFiscalPrinterSettings.and.returnValue(
-      of({ fiscalPrintingEnabled: false, defaultFiscalPrinterId: null, vatGroupMapping: {} }),
-    );
+    printJobs.getDefaultFiscalPrinterForStaff.and.returnValue(of(fiscalSettings()));
+    printJobs.getFiscalPrinterSettings.and.returnValue(of(fiscalSettings()));
 
     fiscalDocuments = jasmine.createSpyObj('FiscalDocumentsService', ['listByOrder']);
     fiscalDocuments.listByOrder.and.returnValue(of([]));
@@ -161,22 +171,21 @@ describe('TableOrdersByDateComponent', () => {
     expect(toast.error).toHaveBeenCalled();
   });
 
-  it('should show fiscal actions for Romanian locale when fiscal printing is enabled', () => {
-    transloco.setActiveLang('ro');
+  it('should show fiscal actions when fiscal country is supported and printing is enabled', () => {
+    component.fiscalCountryCode = 'RO';
     component.fiscalPrintingEnabled = true;
     expect(component.showFiscalActions).toBeTrue();
   });
 
-  it('should hide fiscal actions for unsupported locales', () => {
-    transloco.setActiveLang('en');
-    component.fiscalPrintingEnabled = true;
+  it('should hide fiscal actions when fiscal printing is disabled', () => {
+    component.fiscalCountryCode = 'RO';
+    component.fiscalPrintingEnabled = false;
     expect(component.showFiscalActions).toBeFalse();
   });
 
   it('should prefetch fiscal documents for closed orders when fiscal actions are enabled', async () => {
-    transloco.setActiveLang('ro');
     printJobs.getDefaultFiscalPrinterForStaff.and.returnValue(
-      of({ fiscalPrintingEnabled: true, defaultFiscalPrinterId: 'printer-1', vatGroupMapping: {} }),
+      of(fiscalSettings({ fiscalPrintingEnabled: true, defaultFiscalPrinterId: 'printer-1' })),
     );
     fiscalDocuments.listByOrder.and.returnValue(
       of([
@@ -202,13 +211,19 @@ describe('TableOrdersByDateComponent', () => {
     fixture.detectChanges();
 
     expect(fiscalDocuments.listByOrder).toHaveBeenCalledWith('r1', 'o1', 'staff');
-    expect(component.canIssueStorno(component.orderRows[0])).toBeTrue();
+    expect(component.canIssueStorno(component.orderRows[0])).toBeFalse();
   });
 
-  it('should enable storno for issued Epson invoice documents', async () => {
-    transloco.setActiveLang('it');
+  it('should enable storno for issued Epson invoice documents in IT fiscal profile', async () => {
     printJobs.getDefaultFiscalPrinterForStaff.and.returnValue(
-      of({ fiscalPrintingEnabled: true, defaultFiscalPrinterId: 'printer-1', vatGroupMapping: {} }),
+      of(fiscalSettings({
+        fiscalCountryCode: 'IT',
+        fiscalPrintingEnabled: true,
+        defaultFiscalPrinterId: 'printer-1',
+        fiscalProvider: 'epson-fiscal',
+        supportsInvoice: true,
+        supportsStornoReso: true,
+      })),
     );
     fiscalDocuments.listByOrder.and.returnValue(
       of([
@@ -237,13 +252,14 @@ describe('TableOrdersByDateComponent', () => {
     expect(component.canIssueInvoice(component.orderRows[0])).toBeFalse();
   });
 
-  it('should prefetch fiscal documents after switching to a supported locale', async () => {
+  it('should prefetch fiscal documents after switching locale when fiscal profile is active', async () => {
     fiscalDocuments.listByOrder.calls.reset();
     printJobs.getDefaultFiscalPrinterForStaff.and.returnValue(
-      of({ fiscalPrintingEnabled: true, defaultFiscalPrinterId: 'printer-1', vatGroupMapping: {} }),
+      of(fiscalSettings({ fiscalPrintingEnabled: true, defaultFiscalPrinterId: 'printer-1' })),
     );
 
     transloco.setActiveLang('en');
+    component.fiscalCountryCode = 'RO';
     component.fiscalPrintingEnabled = true;
     component.reportLoaded = true;
     component.orderRows = [
@@ -268,10 +284,53 @@ describe('TableOrdersByDateComponent', () => {
   });
 
   it('should show hint when no fiscal documents are registered for the order', () => {
-    transloco.setActiveLang('ro');
+    component.fiscalCountryCode = 'RO';
     component.fiscalPrintingEnabled = true;
     component.fiscalDocumentsByOrder = new Map();
 
     expect(component.fiscalActionsHint(component.orderRows[0])).toBe('orderHistory.fiscalHintNoDocuments');
+  });
+
+  it('should expose full storno state when all issued receipts are reversed', () => {
+    component.fiscalCountryCode = 'IT';
+    component.fiscalPrintingEnabled = true;
+    component.fiscalDocumentsByOrder = new Map([
+      [
+        'o1',
+        [
+          {
+            id: 'r1',
+            orderId: 'o1',
+            printJobId: 'job-1',
+            documentType: 'Receipt',
+            status: 'Issued',
+            fiscalNumber: '100',
+            zReportNumber: '1',
+            fiscalDate: null,
+            referencedFiscalDocumentId: null,
+            provider: 'Epson',
+            createdAtUtc: '2026-07-06T10:00:00Z',
+            issuedAtUtc: '2026-07-06T10:01:00Z',
+          },
+          {
+            id: 's1',
+            orderId: 'o1',
+            printJobId: 'job-2',
+            documentType: 'StornoReso',
+            status: 'Issued',
+            fiscalNumber: '101',
+            zReportNumber: '1',
+            fiscalDate: null,
+            referencedFiscalDocumentId: 'r1',
+            provider: 'Epson',
+            createdAtUtc: '2026-07-06T10:05:00Z',
+            issuedAtUtc: '2026-07-06T10:05:00Z',
+          },
+        ],
+      ],
+    ]);
+
+    expect(component.fiscalStornoStateForRow(component.orderRows[0])).toBe('full');
+    expect(component.canIssueStorno(component.orderRows[0])).toBeFalse();
   });
 });

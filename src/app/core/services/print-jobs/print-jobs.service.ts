@@ -2,7 +2,11 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { normalizePrinterAgentPrinter } from '../../print/printer-agent-printer.util';
+import { normalizeFiscalCountryCode, type FiscalCountryCode } from '../../fiscal/fiscal-profile';
+import {
+  normalizePrinterAgentPrinter,
+  type ResolvedPrinterType,
+} from '../../print/printer-agent-printer.util';
 
 export interface PrinterAgentPrinterDto {
   id: string;
@@ -22,14 +26,33 @@ export interface PrinterAgentInstallationDto {
 }
 
 export interface FiscalPrinterSettingsDto {
+  fiscalCountryCode: FiscalCountryCode;
   fiscalPrintingEnabled: boolean;
   defaultFiscalPrinterId: string | null;
   vatGroupMapping: Record<string, number>;
+  fiscalProvider: ResolvedPrinterType | null;
+  supportsInvoice: boolean;
+  supportsStornoReso: boolean;
+}
+
+export function createDefaultFiscalPrinterSettings(
+  overrides: Partial<FiscalPrinterSettingsDto> = {},
+): FiscalPrinterSettingsDto {
+  return {
+    fiscalCountryCode: 'RO',
+    fiscalPrintingEnabled: false,
+    defaultFiscalPrinterId: null,
+    vatGroupMapping: {},
+    fiscalProvider: null,
+    supportsInvoice: false,
+    supportsStornoReso: false,
+    ...overrides,
+  };
 }
 
 export function normalizeFiscalPrinterSettings(raw: unknown): FiscalPrinterSettingsDto {
   if (!raw || typeof raw !== 'object') {
-    return { fiscalPrintingEnabled: false, defaultFiscalPrinterId: null, vatGroupMapping: {} };
+    return createDefaultFiscalPrinterSettings();
   }
 
   const record = raw as Record<string, unknown>;
@@ -46,12 +69,24 @@ export function normalizeFiscalPrinterSettings(raw: unknown): FiscalPrinterSetti
       ? (mappingRaw as Record<string, number>)
       : {};
 
+  const fiscalCountryCode = normalizeFiscalCountryCode(
+    nullableString(record['fiscalCountryCode'] ?? record['FiscalCountryCode']) ?? 'RO',
+  );
+  const providerRaw = nullableString(record['fiscalProvider'] ?? record['FiscalProvider']);
+  const fiscalProvider = providerRaw === 'epson-fiscal' || providerRaw === 'fiscalnet'
+    ? providerRaw
+    : null;
+
   return {
+    fiscalCountryCode,
     fiscalPrintingEnabled: !!(record['fiscalPrintingEnabled'] ?? record['FiscalPrintingEnabled']),
     defaultFiscalPrinterId: nullableString(
       record['defaultFiscalPrinterId'] ?? record['DefaultFiscalPrinterId'],
     ),
     vatGroupMapping,
+    fiscalProvider,
+    supportsInvoice: !!(record['supportsInvoice'] ?? record['SupportsInvoice']),
+    supportsStornoReso: !!(record['supportsStornoReso'] ?? record['SupportsStornoReso']),
   };
 }
 
