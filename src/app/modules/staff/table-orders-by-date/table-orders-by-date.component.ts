@@ -28,8 +28,9 @@ import type { FiscalCountryCode } from '../../../core/fiscal/fiscal-profile';
 import {
   buildFiscalInvoicePayload,
   buildFiscalStornoResoPayload,
+  canIssueInvoiceForOrder,
   getOrderFiscalStornoState,
-  hasIssuedInvoice,
+  hasActiveReceipt,
   isFiscalDocumentStorned,
   listStornoEligibleDocuments,
   type OrderFiscalStornoState,
@@ -315,7 +316,10 @@ export class TableOrdersByDateComponent implements OnInit {
     if (!this.showFiscalActions || !this.supportsInvoice || !this.isClosedOrder(row)) {
       return false;
     }
-    return !hasIssuedInvoice(this.documentsForOrder(this.orderIdForRow(row)));
+    return canIssueInvoiceForOrder(
+      this.documentsForOrder(this.orderIdForRow(row)),
+      readIsOrderOpen(row.order),
+    );
   }
 
   canIssueStorno(row: OrderHistoryRow): boolean {
@@ -331,6 +335,12 @@ export class TableOrdersByDateComponent implements OnInit {
     }
 
     const docs = this.documentsForOrder(this.orderIdForRow(row));
+    if (this.supportsInvoice && hasActiveReceipt(docs)) {
+      return 'orderHistory.fiscalHintReceiptBlocksInvoice';
+    }
+    if (this.supportsInvoice && this.canIssueInvoice(row)) {
+      return 'orderHistory.fiscalHintReadyForInvoice';
+    }
     if (!docs.length) {
       return 'orderHistory.fiscalHintNoDocuments';
     }

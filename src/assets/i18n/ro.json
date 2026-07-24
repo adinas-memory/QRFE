@@ -502,6 +502,8 @@
     "fiscalPrintQueuedBody": "Bonul fiscal a fost trimis la printare.",
     "fiscalPrintNoPrinterTitle": "Bon fiscal",
     "fiscalPrintNoPrinterBody": "Nu există imprimantă fiscală configurată.",
+    "fiscalReceiptBlockedTitle": "Bon fiscal",
+    "fiscalReceiptBlockedBody": "Pentru această comandă există deja factură fiscală sau bon. Emite doar un tip de document.",
     "fiscalPrintErrorTitle": "Bon fiscal",
     "fiscalPrintErrorBody": "Nu s-a putut trimite bonul fiscal la imprimantă.",
     "openCashDrawer": "Deschide sertar",
@@ -629,6 +631,8 @@
     "fiscalInvoiceValidation": "Completează numele, CUI/CIF și adresa clientului.",
     "fiscalHintNoDocuments": "Niciun document fiscal înregistrat online pentru această comandă.",
     "fiscalHintPending": "Document fiscal în așteptare (agentul nu a confirmat încă emiterea).",
+    "fiscalHintReceiptBlocksInvoice": "Există deja un bon fiscal pentru această comandă. Factura nu poate fi emisă.",
+    "fiscalHintReadyForInvoice": "Comanda este închisă fără bon fiscal. Poți emite factura.",
     "fiscalHintNotEligible": "Documentele fiscale existente nu permit stornarea."
   },
   "manageStaff": {
